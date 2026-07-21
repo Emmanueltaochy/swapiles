@@ -10,60 +10,7 @@
         && auth()->user()?->stripe_details_submitted;
 
     $territoireCookie = request('territoire', request()->cookie('swapiles_territoire', 'La Réunion'));
-@endphp
 
-<section class="bg-gray-50 min-h-screen py-8">
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="mb-6">
-            <a href="{{ route('account.dashboard') }}" class="text-sm font-semibold text-teal-700 hover:text-teal-900">← Retour à mon compte</a>
-            <h1 class="mt-3 text-3xl sm:text-4xl font-extrabold text-gray-900">Déposer une annonce</h1>
-            <p class="text-gray-500 mt-2">Ajoutez votre article en quelques minutes.</p>
-        </div>
-
-        @if($errors->any())
-            <div class="mb-6 bg-red-50 text-red-700 rounded-2xl p-4 text-sm">
-                <strong>Il y a une erreur :</strong><br>{{ $errors->first() }}
-            </div>
-        @endif
-
-        <form method="POST" action="{{ route('account.listings.store') }}" enctype="multipart/form-data" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 sm:p-7 space-y-6">
-            @csrf
-
-            <div>
-                <label class="block text-sm font-bold text-gray-800 mb-2">Photos</label>
-                <input type="file" name="images[]" multiple accept="image/*" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 text-sm">
-                <p class="text-xs text-gray-500 mt-2">Tu peux ajouter plusieurs photos. Max 5 Mo par image.</p>
-            </div>
-
-            <div>
-                <label class="block text-sm font-bold text-gray-800 mb-2">Titre de l’annonce</label>
-                <input type="text" name="title" value="{{ old('title') }}" required placeholder="Ex : Robe Zara noire taille M" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-            </div>
-
-            <div>
-                <label class="block text-sm font-bold text-gray-800 mb-2">Description</label>
-                <textarea name="description" rows="5" required placeholder="Décris l’état, la taille, les détails importants..." class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">{{ old('description') }}</textarea>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-bold text-gray-800 mb-2">Type d’annonce</label>
-                    <select name="listing_type" required class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-                        <option value="achat" @selected(old('listing_type') === 'achat')>Vente</option>
-                        <option value="negoce-prix" @selected(old('listing_type') === 'negoce-prix')>Vente / prix négociable</option>
-                        <option value="don" @selected(old('listing_type') === 'don')>Don</option>
-                        <option value="echange-produits" @selected(old('listing_type') === 'echange-produits')>Échange</option>
-                        <option value="location-vetements" @selected(old('listing_type') === 'location-vetements')>Location vêtement</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-bold text-gray-800 mb-2">Prix en €</label>
-                    <input type="number" name="price" value="{{ old('price') }}" min="0" placeholder="Ex : 15" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-                </div>
-            </div>
-
-            @php
     $oldLevel1 = old('category_level1', isset($listing) ? $listing->category_level1 : '');
     $oldLevel2 = old('category_level2', isset($listing) ? $listing->category_level2 : '');
     $oldLevel3 = old('category_level3', isset($listing) ? $listing->category_level3 : '');
@@ -72,124 +19,237 @@
     $oldCash = old('payment_cash', 1);
     $oldExchange = old('payment_exchange', (isset($listing) ? $listing->listing_type : '') === 'echange-produits' ? 1 : 0);
     $oldDon = old('payment_don', (isset($listing) ? $listing->listing_type : '') === 'don' ? 1 : 0);
+
+    $inp = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100';
+    $lbl = 'mb-1.5 block text-sm font-semibold text-gray-800';
 @endphp
 
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-    <div>
-        <label class="block text-sm font-bold text-gray-800 mb-2">Catégorie principale</label>
-        <select name="category_level1" id="category_level1" required class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-            <option value="">Choisir</option>
-            <option value="femme" @selected($oldLevel1 === 'femme' || $oldLevel1 === 'Femme')>Femme</option>
-            <option value="homme" @selected($oldLevel1 === 'homme' || $oldLevel1 === 'Homme')>Homme</option>
-            <option value="enfant" @selected($oldLevel1 === 'enfant' || $oldLevel1 === 'Enfant')>Enfant</option>
-        </select>
-    </div>
+<section class="bg-gray-50 min-h-screen py-6 sm:py-8">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6">
 
-    <div>
-        <label class="block text-sm font-bold text-gray-800 mb-2">Sous-catégorie</label>
-        <select name="category_level2" id="category_level2" required class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-            <option value="">Choisir d’abord une catégorie</option>
-        </select>
-    </div>
-
-    <div>
-        <label class="block text-sm font-bold text-gray-800 mb-2">Type d’article</label>
-        <select name="category_level3" id="category_level3" required class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-            <option value="">Choisir d’abord une sous-catégorie</option>
-        </select>
-    </div>
-</div>
-
-<div class="mt-6 rounded-3xl border border-gray-200 bg-white p-5 space-y-4">
-    <div>
-        <h3 class="text-lg font-extrabold text-gray-900">Moyens acceptés</h3>
-        <p class="text-sm text-gray-500 mt-1">
-            Vous pouvez proposer plusieurs options. Colissimo est disponible uniquement avec le paiement CB sécurisé.
-        </p>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <label class="flex items-start gap-3 rounded-2xl {{ $stripeReady ? 'bg-teal-50 border border-teal-100' : 'bg-gray-50 opacity-70' }} p-4 cursor-pointer">
-            <input type="checkbox" id="payment_cb" name="payment_cb" value="1" @disabled(!$stripeReady)
-                   class="mt-1 rounded text-teal-700 focus:ring-teal-600"
-                   @checked((bool) $oldCb)>
-            <span>
-                <span class="block font-bold text-gray-900">CB sécurisé Swap’Îles</span>
-                <span class="block text-sm text-gray-500">Paiement protégé. Obligatoire pour Colissimo.</span>
-            </span>
-        </label>
-
-        <label class="flex items-start gap-3 rounded-2xl bg-gray-50 p-4 cursor-pointer">
-            <input type="checkbox" id="payment_cash" name="payment_cash" value="1"
-                   class="mt-1 rounded text-teal-700 focus:ring-teal-600"
-                   @checked((bool) $oldCash)>
-            <span>
-                <span class="block font-bold text-gray-900">Espèces</span>
-                <span class="block text-sm text-gray-500">Disponible uniquement en remise en main propre.</span>
-            </span>
-        </label>
-
-        <label class="flex items-start gap-3 rounded-2xl bg-gray-50 p-4 cursor-pointer">
-            <input type="checkbox" id="payment_exchange" name="payment_exchange" value="1"
-                   class="mt-1 rounded text-teal-700 focus:ring-teal-600"
-                   @checked((bool) $oldExchange)>
-            <span>
-                <span class="block font-bold text-gray-900">Échange</span>
-                <span class="block text-sm text-gray-500">Disponible uniquement en remise en main propre.</span>
-            </span>
-        </label>
-
-        <label class="flex items-start gap-3 rounded-2xl bg-gray-50 p-4 cursor-pointer">
-            <input type="checkbox" id="payment_don" name="payment_don" value="1"
-                   class="mt-1 rounded text-teal-700 focus:ring-teal-600"
-                   @checked((bool) $oldDon)>
-            <span>
-                <span class="block font-bold text-gray-900">Don</span>
-                <span class="block text-sm text-gray-500">Le prix sera mis à 0 € si le type d’annonce est Don.</span>
-            </span>
-        </label>
-    </div>
-
-    @if(!$stripeReady)
-        <div class="rounded-2xl border border-amber-100 bg-amber-50 p-4">
-            <p class="font-extrabold text-amber-950">🔐 CB sécurisé non activé</p>
-            <p class="text-sm text-amber-800 mt-1">Connectez votre compte bancaire pour activer le paiement CB et Colissimo.</p>
-            <a href="{{ route('account.dashboard') }}" class="inline-flex mt-3 bg-amber-900 text-white font-extrabold rounded-2xl px-5 py-3 text-sm">
-                Connecter mon compte bancaire
-            </a>
+        <div class="mb-6">
+            <a href="{{ route('account.dashboard') }}" class="text-sm font-semibold text-teal-700 hover:text-teal-900">← Retour à mon compte</a>
+            <h1 class="mt-3 text-2xl sm:text-3xl font-bold text-gray-900">Déposer une annonce</h1>
+            <p class="mt-1 text-gray-500">Quelques étapes simples, et c'est en ligne.</p>
         </div>
-    @endif
-</div>
 
-<div class="mt-6 rounded-3xl border border-gray-200 bg-white p-5 space-y-4">
-    <h3 class="text-lg font-extrabold text-gray-900">Remise / livraison</h3>
+        @if($errors->any())
+            <div class="mb-6 rounded-xl bg-red-50 p-4 text-sm text-red-700">
+                <strong>Oups, il y a une erreur :</strong><br>{{ $errors->first() }}
+            </div>
+        @endif
 
-    <label class="flex items-start gap-3 rounded-2xl bg-emerald-50 border border-emerald-100 p-4 cursor-pointer">
-        <input type="checkbox" id="allows_hand_delivery" name="allows_hand_delivery" value="1"
-               class="mt-1 rounded text-teal-700 focus:ring-teal-600"
-               @checked(old('allows_hand_delivery', isset($listing) ? $listing->allows_hand_delivery : true))>
-        <span>
-            <span class="block font-bold text-emerald-950">Remise en main propre</span>
-            <span class="block text-sm text-emerald-700">Obligatoire si vous acceptez espèces, échange ou don.</span>
-        </span>
-    </label>
+        <form method="POST" action="{{ route('account.listings.store') }}" enctype="multipart/form-data" class="space-y-5">
+            @csrf
 
-    <label id="colissimo_box" class="flex items-start gap-3 rounded-2xl bg-blue-50 border border-blue-100 p-4 cursor-pointer">
-        <input type="checkbox" id="allows_colissimo" name="allows_colissimo" value="1" @disabled(!$stripeReady)
-               class="mt-1 rounded text-teal-700 focus:ring-teal-600"
-               @checked(old('allows_colissimo', isset($listing) ? $listing->allows_colissimo : false))>
-        <span>
-            <span class="block font-bold text-blue-950">Colissimo</span>
-            <span class="block text-sm text-blue-700">Disponible uniquement avec CB sécurisé. Frais calculés automatiquement au paiement.</span>
-        </span>
-    </label>
+            {{-- Étape 1 : Photos --}}
+            <div class="rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 shadow-sm">
+                <div class="mb-4 flex items-center gap-2">
+                    <span class="grid h-7 w-7 place-items-center rounded-full bg-teal-600 text-sm font-bold text-white">1</span>
+                    <h2 class="font-semibold text-gray-900">📷 Photos</h2>
+                </div>
+                <label for="images" class="{{ $lbl }}">Ajoute tes photos</label>
+                <input id="images" type="file" name="images[]" multiple accept="image/*"
+                       class="w-full rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-teal-600 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-teal-700">
+                <p class="mt-2 text-xs text-gray-500">Plusieurs photos possibles · max 5 Mo par image. Une belle 1ʳᵉ photo = plus de ventes.</p>
+            </div>
 
-    <div id="weight_box">
-        <label class="block text-sm font-bold text-gray-700 mb-2">Poids du colis en kg</label>
-        <input type="number" step="0.01" min="0.01" max="30" name="weight_kg" value="{{ old('weight_kg', isset($listing) ? $listing->weight_kg : '') }}" placeholder="Ex : 0.50" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-        <p class="text-xs text-gray-500 mt-1">Obligatoire si vous proposez Colissimo.</p>
+            {{-- Étape 2 : Ton article --}}
+            <div class="rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+                <div class="flex items-center gap-2">
+                    <span class="grid h-7 w-7 place-items-center rounded-full bg-teal-600 text-sm font-bold text-white">2</span>
+                    <h2 class="font-semibold text-gray-900">📝 Ton article</h2>
+                </div>
+
+                <div>
+                    <label for="title" class="{{ $lbl }}">Titre de l'annonce</label>
+                    <input id="title" type="text" name="title" value="{{ old('title') }}" required placeholder="Ex : Robe Zara noire taille M" class="{{ $inp }}">
+                </div>
+
+                <div>
+                    <label for="description" class="{{ $lbl }}">Description</label>
+                    <textarea id="description" name="description" rows="5" required placeholder="Décris l'état, la taille, les détails importants…" class="{{ $inp }}">{{ old('description') }}</textarea>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label for="category_level1" class="{{ $lbl }}">Catégorie</label>
+                        <select name="category_level1" id="category_level1" required class="{{ $inp }}">
+                            <option value="">Choisir</option>
+                            <option value="femme" @selected($oldLevel1 === 'femme' || $oldLevel1 === 'Femme')>Femme</option>
+                            <option value="homme" @selected($oldLevel1 === 'homme' || $oldLevel1 === 'Homme')>Homme</option>
+                            <option value="enfant" @selected($oldLevel1 === 'enfant' || $oldLevel1 === 'Enfant')>Enfant</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="category_level2" class="{{ $lbl }}">Sous-catégorie</label>
+                        <select name="category_level2" id="category_level2" required class="{{ $inp }}">
+                            <option value="">Choisir d'abord une catégorie</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="category_level3" class="{{ $lbl }}">Type d'article</label>
+                        <select name="category_level3" id="category_level3" required class="{{ $inp }}">
+                            <option value="">Choisir d'abord une sous-catégorie</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label for="etat" class="{{ $lbl }}">État</label>
+                        <select id="etat" name="etat" class="{{ $inp }}">
+                            <option value="">Non renseigné</option>
+                            <option value="Neuf avec étiquette" @selected(old('etat') === 'Neuf avec étiquette')>Neuf avec étiquette</option>
+                            <option value="Neuf sans étiquette" @selected(old('etat') === 'Neuf sans étiquette')>Neuf sans étiquette</option>
+                            <option value="Très bon état" @selected(old('etat') === 'Très bon état')>Très bon état</option>
+                            <option value="Bon état" @selected(old('etat') === 'Bon état')>Bon état</option>
+                            <option value="Satisfaisant" @selected(old('etat') === 'Satisfaisant')>Satisfaisant</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="marque" class="{{ $lbl }}">Marque</label>
+                        <input id="marque" type="text" name="marque" value="{{ old('marque') }}" placeholder="Ex : Nike" class="{{ $inp }}">
+                    </div>
+                    <div>
+                        <label for="taille" class="{{ $lbl }}">Taille</label>
+                        <input id="taille" type="text" name="taille" value="{{ old('taille') }}" placeholder="Ex : M, 38, 6 ans" class="{{ $inp }}">
+                    </div>
+                </div>
+            </div>
+
+            {{-- Étape 3 : Prix & type --}}
+            <div class="rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+                <div class="flex items-center gap-2">
+                    <span class="grid h-7 w-7 place-items-center rounded-full bg-teal-600 text-sm font-bold text-white">3</span>
+                    <h2 class="font-semibold text-gray-900">💶 Prix & type</h2>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="listing_type" class="{{ $lbl }}">Type d'annonce</label>
+                        <select id="listing_type" name="listing_type" required class="{{ $inp }}">
+                            <option value="achat" @selected(old('listing_type') === 'achat')>Vente</option>
+                            <option value="negoce-prix" @selected(old('listing_type') === 'negoce-prix')>Vente / prix négociable</option>
+                            <option value="don" @selected(old('listing_type') === 'don')>Don</option>
+                            <option value="echange-produits" @selected(old('listing_type') === 'echange-produits')>Échange</option>
+                            <option value="location-vetements" @selected(old('listing_type') === 'location-vetements')>Location vêtement</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="price" class="{{ $lbl }}">Prix en €</label>
+                        <input id="price" type="number" name="price" value="{{ old('price') }}" min="0" placeholder="Ex : 15" class="{{ $inp }}">
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500">Pour un don, le prix sera automatiquement mis à 0 €.</p>
+            </div>
+
+            {{-- Étape 4 : Localisation --}}
+            <div class="rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+                <div class="flex items-center gap-2">
+                    <span class="grid h-7 w-7 place-items-center rounded-full bg-teal-600 text-sm font-bold text-white">4</span>
+                    <h2 class="font-semibold text-gray-900">📍 Localisation</h2>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="territoire" class="{{ $lbl }}">Territoire</label>
+                        <select id="territoire" name="territoire" required class="{{ $inp }}">
+                            <option value="La Réunion" @selected(old('territoire', $territoireCookie) === 'La Réunion')>🇷🇪 La Réunion</option>
+                            <option value="Martinique" @selected(old('territoire', $territoireCookie) === 'Martinique')>🇲🇶 Martinique</option>
+                            <option value="Guadeloupe" @selected(old('territoire', $territoireCookie) === 'Guadeloupe')>🇬🇵 Guadeloupe</option>
+                            <option value="Guyane" @selected(old('territoire', $territoireCookie) === 'Guyane')>🇬🇫 Guyane</option>
+                            <option value="Mayotte" @selected(old('territoire', $territoireCookie) === 'Mayotte')>🇾🇹 Mayotte</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="location_address" class="{{ $lbl }}">Localisation (ville)</label>
+                        <input id="location_address" type="text" name="location_address" value="{{ old('location_address') }}" placeholder="Ex : Saint-Pierre, La Réunion" class="{{ $inp }}">
+                    </div>
+                </div>
+            </div>
+
+            {{-- Étape 5 : Paiement & livraison --}}
+            <div class="rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 shadow-sm space-y-5">
+                <div class="flex items-center gap-2">
+                    <span class="grid h-7 w-7 place-items-center rounded-full bg-teal-600 text-sm font-bold text-white">5</span>
+                    <h2 class="font-semibold text-gray-900">🔒 Paiement & livraison</h2>
+                </div>
+
+                <div>
+                    <p class="mb-3 text-sm font-semibold text-gray-800">Moyens acceptés</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label class="flex cursor-pointer items-start gap-3 rounded-xl p-4 {{ $stripeReady ? 'border border-teal-100 bg-teal-50' : 'bg-gray-50 opacity-70' }}">
+                            <input type="checkbox" id="payment_cb" name="payment_cb" value="1" @disabled(!$stripeReady) class="mt-1 rounded text-teal-600 focus:ring-teal-500" @checked((bool) $oldCb)>
+                            <span>
+                                <span class="block font-semibold text-gray-900">CB sécurisé Swap'Îles</span>
+                                <span class="block text-sm text-gray-500">Paiement protégé. Obligatoire pour Colissimo.</span>
+                            </span>
+                        </label>
+                        <label class="flex cursor-pointer items-start gap-3 rounded-xl bg-gray-50 p-4">
+                            <input type="checkbox" id="payment_cash" name="payment_cash" value="1" class="mt-1 rounded text-teal-600 focus:ring-teal-500" @checked((bool) $oldCash)>
+                            <span>
+                                <span class="block font-semibold text-gray-900">Espèces</span>
+                                <span class="block text-sm text-gray-500">Uniquement en main propre.</span>
+                            </span>
+                        </label>
+                        <label class="flex cursor-pointer items-start gap-3 rounded-xl bg-gray-50 p-4">
+                            <input type="checkbox" id="payment_exchange" name="payment_exchange" value="1" class="mt-1 rounded text-teal-600 focus:ring-teal-500" @checked((bool) $oldExchange)>
+                            <span>
+                                <span class="block font-semibold text-gray-900">Échange</span>
+                                <span class="block text-sm text-gray-500">Uniquement en main propre.</span>
+                            </span>
+                        </label>
+                        <label class="flex cursor-pointer items-start gap-3 rounded-xl bg-gray-50 p-4">
+                            <input type="checkbox" id="payment_don" name="payment_don" value="1" class="mt-1 rounded text-teal-600 focus:ring-teal-500" @checked((bool) $oldDon)>
+                            <span>
+                                <span class="block font-semibold text-gray-900">Don</span>
+                                <span class="block text-sm text-gray-500">Prix à 0 € si type = Don.</span>
+                            </span>
+                        </label>
+                    </div>
+
+                    @if(!$stripeReady)
+                        <div class="mt-3 rounded-xl border border-amber-100 bg-amber-50 p-4">
+                            <p class="font-semibold text-amber-950">🔐 CB sécurisé non activé</p>
+                            <p class="mt-1 text-sm text-amber-800">Connecte ton compte bancaire pour activer le paiement CB et Colissimo.</p>
+                            <a href="{{ route('account.dashboard') }}" class="mt-3 inline-flex rounded-xl bg-amber-900 px-5 py-2.5 text-sm font-semibold text-white">Connecter mon compte bancaire</a>
+                        </div>
+                    @endif
+                </div>
+
+                <div>
+                    <p class="mb-3 text-sm font-semibold text-gray-800">Remise / livraison</p>
+                    <div class="space-y-3">
+                        <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+                            <input type="checkbox" id="allows_hand_delivery" name="allows_hand_delivery" value="1" class="mt-1 rounded text-teal-600 focus:ring-teal-500" @checked(old('allows_hand_delivery', isset($listing) ? $listing->allows_hand_delivery : true))>
+                            <span>
+                                <span class="block font-semibold text-emerald-950">🤝 Remise en main propre</span>
+                                <span class="block text-sm text-emerald-700">Obligatoire si tu acceptes espèces, échange ou don.</span>
+                            </span>
+                        </label>
+
+                        <label id="colissimo_box" class="flex cursor-pointer items-start gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4">
+                            <input type="checkbox" id="allows_colissimo" name="allows_colissimo" value="1" @disabled(!$stripeReady) class="mt-1 rounded text-teal-600 focus:ring-teal-500" @checked(old('allows_colissimo', isset($listing) ? $listing->allows_colissimo : false))>
+                            <span>
+                                <span class="block font-semibold text-blue-950">📦 Colissimo</span>
+                                <span class="block text-sm text-blue-700">Avec CB sécurisé uniquement. Frais calculés au paiement.</span>
+                            </span>
+                        </label>
+
+                        <div id="weight_box">
+                            <label for="weight_kg" class="{{ $lbl }}">Poids du colis (kg)</label>
+                            <input id="weight_kg" type="number" step="0.01" min="0.01" max="30" name="weight_kg" value="{{ old('weight_kg', isset($listing) ? $listing->weight_kg : '') }}" placeholder="Ex : 0.50" class="{{ $inp }}">
+                            <p class="mt-1 text-xs text-gray-500">Obligatoire si tu proposes Colissimo.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="w-full rounded-xl bg-teal-600 px-6 py-4 font-semibold text-white shadow-sm transition hover:bg-teal-700 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
+                Publier mon annonce
+            </button>
+        </form>
     </div>
-</div>
+</section>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -388,54 +448,4 @@ document.addEventListener('DOMContentLoaded', function () {
     syncPaymentDelivery();
 });
 </script>
-
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-bold text-gray-800 mb-2">Territoire</label>
-                    <select name="territoire" required class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-                        <option value="La Réunion" @selected(old('territoire', $territoireCookie) === 'La Réunion')>🇷🇪 La Réunion</option>
-                        <option value="Martinique" @selected(old('territoire', $territoireCookie) === 'Martinique')>🇲🇶 Martinique</option>
-                        <option value="Guadeloupe" @selected(old('territoire', $territoireCookie) === 'Guadeloupe')>🇬🇵 Guadeloupe</option>
-                        <option value="Guyane" @selected(old('territoire', $territoireCookie) === 'Guyane')>🇬🇫 Guyane</option>
-                        <option value="Mayotte" @selected(old('territoire', $territoireCookie) === 'Mayotte')>🇾🇹 Mayotte</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-bold text-gray-800 mb-2">Localisation</label>
-                    <input type="text" name="location_address" value="{{ old('location_address') }}" placeholder="Ex : Saint-Pierre, La Réunion" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-sm font-bold text-gray-800 mb-2">État</label>
-                    <select name="etat" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-                        <option value="">Non renseigné</option>
-                        <option value="Neuf avec étiquette" @selected(old('etat') === 'Neuf avec étiquette')>Neuf avec étiquette</option>
-                        <option value="Neuf sans étiquette" @selected(old('etat') === 'Neuf sans étiquette')>Neuf sans étiquette</option>
-                        <option value="Très bon état" @selected(old('etat') === 'Très bon état')>Très bon état</option>
-                        <option value="Bon état" @selected(old('etat') === 'Bon état')>Bon état</option>
-                        <option value="Satisfaisant" @selected(old('etat') === 'Satisfaisant')>Satisfaisant</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-bold text-gray-800 mb-2">Marque</label>
-                    <input type="text" name="marque" value="{{ old('marque') }}" placeholder="Ex : Nike" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-bold text-gray-800 mb-2">Taille</label>
-                    <input type="text" name="taille" value="{{ old('taille') }}" placeholder="Ex : M, 38, 6 ans" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-                </div>
-            </div>
-
-            <button class="w-full bg-teal-700 hover:bg-teal-800 text-white font-extrabold rounded-2xl px-6 py-4 transition">
-                Publier mon annonce
-            </button>
-        </form>
-    </div>
-</section>
 @endsection

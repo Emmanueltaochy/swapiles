@@ -1,0 +1,43 @@
+# Dépendances (reconstruites au déploiement)
+/vendor
+/node_modules
+
+# SECRETS — NE JAMAIS envoyer sur GitHub
+.env
+.env.backup
+.env.production
+.env.*.local
+auth.json
+
+# Build front-end
+/public/build
+/public/hot
+/public/storage
+
+# Données & fichiers utilisateurs (photos produits, etc.)
+/storage/app/public/*
+/storage/*.key
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/logs/*
+/bootstrap/cache/*
+
+# Bases locales / dumps
+*.sqlite
+*.sql
+*-backup-*.sql
+
+# Outils
+.phpunit.result.cache
+/.idea
+/.vscode
+npm-debug.log
+yarn-error.log
+
+# Toutes les variantes de .env (sauf exemple)
+.env.*
+!.env.example
+
+# Sauvegardes de code du dev
+/storage/backups-code

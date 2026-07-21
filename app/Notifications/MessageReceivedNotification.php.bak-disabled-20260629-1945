@@ -1,0 +1,47 @@
+<?php
+
+namespace App\Notifications;
+
+use App\Models\Message;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
+
+class MessageReceivedNotification extends Notification implements ShouldQueue
+{
+    use Queueable;
+
+    public function __construct(public Message $message)
+    {
+    }
+
+    public function via(object $notifiable): array
+    {
+        return ['mail'];
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        $message = $this->message->loadMissing(['listing', 'sender']);
+        $listing = $message->listing;
+        $sender = $message->sender;
+
+        $url = $listing
+            ? route('account.messages.show', ['listing' => $listing, 'user' => $sender])
+            : route('account.messages.show.general', ['user' => $sender]);
+
+        return (new MailMessage)
+            ->from('contact@swapiles.com', 'Swap Îles')
+            ->replyTo('contact@swapiles.com')
+            ->subject('Nouveau message sur Swap Îles')
+            ->greeting('Bonjour 👋')
+            ->line(($sender->name ?? 'Un membre') . ' vous a envoyé un nouveau message.')
+            ->line($listing ? 'Annonce : “' . $listing->title . '”' : 'Conversation directe')
+            ->line('Message :')
+            ->line($message->body)
+            ->action('Voir le message', $url)
+            ->line('À très vite sur Swap Îles.')
+            ->salutation('L’équipe Swap Îles');
+    }
+}

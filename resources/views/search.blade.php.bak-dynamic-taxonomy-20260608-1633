@@ -1,0 +1,304 @@
+@extends('layouts.app')
+
+@section('title', 'Recherche — Swap\'Îles')
+
+@section('content')
+
+<section class="bg-white border-b border-gray-200 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+
+        <form method="GET" action="{{ route('search') }}" class="space-y-4">
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ request('q') }}"
+                    placeholder="Rechercher des articles"
+                    class="flex-1 px-4 py-3 bg-gray-100 rounded-2xl border-0 text-sm focus:ring-2 focus:ring-teal-600"
+                >
+
+                <button class="bg-teal-700 hover:bg-teal-800 text-white font-bold px-6 py-3 rounded-2xl transition">
+                    Rechercher
+                </button>
+            </div>
+
+            <div class="flex gap-2 overflow-x-auto pb-1">
+                @php
+                    $categoryTree = [
+                        'femme' => [
+                            'label' => 'Femme',
+                            'level2' => [
+                                'vetements' => ['label' => 'Vêtements', 'level3' => ['robes', 'hauts-et-t-shirt', 'jeans-pantalons-shorts', 'ensembles-combi', 'jupes', 'maillots-de-bain', 'robes-de-soirees', 'robes-de-ceremonie', 'robes-de-mariage', 'sous-vetements']],
+                                'chaussures' => ['label' => 'Chaussures', 'level3' => ['baskets', 'talons', 'savates', 'sandales', 'bottes-bottines']],
+                                'accessoires' => ['label' => 'Accessoires', 'level3' => ['bijoux', 'sacs-a-main', 'sacs-a-dos', 'montres', 'ceintures', 'bananes']],
+                            ],
+                        ],
+                        'homme' => [
+                            'label' => 'Homme',
+                            'level2' => [
+                                'vetements' => ['label' => 'Vêtements', 'level3' => ['hauts-et-t-shirts', 'jeans-pantalons-shorts', 'costumes']],
+                                'chaussures-homme' => ['label' => 'Chaussures', 'level3' => ['baskets', 'savates-sandales', 'bottes']],
+                                'accessoires' => ['label' => 'Accessoires', 'level3' => ['montres', 'ceintures', 'sacs-a-dos']],
+                            ],
+                        ],
+                        'enfant' => [
+                            'label' => 'Enfant',
+                            'level2' => [
+                                'vetements-enfants' => ['label' => 'Vêtements enfant', 'level3' => ['bodies', 'pyjamas', 'costumes-de-carnaval-enfant', 'costumes-de-ceremonie-enfant']],
+                                'chaussures-enfants' => ['label' => 'Chaussures enfant', 'level3' => ['baskets', 'chaussons', 'sandales']],
+                                'puericulture' => ['label' => 'Puériculture', 'level3' => ['poussettes', 'porte-bebes-echarpes', 'biberons', 'lits-bebe', 'cododos', 'sterilisateurs', 'chaises-hautes', 'sieges-auto', 'vaisselle-bebe', 'matelas', 'tables-a-langer']],
+                                'jeux-enfant' => ['label' => 'Jeux enfant', 'level3' => ['jeux-exterieurs-plage-jardin', 'jouets-d-eveil', 'jeux-educatifs', 'jeux-de-societe', 'puzzles', 'figurines']],
+                            ],
+                        ],
+                    ];
+
+                    $selectedCategory = request('category');
+                    $selectedLevel2 = request('category_level2');
+                    $selectedLevel3 = request('category_level3');
+                @endphp
+
+                <select name="category" id="category_level1_select" onchange="resetSubCategoriesAndSubmit()" class="shrink-0 px-4 py-2 rounded-full border border-gray-300 bg-white text-sm">
+                    <option value="">Catégorie</option>
+                    @foreach($categoryTree as $key => $cat)
+                        <option value="{{ $key }}" @selected($selectedCategory === $key)>{{ $cat['label'] }}</option>
+                    @endforeach
+                </select>
+
+
+
+                <select name="category_level2" id="category_level2_select" onchange="resetLevel3AndSubmit()" class="shrink-0 px-4 py-2 rounded-full border border-gray-300 bg-white text-sm">
+                    <option value="">Sous-catégorie</option>
+                    @foreach($categoryTree as $parentKey => $cat)
+                        @foreach($cat['level2'] as $level2Key => $level2)
+                            <option value="{{ $level2Key }}" data-parent="{{ $parentKey }}" @selected($selectedLevel2 === $level2Key)>
+                                {{ $level2['label'] }}
+                            </option>
+                        @endforeach
+                    @endforeach
+                </select>
+
+                <select name="category_level3" id="category_level3_select" onchange="this.form.submit()" class="shrink-0 px-4 py-2 rounded-full border border-gray-300 bg-white text-sm">
+                    <option value="">Type précis</option>
+                    @foreach($categoryTree as $parentKey => $cat)
+                        @foreach($cat['level2'] as $level2Key => $level2)
+                            @foreach($level2['level3'] as $level3Key)
+                                <option value="{{ $level3Key }}" data-parent="{{ $parentKey }}" data-level2="{{ $level2Key }}" @selected($selectedLevel3 === $level3Key)>
+                                    {{ ucfirst(str_replace('-', ' ', $level3Key)) }}
+                                </option>
+                            @endforeach
+                        @endforeach
+                    @endforeach
+                </select>
+
+
+                <select name="listing_type" onchange="this.form.submit()" class="shrink-0 px-4 py-2 rounded-full border border-gray-300 bg-white text-sm">
+                    <option value="">Type</option>
+                    <option value="achat" @selected(request('listing_type') === 'achat')>🔒 Achat protégé</option>
+                    <option value="negoce-prix" @selected(request('listing_type') === 'negoce-prix')>💵 Prix négociable</option>
+                    <option value="don" @selected(request('listing_type') === 'don')>🎁 Don</option>
+                    <option value="echange-produits" @selected(request('listing_type') === 'echange-produits')>🔄 Échange</option>
+                    <option value="location-vetements" @selected(request('listing_type') === 'location-vetements')>👗 Location</option>
+                </select>
+
+                <select name="territoire" onchange="this.form.submit()" class="shrink-0 px-4 py-2 rounded-full border border-gray-300 bg-white text-sm">
+                    <option value="">Tous les territoires</option>
+                    <option value="La Réunion" @selected(($selectedTerritoire ?? request('territoire')) === 'La Réunion')>🇷🇪 La Réunion</option>
+                    <option value="Martinique" @selected(($selectedTerritoire ?? request('territoire')) === 'Martinique')>🇲🇶 Martinique</option>
+                    <option value="Guadeloupe" @selected(($selectedTerritoire ?? request('territoire')) === 'Guadeloupe')>🇬🇵 Guadeloupe</option>
+                    <option value="Guyane" @selected(($selectedTerritoire ?? request('territoire')) === 'Guyane')>🇬🇫 Guyane</option>
+                    <option value="Mayotte" @selected(($selectedTerritoire ?? request('territoire')) === 'Mayotte')>🇾🇹 Mayotte</option>
+                </select>
+
+                <label class="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm font-black cursor-pointer">
+                    <input type="checkbox" name="inter_iles" value="1" onchange="this.form.submit()" @checked(request()->boolean('inter_iles')) class="rounded text-emerald-700 focus:ring-emerald-600">
+                    🌍 Inter-îles
+                </label>
+
+                <select name="etat" onchange="this.form.submit()" class="shrink-0 px-4 py-2 rounded-full border border-gray-300 bg-white text-sm">
+                    <option value="">État</option>
+                    <option value="Neuf avec étiquette" @selected(request('etat') === 'Neuf avec étiquette')>Neuf avec étiquette</option>
+                    <option value="Neuf sans étiquette" @selected(request('etat') === 'Neuf sans étiquette')>Neuf sans étiquette</option>
+                    <option value="Très bon état" @selected(request('etat') === 'Très bon état')>Très bon état</option>
+                    <option value="Bon état" @selected(request('etat') === 'Bon état')>Bon état</option>
+                    <option value="Satisfaisant" @selected(request('etat') === 'Satisfaisant')>Satisfaisant</option>
+                </select>
+
+                <input name="taille" value="{{ request('taille') }}" type="text" placeholder="Taille" class="shrink-0 w-24 px-4 py-2 rounded-full border border-gray-300 bg-white text-sm">
+
+                <input name="min_price" value="{{ request('min_price') }}" type="number" placeholder="Min €" class="shrink-0 w-24 px-4 py-2 rounded-full border border-gray-300 bg-white text-sm">
+
+                <input name="max_price" value="{{ request('max_price') }}" type="number" placeholder="Max €" class="shrink-0 w-24 px-4 py-2 rounded-full border border-gray-300 bg-white text-sm">
+
+                <select name="sort" onchange="this.form.submit()" class="shrink-0 px-4 py-2 rounded-full border border-gray-300 bg-white text-sm">
+                    <option value="">Plus récents</option>
+                    <option value="price_asc" @selected(request('sort') === 'price_asc')>Prix croissant</option>
+                    <option value="price_desc" @selected(request('sort') === 'price_desc')>Prix décroissant</option>
+                    <option value="oldest" @selected(request('sort') === 'oldest')>Plus anciens</option>
+                </select>
+
+            </div>
+
+            @if(request()->query())
+                <div class="flex flex-wrap items-center gap-2 text-sm">
+                    @foreach(request()->query() as $key => $value)
+                        @if($value)
+                            <span class="inline-flex items-center gap-2 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full">
+                                {{ $value }}
+                            </span>
+                        @endif
+                    @endforeach
+
+                    <a href="{{ route('search') }}" class="font-bold text-teal-700 hover:text-teal-900">
+                        Réinitialiser
+                    </a>
+                </div>
+            @endif
+
+        </form>
+
+    </div>
+</section>
+
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <div class="flex items-center justify-between mb-5">
+        <div>
+            <h1 class="text-2xl font-extrabold text-gray-900">Articles</h1>
+            <p class="text-sm text-gray-500 mt-1">{{ $listings->total() }} résultats</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5">
+
+        @forelse($listings as $listing)
+
+            <a href="{{ route('listings.show', $listing) }}" class="group block">
+
+                <div class="relative aspect-[4/5] bg-gray-100 rounded-2xl overflow-hidden">
+                    @if($listing->images->first())
+                        <img src="{{ $listing->images->first()->url }}" alt="{{ $listing->title }}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    @else
+                        <div class="w-full h-full flex items-center justify-center text-gray-300 text-5xl">📦</div>
+                    @endif
+
+                    @auth
+                        <button
+                            type="button"
+                            onclick="event.preventDefault(); event.stopPropagation(); window.location.href='{{ route('account.favorites.toggle.get', $listing) }}';"
+                            class="absolute top-2 right-2 w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow text-lg z-20"
+                        >
+                            {{ auth()->user()->favorites()->where('listing_id', $listing->id)->exists() ? '❤️' : '🤍' }}
+                        </button>
+                    @else
+                        <button
+                            type="button"
+                            onclick="event.preventDefault(); event.stopPropagation(); window.location.href='{{ route('login') }}';"
+                            class="absolute top-2 right-2 w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow text-gray-500 z-20"
+                        >
+                            ♡
+                        </button>
+                    @endauth
+
+                    @if($listing->listing_type === 'don')
+                        <span class="absolute top-2 left-2 bg-green-600 text-white text-[11px] font-bold px-2 py-1 rounded-full">🎁 Don</span>
+                    @elseif($listing->listing_type === 'echange-produits')
+                        <span class="absolute top-2 left-2 bg-blue-600 text-white text-[11px] font-bold px-2 py-1 rounded-full">🔄 Échange</span>
+                    @elseif($listing->listing_type === 'achat')
+                        <span class="absolute top-2 left-2 bg-teal-700 text-white text-[11px] font-bold px-2 py-1 rounded-full">🔒 Protégé</span>
+                    @endif
+                </div>
+
+                <div class="pt-2">
+                    <p class="text-sm font-semibold text-gray-900 line-clamp-1">{{ $listing->title }}</p>
+
+                    @if($listing->user)
+                        <p class="text-xs text-gray-500 mt-1 line-clamp-1">
+                            Vendu par <span class="font-semibold text-gray-700">{{ $listing->user->name }}</span>
+                        </p>
+                    @endif
+
+                    <p class="text-xs text-gray-500 mt-1 line-clamp-1">
+                        @if($listing->taille){{ strtoupper($listing->taille) }}@endif
+                        @if($listing->etat) · {{ $listing->etat }}@endif
+                        @if($listing->marque) · {{ $listing->marque }}@endif
+                    </p>
+
+                    <p class="text-sm font-extrabold text-gray-900 mt-1">
+                        @if($listing->price > 0)
+                            {{ number_format($listing->price, 0, ',', ' ') }} €
+                        @else
+                            <span class="text-green-600">Gratuit</span>
+                        @endif
+                    </p>
+                </div>
+
+            </a>
+
+        @empty
+
+            <div class="col-span-full bg-white border border-dashed border-gray-300 rounded-3xl p-10 text-center">
+                <div class="text-5xl mb-3">🔍</div>
+                <h3 class="text-xl font-bold text-gray-900">Aucune annonce trouvée</h3>
+                <p class="text-gray-500 mt-2">Essaie avec un autre mot-clé ou enlève certains filtres.</p>
+            </div>
+
+        @endforelse
+
+    </div>
+
+    <div class="mt-10">
+        {{ $listings->links() }}
+    </div>
+
+</section>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    filterCategoryOptions();
+});
+
+function filterCategoryOptions() {
+    const level1 = document.getElementById('category_level1_select');
+    const level2 = document.getElementById('category_level2_select');
+    const level3 = document.getElementById('category_level3_select');
+
+    if (!level1 || !level2 || !level3) return;
+
+    const selectedCat = level1.value;
+    const selectedLevel2 = level2.value;
+
+    [...level2.options].forEach(option => {
+        if (!option.value) {
+            option.hidden = false;
+            return;
+        }
+        option.hidden = selectedCat && option.dataset.parent !== selectedCat;
+    });
+
+    [...level3.options].forEach(option => {
+        if (!option.value) {
+            option.hidden = false;
+            return;
+        }
+
+        option.hidden =
+            (selectedCat && option.dataset.parent !== selectedCat) ||
+            (selectedLevel2 && option.dataset.level2 !== selectedLevel2);
+    });
+}
+
+function resetSubCategoriesAndSubmit() {
+    document.getElementById('category_level2_select').value = '';
+    document.getElementById('category_level3_select').value = '';
+    document.getElementById('category_level1_select').form.submit();
+}
+
+function resetLevel3AndSubmit() {
+    document.getElementById('category_level3_select').value = '';
+    document.getElementById('category_level2_select').form.submit();
+}
+</script>
+
+@endsection

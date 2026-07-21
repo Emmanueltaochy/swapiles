@@ -1,0 +1,43 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+@media (max-width: 640px) {
+    nav[role="navigation"] {
+        overflow-x: auto;
+        max-width: 100vw;
+        padding: 0 12px 90px 12px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    nav[role="navigation"] > div {
+        display: flex !important;
+        justify-content: flex-start !important;
+        gap: 8px;
+        min-width: max-content;
+    }
+
+    nav[role="navigation"] span,
+    nav[role="navigation"] a {
+        min-width: 42px;
+        height: 42px;
+        border-radius: 999px !important;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+
+    nav[role="navigation"] p,
+    nav[role="navigation"] .text-sm {
+        display: none !important;
+    }
+}
+

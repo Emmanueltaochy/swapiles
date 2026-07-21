@@ -1,0 +1,18 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Listing;
+use RuntimeException;
+
+class ColissimoRateService
+{
+    public function calculateForListing(Listing $listing, array $address): float
+    {
+        // Sécurité : on refuse un faux prix.
+        // À brancher ici sur l'API tarifaire officielle Colissimo / La Poste.
+        throw new RuntimeException(
+            "Le calcul tarifaire Colissimo réel n'est pas encore connecté. Aucun prix fictif n'a été appliqué."
+        );
+    }
+}

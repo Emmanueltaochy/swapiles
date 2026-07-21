@@ -1,0 +1,308 @@
+@extends('layouts.app')
+
+@section('title', 'Commande — Swap\'Îles')
+
+@section('content')
+@php
+    $itemAmount = $itemAmount ?? ($offer ? (int) $offer->amount : (int) $listing->price);
+    $canColissimo = ($listing->requires_online_payment ?? false) && ($listing->allows_colissimo ?? false);
+    $canHandDelivery = ($listing->allows_hand_delivery ?? $listing->pickup_enabled ?? true);
+    $defaultDelivery = $canHandDelivery ? 'hand_delivery' : ($canColissimo ? 'colissimo' : '');
+@endphp
+
+<section class="bg-gray-50 min-h-screen py-8">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <h1 class="text-3xl font-extrabold text-gray-900 mb-6">Vérifier ma commande</h1>
+
+        @if($errors->any())
+            <div class="mb-6 bg-red-50 text-red-700 rounded-2xl p-4 text-sm font-bold">
+                {{ $errors->first() }}
+            </div>
+        @endif
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
+                <h2 class="text-xl font-extrabold text-gray-900 mb-4">Article</h2>
+
+                <div class="flex gap-4">
+                    <div class="w-28 h-36 rounded-2xl bg-gray-100 overflow-hidden shrink-0">
+                        @if($listing->images->first())
+                            <img src="{{ $listing->images->first()->url }}" class="w-full h-full object-cover" alt="{{ $listing->title }}">
+                        @else
+                            <div class="w-full h-full flex items-center justify-center text-gray-300 text-4xl">📦</div>
+                        @endif
+                    </div>
+
+                    <div>
+                        <h3 class="font-extrabold text-gray-900">{{ $listing->title }}</h3>
+                        <p class="text-sm text-gray-500 mt-1">Vendu par {{ $listing->user->name ?? 'un membre Swap’Îles' }}</p>
+
+                        @if($offer)
+                            <p class="text-xs font-extrabold text-emerald-700 mt-3">Offre acceptée</p>
+                            <p class="text-sm text-gray-400 line-through">{{ number_format($listing->price, 0, ',', ' ') }} €</p>
+                        @endif
+
+                        <p class="text-2xl font-extrabold text-teal-700 mt-1">
+                            {{ number_format($itemAmount, 0, ',', ' ') }} €
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
+                <h2 class="text-xl font-extrabold text-gray-900 mb-4">Mode de remise</h2>
+
+                <form method="POST" action="{{ route('checkout.start', $listing) }}" class="space-y-4">
+                    @csrf
+
+                    @if($offer)
+                        <input type="hidden" name="offer" value="{{ $offer->id }}">
+                    @endif
+
+                    @if($canHandDelivery)
+                        <label class="block rounded-2xl border border-gray-200 p-4 cursor-pointer">
+                            <div class="flex items-start gap-3">
+                                <input type="radio" name="delivery_method" value="hand_delivery"
+                                       class="mt-1 text-teal-700 focus:ring-teal-600"
+                                       @checked(old('delivery_method', $defaultDelivery) === 'hand_delivery')>
+                                <div>
+                                    <p class="font-extrabold text-gray-900">Remise en main propre</p>
+                                    <p class="text-sm text-gray-500 mt-1">
+                                        Rendez-vous proposé :
+                                        <span class="font-bold text-gray-800">
+                                            {{ $listing->hand_delivery_location ?: $listing->location_address ?: 'à définir avec le vendeur' }}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        </label>
+                    @endif
+
+                    @if($canColissimo)
+                        <label class="block rounded-2xl border border-teal-100 bg-teal-50 p-4 cursor-pointer">
+                            <div class="flex items-start gap-3">
+                                <input type="radio" name="delivery_method" value="colissimo"
+                                       class="mt-1 text-teal-700 focus:ring-teal-600"
+                                       @checked(old('delivery_method') === 'colissimo')>
+
+                                <div class="w-full">
+                                    <p class="font-extrabold text-teal-900">Livraison Colissimo</p>
+                                    <p class="text-sm text-teal-700 mt-1">
+                                        Choisissez une livraison à domicile ou en point retrait.
+                                    </p>
+
+                                    <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <label class="rounded-2xl border border-white bg-white p-3 cursor-pointer">
+                                            <input type="radio" name="colissimo_delivery_type" value="home"
+                                                   class="text-teal-700 focus:ring-teal-600"
+                                                   @checked(old('colissimo_delivery_type', 'home') === 'home')>
+                                            <span class="ml-2 font-bold text-gray-900">À domicile</span>
+                                            <p class="text-xs text-gray-500 mt-1">Livraison à votre adresse.</p>
+                                        </label>
+
+                                        <label class="rounded-2xl border border-white bg-white p-3 cursor-pointer">
+                                            <input type="radio" name="colissimo_delivery_type" value="pickup"
+                                                   class="text-teal-700 focus:ring-teal-600"
+                                                   @checked(old('colissimo_delivery_type') === 'pickup')>
+                                            <span class="ml-2 font-bold text-gray-900">Point retrait</span>
+                                            <p class="text-xs text-gray-500 mt-1">Choisir un relais Colissimo.</p>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
+
+                        <div class="rounded-2xl border border-gray-100 bg-gray-50 p-4 space-y-3" id="colissimo-address-block">
+                            <p class="font-extrabold text-gray-900">Informations de livraison</p>
+
+                            <input name="buyer_full_name" value="{{ old('buyer_full_name', auth()->user()->name) }}" placeholder="Nom complet *"
+                                   class="w-full rounded-2xl bg-white border-gray-200 px-4 py-3 text-sm">
+
+                            <input name="buyer_phone" value="{{ old('buyer_phone', auth()->user()->phone ?? '') }}" placeholder="Téléphone *"
+                                   class="w-full rounded-2xl bg-white border-gray-200 px-4 py-3 text-sm">
+
+                            <input name="shipping_address_line1" value="{{ old('shipping_address_line1', auth()->user()->address_line1 ?? '') }}" placeholder="Adresse *"
+                                   class="w-full rounded-2xl bg-white border-gray-200 px-4 py-3 text-sm">
+
+                            <input name="shipping_address_line2" value="{{ old('shipping_address_line2', auth()->user()->address_line2 ?? '') }}" placeholder="Complément d’adresse"
+                                   class="w-full rounded-2xl bg-white border-gray-200 px-4 py-3 text-sm">
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <input name="shipping_postal_code" value="{{ old('shipping_postal_code', auth()->user()->postal_code ?? '') }}" placeholder="Code postal *"
+                                       class="w-full rounded-2xl bg-white border-gray-200 px-4 py-3 text-sm">
+
+                                <input name="shipping_city" value="{{ old('shipping_city', auth()->user()->city ?? '') }}" placeholder="Ville *"
+                                       class="w-full rounded-2xl bg-white border-gray-200 px-4 py-3 text-sm">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-1">
+                                    Territoire de livraison <span class="text-red-600">*</span>
+                                </label>
+                                <select name="shipping_territory" class="w-full rounded-2xl bg-white border-gray-200 px-4 py-3 text-sm" required>
+                                    <option value="reunion" @selected(old('shipping_territory', auth()->user()->territoire ?? 'reunion') === 'La Réunion' || old('shipping_territory', auth()->user()->territoire ?? 'reunion') === 'reunion')>La Réunion</option>
+                                    <option value="guyane" @selected(old('shipping_territory', auth()->user()->territoire ?? '') === 'Guyane' || old('shipping_territory') === 'guyane')>Guyane</option>
+                                    <option value="martinique" @selected(old('shipping_territory', auth()->user()->territoire ?? '') === 'Martinique' || old('shipping_territory') === 'martinique')>Martinique</option>
+                                    <option value="guadeloupe" @selected(old('shipping_territory', auth()->user()->territoire ?? '') === 'Guadeloupe' || old('shipping_territory') === 'guadeloupe')>Guadeloupe</option>
+                                    <option value="mayotte" @selected(old('shipping_territory', auth()->user()->territoire ?? '') === 'Mayotte' || old('shipping_territory') === 'mayotte')>Mayotte</option>
+                                    <option value="metropole" @selected(old('shipping_territory') === 'metropole')>France métropolitaine</option>
+                                    <option value="international" @selected(old('shipping_territory') === 'international')>International</option>
+                                </select>
+                                <input type="hidden" name="shipping_country" value="France">
+                            </div>
+
+                            <div id="pickup-search" class="hidden rounded-2xl border border-teal-100 bg-white p-4">
+                                <p class="font-extrabold text-gray-900 mb-2">Point retrait Colissimo</p>
+                                <p class="text-xs text-gray-500 mb-3">Renseignez le code postal et la ville puis recherchez les points disponibles.</p>
+
+                                <button type="button" id="load-pickups" class="w-full bg-teal-700 hover:bg-teal-800 text-white rounded-2xl py-3 font-extrabold">
+                                    Rechercher les points retrait
+                                </button>
+
+                                <div id="pickup-results" class="mt-4 space-y-3"></div>
+
+                                <input type="hidden" name="pickup_id" value="{{ old('pickup_id') }}">
+                                <input type="hidden" name="pickup_name" value="{{ old('pickup_name') }}">
+                                <input type="hidden" name="pickup_address" value="{{ old('pickup_address') }}">
+                                <input type="hidden" name="pickup_postal_code" value="{{ old('pickup_postal_code') }}">
+                                <input type="hidden" name="pickup_city" value="{{ old('pickup_city') }}">
+                                <input type="hidden" name="pickup_country" value="{{ old('pickup_country') }}">
+                                <input type="hidden" name="pickup_type" value="{{ old('pickup_type') }}">
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="pt-4 border-t border-gray-100 space-y-3 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Prix article</span>
+                            <span class="font-bold">{{ number_format($itemAmount, 0, ',', ' ') }} €</span>
+                        </div>
+
+                        <div class="flex justify-between text-lg">
+                            <span class="font-extrabold text-gray-900">Total hors frais éventuels</span>
+                            <span class="font-extrabold text-gray-900">{{ number_format($itemAmount, 0, ',', ' ') }} €</span>
+                        </div>
+                    </div>
+
+                    <button class="w-full bg-teal-700 hover:bg-teal-800 text-white font-extrabold rounded-2xl px-6 py-4 transition">
+                        Continuer vers le paiement
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const deliveryRadios = document.querySelectorAll('input[name="delivery_method"]');
+    const colissimoTypeRadios = document.querySelectorAll('input[name="colissimo_delivery_type"]');
+    const addressBlock = document.getElementById('colissimo-address-block');
+    const pickupSearch = document.getElementById('pickup-search');
+    const pickupResults = document.getElementById('pickup-results');
+    const loadPickups = document.getElementById('load-pickups');
+
+    const pickupFields = {
+        id: document.querySelector('[name="pickup_id"]'),
+        name: document.querySelector('[name="pickup_name"]'),
+        address: document.querySelector('[name="pickup_address"]'),
+        postal: document.querySelector('[name="pickup_postal_code"]'),
+        city: document.querySelector('[name="pickup_city"]'),
+        country: document.querySelector('[name="pickup_country"]'),
+        type: document.querySelector('[name="pickup_type"]'),
+    };
+
+    function checkedValue(name) {
+        const el = document.querySelector(`input[name="${name}"]:checked`);
+        return el ? el.value : null;
+    }
+
+    function toggleBlocks() {
+        const delivery = checkedValue('delivery_method');
+        const colissimoType = checkedValue('colissimo_delivery_type');
+
+        if (addressBlock) {
+            addressBlock.classList.toggle('hidden', delivery !== 'colissimo');
+        }
+
+        if (pickupSearch) {
+            pickupSearch.classList.toggle('hidden', delivery !== 'colissimo' || colissimoType !== 'pickup');
+        }
+    }
+
+    deliveryRadios.forEach(el => el.addEventListener('change', toggleBlocks));
+    colissimoTypeRadios.forEach(el => el.addEventListener('change', toggleBlocks));
+    toggleBlocks();
+
+    if (loadPickups) {
+        loadPickups.addEventListener('click', async () => {
+            const zip = document.querySelector('[name="shipping_postal_code"]')?.value || '';
+            const city = document.querySelector('[name="shipping_city"]')?.value || '';
+            const address = document.querySelector('[name="shipping_address_line1"]')?.value || '';
+
+            if (!zip || !city) {
+                pickupResults.innerHTML = '<div class="rounded-xl bg-red-50 text-red-700 p-3 text-sm font-bold">Renseignez le code postal et la ville avant de rechercher.</div>';
+                return;
+            }
+
+            pickupResults.innerHTML = '<div class="text-sm text-gray-500 font-bold">Recherche des points retrait...</div>';
+
+            try {
+                const response = await fetch('/api/colissimo/points-relais?' + new URLSearchParams({
+                    address: address,
+                    zip_code: zip,
+                    city: city,
+                    country_code: 'FR',
+                    weight_kg: '{{ $listing->weight_kg ?: 0.5 }}'
+                }));
+
+                const json = await response.json();
+
+                if (!json.ok || !json.points || json.points.length === 0) {
+                    pickupResults.innerHTML = '<div class="rounded-xl bg-amber-50 text-amber-700 p-3 text-sm font-bold">Aucun point retrait trouvé pour cette adresse.</div>';
+                    return;
+                }
+
+                pickupResults.innerHTML = '';
+
+                json.points.forEach(point => {
+                    const div = document.createElement('label');
+                    div.className = 'block rounded-2xl border border-gray-200 p-3 cursor-pointer hover:border-teal-400';
+
+                    div.innerHTML = `
+                        <div class="flex gap-3">
+                            <input type="radio" name="pickup_choice" value="${point.id}" class="mt-1 text-teal-700 focus:ring-teal-600">
+                            <div>
+                                <div class="font-extrabold text-gray-900">${point.name || 'Point retrait'}</div>
+                                <div class="text-sm text-gray-500 mt-1">${point.address || ''}<br>${point.postal_code || ''} ${point.city || ''}</div>
+                                ${point.distance ? `<div class="text-xs text-teal-700 font-bold mt-1">${point.distance} m</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+
+                    const radio = div.querySelector('input');
+
+                    radio.addEventListener('change', () => {
+                        pickupFields.id.value = point.id || '';
+                        pickupFields.name.value = point.name || '';
+                        pickupFields.address.value = point.address || '';
+                        pickupFields.postal.value = point.postal_code || '';
+                        pickupFields.city.value = point.city || '';
+                        pickupFields.country.value = point.country || 'FR';
+                        pickupFields.type.value = point.type || '';
+                    });
+
+                    pickupResults.appendChild(div);
+                });
+            } catch (e) {
+                pickupResults.innerHTML = '<div class="rounded-xl bg-red-50 text-red-700 p-3 text-sm font-bold">Erreur pendant la recherche Colissimo.</div>';
+            }
+        });
+    }
+});
+</script>
+
+@endsection

@@ -1,0 +1,740 @@
+@extends('layouts.app')
+
+@section('title', 'Swap\'Îles — La marketplace seconde main des îles')
+
+@section('content')
+
+
+@if(!$hasSelectedTerritoire)
+    <div class="fixed inset-0 z-[9999] bg-slate-950/75 backdrop-blur-md">
+        <div class="h-screen overflow-y-auto px-4 py-6 pb-28">
+            <div class="w-full max-w-xl mx-auto bg-white rounded-[36px] shadow-2xl overflow-hidden border border-white/20 relative z-10">
+            <div class="relative bg-gradient-to-br from-teal-900 via-teal-800 to-emerald-600 px-7 py-8 text-white text-center overflow-hidden relative overflow-hidden">
+                <div class="absolute -top-12 -right-12 text-9xl opacity-10">🌴</div>
+                <div class="absolute -bottom-10 -left-10 text-8xl opacity-10">🌊</div>
+
+                <div class="relative">
+                    <div class="text-5xl mb-3">🌴</div>
+                    <h2 class="text-3xl font-black">Bienvenue sur Swap’Îles</h2>
+                    <p class="text-white/90 mt-2 text-sm">
+                        Choisissez votre territoire pour voir les annonces proches de vous.
+                    </p>
+                </div>
+            </div>
+
+            <div class="p-5 space-y-3">
+                @foreach($territoires as $key => $territoire)
+                    @php
+                        $count = (int) ($territoryCounts[$territoire['label']] ?? 0);
+                    @endphp
+
+                    <a href="{{ route('territoire.switch', $key) }}"
+                       class="group flex items-center justify-between rounded-[26px] border border-gray-100 bg-gray-50 hover:bg-teal-50 hover:border-teal-200 px-5 py-4 transition shadow-sm hover:shadow-md">
+                        <span class="flex items-center gap-4">
+                            <span class="flex items-center justify-center w-14 h-14 rounded-2xl bg-white text-3xl shadow-sm">
+                                {{ $territoire['flag'] }}
+                            </span>
+
+                            <span>
+                                <span class="block text-lg font-black text-gray-950">{{ $territoire['label'] }}</span>
+                                <span class="text-sm text-gray-500">
+                                    @if($count > 0)
+                                        {{ number_format($count, 0, ',', ' ') }} annonces disponibles
+                                    @else
+                                        Soyez le premier à publier sur ce territoire
+                                    @endif
+                                </span>
+                            </span>
+                        </span>
+
+                        <span class="flex items-center justify-center w-10 h-10 rounded-full bg-white text-teal-700 font-black group-hover:bg-teal-700 group-hover:text-white transition">
+                            →
+                        </span>
+                    </a>
+                @endforeach
+            </div>
+
+            <div class="px-6 pb-6">
+                <div class="rounded-3xl bg-emerald-50 border border-emerald-100 p-4 text-center">
+                    <p class="text-sm font-bold text-emerald-900">
+                        Vous pourrez changer d’île à tout moment.
+                    </p>
+                    <p class="text-xs text-emerald-700 mt-1">
+                        Swap’Îles arrive progressivement dans tous les territoires.
+                    </p>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+@endif
+
+
+<section class="bg-white border-b border-gray-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <span class="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-teal-50 text-2xl">
+                {{ $selectedMeta['flag'] }}
+            </span>
+            <div>
+                <p class="text-xs uppercase tracking-wide font-black text-teal-700">Territoire sélectionné</p>
+                <p class="font-black text-gray-900">
+                    Vous naviguez sur {{ $selectedTerritoire }}
+                    <span class="text-gray-500 font-bold">· {{ number_format($activeListingsCount, 0, ',', ' ') }} annonces</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="flex gap-2 overflow-x-auto no-scrollbar">
+            @foreach($territoires as $key => $territoire)
+                <a href="{{ route('territoire.switch', $key) }}"
+                   class="shrink-0 rounded-full px-4 py-2 text-sm font-extrabold border transition
+                   {{ $territoire['label'] === $selectedTerritoire ? 'bg-teal-700 text-white border-teal-700' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50' }}">
+                    {{ $territoire['flag'] }} {{ $territoire['label'] }}
+                </a>
+            @endforeach
+        </div>
+    </div>
+</section>
+
+
+@php
+    $heroBg = collect([
+        'images/hero.jpg',
+        'images/hero.png',
+        'images/hero-swapiles.jpg',
+        'images/hero-swapiles.png',
+        'images/accueil-hero.jpg',
+        'images/home-hero.jpg',
+    ])->first(fn($img) => file_exists(public_path($img)));
+@endphp
+
+<section class="relative overflow-hidden bg-gradient-to-br from-teal-900 via-teal-800 to-emerald-700"
+    @if($heroBg)
+        style="background-image: linear-gradient(rgba(4, 47, 46, .72), rgba(4, 47, 46, .72)), url('{{ asset($heroBg) }}'); background-size: cover; background-position: center;"
+    @endif
+>
+    <div class="absolute inset-0 bg-cover bg-center opacity-100"
+         style="background-image: url('{{ asset('images/home-hero-reunion.webp') }}');"></div>
+    <div class="absolute inset-0 bg-gradient-to-br from-[#003f38]/85 via-[#006b5c]/70 to-[#00856f]/65"></div>
+    <div class="absolute inset-0 bg-black/15"></div>
+    <div class="absolute inset-0 bg-black/20"></div>
+
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
+        <div class="max-w-3xl">
+            <span class="inline-flex items-center rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white backdrop-blur">
+                {{ $selectedMeta['flag'] }} Marketplace seconde main des Outre-mer
+            </span>
+
+            <h1 class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight">
+                La seconde main, pensée pour {{ $selectedTerritoire }}.
+            </h1>
+
+            <p class="mt-5 text-lg sm:text-xl text-white/90 max-w-2xl leading-relaxed">
+                Vendez, achetez, échangez ou donnez près de chez vous.
+                Déjà <span class="font-bold text-white">{{ number_format($activeListingsCount, 0, ',', ' ') }}</span> annonces à {{ $selectedTerritoire }} et <span class="font-bold text-white">{{ number_format($totalListingsCount, 0, ',', ' ') }}</span> annonces sur les îles.
+            </p>
+
+            <form method="GET" action="{{ route('search', ['territoire' => $selectedTerritoire]) }}" class="mt-8 bg-white rounded-3xl shadow-2xl p-3 max-w-5xl">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
+                    <input type="hidden" name="territoire" value="{{ $selectedTerritoire }}">
+
+                    <input type="text" name="q" value="{{ request('q') }}" placeholder="Que recherches-tu ?"
+                        class="md:col-span-2 px-4 py-3 bg-gray-50 rounded-2xl border-0 text-sm focus:ring-2 focus:ring-teal-600">
+
+                    <select name="category" class="px-4 py-3 bg-gray-50 rounded-2xl border-0 text-sm focus:ring-2 focus:ring-teal-600">
+                        <option value="">Catégorie</option>
+                        <option value="Femme">Femme</option>
+                        <option value="Homme">Homme</option>
+                        <option value="Enfant">Enfant</option>
+                        <option value="Accessoires">Accessoires</option>
+                    </select>
+
+                    <button class="bg-teal-700 hover:bg-teal-800 text-white font-bold px-6 py-3 rounded-2xl transition">
+                        Rechercher
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<section class="bg-white border-b border-gray-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-5">
+                <p class="text-3xl font-black text-gray-950">{{ number_format($totalListingsCount, 0, ',', ' ') }}</p>
+                <p class="text-sm font-bold text-gray-500 mt-1">annonces sur les îles</p>
+            </div>
+
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-5">
+                <p class="text-3xl font-black text-gray-950">{{ number_format($membersCount, 0, ',', ' ') }}</p>
+                <p class="text-sm font-bold text-gray-500 mt-1">membres inscrits</p>
+            </div>
+
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-5">
+                <p class="text-3xl font-black text-teal-700">{{ number_format($activeListingsCount, 0, ',', ' ') }}</p>
+                <p class="text-sm font-bold text-gray-500 mt-1">à {{ $selectedTerritoire }}</p>
+            </div>
+
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-5">
+                <p class="text-3xl font-black text-emerald-700">{{ number_format($securePaymentListingsCount, 0, ',', ' ') }}</p>
+                <p class="text-sm font-bold text-gray-500 mt-1">paiements sécurisés</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="lg:col-span-2 rounded-[34px] bg-gradient-to-br from-gray-950 via-teal-950 to-emerald-900 text-white p-6 sm:p-8 overflow-hidden relative">
+            <div class="absolute -right-8 -top-8 text-9xl opacity-10">🛡️</div>
+            <p class="text-sm font-black uppercase tracking-wide text-emerald-200">Paiement sécurisé Swap’Îles</p>
+            <h2 class="text-2xl sm:text-3xl font-black mt-2">Vendez plus loin que votre île.</h2>
+            <p class="text-white/75 mt-3 max-w-2xl">
+                En activant le paiement en ligne, votre annonce peut devenir expédiable avec Colissimo et être visible par les acheteurs des autres îles.
+            </p>
+
+<div id="low-price-colissimo-warning" class="hidden mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+    <p class="font-extrabold">💡 Conseil pour les petits prix</p>
+    <p class="mt-1 text-sm leading-relaxed">
+        Pour les articles à moins de 10 €, les frais Colissimo se situent souvent autour de 7 à 9 €.
+        Vous pouvez laisser la livraison, mais nous vous conseillons aussi d’activer la remise en main propre
+        pour augmenter vos chances de vendre.
+    </p>
+</div>
+
+            <div class="mt-5 flex flex-wrap gap-3 text-sm font-bold">
+                <span class="bg-white/10 rounded-full px-4 py-2">💳 CB sécurisée</span>
+                <span class="bg-white/10 rounded-full px-4 py-2">📦 Colissimo disponible</span>
+                <span class="bg-white/10 rounded-full px-4 py-2">🌍 Visibilité inter-îles</span>
+            </div>
+        </div>
+
+        <a href="{{ route('account.listings.create') }}"
+           class="rounded-[34px] bg-teal-600 hover:bg-teal-700 text-white p-6 sm:p-8 flex flex-col justify-between transition shadow-lg">
+            <div>
+                <p class="text-sm font-black uppercase tracking-wide text-teal-100">Vendeur</p>
+                <h2 class="text-2xl font-black mt-2">Publiez une annonce gratuitement.</h2>
+                <p class="text-white/80 mt-3">Mettez vos articles en ligne en quelques minutes.</p>
+            </div>
+            <span class="mt-8 inline-flex bg-white text-teal-700 rounded-2xl px-5 py-3 font-black justify-center">
+                Déposer une annonce →
+            </span>
+        </a>
+    </div>
+</section>
+
+<section class="max-w-7xl mx-auto px-4 mt-2 mb-6">
+    <div class="overflow-hidden rounded-[28px] shadow-lg border border-gray-100 bg-white">
+        <img loading="lazy" decoding="async" src="{{ asset('images/IMG_1431.jpg') }}" alt="Livraison Colissimo Swap'Îles" class="w-full h-full object-contain">
+    </div>
+</section>
+
+
+{{-- EMOJI_CATEGORIES_START --}}
+<section class="max-w-7xl mx-auto px-4 mt-4 mb-8">
+    <div class="flex gap-3 overflow-x-auto pb-2 no-scrollbar md:grid md:grid-cols-6 md:overflow-visible">
+
+        @php
+            $emojiCategories = [
+                ['label' => 'Femme', 'emoji' => '👗', 'url' => route('search', ['category' => 'Femme', 'territoire' => $selectedTerritoire])],
+                ['label' => 'Homme', 'emoji' => '👕', 'url' => route('search', ['category' => 'Homme', 'territoire' => $selectedTerritoire])],
+                ['label' => 'Enfant', 'emoji' => '🧸', 'url' => route('search', ['category' => 'Enfant', 'territoire' => $selectedTerritoire])],
+                ['label' => 'Accessoires', 'emoji' => '👜', 'url' => route('search', ['category' => 'Accessoires', 'territoire' => $selectedTerritoire])],
+                ['label' => 'Chaussures', 'emoji' => '👟', 'url' => route('search', ['q' => 'chaussures', 'territoire' => $selectedTerritoire])],
+                ['label' => 'Nouveautés', 'emoji' => '✨', 'url' => route('search')],
+            ];
+        @endphp
+
+        @foreach($emojiCategories as $cat)
+            <a href="{{ $cat['url'] }}"
+               class="shrink-0 w-[132px] md:w-auto bg-white border border-gray-100 rounded-3xl px-4 py-4 text-center shadow-sm hover:shadow-md transition">
+                <div class="text-3xl">{{ $cat['emoji'] }}</div>
+                <div class="mt-2 text-sm font-extrabold text-gray-900">{{ $cat['label'] }}</div>
+            </a>
+        @endforeach
+
+    </div>
+</section>
+{{-- EMOJI_CATEGORIES_END --}}
+
+@if(isset($popularListings) && $popularListings->count())
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex items-end justify-between mb-6">
+        <div>
+            <p class="text-sm font-black uppercase tracking-wide text-rose-600">Tendance</p>
+            <h2 class="text-3xl md:text-4xl font-black text-gray-950">🔥 Les annonces populaires</h2>
+            <p class="text-gray-500 mt-2">Les articles les plus regardés à {{ $selectedTerritoire }}.</p>
+        </div>
+
+        <a href="{{ route('search', ['territoire' => $selectedTerritoire]) }}"
+           class="hidden sm:inline-flex bg-gray-900 hover:bg-black text-white font-black rounded-2xl px-5 py-3 text-sm">
+            Tout voir
+        </a>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+        @foreach($popularListings as $listing)
+            <a href="{{ route('listings.show', $listing) }}"
+               class="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition">
+                <div class="relative aspect-[4/5] bg-gray-100 overflow-hidden">
+                    @if($listing->images->first())
+                        <img loading="lazy" decoding="async" src="{{ $listing->images->first()->url }}" alt="{{ $listing->title }}" class="w-full h-full object-cover group-hover:scale-[1.03] transition duration-300">
+                    @else
+                        <div class="w-full h-full flex items-center justify-center text-gray-300 text-4xl">📦</div>
+                    @endif
+
+                    <span class="absolute top-3 left-3 rounded-full bg-rose-600 text-white px-3 py-1 text-xs font-black shadow">
+                        🔥 Populaire
+                    </span>
+                </div>
+
+                <div class="p-3">
+                    <p class="text-sm font-bold text-gray-900 line-clamp-1">{{ $listing->title }}</p>
+                    <p class="text-xs text-gray-500 mt-1">{{ number_format((int) $listing->views_count, 0, ',', ' ') }} vues</p>
+
+                    @if(($listing->price ?? 0) > 0)
+                        <p class="text-lg font-extrabold text-gray-900 mt-2">{{ number_format($listing->price, 0, ',', ' ') }} €</p>
+                    @else
+                        <p class="text-lg font-extrabold text-teal-700 mt-2">Gratuit</p>
+                    @endif
+                </div>
+            </a>
+        @endforeach
+    </div>
+</section>
+@endif
+
+
+
+
+
+
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+        <p class="text-sm font-black uppercase tracking-wide text-teal-700">Confiance</p>
+        <h2 class="text-3xl md:text-4xl font-black text-gray-950">Pourquoi choisir Swap’Îles ?</h2>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="rounded-3xl bg-white border border-gray-100 shadow-sm p-6">
+            <div class="text-4xl mb-4">🛡️</div>
+            <h3 class="font-black text-gray-950 text-lg">Paiement sécurisé</h3>
+            <p class="text-sm text-gray-500 mt-2">Achetez avec plus de confiance grâce au paiement en ligne protégé.</p>
+        </div>
+
+        <div class="rounded-3xl bg-white border border-gray-100 shadow-sm p-6">
+            <div class="text-4xl mb-4">🌍</div>
+            <h3 class="font-black text-gray-950 text-lg">Inter-îles</h3>
+            <p class="text-sm text-gray-500 mt-2">Les annonces compatibles Colissimo peuvent toucher les autres territoires.</p>
+        </div>
+
+        <div class="rounded-3xl bg-white border border-gray-100 shadow-sm p-6">
+            <div class="text-4xl mb-4">💬</div>
+            <h3 class="font-black text-gray-950 text-lg">Messagerie intégrée</h3>
+            <p class="text-sm text-gray-500 mt-2">Discutez directement avec les acheteurs et vendeurs sur la plateforme.</p>
+        </div>
+
+        <div class="rounded-3xl bg-white border border-gray-100 shadow-sm p-6">
+            <div class="text-4xl mb-4">♻️</div>
+            <h3 class="font-black text-gray-950 text-lg">Seconde main locale</h3>
+            <p class="text-sm text-gray-500 mt-2">Donnez une seconde vie aux articles près de chez vous.</p>
+        </div>
+    </div>
+</section>
+
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="rounded-[38px] bg-gray-950 text-white p-6 sm:p-8 lg:p-10 overflow-hidden relative">
+        <div class="absolute -right-10 -top-10 text-9xl opacity-10">🌴</div>
+
+        <div class="max-w-2xl mb-8">
+            <p class="text-sm font-black uppercase tracking-wide text-emerald-300">Simple et rapide</p>
+            <h2 class="text-3xl md:text-4xl font-black mt-2">Comment ça marche ?</h2>
+            <p class="text-white/70 mt-3">Swap’Îles simplifie la seconde main entre les îles, du premier message jusqu’à la vente.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="rounded-3xl bg-white/10 border border-white/10 p-6">
+                <div class="text-5xl mb-5">📸</div>
+                <p class="text-sm font-black text-emerald-300">Étape 1</p>
+                <h3 class="text-xl font-black mt-1">Publiez gratuitement</h3>
+                <p class="text-sm text-white/65 mt-2">Ajoutez vos photos, votre prix et votre territoire en quelques minutes.</p>
+            </div>
+
+            <div class="rounded-3xl bg-white/10 border border-white/10 p-6">
+                <div class="text-5xl mb-5">💬</div>
+                <p class="text-sm font-black text-emerald-300">Étape 2</p>
+                <h3 class="text-xl font-black mt-1">Discutez facilement</h3>
+                <p class="text-sm text-white/65 mt-2">Échangez avec les acheteurs et vendeurs directement depuis la messagerie.</p>
+            </div>
+
+            <div class="rounded-3xl bg-white/10 border border-white/10 p-6">
+                <div class="text-5xl mb-5">🛡️</div>
+                <p class="text-sm font-black text-emerald-300">Étape 3</p>
+                <h3 class="text-xl font-black mt-1">Vendez en sécurité</h3>
+                <p class="text-sm text-white/65 mt-2">Activez le paiement sécurisé pour proposer l’expédition et toucher plus d’acheteurs.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+@if($activeListingsCount < 12 && $crossIslandAvailableCount > 0)
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+    <div class="rounded-[34px] bg-gradient-to-br from-indigo-950 via-teal-950 to-emerald-900 text-white p-6 sm:p-7 relative overflow-hidden">
+        <div class="absolute -right-10 -top-10 text-9xl opacity-10">🌍</div>
+
+        <div class="relative flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+            <div>
+                <p class="text-sm font-black uppercase tracking-wide text-emerald-200">
+                    Expédiables inter-îles
+                </p>
+
+                <h2 class="text-2xl sm:text-3xl font-black mt-1">
+                    {{ number_format($activeListingsCount, 0, ',', ' ') }} annonce locale à {{ $selectedTerritoire }}
+                    · {{ number_format($crossIslandAvailableCount, 0, ',', ' ') }} produits expédiables depuis les autres îles
+                </h2>
+
+                <p class="text-white/75 mt-2 max-w-2xl">
+                    Même si ce territoire démarre, vous pouvez déjà acheter des articles expédiables grâce au paiement sécurisé et à Colissimo.
+                </p>
+            </div>
+
+            <a href="#autres-iles"
+               class="shrink-0 bg-white text-teal-950 font-black rounded-2xl px-5 py-3 text-sm text-center">
+                Voir les produits expédiables
+            </a>
+        </div>
+    </div>
+</section>
+@endif
+
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex items-end justify-between mb-6">
+        <div>
+            <h2 class="text-2xl md:text-3xl font-extrabold text-gray-900">{{ $selectedMeta['flag'] }} Les dernières annonces à {{ $selectedTerritoire }}</h2>
+            <p class="text-gray-500 mt-1">Les nouvelles pépites publiées près de chez vous.</p>
+        </div>
+    </div>
+
+    @if($listings->count() === 0)
+        <div class="rounded-[32px] bg-amber-50 border border-amber-100 p-8 text-center mb-8">
+            <div class="text-5xl mb-3">🌴</div>
+            <h3 class="text-2xl font-black text-gray-900">Pas encore d’annonces à {{ $selectedTerritoire }}</h3>
+            <p class="text-gray-600 mt-2">Découvrez en attendant les annonces disponibles sur les autres îles.</p>
+        </div>
+    @endif
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+        @foreach($listings as $listing)
+            <a href="{{ route('listings.show', $listing) }}" class="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition">
+                <div class="aspect-[4/5] bg-gray-100 overflow-hidden">
+                    @if($listing->images->first())
+                        <img loading="lazy" decoding="async" src="{{ $listing->images->first()->url }}" alt="{{ $listing->title }}" class="w-full h-full object-cover group-hover:scale-[1.03] transition duration-300">
+                    @else
+                        <div class="w-full h-full flex items-center justify-center text-gray-300 text-4xl">📦</div>
+                    @endif
+                </div>
+
+                <div class="p-3">
+                    <p class="text-sm font-bold text-gray-900 line-clamp-1">{{ $listing->title }}</p>
+
+                    @if($listing->user)
+                        <p class="text-xs text-gray-500 mt-1 line-clamp-1">
+                            Vendu par <span class="font-semibold text-gray-700">{{ $listing->user->name }}</span>
+                        </p>
+                    @endif
+
+                    @if(($listing->favorited_by_count ?? 0) > 0)
+                        <div class="mt-2 text-xs font-black text-rose-600">
+                            ❤️ {{ $listing->favorited_by_count }} favori(s)
+                        </div>
+                    @endif
+
+                    @if(($listing->requires_online_payment ?? false) && ($listing->allows_colissimo ?? false))
+                        <div class="mt-2 inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-2.5 py-1 text-[11px] font-black">
+                            🌍 Expédiable inter-îles
+                        </div>
+                    @endif
+
+                    @if(($listing->price ?? 0) > 0)
+                        @php
+    $protectionFee = ($listing->shipping_enabled ?? false)
+        ? max(0.99, round(($listing->price * 0.05) + 0.70, 2))
+        : 0;
+
+    $protectedTotal = $listing->price + $protectionFee;
+@endphp
+
+<p class="text-lg font-extrabold text-gray-900 mt-2">{{ number_format($listing->price, 0, ',', ' ') }} €</p>
+
+                        @if(($listing->shipping_enabled ?? false))
+                        <button type="button"
+                            class="prix-protege text-xs font-extrabold text-teal-700 hover:underline"
+                            data-title="{{ e($listing->title) }}"
+                            data-price="{{ number_format($listing->price, 2, ',', ' ') }}"
+                            data-fee="{{ number_format($protectionFee, 2, ',', ' ') }}"
+                            data-total="{{ number_format($protectedTotal, 2, ',', ' ') }}">
+                            {{ number_format($protectedTotal, 2, ',', ' ') }} € protégé 🛡️
+                        </button>
+                        @endif
+                    @else
+                        <p class="text-lg font-extrabold text-teal-700 mt-2">Gratuit</p>
+                    @endif
+                </div>
+            </a>
+        @endforeach
+    </div>
+
+    <div class="mt-10">
+        {{ $listings->links() }}
+    </div>
+</section>
+
+
+
+@if(isset($globalShippableListings) && $globalShippableListings->count())
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+        <div>
+            <p class="text-sm font-black uppercase tracking-wide text-teal-700">Paiement sécurisé + Colissimo</p>
+            <h2 class="text-3xl md:text-4xl font-black text-gray-950">
+                🌍 Produits expédiables dans toutes les îles
+            </h2>
+            <p class="text-gray-500 mt-2">
+                Ces annonces peuvent être achetées à distance grâce au paiement sécurisé et à la livraison.
+            </p>
+        </div>
+
+        <a href="{{ route('search', ['inter_iles' => 1]) }}"
+           class="bg-gray-900 hover:bg-black text-white font-black rounded-2xl px-5 py-3 text-sm text-center">
+            Voir tous les produits expédiables
+        </a>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        @foreach($globalShippableListings as $listing)
+            <a href="{{ route('listings.show', $listing) }}"
+               class="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition">
+                <div class="aspect-[4/5] bg-gray-100 overflow-hidden">
+                    @if($listing->images->first())
+                        <img loading="lazy" decoding="async" src="{{ $listing->images->first()->url }}"
+                             alt="{{ $listing->title }}"
+                             class="w-full h-full object-cover group-hover:scale-[1.03] transition duration-300">
+                    @else
+                        <div class="w-full h-full flex items-center justify-center text-gray-300 text-4xl">📦</div>
+                    @endif
+                </div>
+
+                <div class="p-3">
+                    <p class="text-xs font-black text-emerald-700 mb-1">🌍 Inter-îles</p>
+                    <p class="text-sm font-bold text-gray-900 line-clamp-1">{{ $listing->title }}</p>
+                    <p class="text-xs text-gray-500 mt-1">{{ $listing->territoire }}</p>
+
+                    @if(($listing->price ?? 0) > 0)
+                        <p class="text-lg font-extrabold text-gray-900 mt-2">
+                            {{ number_format($listing->price, 0, ',', ' ') }} €
+                        </p>
+                    @else
+                        <p class="text-lg font-extrabold text-teal-700 mt-2">Gratuit</p>
+                    @endif
+                </div>
+            </a>
+        @endforeach
+    </div>
+</section>
+@endif
+
+
+<section id="autres-iles" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div class="rounded-[36px] bg-gradient-to-br from-slate-950 via-teal-950 to-emerald-900 p-5 sm:p-8 text-white overflow-hidden relative">
+        <div class="absolute -right-10 -top-10 text-9xl opacity-10">🌴</div>
+
+        <div class="relative flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+            <div>
+                <p class="text-sm font-black uppercase tracking-wide text-emerald-200">Multi-îles</p>
+                <h2 class="text-3xl md:text-4xl font-black mt-1">Produits expédiables depuis les autres îles</h2>
+                <p class="text-white/75 mt-2">Uniquement les annonces avec paiement sécurisé et livraison Colissimo.</p>
+            </div>
+        </div>
+
+        <div class="relative space-y-8">
+            @foreach($otherIslandListings as $island)
+                <div class="bg-white/10 backdrop-blur rounded-[30px] p-4 border border-white/10">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-xl font-black">{{ $island['flag'] }} {{ $island['label'] }}</h3>
+                            <p class="text-sm text-white/70">{{ number_format($island['count'], 0, ',', ' ') }} annonce(s)</p>
+                        </div>
+
+                        <a href="{{ route('search', ['territoire' => $island['label']]) }}"
+                           class="text-sm font-black bg-white text-teal-900 rounded-full px-4 py-2">
+                            Voir
+                        </a>
+                    </div>
+
+                    @if($island['listings']->count())
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            @foreach($island['listings'] as $listing)
+                                <a href="{{ route('listings.show', $listing) }}" class="bg-white rounded-3xl overflow-hidden text-gray-900">
+                                    <div class="aspect-[4/5] bg-gray-100">
+                                        @if($listing->images->first())
+                                            <img loading="lazy" decoding="async" src="{{ $listing->images->first()->url }}" class="w-full h-full object-cover" alt="{{ $listing->title }}">
+                                        @else
+                                            <div class="w-full h-full flex items-center justify-center text-gray-300 text-4xl">📦</div>
+                                        @endif
+                                    </div>
+                                    <div class="p-3">
+                                        <p class="text-sm font-black line-clamp-1">{{ $listing->title }}</p>
+                                        <p class="text-base font-black mt-1">
+                                            @if(($listing->price ?? 0) > 0)
+                                                {{ number_format($listing->price, 0, ',', ' ') }} €
+                                            @else
+                                                Gratuit
+                                            @endif
+                                        </p>
+                                    </div>
+                                </a>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="rounded-3xl bg-white/10 border border-white/10 p-5 text-white">
+                            <p class="text-lg font-black">Lancement en cours sur {{ $island['label'] }} 🚀</p>
+                            <p class="text-sm text-white/75 mt-1">
+                                Soyez le premier vendeur de ce territoire sur Swap’Îles.
+                            </p>
+
+                            <a href="{{ route('account.listings.create', ['territoire' => $selectedTerritoire]) }}"
+                               class="inline-flex mt-4 bg-white text-teal-900 font-black rounded-2xl px-5 py-3 text-sm">
+                                Déposer la première annonce
+                            </a>
+                        </div>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </div>
+</section>
+
+
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex items-center justify-between mb-5">
+        <h2 class="text-2xl md:text-3xl font-extrabold text-gray-900">Découvrez nos catégories</h2>
+
+        <div class="hidden lg:flex items-center gap-2">
+            <button type="button" onclick="document.getElementById('category-carousel').scrollBy({left: -520, behavior: 'smooth'})" class="w-11 h-11 rounded-full bg-white border border-gray-200 shadow-sm font-bold text-xl hover:bg-gray-50">←</button>
+            <button type="button" onclick="document.getElementById('category-carousel').scrollBy({left: 520, behavior: 'smooth'})" class="w-11 h-11 rounded-full bg-white border border-gray-200 shadow-sm font-bold text-xl hover:bg-gray-50">→</button>
+        </div>
+    </div>
+
+    <div id="category-carousel" class="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory category-scroll">
+        <a href="/recherche?q=&category=Femme&listing_type=&territoire=&min_price=&max_price=" class="shrink-0 snap-start w-[72vw] sm:w-[45vw] lg:w-[38vw] max-w-[520px] rounded-[30px] overflow-hidden bg-gray-100 shadow-sm">
+            <img loading="lazy" decoding="async" src="/images/Cat-femme.PNG" class="w-full h-[420px] object-cover" alt="Femme">
+        </a>
+
+        <a href="/recherche?q=&category=Enfant&listing_type=&territoire=&min_price=&max_price=" class="shrink-0 snap-start w-[72vw] sm:w-[45vw] lg:w-[38vw] max-w-[520px] rounded-[30px] overflow-hidden bg-gray-100 shadow-sm">
+            <img loading="lazy" decoding="async" src="/images/Cat-enfant.PNG" class="w-full h-[420px] object-cover" alt="Enfant">
+        </a>
+
+        <a href="/recherche?q=&category=Homme&listing_type=&territoire=&min_price=&max_price=" class="shrink-0 snap-start w-[72vw] sm:w-[45vw] lg:w-[38vw] max-w-[520px] rounded-[30px] overflow-hidden bg-gray-100 shadow-sm">
+            <img loading="lazy" decoding="async" src="/images/Cat-homme.PNG" class="w-full h-[420px] object-cover" alt="Homme">
+        </a>
+    </div>
+</section>
+
+<style>
+.category-scroll::-webkit-scrollbar { display: none; }
+.category-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
+
+
+<style>
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
+
+
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="relative overflow-hidden rounded-[42px] bg-gradient-to-br from-teal-700 via-teal-800 to-emerald-700 text-white p-8 sm:p-12 shadow-2xl">
+
+        <div class="absolute -top-16 -right-16 text-[180px] opacity-10">🌴</div>
+        <div class="absolute -bottom-16 -left-16 text-[180px] opacity-10">🌊</div>
+
+        <div class="relative max-w-3xl">
+            <p class="uppercase tracking-widest text-sm font-black text-emerald-200">
+                Rejoignez la communauté
+            </p>
+
+            <h2 class="mt-3 text-4xl md:text-5xl font-black leading-tight">
+                Des milliers d'articles vous attendent.
+            </h2>
+
+            <p class="mt-5 text-lg text-white/90">
+                Achetez près de chez vous, vendez en quelques minutes ou activez le paiement sécurisé pour toucher les acheteurs des autres îles.
+            </p>
+
+            <div class="mt-8 flex flex-col sm:flex-row gap-4">
+                <a href="{{ route('account.listings.create') }}"
+                   class="inline-flex justify-center items-center rounded-2xl bg-white text-teal-700 px-8 py-4 font-black shadow-lg hover:scale-[1.02] transition">
+                    ➕ Déposer une annonce
+                </a>
+
+                <a href="{{ route('search') }}"
+                   class="inline-flex justify-center items-center rounded-2xl border-2 border-white text-white px-8 py-4 font-black hover:bg-white hover:text-teal-700 transition">
+                    🔎 Explorer les annonces
+                </a>
+            </div>
+
+            <div class="mt-8 flex flex-wrap gap-6 text-sm font-bold text-white/90">
+                <span>✅ Gratuit</span>
+                <span>💬 Messagerie intégrée</span>
+                <span>🛡️ Paiement sécurisé</span>
+                <span>🌍 Inter-îles</span>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+@endsection
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const priceInput =
+        document.querySelector('input[name="price"]') ||
+        document.querySelector('input[name="prix"]');
+
+    const colissimoInput =
+        document.querySelector('input[name="allows_colissimo"]') ||
+        document.querySelector('input[name="shipping_enabled"]');
+
+    const warning = document.getElementById('low-price-colissimo-warning');
+
+    function refreshLowPriceWarning() {
+        if (!priceInput || !warning) return;
+
+        const price = parseFloat(String(priceInput.value || '').replace(',', '.')) || 0;
+        const colissimoEnabled = colissimoInput ? colissimoInput.checked : true;
+
+        if (price > 0 && price < 10 && colissimoEnabled) {
+            warning.classList.remove('hidden');
+        } else {
+            warning.classList.add('hidden');
+        }
+    }
+
+    if (priceInput) {
+        priceInput.addEventListener('input', refreshLowPriceWarning);
+        priceInput.addEventListener('change', refreshLowPriceWarning);
+    }
+
+    if (colissimoInput) {
+        colissimoInput.addEventListener('change', refreshLowPriceWarning);
+    }
+
+    refreshLowPriceWarning();
+});
+</script>
+

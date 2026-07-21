@@ -1,0 +1,55 @@
+<?php
+
+namespace App\Filament\Pages;
+
+use App\Models\Listing;
+use App\Models\Message;
+use App\Models\Transaction;
+use App\Models\User;
+use Filament\Pages\Page;
+
+class Dashboard extends Page
+{
+    protected static ?string $navigationLabel = 'Tableau de bord';
+    protected static ?string $title = 'Tableau de bord Swap’Îles';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-chart-bar-square';
+    protected static ?int $navigationSort = 1;
+
+    protected string $view = 'filament.pages.dashboard';
+
+    public function getViewData(): array
+    {
+        $publishedListings = Listing::where('status', 'published');
+        $transactions = Transaction::query();
+
+        return [
+            'usersCount' => User::count(),
+            'publishedListingsCount' => (clone $publishedListings)->count(),
+            'totalListingsCount' => Listing::count(),
+            'messagesCount' => Message::count(),
+            'viewsCount' => (int) Listing::sum('views_count'),
+            'favoritesCount' => \App\Models\Favorite::count(),
+            'transactionsCount' => Transaction::count(),
+            'paidTransactionsCount' => (clone $transactions)->whereIn('status', ['paid', 'completed'])->count(),
+            'completedAmount' => (float) Transaction::where('status', 'completed')->sum('amount'),
+            'commissionAmount' => (float) Transaction::whereIn('status', ['paid', 'completed'])->sum('commission'),
+            'todayUsersCount' => User::whereDate('created_at', today())->count(),
+            'todayListingsCount' => Listing::whereDate('created_at', today())->count(),
+            'todayMessagesCount' => Message::whereDate('created_at', today())->count(),
+            'territories' => Listing::where('status', 'published')
+                ->selectRaw('territoire, COUNT(*) as total')
+                ->groupBy('territoire')
+                ->orderByDesc('total')
+                ->get(),
+            'topListings' => Listing::with('user')
+                ->where('status', 'published')
+                ->orderByDesc('views_count')
+                ->limit(8)
+                ->get(),
+            'recentTransactions' => Transaction::with(['listing', 'buyer', 'seller'])
+                ->latest()
+                ->limit(6)
+                ->get(),
+        ];
+    }
+}

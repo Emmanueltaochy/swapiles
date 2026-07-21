@@ -1,0 +1,19 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Listing;
+
+class ListingController extends Controller
+{
+    public function show(Listing $listing)
+    {
+        $listing->increment('views_count');
+        $listing->loadCount('favoritedBy');
+        abort_if($listing->status !== 'published', 404);
+
+        $listing->load(['images' => fn($q) => $q->orderBy('order')]);
+
+        return view('listings.show', compact('listing'));
+    }
+}

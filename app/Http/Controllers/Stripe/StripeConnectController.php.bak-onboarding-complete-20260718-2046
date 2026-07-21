@@ -1,0 +1,84 @@
+<?php
+
+namespace App\Http\Controllers\Stripe;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use Stripe\StripeClient;
+
+class StripeConnectController extends Controller
+{
+    public function onboarding()
+    {
+        $user = Auth::user();
+
+        $stripe = new StripeClient(env('STRIPE_SECRET'));
+
+        if (!$user->stripe_account_id) {
+
+            $account = $stripe->accounts->create([
+                'type' => 'express',
+                'country' => 'FR',
+                'email' => $user->email,
+                'business_type' => 'individual',
+                'capabilities' => [
+                    'transfers' => ['requested' => true],
+                ],
+            ]);
+
+            $user->update([
+                'stripe_account_id' => $account->id,
+            ]);
+        }
+
+        $accountLink = $stripe->accountLinks->create([
+            'account' => $user->stripe_account_id,
+            'refresh_url' => route('stripe.connect.refresh'),
+            'return_url' => route('stripe.connect.return'),
+            'type' => 'account_onboarding',
+        ]);
+
+        return redirect($accountLink->url);
+    }
+
+    public function refresh()
+    {
+        return redirect()->route('stripe.connect.onboarding');
+    }
+
+    public function returned()
+    {
+        $user = Auth::user();
+
+        if (!$user->stripe_account_id) {
+            if (
+            empty(auth()->user()->address_line1) ||
+            empty(auth()->user()->postal_code) ||
+            empty(auth()->user()->city)
+        ) {
+            return redirect()->route('account.addresses.edit')
+                ->with('status', 'Votre compte vendeur est presque prêt. Complétez votre adresse pour générer vos bordereaux Colissimo.');
+        }
+
+        if (empty(auth()->user()->address_line1) || empty(auth()->user()->postal_code) || empty(auth()->user()->city)) {
+            return redirect()->route('account.addresses.edit')->with('status', 'Complétez votre adresse pour finaliser votre profil vendeur.');
+        }
+
+        return redirect()->route('account.dashboard');
+        }
+
+        $stripe = new StripeClient(env('STRIPE_SECRET'));
+
+        $account = $stripe->accounts->retrieve($user->stripe_account_id);
+
+        $user->update([
+            'stripe_charges_enabled' => $account->charges_enabled,
+            'stripe_payouts_enabled' => $account->payouts_enabled,
+            'stripe_details_submitted' => $account->details_submitted,
+        ]);
+
+        return redirect()
+            ->route('account.dashboard')
+            ->with('status', 'Compte Stripe connecté.');
+    }
+}

@@ -1,0 +1,147 @@
+@extends('layouts.app')
+
+@section('title', 'Commande — Swap\'Îles')
+
+@section('content')
+@php
+    $itemAmount = $itemAmount ?? ($offer ? (int) $offer->amount : (int) $listing->price);
+    $canColissimo = ($listing->requires_online_payment ?? false) && ($listing->allows_colissimo ?? false);
+    $canHandDelivery = ($listing->allows_hand_delivery ?? $listing->pickup_enabled ?? true);
+    $defaultDelivery = $canHandDelivery ? 'hand_delivery' : ($canColissimo ? 'colissimo' : '');
+@endphp
+
+<section class="bg-gray-50 min-h-screen py-8">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <h1 class="text-3xl font-extrabold text-gray-900 mb-6">Vérifier ma commande</h1>
+
+        @if($errors->any())
+            <div class="mb-6 bg-red-50 text-red-700 rounded-2xl p-4 text-sm font-bold">
+                {{ $errors->first() }}
+            </div>
+        @endif
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
+                <h2 class="text-xl font-extrabold text-gray-900 mb-4">Article</h2>
+
+                <div class="flex gap-4">
+                    <div class="w-28 h-36 rounded-2xl bg-gray-100 overflow-hidden shrink-0">
+                        @if($listing->images->first())
+                            <img src="{{ $listing->images->first()->url }}" class="w-full h-full object-cover" alt="{{ $listing->title }}">
+                        @else
+                            <div class="w-full h-full flex items-center justify-center text-gray-300 text-4xl">📦</div>
+                        @endif
+                    </div>
+
+                    <div>
+                        <h3 class="font-extrabold text-gray-900">{{ $listing->title }}</h3>
+                        <p class="text-sm text-gray-500 mt-1">Vendu par {{ $listing->user->name ?? 'un membre Swap’Îles' }}</p>
+
+                        @if($offer)
+                            <p class="text-xs font-extrabold text-emerald-700 mt-3">Offre acceptée</p>
+                            <p class="text-sm text-gray-400 line-through">{{ number_format($listing->price, 0, ',', ' ') }} €</p>
+                        @endif
+
+                        <p class="text-2xl font-extrabold text-teal-700 mt-1">
+                            {{ number_format($itemAmount, 0, ',', ' ') }} €
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
+                <h2 class="text-xl font-extrabold text-gray-900 mb-4">Mode de remise</h2>
+
+                <form method="POST" action="{{ route('checkout.start', $listing) }}" class="space-y-4">
+                    @csrf
+
+                    @if($offer)
+                        <input type="hidden" name="offer" value="{{ $offer->id }}">
+                    @endif
+
+                    @if($canHandDelivery)
+                        <label class="block rounded-2xl border border-gray-200 p-4 cursor-pointer">
+                            <div class="flex items-start gap-3">
+                                <input type="radio" name="delivery_method" value="hand_delivery"
+                                       class="mt-1 text-teal-700 focus:ring-teal-600"
+                                       @checked(old('delivery_method', $defaultDelivery) === 'hand_delivery')>
+                                <div>
+                                    <p class="font-extrabold text-gray-900">Remise en main propre</p>
+                                    <p class="text-sm text-gray-500 mt-1">
+                                        Rendez-vous proposé :
+                                        <span class="font-bold text-gray-800">
+                                            {{ $listing->hand_delivery_location ?: $listing->location_address ?: 'à définir avec le vendeur' }}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        </label>
+                    @endif
+
+                    @if($canColissimo)
+                        <label class="block rounded-2xl border border-teal-100 bg-teal-50 p-4 cursor-pointer">
+                            <div class="flex items-start gap-3">
+                                <input type="radio" name="delivery_method" value="colissimo"
+                                       class="mt-1 text-teal-700 focus:ring-teal-600"
+                                       @checked(old('delivery_method') === 'colissimo')>
+                                <div>
+                                    <p class="font-extrabold text-teal-900">Livraison Colissimo</p>
+                                    <p class="text-sm text-teal-700 mt-1">
+                                        Paiement sécurisé CB obligatoire. Frais Colissimo calculés ensuite.
+                                    </p>
+                                </div>
+                            </div>
+                        </label>
+
+                        <div class="rounded-2xl border border-gray-100 bg-gray-50 p-4 space-y-3">
+                            <p class="font-extrabold text-gray-900">Adresse de livraison</p>
+
+                            <input name="buyer_full_name" value="{{ old('buyer_full_name', auth()->user()->name) }}" placeholder="Nom complet"
+                                   class="w-full rounded-2xl bg-white border-gray-200 px-4 py-3 text-sm">
+
+                            <input name="buyer_phone" value="{{ old('buyer_phone', auth()->user()->phone ?? '') }}" placeholder="Téléphone"
+                                   class="w-full rounded-2xl bg-white border-gray-200 px-4 py-3 text-sm">
+
+                            <input name="shipping_address_line1" value="{{ old('shipping_address_line1', auth()->user()->address_line1 ?? '') }}" placeholder="Adresse"
+                                   class="w-full rounded-2xl bg-white border-gray-200 px-4 py-3 text-sm">
+
+                            <input name="shipping_address_line2" value="{{ old('shipping_address_line2', auth()->user()->address_line2 ?? '') }}" placeholder="Complément d’adresse"
+                                   class="w-full rounded-2xl bg-white border-gray-200 px-4 py-3 text-sm">
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <input name="shipping_postal_code" value="{{ old('shipping_postal_code', auth()->user()->postal_code ?? '') }}" placeholder="Code postal"
+                                       class="w-full rounded-2xl bg-white border-gray-200 px-4 py-3 text-sm">
+
+                                <input name="shipping_city" value="{{ old('shipping_city', auth()->user()->city ?? '') }}" placeholder="Ville"
+                                       class="w-full rounded-2xl bg-white border-gray-200 px-4 py-3 text-sm">
+                            </div>
+
+                            <input name="shipping_country" value="{{ old('shipping_country', 'France') }}" placeholder="Pays"
+                                   class="w-full rounded-2xl bg-white border-gray-200 px-4 py-3 text-sm">
+                        </div>
+                    @endif
+
+                    <div class="pt-4 border-t border-gray-100 space-y-3 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Prix article</span>
+                            <span class="font-bold">{{ number_format($itemAmount, 0, ',', ' ') }} €</span>
+                        </div>
+
+                        <div class="flex justify-between text-lg">
+                            <span class="font-extrabold text-gray-900">Total hors frais éventuels</span>
+                            <span class="font-extrabold text-gray-900">{{ number_format($itemAmount, 0, ',', ' ') }} €</span>
+                        </div>
+                    </div>
+
+                    <button class="w-full bg-teal-700 hover:bg-teal-800 text-white font-extrabold rounded-2xl px-6 py-4 transition">
+                        Continuer vers le paiement
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</section>
+@endsection

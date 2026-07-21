@@ -2,13 +2,14 @@
 
 namespace App\Notifications;
 
+use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Models\Listing;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class ListingFavoritedNotification extends Notification
+class ListingFavoritedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 

@@ -2,10 +2,11 @@
 
 namespace App\Notifications;
 
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
 
-class ResetPasswordSwapiles extends ResetPassword
+class ResetPasswordSwapiles extends ResetPassword implements ShouldQueue
 {
     public function toMail($notifiable)
     {

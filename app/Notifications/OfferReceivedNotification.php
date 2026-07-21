@@ -2,12 +2,13 @@
 
 namespace App\Notifications;
 
+use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Models\ListingOffer;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class OfferReceivedNotification extends Notification
+class OfferReceivedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 

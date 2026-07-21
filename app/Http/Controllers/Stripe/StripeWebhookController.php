@@ -72,9 +72,13 @@ class StripeWebhookController extends Controller
                             'url' => route('account.transactions.show', $transaction),
                         ]);
 
-                        $transaction->seller->notify(
-                            new TransactionPaidNotification($transaction)
-                        );
+                        try {
+                            $transaction->seller->notify(
+                                new TransactionPaidNotification($transaction)
+                            );
+                        } catch (\Throwable $e) {
+                            report($e);
+                        }
                     }
 
                     if ($transaction->buyer) {
@@ -86,9 +90,13 @@ class StripeWebhookController extends Controller
                             'url' => route('account.transactions.show', $transaction),
                         ]);
 
-                        $transaction->buyer->notify(
-                            new TransactionBuyerPaidNotification($transaction)
-                        );
+                        try {
+                            $transaction->buyer->notify(
+                                new TransactionBuyerPaidNotification($transaction)
+                            );
+                        } catch (\Throwable $e) {
+                            report($e);
+                        }
                     }
                 }
 
@@ -127,9 +135,13 @@ class StripeWebhookController extends Controller
                                 'url' => route('account.transactions.show', $transaction),
                             ]);
 
-                            $transaction->seller->notify(
-                                new TransactionPaidNotification($transaction)
-                            );
+                            try {
+                                $transaction->seller->notify(
+                                    new TransactionPaidNotification($transaction)
+                                );
+                            } catch (\Throwable $e) {
+                                report($e);
+                            }
                         }
 
                         if ($transaction->buyer) {
@@ -141,9 +153,13 @@ class StripeWebhookController extends Controller
                                 'url' => route('account.transactions.show', $transaction),
                             ]);
 
-                            $transaction->buyer->notify(
-                                new TransactionBuyerPaidNotification($transaction)
-                            );
+                            try {
+                                $transaction->buyer->notify(
+                                    new TransactionBuyerPaidNotification($transaction)
+                                );
+                            } catch (\Throwable $e) {
+                                report($e);
+                            }
                         }
                     }
                 }

@@ -1,551 +1,253 @@
 @extends('layouts.app')
 
-@php
-    $dashboardUser = auth()->user();
-
-    $dashboardWalletPendingAmount = \App\Models\Transaction::query()
-        ->where('seller_id', $dashboardUser->id)
-        ->where('status', 'paid')
-        ->get()
-        ->sum(function ($transaction) {
-            if (!is_null($transaction->seller_amount) && (float) $transaction->seller_amount > 0) {
-                return (float) $transaction->seller_amount;
-            }
-
-            $amount = (float) ($transaction->amount ?? 0);
-            $commission = (float) ($transaction->commission ?? $transaction->platform_commission ?? 0);
-            $buyerProtection = (float) ($transaction->buyer_protection_fee ?? 0);
-            $shipping = (float) ($transaction->shipping_fee ?? 0);
-
-            return max(0, $amount - $commission - $buyerProtection - $shipping);
-        });
-
-    $dashboardWalletAvailableAmount = \App\Models\Transaction::query()
-        ->where('seller_id', $dashboardUser->id)
-        ->where('status', 'completed')
-        ->whereNotNull('released_at')
-        ->get()
-        ->sum(function ($transaction) {
-            if (!is_null($transaction->seller_amount) && (float) $transaction->seller_amount > 0) {
-                return (float) $transaction->seller_amount;
-            }
-
-            $amount = (float) ($transaction->amount ?? 0);
-            $commission = (float) ($transaction->commission ?? $transaction->platform_commission ?? 0);
-            $buyerProtection = (float) ($transaction->buyer_protection_fee ?? 0);
-            $shipping = (float) ($transaction->shipping_fee ?? 0);
-
-            return max(0, $amount - $commission - $buyerProtection - $shipping);
-        });
-@endphp
-
-
-
-
-
-
-
-
-
 @section('title', 'Mon compte — Swap\'Îles')
 
 @section('content')
-
 @php
-    $activeListingsCount = ($listings ?? collect())->where('status', 'published')->count();
-    $draftListingsCount = ($listings ?? collect())->where('status', 'draft')->count();
-    $soldListingsCount = ($listings ?? collect())->where('status', 'sold')->count();
+    $listingsCollection = $listings ?? collect();
+    $activeListingsCount = $listingsCollection->where('status', 'published')->count();
+    $draftListingsCount  = $listingsCollection->where('status', 'draft')->count();
+    $soldListingsCount   = $listingsCollection->where('status', 'sold')->count();
 
     $salesToShipCount = ($sales ?? collect())
-        ->where('status', 'paid')
-        ->where('shipping_status', 'pending')
-        ->count();
-
+        ->where('status', 'paid')->where('shipping_status', 'pending')->count();
     $purchasesToConfirmCount = ($purchases ?? collect())
-        ->where('status', 'paid')
-        ->where('shipping_status', 'shipped')
-        ->count();
+        ->where('status', 'paid')->where('shipping_status', 'shipped')->count();
 
-    $inProgressSales = ($sales ?? collect())->whereIn('status', ['paid','completed'])->take(3);
-    $inProgressPurchases = ($purchases ?? collect())->whereIn('status', ['paid','completed'])->take(3);
+    $stripeReady    = $user->stripe_account_id && $user->stripe_payouts_enabled;
+    $walletPending  = (float) ($pendingSalesAmount ?? 0);
+    $walletAvailable = (float) ($availableAmount ?? 0);
 
-    $stripeReady = ($user->stripe_account_id && $user->stripe_payouts_enabled);
+    $todoCount = $salesToShipCount + $purchasesToConfirmCount + ($stripeReady ? 0 : 1);
+
+    // Raccourcis de navigation du compte
+    $shortcuts = [
+        ['route' => 'account.transactions.index',      'icon' => '📦', 'label' => 'Ventes & achats'],
+        ['route' => 'account.messages.index',          'icon' => '💬', 'label' => 'Messages'],
+        ['route' => 'account.favorites.index',         'icon' => '❤️', 'label' => 'Favoris'],
+        ['route' => 'account.followed-sellers.index',  'icon' => '👥', 'label' => 'Vendeurs suivis'],
+        ['route' => 'account.followers.index',         'icon' => '🙋', 'label' => 'Mes abonnés'],
+        ['route' => 'account.notifications.index',     'icon' => '🔔', 'label' => 'Notifications'],
+    ];
 @endphp
 
-<section class="bg-gray-50 min-h-screen pb-12">
+<div class="bg-gray-50 min-h-screen pb-16">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
 
-    <div class="bg-gray-950 text-white relative overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-br from-teal-900 via-gray-950 to-emerald-900"></div>
-        <div class="absolute -top-20 -right-16 text-[220px] opacity-10">🌴</div>
-
-        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
-            @if(session('status'))
-                <div class="mb-6 bg-white/10 border border-white/10 text-white rounded-2xl p-4 text-sm font-bold">
-                    {{ session('status') }}
-                </div>
-            @endif
-
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                <div>
-                    <p class="text-sm font-black uppercase tracking-wide text-emerald-300">Espace membre</p>
-                    <h1 class="mt-2 text-3xl sm:text-3xl font-black">
-                        Bonjour {{ $user->name }}
-                    </h1>
-                    <p class="mt-3 text-white/70">
-                        Gérez vos annonces, vos messages, vos ventes et vos paiements Swap’Îles.
-                    </p>
-                </div>
-
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <a href="{{ route('account.listings.create') }}"
-                       class="bg-white text-teal-800 font-black px-6 py-4 rounded-2xl hover:scale-[1.02] transition text-center">
-                        ➕ Déposer une annonce
-                    </a>
-
-                    <a href="{{ route('profiles.show', $user) }}"
-                       class="border border-white/25 text-white font-black px-6 py-4 rounded-2xl hover:bg-white/10 transition text-center">
-                        Voir mon profil
-                    </a>
-                </div>
-            </div>
-
-            <div class="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <div class="rounded-3xl bg-white/10 border border-white/10 p-5">
-                    <p class="text-3xl font-black">{{ $activeListingsCount }}</p>
-                    <p class="text-sm text-white/65 font-bold mt-1">annonces actives</p>
-                </div>
-
-                <div class="rounded-3xl bg-white/10 border border-white/10 p-5">
-                    <p class="text-3xl font-black">{{ number_format($totalListingViews ?? 0, 0, ',', ' ') }}</p>
-                    <p class="text-sm text-white/65 font-bold mt-1">vues reçues</p>
-                </div>
-
-                <div class="rounded-3xl bg-white/10 border border-white/10 p-5">
-                    <p class="text-3xl font-black">{{ $favoritesReceivedCount ?? 0 }}</p>
-                    <p class="text-sm text-white/65 font-bold mt-1">favoris reçus</p>
-                </div>
-
-                <div class="rounded-3xl bg-white/10 border border-white/10 p-5">
-                    <p class="text-3xl font-black">{{ number_format($availableAmount ?? 0, 0, ',', ' ') }} €</p>
-                    <p class="text-sm text-white/65 font-bold mt-1">disponible</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-10">
-
-        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
-            <a href="{{ route('account.listings.create') }}" class="bg-teal-700 text-white rounded-3xl p-5 font-black shadow-xl hover:bg-teal-800">
-                <div class="text-3xl mb-2">➕</div>
-                Déposer
-            </a>
-
-            <a href="{{ route('account.messages.index') }}" class="bg-white rounded-3xl p-5 font-black shadow-xl border border-gray-100 hover:bg-gray-50">
-                <div class="text-3xl mb-2">💬</div>
-                Messages
-            </a>
-
-            <a href="{{ route('account.transactions.index') }}" class="bg-white rounded-3xl p-5 font-black shadow-xl border border-gray-100 hover:bg-gray-50">
-                <div class="text-3xl mb-2">📦</div>
-                Transactions
-            </a>
-
-            <a href="{{ route('account.favorites.index') }}" class="bg-white rounded-3xl p-5 font-black shadow-xl border border-gray-100 hover:bg-gray-50">
-                <div class="text-3xl mb-2">❤️</div>
-                Favoris
-            </a>
-
-            <a href="{{ route('account.followed-sellers.index') }}" class="bg-white rounded-3xl p-5 font-black shadow-xl border border-gray-100 hover:bg-gray-50">
-                <div class="text-3xl mb-2">👥</div>
-                Vendeurs suivis
-            </a>
-
-            <a href="{{ route('account.followers.index') }}" class="bg-white rounded-3xl p-5 font-black shadow-xl border border-gray-100 hover:bg-gray-50">
-                <div class="text-3xl mb-2">🙋</div>
-                Mes abonnés
-            </a>
-
-            <a href="{{ route('account.wallet.index') }}" class="bg-gray-950 text-white rounded-3xl p-5 font-black shadow-xl hover:bg-black">
-                <div class="text-3xl mb-2">💰</div>
-                Wallet
-            </a>
-        </div>
-
-        @if(!$stripeReady)
-            <div class="mb-6 bg-amber-50 border border-amber-100 rounded-[32px] p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                <div>
-                    <h2 class="text-xl font-black text-amber-950">Recevoir mes paiements</h2>
-                    <p class="text-sm text-amber-800 mt-1">
-                        Ajoutez votre IBAN pour recevoir automatiquement vos ventes.
-                    </p>
-
-                    <div class="mt-3 flex flex-wrap gap-2 text-xs font-black">
-                        <span class="px-3 py-1 rounded-full {{ $user->stripe_account_id ? 'bg-green-100 text-green-800' : 'bg-white text-amber-800' }}">
-                            {{ $user->stripe_account_id ? '✅ Compte créé' : '⭕ Compte à créer' }}
-                        </span>
-
-                        <span class="px-3 py-1 rounded-full {{ $user->stripe_details_submitted ? 'bg-green-100 text-green-800' : 'bg-white text-amber-800' }}">
-                            {{ $user->stripe_details_submitted ? '✅ Infos envoyées' : '⭕ Infos à compléter' }}
-                        </span>
-
-                        <span class="px-3 py-1 rounded-full {{ $user->stripe_payouts_enabled ? 'bg-green-100 text-green-800' : 'bg-white text-amber-800' }}">
-                            {{ $user->stripe_payouts_enabled ? '✅ Virements activés' : '⭕ IBAN en attente' }}
-                        </span>
-                    </div>
-                </div>
-
-                <a href="{{ route('stripe.connect.onboarding') }}"
-                   class="bg-amber-500 hover:bg-amber-600 text-white font-black px-6 py-3 rounded-2xl text-center">
-                    {{ $user->stripe_account_id ? 'Terminer la configuration' : 'Ajouter mon IBAN' }}
-                </a>
-            </div>
-        @else
-            <div class="mb-6 bg-emerald-50 border border-emerald-100 rounded-[32px] p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                <div>
-                    <h2 class="text-xl font-black text-emerald-950">Paiements activés ✅</h2>
-                    <p class="text-sm text-emerald-800 mt-1">
-                        Vos ventes peuvent être versées automatiquement sur votre compte bancaire.
-                    </p>
-                </div>
-
-                <a href="{{ route('account.wallet.index') }}"
-                   class="bg-emerald-700 hover:bg-emerald-800 text-white font-black px-6 py-3 rounded-2xl text-center">
-                    Voir mon wallet
-                </a>
+        @if(session('status'))
+            <div class="rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 text-sm font-medium">
+                {{ session('status') }}
             </div>
         @endif
 
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
-            <a href="{{ route('account.transactions.index') }}" class="rounded-3xl bg-white border border-gray-100 shadow-sm p-5">
-                <p class="text-sm font-black text-orange-700">📦 À expédier</p>
-                <p class="text-3xl font-black text-gray-950 mt-2">{{ $salesToShipCount }}</p>
-                <p class="text-xs text-gray-500 mt-1">ventes payées à traiter</p>
-            </a>
-
-            <a href="{{ route('account.transactions.index') }}" class="rounded-3xl bg-white border border-gray-100 shadow-sm p-5">
-                <p class="text-sm font-black text-purple-700">✅ À confirmer</p>
-                <p class="text-3xl font-black text-gray-950 mt-2">{{ $purchasesToConfirmCount }}</p>
-                <p class="text-xs text-gray-500 mt-1">achats reçus à confirmer</p>
-            </a>
-
-            <a href="{{ route('account.wallet.index') }}" class="rounded-3xl bg-white border border-gray-100 shadow-sm p-5">
-                <p class="text-sm font-black text-green-700">💰 À virer</p>
-                <p class="text-3xl font-black text-gray-950 mt-2">{{ number_format($availableAmount ?? 0, 0, ',', ' ') }} €</p>
-                <p class="text-xs text-gray-500 mt-1">argent disponible</p>
-            </a>
-
-            <div class="rounded-3xl bg-white border border-gray-100 shadow-sm p-5">
-                <p class="text-sm font-black text-gray-700">🛒 Commandes non finalisées</p>
-                <p class="text-3xl font-black text-gray-950 mt-2">{{ $unfinishedOrdersCount ?? 0 }}</p>
-                <p class="text-xs text-gray-500 mt-1">tentatives en attente</p>
+        {{-- 1. En-tête --}}
+        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-teal-600">Mon compte</p>
+                <h1 class="mt-1 text-2xl sm:text-3xl font-bold text-gray-900">Bonjour {{ $user->name }}</h1>
             </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-
-            <div class="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden">
-                <div class="p-5 border-b border-gray-100 flex items-center justify-between">
-                    <div>
-                        <h2 class="text-xl font-black text-gray-950">
-<div class="mx-4 sm:mx-0 mt-6 mb-6 rounded-[2rem] bg-white border border-gray-100 shadow-sm p-5">
-    <div class="flex items-start justify-between gap-4">
-        
-
-
-
-
-
-<!-- SWAPILES_WALLET_DASHBOARD_START -->
-<div class="w-full px-4 sm:px-6 lg:px-8 my-6" style="grid-column: 1 / -1; width: 100%; max-width: 100%;">
-    <div class="w-full rounded-[28px] bg-white border border-gray-100 shadow-sm overflow-hidden">
-        <div class="p-5">
-            <div class="flex items-center justify-between gap-3">
-                <div class="min-w-0">
-                    <div class="text-sm font-black text-teal-700">
-                        💰 Wallet vendeur
-                    </div>
-                    <h2 class="text-2xl font-black text-gray-950 leading-tight mt-1">
-                        Votre argent
-                    </h2>
-                </div>
-
-                <a href="{{ route('account.wallet.index') }}"
-                   class="shrink-0 rounded-full bg-teal-700 px-4 py-2 text-sm font-black text-white shadow-sm">
-                    Détail →
+            <div class="flex items-center gap-2">
+                <a href="{{ route('profiles.show', $user) }}"
+                   class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                    Voir mon profil
+                </a>
+                <a href="{{ route('account.listings.create') }}"
+                   class="rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
+                    ➕ Déposer une annonce
                 </a>
             </div>
+        </header>
 
-            <p class="mt-2 text-sm text-gray-500 leading-snug">
-                Montants nets vendeur. Commission Swap’Îles déjà déduite.
-            </p>
+        {{-- 2. À traiter (uniquement s'il y a une action requise) --}}
+        @if($todoCount > 0)
+            <section aria-labelledby="todo-title" class="space-y-3">
+                <h2 id="todo-title" class="text-sm font-semibold text-gray-500">À traiter</h2>
 
-            <div class="mt-5 space-y-3">
-                <div class="rounded-2xl bg-amber-50 border border-amber-200 p-4">
-                    <div class="flex items-center justify-between gap-3">
-                        <div class="min-w-0">
-                            <div class="text-sm font-black text-amber-800">
-                                ⏳ En cours
+                @unless($stripeReady)
+                    <a href="{{ route('stripe.connect.onboarding') }}"
+                       class="flex items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 hover:bg-amber-100/70">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <span class="text-2xl" aria-hidden="true">🏦</span>
+                            <div class="min-w-0">
+                                <p class="font-semibold text-amber-900">Activez vos paiements</p>
+                                <p class="text-sm text-amber-700">Ajoutez votre IBAN pour recevoir l'argent de vos ventes.</p>
                             </div>
-                            <p class="text-xs font-bold text-amber-700 mt-1 leading-snug">
-                                Paiement reçu, en attente de confirmation.
-                            </p>
                         </div>
-
-                        <div class="shrink-0 text-3xl font-black text-amber-900 whitespace-nowrap">
-                            {{ number_format($dashboardWalletPendingAmount ?? 0, 2, ',', ' ') }} €
-                        </div>
-                    </div>
-                </div>
-
-                <div class="rounded-2xl bg-green-50 border border-green-200 p-4">
-                    <div class="flex items-center justify-between gap-3">
-                        <div class="min-w-0">
-                            <div class="text-sm font-black text-green-800">
-                                ✅ Disponible
-                            </div>
-                            <p class="text-xs font-bold text-green-700 mt-1 leading-snug">
-                                Argent prêt à être viré.
-                            </p>
-                        </div>
-
-                        <div class="shrink-0 text-3xl font-black text-green-900 whitespace-nowrap">
-                            {{ number_format($dashboardWalletAvailableAmount ?? 0, 2, ',', ' ') }} €
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- SWAPILES_WALLET_DASHBOARD_END -->
-
-Mes ventes</h2>
-                        <p class="text-sm text-gray-500 mt-1">{{ ($sales ?? collect())->count() }} ventes</p>
-                    </div>
-
-                    <a href="{{ route('account.transactions.index') }}" class="text-sm font-black text-teal-700">
-                        Voir tout →
+                        <span class="shrink-0 text-sm font-semibold text-amber-800">Configurer →</span>
                     </a>
-                </div>
+                @endunless
 
-                <div class="divide-y divide-gray-100">
-                    @forelse($inProgressSales as $sale)
-                        <a href="{{ route('account.transactions.show', $sale) }}" class="p-4 flex items-center gap-4 hover:bg-gray-50">
-                            <div class="w-14 h-14 rounded-2xl bg-gray-100 overflow-hidden shrink-0">
-                                @if($sale->listing && $sale->listing->images->first())
-                                    <img src="{{ $sale->listing->images->first()->url }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
-                                @else
-                                    <div class="w-full h-full flex items-center justify-center text-gray-300 text-2xl">📦</div>
-                                @endif
-                            </div>
-
-                            <div class="flex-1 min-w-0">
-                                <p class="font-black text-gray-950 truncate">{{ $sale->listing->title ?? 'Annonce indisponible' }}</p>
-                                <p class="text-sm text-gray-500 truncate">Acheteur : {{ $sale->buyer->name ?? 'Utilisateur' }}</p>
-                            </div>
-
-                            <p class="font-black text-gray-950">{{ number_format($sale->amount, 0, ',', ' ') }} €</p>
-                        </a>
-                    @empty
-                        <div class="p-8 text-center text-gray-500">
-                            Aucune vente récente.
-                        </div>
-                    @endforelse
-                </div>
-            </div>
-
-            <div class="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden">
-                <div class="p-5 border-b border-gray-100 flex items-center justify-between">
-                    <div>
-                        <h2 class="text-xl font-black text-gray-950">Mes achats</h2>
-                        <p class="text-sm text-gray-500 mt-1">{{ ($purchases ?? collect())->count() }} achats</p>
+                @if($salesToShipCount > 0 || $purchasesToConfirmCount > 0)
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        @if($salesToShipCount > 0)
+                            <a href="{{ route('account.transactions.index') }}"
+                               class="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:bg-gray-50">
+                                <span class="grid h-10 w-10 place-items-center rounded-full bg-orange-50 text-lg" aria-hidden="true">📮</span>
+                                <div>
+                                    <p class="font-semibold text-gray-900">{{ $salesToShipCount }} à expédier</p>
+                                    <p class="text-sm text-gray-500">Ventes payées à envoyer</p>
+                                </div>
+                            </a>
+                        @endif
+                        @if($purchasesToConfirmCount > 0)
+                            <a href="{{ route('account.transactions.index') }}"
+                               class="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:bg-gray-50">
+                                <span class="grid h-10 w-10 place-items-center rounded-full bg-emerald-50 text-lg" aria-hidden="true">✅</span>
+                                <div>
+                                    <p class="font-semibold text-gray-900">{{ $purchasesToConfirmCount }} à confirmer</p>
+                                    <p class="text-sm text-gray-500">Colis reçus à valider</p>
+                                </div>
+                            </a>
+                        @endif
                     </div>
-
-                    <a href="{{ route('account.transactions.index') }}" class="text-sm font-black text-teal-700">
-                        Voir tout →
-                    </a>
-                </div>
-
-                <div class="divide-y divide-gray-100">
-                    @forelse($inProgressPurchases as $purchase)
-                        <a href="{{ route('account.transactions.show', $purchase) }}" class="p-4 flex items-center gap-4 hover:bg-gray-50">
-                            <div class="w-14 h-14 rounded-2xl bg-gray-100 overflow-hidden shrink-0">
-                                @if($purchase->listing && $purchase->listing->images->first())
-                                    <img src="{{ $purchase->listing->images->first()->url }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
-                                @else
-                                    <div class="w-full h-full flex items-center justify-center text-gray-300 text-2xl">📦</div>
-                                @endif
-                            </div>
-
-                            <div class="flex-1 min-w-0">
-                                <p class="font-black text-gray-950 truncate">{{ $purchase->listing->title ?? 'Annonce indisponible' }}</p>
-                                <p class="text-sm text-gray-500 truncate">Vendeur : {{ $purchase->seller->name ?? 'Utilisateur' }}</p>
-                            </div>
-
-                            <p class="font-black text-gray-950">{{ number_format($purchase->amount, 0, ',', ' ') }} €</p>
-                        </a>
-                    @empty
-                        <div class="p-8 text-center text-gray-500">
-                            Aucun achat récent.
-                        </div>
-                    @endforelse
-                </div>
-            </div>
-        </div>
-
-        @if(isset($notifications) && $notifications->count())
-            <div class="mb-8 bg-white rounded-[32px] border border-gray-100 shadow-sm p-5">
-                <div class="flex items-center justify-between gap-4 mb-4">
-                    <div>
-                        <h2 class="text-xl font-black text-gray-950">Activité récente</h2>
-                        <p class="text-sm text-gray-500 mt-1">Vos dernières notifications importantes.</p>
-                    </div>
-
-                    <a href="{{ route('account.notifications.index') }}" class="text-sm font-black text-teal-700">
-                        Voir tout →
-                    </a>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    @foreach($notifications->take(4) as $notification)
-                        <div class="rounded-2xl bg-gray-50 p-4">
-                            <p class="text-sm font-black text-gray-950">{{ $notification->title }}</p>
-                            @if($notification->message)
-                                <p class="text-xs text-gray-500 mt-1">{{ $notification->message }}</p>
-                            @endif
-                            <p class="text-[11px] text-gray-400 mt-2">{{ $notification->created_at->diffForHumans() }}</p>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
+                @endif
+            </section>
         @endif
 
-        <div id="mes-annonces" class="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden">
-            <div class="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        {{-- 3. Mon argent --}}
+        <section aria-labelledby="wallet-title" class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between gap-4">
+                <h2 id="wallet-title" class="font-semibold text-gray-900">💰 Mon argent</h2>
+                <a href="{{ route('account.wallet.index') }}" class="text-sm font-semibold text-teal-600 hover:text-teal-700">Détail →</a>
+            </div>
+            <div class="mt-4 grid grid-cols-2 gap-3">
+                <div class="rounded-xl bg-amber-50 p-4">
+                    <p class="text-2xl font-bold text-amber-900">{{ number_format($walletPending, 2, ',', ' ') }} €</p>
+                    <p class="mt-0.5 text-xs font-medium text-amber-700">⏳ En cours</p>
+                </div>
+                <div class="rounded-xl bg-emerald-50 p-4">
+                    <p class="text-2xl font-bold text-emerald-900">{{ number_format($walletAvailable, 2, ',', ' ') }} €</p>
+                    <p class="mt-0.5 text-xs font-medium text-emerald-700">✅ Disponible</p>
+                </div>
+            </div>
+            <p class="mt-3 text-xs text-gray-400">Montants nets, commission Swap'Îles déjà déduite.</p>
+        </section>
+
+        {{-- 4. Raccourcis --}}
+        <section aria-label="Raccourcis" class="grid grid-cols-3 sm:grid-cols-6 gap-3">
+            @foreach($shortcuts as $item)
+                <a href="{{ route($item['route']) }}"
+                   class="flex flex-col items-center gap-2 rounded-2xl border border-gray-100 bg-white p-4 text-center shadow-sm hover:bg-gray-50">
+                    <span class="text-2xl" aria-hidden="true">{{ $item['icon'] }}</span>
+                    <span class="text-xs font-semibold text-gray-700 leading-tight">{{ $item['label'] }}</span>
+                </a>
+            @endforeach
+        </section>
+
+        {{-- 5. Mes annonces --}}
+        <section id="mes-annonces" class="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-5 border-b border-gray-100">
                 <div>
-                    <h2 class="text-xl font-black text-gray-950">Mes annonces</h2>
-                    <p class="text-sm text-gray-500 mt-1">
-                        {{ $activeListingsCount }} actives · {{ $draftListingsCount }} brouillons · {{ $soldListingsCount }} vendues
+                    <h2 class="font-semibold text-gray-900">Mes annonces</h2>
+                    <p class="mt-0.5 text-sm text-gray-500">
+                        {{ $activeListingsCount }} active{{ $activeListingsCount > 1 ? 's' : '' }}
+                        · {{ $draftListingsCount }} brouillon{{ $draftListingsCount > 1 ? 's' : '' }}
+                        · {{ $soldListingsCount }} vendue{{ $soldListingsCount > 1 ? 's' : '' }}
                     </p>
                 </div>
-
-                <a href="{{ route('account.listings.create') }}" class="bg-teal-700 hover:bg-teal-800 text-white font-black rounded-2xl px-5 py-3 text-center">
+                <a href="{{ route('account.listings.create') }}"
+                   class="rounded-xl bg-teal-600 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-teal-700">
                     Ajouter une annonce
                 </a>
             </div>
 
             <div class="divide-y divide-gray-100">
                 @forelse($listings as $listing)
-                    <div class="p-4 flex flex-col sm:flex-row gap-4 sm:items-center">
-                        <a href="{{ route('listings.show', $listing) }}" class="w-full sm:w-24 h-48 sm:h-24 rounded-3xl bg-gray-100 overflow-hidden shrink-0">
+                    <div class="flex flex-col sm:flex-row gap-4 sm:items-center p-4">
+                        <a href="{{ route('listings.show', $listing) }}"
+                           class="block w-full sm:w-20 h-44 sm:h-20 shrink-0 overflow-hidden rounded-xl bg-gray-100">
                             @if($listing->images->first())
-                                <img src="{{ $listing->images->first()->url }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+                                <img src="{{ $listing->images->first()->url }}" alt="{{ $listing->title }}"
+                                     class="h-full w-full object-cover" loading="lazy" decoding="async">
                             @else
-                                <div class="w-full h-full flex items-center justify-center text-gray-300 text-3xl">📦</div>
+                                <div class="grid h-full w-full place-items-center text-2xl text-gray-300" aria-hidden="true">📦</div>
                             @endif
                         </a>
 
                         <div class="flex-1 min-w-0">
-                            <p class="font-black text-gray-950 truncate">{{ $listing->title }}</p>
-                            <p class="text-sm text-gray-500 mt-1">
+                            <p class="font-semibold text-gray-900 truncate">{{ $listing->title }}</p>
+                            <p class="mt-1 text-sm text-gray-500">
                                 {{ $listing->price > 0 ? number_format($listing->price, 0, ',', ' ') . ' €' : 'Gratuit' }}
-                                · {{ $listing->status }}
                                 · 👀 {{ (int) $listing->views_count }}
                                 · ❤️ {{ (int) ($listing->favorited_by_count ?? 0) }}
                             </p>
-
-                            <div class="mt-2 flex flex-wrap gap-2 text-xs font-black">
-                                @if($listing->shipping_enabled ?? false)
-                                    <span class="bg-teal-50 text-teal-700 rounded-full px-3 py-1">🛡️ Paiement sécurisé</span>
-                                @endif
-
-                                @if($listing->pickup_enabled ?? true)
-                                    <span class="bg-emerald-50 text-emerald-700 rounded-full px-3 py-1">🤝 Main propre</span>
-                                @endif
-                            </div>
+                            <span class="mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold
+                                @if($listing->status === 'published') bg-teal-50 text-teal-700
+                                @elseif($listing->status === 'sold') bg-gray-100 text-gray-600
+                                @else bg-amber-50 text-amber-700 @endif">
+                                @if($listing->status === 'published') En ligne
+                                @elseif($listing->status === 'sold') Vendue
+                                @else Brouillon @endif
+                            </span>
                         </div>
 
                         <div class="flex flex-wrap gap-2 sm:justify-end">
-                            <a href="{{ route('account.listings.edit', $listing) }}" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-black">
+                            <a href="{{ route('account.listings.edit', $listing) }}"
+                               class="rounded-lg bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200">
                                 Modifier
                             </a>
 
                             @if($listing->status === 'published')
                                 <form method="POST" action="{{ route('account.listings.hide', $listing) }}">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button class="px-4 py-2 rounded-xl bg-orange-50 text-orange-700 hover:bg-orange-100 text-sm font-black">
-                                        Masquer
-                                    </button>
+                                    @csrf @method('PATCH')
+                                    <button class="rounded-lg bg-orange-50 px-3 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-100">Masquer</button>
                                 </form>
-
                                 <form method="POST" action="{{ route('account.listings.sold', $listing) }}">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button class="px-4 py-2 rounded-xl bg-green-50 text-green-700 hover:bg-green-100 text-sm font-black">
-                                        Vendue
-                                    </button>
+                                    @csrf @method('PATCH')
+                                    <button class="rounded-lg bg-green-50 px-3 py-2 text-sm font-semibold text-green-700 hover:bg-green-100">Vendue</button>
                                 </form>
                             @else
                                 <form method="POST" action="{{ route('account.listings.publish', $listing) }}">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button class="px-4 py-2 rounded-xl bg-teal-50 text-teal-700 hover:bg-teal-100 text-sm font-black">
-                                        Publier
-                                    </button>
+                                    @csrf @method('PATCH')
+                                    <button class="rounded-lg bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-700 hover:bg-teal-100">Publier</button>
                                 </form>
                             @endif
 
-                            <form method="POST" action="{{ route('account.listings.destroy', $listing) }}" onsubmit="return confirm('Supprimer cette annonce ?');">
-                                @csrf
-                                @method('DELETE')
-                                <button class="px-4 py-2 rounded-xl bg-red-50 text-red-700 hover:bg-red-100 text-sm font-black">
-                                    Supprimer
-                                </button>
+                            <form method="POST" action="{{ route('account.listings.destroy', $listing) }}"
+                                  onsubmit="return confirm('Supprimer cette annonce ?');">
+                                @csrf @method('DELETE')
+                                <button class="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">Supprimer</button>
                             </form>
                         </div>
                     </div>
                 @empty
                     <div class="p-10 text-center">
-                        <div class="text-3xl mb-3">🌴</div>
-                        <h3 class="text-xl font-black text-gray-950">Aucune annonce pour le moment</h3>
-                        <p class="text-gray-500 mt-2">Déposez votre première annonce gratuitement.</p>
-                        <a href="{{ route('account.listings.create') }}" class="mt-5 inline-flex bg-teal-700 text-white font-black rounded-2xl px-6 py-3">
+                        <div class="text-3xl" aria-hidden="true">🌴</div>
+                        <h3 class="mt-3 text-lg font-semibold text-gray-900">Aucune annonce pour le moment</h3>
+                        <p class="mt-1 text-gray-500">Déposez votre première annonce, c'est gratuit.</p>
+                        <a href="{{ route('account.listings.create') }}"
+                           class="mt-5 inline-flex rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-700">
                             Déposer une annonce
                         </a>
                     </div>
                 @endforelse
             </div>
 
-            <div class="p-5 border-t border-gray-100">
-                {{ $listings->links() }}
-            </div>
-        </div>
+            @if($listings->hasPages())
+                <div class="p-4 border-t border-gray-100">
+                    {{ $listings->links() }}
+                </div>
+            @endif
+        </section>
 
-        <div class="mt-6 flex flex-wrap gap-3">
-            <a href="{{ route('account.profile.edit') }}" class="bg-white border border-gray-100 shadow-sm rounded-2xl px-5 py-3 font-black text-gray-700">
+        {{-- 6. Réglages --}}
+        <section aria-label="Réglages" class="flex flex-wrap items-center gap-2">
+            <a href="{{ route('account.profile.edit') }}"
+               class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
                 ⚙️ Modifier mon profil
             </a>
-
-            <a href="{{ route('account.addresses.edit') }}" class="bg-white border border-gray-100 shadow-sm rounded-2xl px-5 py-3 font-black text-gray-700">
-                📦 Mes adresses
+            <a href="{{ route('account.addresses.edit') }}"
+               class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                📮 Mes adresses
             </a>
-
-            <form method="POST" action="{{ route('logout') }}">
+            <form method="POST" action="{{ route('logout') }}" class="ml-auto">
                 @csrf
-                <button class="bg-white border border-gray-100 shadow-sm rounded-2xl px-5 py-3 font-black text-gray-700">
+                <button class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-500 hover:bg-gray-50">
                     Se déconnecter
                 </button>
             </form>
-        </div>
+        </section>
 
     </div>
-</section>
-
-
-
-
-
-
+</div>
 @endsection

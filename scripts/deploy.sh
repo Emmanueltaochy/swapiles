@@ -77,7 +77,11 @@ php artisan storage:link 2>/dev/null || true
 # ---------------------------------------------------------------------------
 echo "==> Reconstruction des caches"
 php artisan optimize:clear >/dev/null 2>&1 || true
-php artisan config:cache
+# IMPORTANT : on NE met PAS config:cache en cache tant que du code applicatif
+# lit des variables via env() au runtime (Stripe, Colissimo). Avec config:cache,
+# ces env() renvoient null. On garde donc la config non cachée (env() fonctionne).
+# À réactiver (php artisan config:cache) une fois tous les env() migrés vers config().
+php artisan config:clear >/dev/null 2>&1 || true
 php artisan view:cache
 # route:cache échoue si des routes utilisent des closures : dans ce cas on nettoie
 # plutôt que de laisser un cache cassé (le site reste fonctionnel).

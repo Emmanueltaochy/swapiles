@@ -172,8 +172,8 @@
             </div>
 
             <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-5">
-                <p class="text-3xl font-bold text-emerald-700">{{ number_format($securePaymentListingsCount, 0, ',', ' ') }}</p>
-                <p class="text-sm font-bold text-gray-500 mt-1">paiements sécurisés</p>
+                <p class="text-3xl font-bold text-emerald-700">{{ count($territoires) }} îles</p>
+                <p class="text-sm font-bold text-gray-500 mt-1">couvertes par Swap'Îles</p>
             </div>
         </div>
     </div>

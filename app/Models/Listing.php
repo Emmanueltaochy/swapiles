@@ -17,6 +17,8 @@ class Listing extends Model
         'price',
         'currency',
         'listing_type',
+        'allows_offers',
+        'allows_exchange',
         'status',
         'territoire',
         'category_level1',
@@ -44,6 +46,8 @@ class Listing extends Model
         'shipping_enabled' => 'boolean',
         'allows_hand_delivery' => 'boolean',
         'allows_colissimo' => 'boolean',
+        'allows_offers' => 'boolean',
+        'allows_exchange' => 'boolean',
         'requires_online_payment' => 'boolean',
     ];
 

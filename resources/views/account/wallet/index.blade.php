@@ -45,6 +45,14 @@
             </div>
         </div>
 
+        <div class="mt-4 flex items-start gap-3 rounded-2xl border border-teal-100 bg-teal-50 p-4">
+            <span class="text-xl" aria-hidden="true">🛡️</span>
+            <p class="text-sm text-teal-900">
+                <span class="font-bold">Comment ça marche&nbsp;?</span>
+                Dès qu'un acheteur confirme la réception, votre argent passe en <span class="font-semibold">« virement en cours »</span>, puis arrive sur votre compte bancaire sous 1 à 3 jours ouvrés.
+            </p>
+        </div>
+
         @if(!$stripeReady)
             <div class="bg-yellow-50 border border-yellow-200 rounded-3xl p-5 mt-8">
                 <h2 class="text-xl font-extrabold text-yellow-900">Recevoir mes paiements</h2>
@@ -74,9 +82,10 @@
                             @endif
                         </div>
 
-                        <div class="flex-1">
-                            <p class="font-bold text-gray-900">{{ $sale->listing->title ?? 'Annonce supprimée' }}</p>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-bold text-gray-900 truncate">{{ $sale->listing->title ?? 'Annonce supprimée' }}</p>
                             <p class="text-sm text-gray-500">Acheteur : {{ $sale->buyer->name ?? 'Utilisateur' }}</p>
+                            <p class="text-xs text-gray-400 mt-0.5">{{ $sale->created_at?->format('d/m/Y') }}</p>
                             <p class="text-sm font-extrabold text-gray-900 mt-1">
                                 {{ number_format(($sale->seller_amount > 0 ? $sale->seller_amount : max(0, $sale->amount - $sale->commission - $sale->buyer_protection_fee - $sale->shipping_fee)), 0, ',', ' ') }} € net vendeur
                             </p>

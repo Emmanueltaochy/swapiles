@@ -6,18 +6,29 @@
 <section class="bg-gray-50 min-h-screen py-8">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
 
+        @php
+            $unreadCount = \App\Models\Notification::where('user_id', auth()->id())->whereNull('read_at')->count();
+        @endphp
+
         <div class="flex items-center justify-between gap-4 mb-6">
             <div>
-                <h1 class="text-3xl font-extrabold text-gray-900">🔔 Notifications</h1>
+                <h1 class="text-3xl font-extrabold text-gray-900 flex items-center gap-2">
+                    🔔 Notifications
+                    @if($unreadCount > 0)
+                        <span class="bg-red-600 text-white text-xs font-extrabold rounded-full px-2.5 py-1">{{ $unreadCount }}</span>
+                    @endif
+                </h1>
                 <p class="text-gray-500 mt-2">Suivez vos ventes, achats, messages et paiements.</p>
             </div>
 
-            <form method="POST" action="{{ route('account.notifications.read') }}">
-                @csrf
-                <button class="bg-gray-900 text-white font-bold px-4 py-3 rounded-2xl text-sm">
-                    Tout marquer comme lu
-                </button>
-            </form>
+            @if($unreadCount > 0)
+                <form method="POST" action="{{ route('account.notifications.read') }}">
+                    @csrf
+                    <button class="bg-gray-900 hover:bg-black text-white font-bold px-4 py-3 rounded-2xl text-sm transition">
+                        Tout marquer comme lu
+                    </button>
+                </form>
+            @endif
         </div>
 
         @if(session('status'))

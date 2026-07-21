@@ -188,35 +188,65 @@
                         </div>
 
                         {{-- Actions --}}
+                        @php
+                            $isSold = $listing->status === 'sold';
+                            $canBuyOnline = in_array($listing->listing_type, ['achat', 'negoce-prix'], true) && $listing->requires_online_payment && $listing->price > 0;
+                            $canCash = in_array($listing->listing_type, ['achat', 'negoce-prix'], true) && $listing->allows_hand_delivery && $listing->price > 0;
+                            $canOffer = ($listing->allows_offers || $listing->listing_type === 'negoce-prix') && $listing->price > 0;
+                            $canExchange = $listing->allows_exchange || $listing->listing_type === 'echange-produits';
+                            $canDon = $listing->listing_type === 'don' || $listing->price <= 0;
+                        @endphp
                         <div class="mt-6 space-y-3">
-                            @if($listing->listing_type === 'achat' && $listing->status !== 'sold')
+                            @if(!$isSold)
                                 @auth
                                     @if(auth()->id() !== $listing->user_id)
-                                        @if($listing->requires_online_payment)
+                                        @if($canBuyOnline)
                                             <a href="{{ route('checkout.show', $listing) }}" class="block w-full rounded-xl bg-teal-600 px-6 py-4 text-center font-semibold text-white shadow-sm transition hover:bg-teal-700 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
                                                 💳 Acheter par CB sécurisé
                                             </a>
                                         @endif
 
-                                        @if($listing->allows_hand_delivery && $listing->price > 0)
+                                        @if($canCash)
                                             <form method="POST" action="{{ route('listings.request-mode', ['listing' => $listing, 'mode' => 'cash']) }}">
                                                 @csrf
                                                 <button class="w-full rounded-xl border-2 border-gray-900 px-6 py-3.5 font-semibold text-gray-900 transition hover:bg-gray-50">💵 Payer en espèces</button>
                                             </form>
                                         @endif
 
-                                        @if($listing->listing_type === 'echange-produits' || $listing->allows_hand_delivery)
+                                        @if($canExchange)
                                             <form method="POST" action="{{ route('listings.request-mode', ['listing' => $listing, 'mode' => 'exchange']) }}">
                                                 @csrf
                                                 <button class="w-full rounded-xl border-2 border-indigo-500 px-6 py-3.5 font-semibold text-indigo-600 transition hover:bg-indigo-50">🔄 Proposer un échange</button>
                                             </form>
                                         @endif
 
-                                        @if($listing->listing_type === 'don' || $listing->price <= 0)
+                                        @if($canDon)
                                             <form method="POST" action="{{ route('listings.request-mode', ['listing' => $listing, 'mode' => 'don']) }}">
                                                 @csrf
                                                 <button class="w-full rounded-xl border-2 border-emerald-500 px-6 py-3.5 font-semibold text-emerald-600 transition hover:bg-emerald-50">🎁 Demander ce don</button>
                                             </form>
+                                        @endif
+
+                                        {{-- Faire une offre --}}
+                                        @if($canOffer)
+                                            <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                                                <p class="mb-3 font-semibold text-gray-900">Faire une offre</p>
+                                                <form method="POST" action="{{ route('offers.store', $listing) }}" class="space-y-3">
+                                                    @csrf
+                                                    <div class="relative">
+                                                        <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-teal-700">€</span>
+                                                        <label for="offer_amount" class="sr-only">Montant de votre offre</label>
+                                                        <input id="offer_amount" name="amount" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Ex. 25" required
+                                                               class="h-13 w-full rounded-xl border-2 border-gray-200 bg-white py-3.5 pl-11 pr-4 text-lg font-semibold text-gray-900 shadow-sm outline-none transition placeholder:text-gray-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-100">
+                                                    </div>
+                                                    <label for="offer_message" class="sr-only">Message au vendeur</label>
+                                                    <textarea id="offer_message" name="message" rows="3" placeholder="Ajoutez un petit message au vendeur…"
+                                                              class="w-full resize-none rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-base text-gray-900 shadow-sm outline-none transition placeholder:text-gray-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-100"></textarea>
+                                                    <button type="submit" class="w-full rounded-xl bg-gray-900 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-black">
+                                                        Envoyer mon offre
+                                                    </button>
+                                                </form>
+                                            </div>
                                         @endif
                                     @endif
                                 @else
@@ -224,26 +254,6 @@
                                         Se connecter pour acheter
                                     </a>
                                 @endauth
-
-                                {{-- Faire une offre --}}
-                                <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                                    <p class="mb-3 font-semibold text-gray-900">Faire une offre</p>
-                                    <form method="POST" action="{{ route('offers.store', $listing) }}" class="space-y-3">
-                                        @csrf
-                                        <div class="relative">
-                                            <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-teal-700">€</span>
-                                            <label for="offer_amount" class="sr-only">Montant de votre offre</label>
-                                            <input id="offer_amount" name="amount" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Ex. 25" required
-                                                   class="h-13 w-full rounded-xl border-2 border-gray-200 bg-white py-3.5 pl-11 pr-4 text-lg font-semibold text-gray-900 shadow-sm outline-none transition placeholder:text-gray-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-100">
-                                        </div>
-                                        <label for="offer_message" class="sr-only">Message au vendeur</label>
-                                        <textarea id="offer_message" name="message" rows="3" placeholder="Ajoutez un petit message au vendeur…"
-                                                  class="w-full resize-none rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-base text-gray-900 shadow-sm outline-none transition placeholder:text-gray-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-100"></textarea>
-                                        <button type="submit" class="w-full rounded-xl bg-gray-900 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-black">
-                                            Envoyer mon offre
-                                        </button>
-                                    </form>
-                                </div>
                             @endif
 
                             @auth
@@ -282,7 +292,7 @@
                     </div>
 
                     {{-- Protection acheteur --}}
-                    @if($listing->listing_type === 'achat' && $listing->status !== 'sold')
+                    @if($canBuyOnline && !$isSold)
                         <div class="flex gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
                             <div class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-teal-50 text-lg" aria-hidden="true">🛡️</div>
                             <div>

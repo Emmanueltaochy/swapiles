@@ -2,24 +2,56 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendListingViewedEmail;
 use App\Jobs\SendMessageReceivedEmail;
 use App\Models\Listing;
 use App\Models\Message;
 use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class ListingController extends Controller
 {
-    public function show(Listing $listing)
+    public function show(Request $request, Listing $listing)
     {
+        abort_if($listing->status !== 'published', 404);
+
         $listing->increment('views_count');
         $listing->loadCount('favoritedBy');
-        abort_if($listing->status !== 'published', 404);
+
+        $this->notifySellerOfView($request, $listing);
 
         $listing->load(['images' => fn($q) => $q->orderBy('order')]);
 
         return view('listings.show', compact('listing'));
+    }
+
+    /**
+     * E-mail au vendeur « quelqu'un vient de regarder votre annonce ».
+     * On ne prévient jamais le vendeur pour ses propres vues et on limite
+     * à un e-mail par visiteur et par annonce toutes les 24 h (anti-spam).
+     */
+    private function notifySellerOfView(Request $request, Listing $listing): void
+    {
+        try {
+            if (Auth::check() && Auth::id() === $listing->user_id) {
+                return;
+            }
+
+            $viewerKey = Auth::check()
+                ? 'u' . Auth::id()
+                : 'ip' . sha1($request->ip() . '|' . (string) $request->userAgent());
+
+            $throttleKey = 'listing_view_email:' . $listing->id . ':' . $viewerKey;
+
+            // Cache::add ne renvoie true qu'une seule fois par fenêtre : sert de verrou.
+            if (Cache::add($throttleKey, 1, now()->addHours(24))) {
+                SendListingViewedEmail::dispatch($listing->id);
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     public function requestMode(Request $request, Listing $listing, string $mode)

@@ -17,8 +17,9 @@
 
     $oldCb = old('payment_cb', (isset($listing) ? $listing->requires_online_payment : false) ? 1 : 0);
     $oldCash = old('payment_cash', 1);
-    $oldExchange = old('payment_exchange', (isset($listing) ? $listing->listing_type : '') === 'echange-produits' ? 1 : 0);
+    $oldExchange = old('payment_exchange', (isset($listing) && ($listing->allows_exchange || $listing->listing_type === 'echange-produits')) ? 1 : 0);
     $oldDon = old('payment_don', (isset($listing) ? $listing->listing_type : '') === 'don' ? 1 : 0);
+    $oldNegociable = old('payment_negociable', (isset($listing) && ($listing->allows_offers || $listing->listing_type === 'negoce-prix')) ? 1 : 0);
 
     $inp = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100';
     $lbl = 'mb-1.5 block text-sm font-semibold text-gray-800';
@@ -141,6 +142,25 @@
                     </div>
                 </div>
                 <p class="text-xs text-gray-500">Pour un don, le prix sera automatiquement mis à 0 €.</p>
+
+                <div class="rounded-xl border border-gray-100 bg-gray-50 p-4 space-y-3">
+                    <p class="text-sm font-semibold text-gray-800">Options supplémentaires <span class="font-normal text-gray-500">(cumulables)</span></p>
+                    <label class="flex cursor-pointer items-start gap-3">
+                        <input type="checkbox" id="payment_negociable" name="payment_negociable" value="1" class="mt-1 rounded text-teal-600 focus:ring-teal-500" @checked((bool) $oldNegociable)>
+                        <span>
+                            <span class="block font-semibold text-gray-900">💬 Prix négociable</span>
+                            <span class="block text-sm text-gray-500">Les acheteurs peuvent vous proposer un prix.</span>
+                        </span>
+                    </label>
+                    <label class="flex cursor-pointer items-start gap-3">
+                        <input type="checkbox" id="payment_exchange" name="payment_exchange" value="1" class="mt-1 rounded text-teal-600 focus:ring-teal-500" @checked((bool) $oldExchange)>
+                        <span>
+                            <span class="block font-semibold text-gray-900">🔄 Ouvert à l'échange</span>
+                            <span class="block text-sm text-gray-500">Les acheteurs peuvent aussi proposer un échange en main propre.</span>
+                        </span>
+                    </label>
+                    <p class="text-xs text-gray-400">Vous pouvez vendre votre article <strong>et</strong> accepter les offres <strong>et</strong> l'échange en même temps.</p>
+                </div>
             </div>
 
             {{-- Étape 4 : Localisation --}}
@@ -191,21 +211,8 @@
                                 <span class="block text-sm text-gray-500">Uniquement en main propre.</span>
                             </span>
                         </label>
-                        <label class="flex cursor-pointer items-start gap-3 rounded-xl bg-gray-50 p-4">
-                            <input type="checkbox" id="payment_exchange" name="payment_exchange" value="1" class="mt-1 rounded text-teal-600 focus:ring-teal-500" @checked((bool) $oldExchange)>
-                            <span>
-                                <span class="block font-semibold text-gray-900">Échange</span>
-                                <span class="block text-sm text-gray-500">Uniquement en main propre.</span>
-                            </span>
-                        </label>
-                        <label class="flex cursor-pointer items-start gap-3 rounded-xl bg-gray-50 p-4">
-                            <input type="checkbox" id="payment_don" name="payment_don" value="1" class="mt-1 rounded text-teal-600 focus:ring-teal-500" @checked((bool) $oldDon)>
-                            <span>
-                                <span class="block font-semibold text-gray-900">Don</span>
-                                <span class="block text-sm text-gray-500">Prix à 0 € si type = Don.</span>
-                            </span>
-                        </label>
                     </div>
+                    <p class="mt-2 text-xs text-gray-400">L'échange et le prix négociable se règlent à l'étape 3 « Prix &amp; type ».</p>
 
                     @if(!$stripeReady)
                         <div class="mt-3 rounded-xl border border-amber-100 bg-amber-50 p-4">

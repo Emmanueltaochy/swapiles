@@ -7,10 +7,10 @@ use App\Models\Listing;
 use App\Models\Message;
 use App\Models\Transaction;
 use App\Models\User;
-use Filament\Pages\Page;
+use Filament\Pages\Dashboard as BaseDashboard;
 use Illuminate\Database\Eloquent\Builder;
 
-class Dashboard extends Page
+class Dashboard extends BaseDashboard
 {
     protected static ?string $navigationLabel = 'Tableau de bord';
     protected static ?string $title = 'Tableau de bord Swap’Îles';

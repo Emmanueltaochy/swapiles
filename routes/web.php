@@ -153,7 +153,7 @@ Route::get('/search-suggestions', SearchSuggestionController::class)->name('sear
 Route::middleware('guest')->group(function () {
     Route::get('/mot-de-passe-oublie', [PasswordResetController::class, 'request'])->name('password.request');
     Route::post('/mot-de-passe/email', [PasswordResetController::class, 'email'])->name('password.email');
-    Route::get('/mot-de-passe/reset/{token}', [PasswordResetController::class, 'reset'])->name('password.reset');
+    Route::get('/mot-de-passe/reinitialiser/{token}', [PasswordResetController::class, 'reset'])->name('password.reset');
     Route::post('/mot-de-passe/reset', [PasswordResetController::class, 'update'])->name('password.update');
 });
 
@@ -287,10 +287,4 @@ Route::patch('/mes-annonces/{listing}/don-remis', [\App\Http\Controllers\Account
     ->middleware('auth')
     ->name('account.listings.given');
 
-
-
-// Route lien e-mail mot de passe oublié
-Route::get('/mot-de-passe/reinitialiser/{token}', [PasswordResetController::class, 'reset'])
-    ->middleware('guest')
-    ->name('password.reset');
 

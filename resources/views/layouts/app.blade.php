@@ -143,47 +143,39 @@ document.addEventListener('DOMContentLoaded', function () {
 
             <nav class="hidden lg:flex items-center gap-4 text-sm font-bold">
                 @auth
-                    <a href="{{ route('account.notifications.index') }}" class="relative hover:text-teal-700">🔔 Notifications</a>
-                      <a href="{{ route('account.dashboard') }}" class="relative hover:text-teal-700">
-Mon compte
-@if($unreadNotificationsCount > 0)
-<span class="absolute -top-2 -right-4 bg-red-600 text-white text-[10px] font-extrabold rounded-full min-w-5 h-5 px-1 flex items-center justify-center">
-{{ $unreadNotificationsCount > 9 ? '9+' : $unreadNotificationsCount }}
-</span>
-@endif
-</a>
-                    <a href="{{ route('account.messages.index') }}" class="relative hover:text-teal-700">
-Messages
-@if($unreadMessagesCount > 0)
-<span class="absolute -top-2 -right-4 bg-red-600 text-white text-[10px] font-extrabold rounded-full min-w-5 h-5 px-1 flex items-center justify-center">
-{{ $unreadMessagesCount > 9 ? '9+' : $unreadMessagesCount }}
-</span>
-@endif
-</a>
-                    <a href="{{ route('account.transactions.index') }}" class="hover:text-teal-700">Transactions</a>
-                    <a href="/mon-wallet" class="hover:text-teal-700">Wallet</a>
+                    <a href="{{ route('account.notifications.index') }}" class="relative text-xl hover:text-teal-700" aria-label="Notifications" title="Notifications">
+                        🔔
+                        @if($unreadNotificationsCount > 0)
+                            <span class="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">{{ $unreadNotificationsCount > 9 ? '9+' : $unreadNotificationsCount }}</span>
+                        @endif
+                    </a>
 
-                    <a href="/favoris" class="relative hover:text-teal-700 text-xl">
+                    <a href="{{ route('account.messages.index') }}" class="relative text-xl hover:text-teal-700" aria-label="Messages" title="Messages">
+                        💬
+                        @if($unreadMessagesCount > 0)
+                            <span class="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">{{ $unreadMessagesCount > 9 ? '9+' : $unreadMessagesCount }}</span>
+                        @endif
+                    </a>
+
+                    <a href="/favoris" class="relative text-xl hover:text-teal-700" aria-label="Favoris" title="Favoris">
                         🤍
-
                         @if(($favoriteAlertCount ?? 0) > 0)
-                            <span class="absolute -top-2 -right-3 bg-red-600 text-white text-[10px] font-extrabold rounded-full min-w-5 h-5 px-1 flex items-center justify-center">
-                                {{ $favoriteAlertCount }}
-                            </span>
+                            <span class="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">{{ $favoriteAlertCount }}</span>
                         @endif
                     </a>
-                    <!-- favoris moved to heart icon -->
-                    <div class="hidden">
-                        @if($favoriteAlertCount > 0)
-                            <span class="absolute -top-2 -right-3 bg-red-600 text-white text-[10px] font-extrabold rounded-full min-w-5 h-5 px-1 flex items-center justify-center">
-                                {{ $favoriteAlertCount }}
-                            </span>
-                        @endif
-                    </a>
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button class="hover:text-teal-700">Déconnexion</button>
-                    </form>
+
+                    <details class="account-menu relative">
+                        <summary class="flex cursor-pointer list-none items-center gap-1 hover:text-teal-700">Mon compte <span class="text-xs">▾</span></summary>
+                        <div class="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+                            <a href="{{ route('account.dashboard') }}" class="block px-4 py-2 hover:bg-gray-50">Tableau de bord</a>
+                            <a href="{{ route('account.transactions.index') }}" class="block px-4 py-2 hover:bg-gray-50">Transactions</a>
+                            <a href="/mon-wallet" class="block px-4 py-2 hover:bg-gray-50">Wallet</a>
+                            <form method="POST" action="{{ route('logout') }}" class="border-t border-gray-100">
+                                @csrf
+                                <button class="block w-full px-4 py-2 text-left text-red-600 hover:bg-gray-50">Déconnexion</button>
+                            </form>
+                        </div>
+                    </details>
                 @else
                     <a href="{{ route('register') }}" class="hover:text-teal-700">S'inscrire</a>
                     <a href="{{ route('login') }}" class="hover:text-teal-700">Se connecter</a>
@@ -200,6 +192,15 @@ Messages
         </div>
     </div>
 </header>
+
+    <script>
+        // Ferme le menu "Mon compte" du header quand on clique en dehors
+        document.addEventListener('click', function (e) {
+            document.querySelectorAll('details.account-menu[open]').forEach(function (d) {
+                if (!d.contains(e.target)) d.removeAttribute('open');
+            });
+        });
+    </script>
 
     <main>
         @yield('content')

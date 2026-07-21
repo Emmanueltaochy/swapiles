@@ -48,6 +48,7 @@ class Transaction extends Model
         'shipped_at',
         'received_at',
         'released_at',
+        'auto_review_flagged_at',
     ];
 
     protected $casts = [
@@ -55,6 +56,7 @@ class Transaction extends Model
         'shipped_at' => 'datetime',
         'received_at' => 'datetime',
         'released_at' => 'datetime',
+        'auto_review_flagged_at' => 'datetime',
     ];
 
     public function listing()

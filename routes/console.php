@@ -9,3 +9,7 @@ Artisan::command('inspire', function () {
 
 
 Schedule::command('swapiles:cleanup-pending')->hourly();
+
+// Libère automatiquement les versements vendeurs en attente
+// (ventes finalisées dont le vendeur a configuré son Stripe Connect après coup).
+Schedule::command('payouts:release-pending')->everyFifteenMinutes()->withoutOverlapping();

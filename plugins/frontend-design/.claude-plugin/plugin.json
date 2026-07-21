@@ -1,0 +1,5 @@
+{
+  "name": "frontend-design",
+  "description": "Craft d'implémentation front pour Swap'Îles : Blade sémantique, système Tailwind, responsive mobile-first, micro-interactions et performance perçue.",
+  "version": "0.1.0"
+}

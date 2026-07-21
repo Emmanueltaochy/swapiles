@@ -189,7 +189,11 @@ Messages
                     <a href="{{ route('login') }}" class="hover:text-teal-700">Se connecter</a>
                 @endauth
 
-                <a href="/deposer-une-annonce" class="bg-teal-700 text-white px-4 py-2 rounded-full hover:bg-teal-800">
+                <a href="{{ route('search') }}" class="rounded-full border border-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-50">
+                    Tous les produits
+                </a>
+
+                <a href="/deposer-une-annonce" class="rounded-full bg-teal-700 px-4 py-2 text-white hover:bg-teal-800">
                     Déposer une annonce
                 </a>
             </nav>

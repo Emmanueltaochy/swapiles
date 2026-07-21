@@ -81,36 +81,20 @@
 
         {{-- Bascule Achats / Ventes — mobile & tablette uniquement --}}
         <div class="lg:hidden sticky top-16 z-30 mt-6">
-            <div class="grid grid-cols-2 gap-1 rounded-2xl bg-gray-100 p-1 shadow-md ring-1 ring-gray-200" role="tablist" aria-label="Basculer entre achats et ventes">
-                <button type="button" data-tx-tab="achats" role="tab"
-                        class="tx-tab rounded-xl px-4 py-2.5 text-sm font-extrabold transition">
-                    🛍️ Achats <span class="text-xs font-bold opacity-60">({{ $purchases->count() }})</span>
-                </button>
+            <div class="grid grid-cols-2 gap-1 rounded-2xl bg-gray-100 p-1 shadow-md ring-1 ring-gray-200" role="tablist" aria-label="Basculer entre ventes et achats">
                 <button type="button" data-tx-tab="ventes" role="tab"
                         class="tx-tab rounded-xl px-4 py-2.5 text-sm font-extrabold transition">
                     💰 Ventes <span class="text-xs font-bold opacity-60">({{ $sales->count() }})</span>
+                </button>
+                <button type="button" data-tx-tab="achats" role="tab"
+                        class="tx-tab rounded-xl px-4 py-2.5 text-sm font-extrabold transition">
+                    🛍️ Achats <span class="text-xs font-bold opacity-60">({{ $purchases->count() }})</span>
                 </button>
             </div>
         </div>
 
         <div id="tx-panels" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-3 lg:mt-8">
-            <div data-tx-panel="achats" class="lg:block bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
-                <h2 class="text-xl font-extrabold mb-4 hidden lg:flex items-center gap-2">🛍️ Mes achats
-                    <span class="text-xs font-bold text-gray-400">({{ $purchases->count() }})</span>
-                </h2>
-
-                @forelse($purchases as $transaction)
-                    @include('account.transactions.partials.card', ['transaction' => $transaction, 'type' => 'purchase'])
-                @empty
-                    <div class="py-10 text-center">
-                        <div class="text-4xl" aria-hidden="true">🛍️</div>
-                        <p class="mt-3 font-semibold text-gray-900">Aucun achat pour le moment</p>
-                        <a href="{{ route('search') }}" class="mt-4 inline-flex rounded-2xl bg-teal-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-700 transition">Explorer les annonces</a>
-                    </div>
-                @endforelse
-            </div>
-
-            <div data-tx-panel="ventes" class="hidden lg:block bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
+            <div data-tx-panel="ventes" class="lg:block bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
                 <h2 class="text-xl font-extrabold mb-4 hidden lg:flex items-center gap-2">💰 Mes ventes
                     <span class="text-xs font-bold text-gray-400">({{ $sales->count() }})</span>
                 </h2>
@@ -122,6 +106,22 @@
                         <div class="text-4xl" aria-hidden="true">💰</div>
                         <p class="mt-3 font-semibold text-gray-900">Aucune vente pour le moment</p>
                         <a href="{{ route('account.listings.create') }}" class="mt-4 inline-flex rounded-2xl bg-teal-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-700 transition">Déposer une annonce</a>
+                    </div>
+                @endforelse
+            </div>
+
+            <div data-tx-panel="achats" class="hidden lg:block bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
+                <h2 class="text-xl font-extrabold mb-4 hidden lg:flex items-center gap-2">🛍️ Mes achats
+                    <span class="text-xs font-bold text-gray-400">({{ $purchases->count() }})</span>
+                </h2>
+
+                @forelse($purchases as $transaction)
+                    @include('account.transactions.partials.card', ['transaction' => $transaction, 'type' => 'purchase'])
+                @empty
+                    <div class="py-10 text-center">
+                        <div class="text-4xl" aria-hidden="true">🛍️</div>
+                        <p class="mt-3 font-semibold text-gray-900">Aucun achat pour le moment</p>
+                        <a href="{{ route('search') }}" class="mt-4 inline-flex rounded-2xl bg-teal-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-700 transition">Explorer les annonces</a>
                     </div>
                 @endforelse
             </div>
@@ -155,7 +155,7 @@
         t.addEventListener('click', function () { setTab(t.dataset.txTab); });
     });
 
-    setTab('achats');
+    setTab('ventes');
 
     // Bonus : balayage horizontal sur mobile pour changer d'onglet.
     const wrap = document.getElementById('tx-panels');
@@ -169,7 +169,7 @@
         const t = e.changedTouches[0];
         const dx = t.clientX - x0, dy = t.clientY - y0;
         if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-            setTab(dx < 0 ? 'ventes' : 'achats');
+            setTab(dx < 0 ? 'achats' : 'ventes');
         }
         x0 = y0 = null;
     }, { passive: true });

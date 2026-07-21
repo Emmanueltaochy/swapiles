@@ -3,48 +3,70 @@
 @section('title', 'Inscription — Swap\'Îles')
 
 @section('content')
-<section class="min-h-[70vh] bg-gray-50 flex items-center justify-center px-4 py-12">
-    <div class="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-100 p-6 sm:p-8">
-        <h1 class="text-3xl font-extrabold text-gray-900">Créer un compte</h1>
-        <p class="text-gray-500 mt-2">Rejoignez la marketplace seconde main des îles.</p>
+<section class="flex min-h-[80vh] items-center justify-center bg-gray-50 px-4 py-12">
+    <div class="w-full max-w-md">
 
-        @if($errors->any())
-            <div class="mt-5 bg-red-50 text-red-700 text-sm rounded-2xl p-4">
-                {{ $errors->first() }}
-            </div>
-        @endif
+        <div class="mb-6 text-center">
+            <a href="{{ url('/') }}" class="inline-flex items-center gap-1.5 text-xl font-bold text-gray-900">
+                <span aria-hidden="true">🌴</span> Swap'Îles
+            </a>
+        </div>
 
-        <form method="POST" action="{{ route('register.store') }}" class="mt-6 space-y-4">
-            @csrf
+        <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
+            <h1 class="text-2xl font-bold text-gray-900">Créer un compte</h1>
+            <p class="mt-1 text-gray-500">La marketplace seconde main des îles.</p>
 
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Nom</label>
-                <input type="text" name="name" value="{{ old('name') }}" required class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-            </div>
-
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Email</label>
-                <input type="email" name="email" value="{{ old('email') }}" required class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
+            <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium">
+                <span class="rounded-full bg-teal-50 px-2.5 py-1 text-teal-700">✅ Gratuit</span>
+                <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700">⚡ Vends en 2 minutes</span>
+                <span class="rounded-full bg-gray-100 px-2.5 py-1 text-gray-600">🛡️ Paiement sécurisé</span>
             </div>
 
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Mot de passe</label>
-                <input type="password" name="password" required class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-            </div>
+            @if($errors->any())
+                <div class="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-700">
+                    {{ $errors->first() }}
+                </div>
+            @endif
 
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Confirmer le mot de passe</label>
-                <input type="password" name="password_confirmation" required class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-            </div>
+            <form method="POST" action="{{ route('register.store') }}" class="mt-6 space-y-4">
+                @csrf
 
-            <button class="w-full bg-teal-700 hover:bg-teal-800 text-white font-bold rounded-2xl px-5 py-3 transition">
-                Créer mon compte
-            </button>
-        </form>
+                <div>
+                    <label for="name" class="mb-1 block text-sm font-semibold text-gray-700">Nom</label>
+                    <input id="name" type="text" name="name" value="{{ old('name') }}" required autofocus autocomplete="name"
+                           class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100 @error('name') border-red-300 @enderror">
+                    @error('name')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
 
-        <p class="text-sm text-gray-500 mt-6 text-center">
+                <div>
+                    <label for="email" class="mb-1 block text-sm font-semibold text-gray-700">Email</label>
+                    <input id="email" type="email" name="email" value="{{ old('email') }}" required autocomplete="email"
+                           class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100 @error('email') border-red-300 @enderror">
+                    @error('email')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+
+                <div>
+                    <label for="password" class="mb-1 block text-sm font-semibold text-gray-700">Mot de passe</label>
+                    <input id="password" type="password" name="password" required autocomplete="new-password"
+                           class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100 @error('password') border-red-300 @enderror">
+                    @error('password')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+
+                <div>
+                    <label for="password_confirmation" class="mb-1 block text-sm font-semibold text-gray-700">Confirmer le mot de passe</label>
+                    <input id="password_confirmation" type="password" name="password_confirmation" required autocomplete="new-password"
+                           class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
+                </div>
+
+                <button class="w-full rounded-xl bg-teal-600 px-5 py-3 font-semibold text-white transition hover:bg-teal-700 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
+                    Créer mon compte
+                </button>
+            </form>
+        </div>
+
+        <p class="mt-6 text-center text-sm text-gray-500">
             Déjà inscrit ?
-            <a href="{{ route('login') }}" class="font-bold text-teal-700 hover:text-teal-900">Se connecter</a>
+            <a href="{{ route('login') }}" class="font-semibold text-teal-700 hover:text-teal-900">Se connecter</a>
         </p>
     </div>
 </section>

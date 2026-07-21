@@ -13,3 +13,7 @@ Schedule::command('swapiles:cleanup-pending')->hourly();
 // Libère automatiquement les versements vendeurs en attente
 // (ventes finalisées dont le vendeur a configuré son Stripe Connect après coup).
 Schedule::command('payouts:release-pending')->everyFifteenMinutes()->withoutOverlapping();
+
+// Filets de sécurité paiement : versement auto (colis expédié depuis longtemps
+// sans confirmation) + signalement des ventes non expédiées à rembourser.
+Schedule::command('transactions:auto-resolve')->dailyAt('07:00')->withoutOverlapping();

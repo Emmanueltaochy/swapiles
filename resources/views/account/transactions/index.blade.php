@@ -79,9 +79,23 @@
             </p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
-                <h2 class="text-xl font-extrabold mb-4 flex items-center gap-2">🛍️ Mes achats
+        {{-- Bascule Achats / Ventes — mobile & tablette uniquement --}}
+        <div class="lg:hidden sticky top-16 z-30 mt-6">
+            <div class="grid grid-cols-2 gap-1 rounded-2xl bg-gray-100 p-1 shadow-md ring-1 ring-gray-200" role="tablist" aria-label="Basculer entre achats et ventes">
+                <button type="button" data-tx-tab="achats" role="tab"
+                        class="tx-tab rounded-xl px-4 py-2.5 text-sm font-extrabold transition">
+                    🛍️ Achats <span class="text-xs font-bold opacity-60">({{ $purchases->count() }})</span>
+                </button>
+                <button type="button" data-tx-tab="ventes" role="tab"
+                        class="tx-tab rounded-xl px-4 py-2.5 text-sm font-extrabold transition">
+                    💰 Ventes <span class="text-xs font-bold opacity-60">({{ $sales->count() }})</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="tx-panels" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-3 lg:mt-8">
+            <div data-tx-panel="achats" class="lg:block bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
+                <h2 class="text-xl font-extrabold mb-4 hidden lg:flex items-center gap-2">🛍️ Mes achats
                     <span class="text-xs font-bold text-gray-400">({{ $purchases->count() }})</span>
                 </h2>
 
@@ -96,8 +110,8 @@
                 @endforelse
             </div>
 
-            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
-                <h2 class="text-xl font-extrabold mb-4 flex items-center gap-2">💰 Mes ventes
+            <div data-tx-panel="ventes" class="hidden lg:block bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
+                <h2 class="text-xl font-extrabold mb-4 hidden lg:flex items-center gap-2">💰 Mes ventes
                     <span class="text-xs font-bold text-gray-400">({{ $sales->count() }})</span>
                 </h2>
 
@@ -115,4 +129,50 @@
 
     </div>
 </section>
+
+<script>
+(function () {
+    const tabs = document.querySelectorAll('[data-tx-tab]');
+    const panels = document.querySelectorAll('[data-tx-panel]');
+    if (!tabs.length || !panels.length) return;
+
+    function setTab(name) {
+        tabs.forEach(function (t) {
+            const on = t.dataset.txTab === name;
+            t.classList.toggle('bg-white', on);
+            t.classList.toggle('text-gray-900', on);
+            t.classList.toggle('shadow-sm', on);
+            t.classList.toggle('text-gray-500', !on);
+            t.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        panels.forEach(function (p) {
+            // N'affecte que le mobile : la classe lg:block garde les 2 colonnes sur ordinateur.
+            p.classList.toggle('hidden', p.dataset.txPanel !== name);
+        });
+    }
+
+    tabs.forEach(function (t) {
+        t.addEventListener('click', function () { setTab(t.dataset.txTab); });
+    });
+
+    setTab('achats');
+
+    // Bonus : balayage horizontal sur mobile pour changer d'onglet.
+    const wrap = document.getElementById('tx-panels');
+    let x0 = null, y0 = null;
+    wrap.addEventListener('touchstart', function (e) {
+        const t = e.changedTouches[0];
+        x0 = t.clientX; y0 = t.clientY;
+    }, { passive: true });
+    wrap.addEventListener('touchend', function (e) {
+        if (x0 === null) return;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - x0, dy = t.clientY - y0;
+        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            setTab(dx < 0 ? 'ventes' : 'achats');
+        }
+        x0 = y0 = null;
+    }, { passive: true });
+})();
+</script>
 @endsection

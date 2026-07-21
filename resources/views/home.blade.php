@@ -109,16 +109,10 @@
     ])->first(fn($img) => file_exists(public_path($img)));
 @endphp
 
-<section class="relative overflow-hidden bg-gradient-to-br from-teal-900 via-teal-800 to-emerald-700"
-    @if($heroBg)
-        style="background-image: linear-gradient(rgba(4, 47, 46, .72), rgba(4, 47, 46, .72)), url('{{ asset($heroBg) }}'); background-size: cover; background-position: center;"
-    @endif
->
-    <div class="absolute inset-0 bg-cover bg-center opacity-100"
-         style="background-image: url('{{ asset('images/home-hero-reunion.webp') }}');"></div>
-    <div class="absolute inset-0 bg-gradient-to-br from-[#003f38]/85 via-[#006b5c]/70 to-[#00856f]/65"></div>
-    <div class="absolute inset-0 bg-black/15"></div>
-    <div class="absolute inset-0 bg-black/20"></div>
+<section class="relative overflow-hidden bg-teal-900">
+    <div class="absolute inset-0 bg-cover bg-center"
+         style="background-image: url('{{ asset($heroBg ?: 'images/home-hero-reunion.webp') }}');"></div>
+    <div class="absolute inset-0 bg-gradient-to-br from-teal-950/85 via-teal-900/70 to-emerald-900/65"></div>
 
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
         <div class="max-w-3xl">

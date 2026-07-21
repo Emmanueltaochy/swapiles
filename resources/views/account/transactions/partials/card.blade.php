@@ -80,14 +80,40 @@
     </a>
 
     <div class="mt-4 flex flex-wrap gap-2">
-        @if($isSale && $transaction->status === 'paid' && $transaction->shipping_status === 'pending')
-            <form method="POST" action="{{ route('transactions.shipped', $transaction) }}">
-                @csrf
-                @method('PATCH')
-                <button class="bg-teal-700 text-white font-extrabold rounded-2xl px-4 py-2 text-sm">
-                    📦 J’ai déposé le colis
-                </button>
-            </form>
+        @if($isSale && $transaction->status === 'paid')
+            @if($transaction->delivery_method === 'colissimo')
+                @if(!$transaction->colissimo_label_path)
+                    <form method="POST" action="{{ route('account.colissimo.generate', $transaction) }}">
+                        @csrf
+                        <button class="bg-blue-700 hover:bg-blue-800 text-white font-extrabold rounded-2xl px-4 py-2 text-sm">
+                            🏷️ Générer le bordereau Colissimo
+                        </button>
+                    </form>
+                @else
+                    <a href="{{ route('account.colissimo.download', $transaction) }}"
+                       class="bg-gray-900 hover:bg-black text-white font-extrabold rounded-2xl px-4 py-2 text-sm">
+                        🖨️ Voir / imprimer le bordereau
+                    </a>
+
+                    @if($transaction->shipping_status === 'pending')
+                        <form method="POST" action="{{ route('transactions.shipped', $transaction) }}">
+                            @csrf
+                            @method('PATCH')
+                            <button class="bg-teal-700 hover:bg-teal-800 text-white font-extrabold rounded-2xl px-4 py-2 text-sm">
+                                📦 Marquer comme expédié
+                            </button>
+                        </form>
+                    @endif
+                @endif
+            @elseif($transaction->shipping_status === 'pending')
+                <form method="POST" action="{{ route('transactions.shipped', $transaction) }}">
+                    @csrf
+                    @method('PATCH')
+                    <button class="bg-teal-700 hover:bg-teal-800 text-white font-extrabold rounded-2xl px-4 py-2 text-sm">
+                        📦 J’ai déposé le colis
+                    </button>
+                </form>
+            @endif
         @endif
 
         @if($isPurchase && $transaction->shipping_status === 'shipped' && $transaction->status === 'paid')

@@ -183,8 +183,8 @@
                     ->with('user')
                     ->whereNotNull('user_id')
                     ->latest('created_at')
-                    ->limit(12)
-                    ->get();
+                    ->paginate(10, ['*'], 'activite')
+                    ->withQueryString();
             }
         @endphp
 
@@ -248,6 +248,23 @@
                     @empty
                         <p style="opacity:.6;">Aucune activité connectée pour le moment.</p>
                     @endforelse
+
+                    @if($analyticsRecentConnectedEvents->hasPages())
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-top:1rem;flex-wrap:wrap;">
+                            <span style="font-size:.78rem;opacity:.6;">
+                                Page {{ $analyticsRecentConnectedEvents->currentPage() }} / {{ $analyticsRecentConnectedEvents->lastPage() }}
+                                · {{ $analyticsRecentConnectedEvents->total() }} activités
+                            </span>
+                            <div style="display:flex;gap:.4rem;">
+                                @if($analyticsRecentConnectedEvents->previousPageUrl())
+                                    <x-filament::button tag="a" size="sm" color="gray" :href="$analyticsRecentConnectedEvents->previousPageUrl()">← Précédent</x-filament::button>
+                                @endif
+                                @if($analyticsRecentConnectedEvents->nextPageUrl())
+                                    <x-filament::button tag="a" size="sm" color="gray" :href="$analyticsRecentConnectedEvents->nextPageUrl()">Suivant →</x-filament::button>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </x-filament::section>

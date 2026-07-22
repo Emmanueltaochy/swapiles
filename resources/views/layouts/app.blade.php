@@ -39,26 +39,30 @@ html, body {
     <meta name="twitter:description" content="@yield('meta_description', 'La marketplace seconde main des îles.')">
     <meta name="twitter:image" content="@yield('og_image', asset('images/logo.png'))">
 
-    {{-- Suivi publicitaire (activé seulement si les identifiants sont définis dans le .env) --}}
-    @if(env('META_PIXEL_ID'))
+    {{-- Suivi publicitaire (identifiants publics ; surchargeables via .env) --}}
+    @php
+        $metaPixelId = env('META_PIXEL_ID', '2716674522082712');
+        $googleTagId = env('GOOGLE_TAG_ID', 'G-KH96S3FP4X');
+    @endphp
+    @if($metaPixelId)
         <script>
         !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
         n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
         n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
         t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
         document,'script','https://connect.facebook.net/en_US/fbevents.js');
-        fbq('init', '{{ env('META_PIXEL_ID') }}');
+        fbq('init', '{{ $metaPixelId }}');
         fbq('track', 'PageView');
         </script>
-        <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id={{ env('META_PIXEL_ID') }}&ev=PageView&noscript=1"/></noscript>
+        <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id={{ $metaPixelId }}&ev=PageView&noscript=1"/></noscript>
     @endif
-    @if(env('GOOGLE_TAG_ID'))
-        <script async src="https://www.googletagmanager.com/gtag/js?id={{ env('GOOGLE_TAG_ID') }}"></script>
+    @if($googleTagId)
+        <script async src="https://www.googletagmanager.com/gtag/js?id={{ $googleTagId }}"></script>
         <script>
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
-        gtag('config', '{{ env('GOOGLE_TAG_ID') }}');
+        gtag('config', '{{ $googleTagId }}');
         </script>
     @endif
 

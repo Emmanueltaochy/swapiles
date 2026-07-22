@@ -8,6 +8,18 @@
 
 @section('content')
 
+<script>
+    if (window.SWP && window.SWP.loaded) {
+        window.SWP.track('ViewContent', {
+            content_name: @json($listing->title),
+            content_ids: [@json($listing->id)],
+            content_type: 'product',
+            value: {{ (float) $listing->price }},
+            currency: 'EUR'
+        });
+    }
+</script>
+
 @php
     $images = $listing->images ?? collect();
     $mainImage = $images->first();

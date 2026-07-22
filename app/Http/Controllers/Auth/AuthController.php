@@ -74,7 +74,8 @@ class AuthController extends Controller
         }
 
         return redirect()->route('account.dashboard')
-            ->with('status', "Bienvenue sur Swap'Îles ! Un e-mail de bienvenue vient de vous être envoyé.");
+            ->with('status', "Bienvenue sur Swap'Îles ! Un e-mail de bienvenue vient de vous être envoyé.")
+            ->with('pixel_event', ['event' => 'CompleteRegistration', 'params' => []]);
     }
 
     public function verifyEmail(Request $request, $id, $hash)

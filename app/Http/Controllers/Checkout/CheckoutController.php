@@ -235,8 +235,11 @@ class CheckoutController extends Controller
             403
         );
 
+        $justPaid = false;
+
         try {
             $wasPaid = $transaction->status === 'paid';
+            $justPaid = !$wasPaid;
 
             if ($transaction->status === 'pending') {
                 $transaction->update([
@@ -263,9 +266,25 @@ class CheckoutController extends Controller
             report($e);
         }
 
-        return redirect()
+        $redirect = redirect()
             ->route('account.transactions.show', $transaction)
             ->with('status', 'Paiement confirmé. Votre achat est bien enregistré.');
+
+        // Événement de conversion Pixel/GA (une seule fois).
+        if ($justPaid) {
+            $redirect->with('pixel_event', [
+                'event' => 'Purchase',
+                'params' => [
+                    'value' => round((float) $transaction->amount, 2),
+                    'currency' => 'EUR',
+                    'content_name' => $transaction->listing->title ?? 'Article',
+                    'content_ids' => [$transaction->listing_id],
+                    'content_type' => 'product',
+                ],
+            ]);
+        }
+
+        return $redirect;
     }
 
     private function sendPaidNotifications(Transaction $transaction): void

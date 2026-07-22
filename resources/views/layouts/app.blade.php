@@ -39,32 +39,46 @@ html, body {
     <meta name="twitter:description" content="@yield('meta_description', 'La marketplace seconde main des îles.')">
     <meta name="twitter:image" content="@yield('og_image', asset('images/logo.png'))">
 
-    {{-- Suivi publicitaire (identifiants publics ; surchargeables via .env) --}}
+    {{-- Suivi publicitaire, conditionné au consentement cookies (RGPD) --}}
     @php
         $metaPixelId = env('META_PIXEL_ID', '2716674522082712');
         $googleTagId = env('GOOGLE_TAG_ID', 'G-KH96S3FP4X');
+        $pixelEvent = session('pixel_event');
     @endphp
-    @if($metaPixelId)
-        <script>
-        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-        n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
-        n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
-        t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
-        document,'script','https://connect.facebook.net/en_US/fbevents.js');
-        fbq('init', '{{ $metaPixelId }}');
-        fbq('track', 'PageView');
-        </script>
-        <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id={{ $metaPixelId }}&ev=PageView&noscript=1"/></noscript>
-    @endif
-    @if($googleTagId)
-        <script async src="https://www.googletagmanager.com/gtag/js?id={{ $googleTagId }}"></script>
-        <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', '{{ $googleTagId }}');
-        </script>
-    @endif
+    <script>
+    window.SWP = {
+        metaId: @json($metaPixelId),
+        gaId: @json($googleTagId),
+        pending: @json($pixelEvent),
+        loaded: false,
+        load: function () {
+            if (this.loaded) return; this.loaded = true;
+            if (this.metaId) {
+                !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+                fbq('init', this.metaId);
+                fbq('track', 'PageView');
+            }
+            if (this.gaId) {
+                var g = document.createElement('script'); g.async = true;
+                g.src = 'https://www.googletagmanager.com/gtag/js?id=' + this.gaId;
+                document.head.appendChild(g);
+                window.dataLayer = window.dataLayer || [];
+                window.gtag = function () { dataLayer.push(arguments); };
+                gtag('js', new Date());
+                gtag('config', this.gaId);
+            }
+            if (this.pending) { this.track(this.pending.event, this.pending.params || {}); }
+        },
+        track: function (event, params) {
+            if (window.fbq) { fbq('track', event, params || {}); }
+            if (window.gtag) { gtag('event', event, params || {}); }
+        }
+    };
+    (function () {
+        var m = document.cookie.match(/(?:^|; )swapiles_cookie_consent=([^;]+)/);
+        if (m && decodeURIComponent(m[1]) === 'accepted') { window.SWP.load(); }
+    })();
+    </script>
 
 <!-- SWAPILES_COLISSIMO_BANNER_FIX_START -->
 <style>
@@ -409,8 +423,39 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
+{{-- Bandeau cookies (RGPD) --}}
+<div id="cookie-banner" class="fixed inset-x-0 bottom-0 z-[95] hidden">
+    <div class="mx-auto max-w-4xl m-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-xl sm:flex sm:items-center sm:gap-4">
+        <p class="text-sm text-gray-600 flex-1">
+            🍪 Nous utilisons des cookies pour le bon fonctionnement du site et, avec votre accord, pour la mesure d'audience et la publicité.
+            <a href="{{ route('legal.privacy') }}" class="font-semibold text-teal-700 hover:underline">En savoir plus</a>.
+        </p>
+        <div class="mt-3 flex gap-2 sm:mt-0 shrink-0">
+            <button id="cookie-refuse" type="button" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Refuser</button>
+            <button id="cookie-accept" type="button" class="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700">Accepter</button>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    var banner = document.getElementById('cookie-banner');
+    if (!banner) return;
+    var has = document.cookie.match(/(?:^|; )swapiles_cookie_consent=/);
+    if (!has) { banner.classList.remove('hidden'); }
 
+    function setConsent(value) {
+        var d = new Date(); d.setFullYear(d.getFullYear() + 1);
+        document.cookie = 'swapiles_cookie_consent=' + value + '; expires=' + d.toUTCString() + '; path=/; SameSite=Lax';
+        banner.classList.add('hidden');
+        if (value === 'accepted' && window.SWP) { window.SWP.load(); }
+    }
 
+    var accept = document.getElementById('cookie-accept');
+    var refuse = document.getElementById('cookie-refuse');
+    if (accept) accept.addEventListener('click', function () { setConsent('accepted'); });
+    if (refuse) refuse.addEventListener('click', function () { setConsent('refused'); });
+})();
+</script>
 
 </body>
 </html>

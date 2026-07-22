@@ -64,7 +64,7 @@
                 <h2 id="todo-title" class="text-sm font-semibold text-gray-500">À traiter</h2>
 
                 @unless($stripeReady)
-                    <a href="{{ route('stripe.connect.onboarding') }}"
+                    <a href="{{ route('stripe.connect.activate') }}"
                        class="flex items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 hover:bg-amber-100/70">
                         <div class="flex items-center gap-3 min-w-0">
                             <span class="text-2xl" aria-hidden="true">🏦</span>

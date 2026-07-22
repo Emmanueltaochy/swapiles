@@ -46,6 +46,7 @@ class Dashboard extends BaseDashboard
             ],
 
             'usersCount' => $filter(User::query())->count(),
+            'membersTotalCount' => User::count(),
             // « Annonces en ligne » et « Vues » sont des indicateurs d'état ACTUEL :
             // ils ne dépendent pas de la période sélectionnée (sinon ils affichent 0
             // pour une période courte alors que des annonces sont bien en ligne).

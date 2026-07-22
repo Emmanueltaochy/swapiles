@@ -17,6 +17,9 @@
         .swp-table th{text-align:left;opacity:.55;font-size:.72rem;font-weight:700;padding:.6rem;border-bottom:1px solid rgba(148,163,184,.25)}
         .swp-table td{padding:.7rem .6rem;border-bottom:1px solid rgba(148,163,184,.15)}
         .swp-trunc{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .swp-section-title{font-size:1.05rem;font-weight:800;margin-bottom:.75rem;display:flex;flex-wrap:wrap;align-items:baseline;gap:.5rem}
+        .swp-section-title small{font-size:.75rem;font-weight:600;opacity:.55}
+        .swp-badge-live{font-size:.68rem;font-weight:700;padding:.1rem .5rem;border-radius:999px;background:rgba(16,185,129,.15);color:#0d9488}
     </style>
 
     <div style="display:flex;flex-direction:column;gap:1.5rem;">
@@ -42,58 +45,89 @@
             </div>
         </x-filament::section>
 
-        {{-- KPI principaux --}}
-        <div class="swp-grid swp-4">
-            <x-filament::section>
-                <div class="swp-klabel">👥 Membres</div>
-                <div class="swp-kvalue">{{ number_format($usersCount, 0, ',', ' ') }}</div>
-                <div class="swp-ksub">+{{ $todayUsersCount }} aujourd’hui</div>
-            </x-filament::section>
+        {{-- État actuel : indépendant de la période --}}
+        <div>
+            <div class="swp-section-title">
+                🟢 État actuel de la marketplace
+                <span class="swp-badge-live">temps réel</span>
+                <small>indépendant du filtre de période</small>
+            </div>
+            <div class="swp-grid swp-4">
+                <x-filament::section>
+                    <div class="swp-klabel">👥 Membres inscrits</div>
+                    <div class="swp-kvalue">{{ number_format($membersTotalCount, 0, ',', ' ') }}</div>
+                    <div class="swp-ksub">Total depuis le lancement</div>
+                </x-filament::section>
 
-            <x-filament::section>
-                <div class="swp-klabel">📦 Annonces en ligne</div>
-                <div class="swp-kvalue">{{ number_format($publishedListingsCount, 0, ',', ' ') }}</div>
-                <div class="swp-ksub">{{ number_format($totalListingsCount, 0, ',', ' ') }} au total · +{{ $todayListingsCount }} aujourd’hui</div>
-            </x-filament::section>
+                <x-filament::section>
+                    <div class="swp-klabel">📦 Annonces en ligne</div>
+                    <div class="swp-kvalue">{{ number_format($publishedListingsCount, 0, ',', ' ') }}</div>
+                    <div class="swp-ksub">Actuellement visibles</div>
+                </x-filament::section>
 
-            <x-filament::section>
-                <div class="swp-klabel">👀 Vues annonces</div>
-                <div class="swp-kvalue">{{ number_format($viewsCount, 0, ',', ' ') }}</div>
-                <div class="swp-ksub">{{ number_format($favoritesCount, 0, ',', ' ') }} favoris</div>
-            </x-filament::section>
+                <x-filament::section>
+                    <div class="swp-klabel">🗂️ Total annonces</div>
+                    <div class="swp-kvalue">{{ number_format($totalListingsCount, 0, ',', ' ') }}</div>
+                    <div class="swp-ksub">En ligne, brouillons et vendues</div>
+                </x-filament::section>
 
-            <x-filament::section>
-                <div class="swp-klabel">💬 Messages</div>
-                <div class="swp-kvalue">{{ number_format($messagesCount, 0, ',', ' ') }}</div>
-                <div class="swp-ksub">+{{ $todayMessagesCount }} aujourd’hui</div>
-            </x-filament::section>
+                <x-filament::section>
+                    <div class="swp-klabel">👀 Vues cumulées</div>
+                    <div class="swp-kvalue">{{ number_format($viewsCount, 0, ',', ' ') }}</div>
+                    <div class="swp-ksub">Sur l'ensemble des annonces</div>
+                </x-filament::section>
+            </div>
         </div>
 
-        {{-- Finances --}}
-        <div class="swp-grid swp-4">
-            <x-filament::section>
-                <div class="swp-klabel">💳 Transactions payées</div>
-                <div class="swp-kvalue">{{ number_format($paidTransactionsCount, 0, ',', ' ') }}</div>
-                <div class="swp-ksub">{{ number_format($transactionsCount, 0, ',', ' ') }} au total</div>
-            </x-filament::section>
+        {{-- Sur la période sélectionnée --}}
+        <div>
+            <div class="swp-section-title">
+                📊 Sur la période : {{ $periodLabel }}
+                <small>ces chiffres suivent le filtre ci-dessus</small>
+            </div>
+            <div class="swp-grid swp-4">
+                <x-filament::section>
+                    <div class="swp-klabel">🆕 Nouveaux membres</div>
+                    <div class="swp-kvalue">{{ number_format($usersCount, 0, ',', ' ') }}</div>
+                    <div class="swp-ksub">+{{ $todayUsersCount }} aujourd’hui</div>
+                </x-filament::section>
 
-            <x-filament::section>
-                <div class="swp-klabel">💰 Volume validé</div>
-                <div class="swp-kvalue">{{ number_format($completedAmount, 0, ',', ' ') }} €</div>
-                <div class="swp-ksub">Ventes terminées</div>
-            </x-filament::section>
+                <x-filament::section>
+                    <div class="swp-klabel">📝 Nouvelles annonces</div>
+                    <div class="swp-kvalue">{{ number_format($totalListingsCount, 0, ',', ' ') }}</div>
+                    <div class="swp-ksub">+{{ $todayListingsCount }} aujourd’hui</div>
+                </x-filament::section>
 
-            <x-filament::section>
-                <div class="swp-klabel">🏝️ Revenu plateforme</div>
-                <div class="swp-kvalue" style="color:#0d9488;">{{ number_format($platformRevenueAmount ?? (($commissionAmount ?? 0) + ($buyerProtectionAmount ?? 0)), 0, ',', ' ') }} €</div>
-                <div class="swp-ksub">Commission + protection acheteur</div>
-            </x-filament::section>
+                <x-filament::section>
+                    <div class="swp-klabel">💬 Messages</div>
+                    <div class="swp-kvalue">{{ number_format($messagesCount, 0, ',', ' ') }}</div>
+                    <div class="swp-ksub">+{{ $todayMessagesCount }} aujourd’hui</div>
+                </x-filament::section>
 
-            <x-filament::section>
-                <div class="swp-klabel">🛡️ Protection acheteur</div>
-                <div class="swp-kvalue">{{ number_format($buyerProtectionAmount ?? 0, 0, ',', ' ') }} €</div>
-                <div class="swp-ksub">Frais de protection collectés</div>
-            </x-filament::section>
+                <x-filament::section>
+                    <div class="swp-klabel">💳 Transactions payées</div>
+                    <div class="swp-kvalue">{{ number_format($paidTransactionsCount, 0, ',', ' ') }}</div>
+                    <div class="swp-ksub">{{ number_format($transactionsCount, 0, ',', ' ') }} transactions</div>
+                </x-filament::section>
+
+                <x-filament::section>
+                    <div class="swp-klabel">💰 Volume validé</div>
+                    <div class="swp-kvalue">{{ number_format($completedAmount, 0, ',', ' ') }} €</div>
+                    <div class="swp-ksub">Ventes terminées</div>
+                </x-filament::section>
+
+                <x-filament::section>
+                    <div class="swp-klabel">🏝️ Revenu plateforme</div>
+                    <div class="swp-kvalue" style="color:#0d9488;">{{ number_format($platformRevenueAmount ?? (($commissionAmount ?? 0) + ($buyerProtectionAmount ?? 0)), 0, ',', ' ') }} €</div>
+                    <div class="swp-ksub">Commission + protection</div>
+                </x-filament::section>
+
+                <x-filament::section>
+                    <div class="swp-klabel">🛡️ Protection acheteur</div>
+                    <div class="swp-kvalue">{{ number_format($buyerProtectionAmount ?? 0, 0, ',', ' ') }} €</div>
+                    <div class="swp-ksub">Frais collectés</div>
+                </x-filament::section>
+            </div>
         </div>
 
         {{-- Répartition territoire + Top annonces --}}

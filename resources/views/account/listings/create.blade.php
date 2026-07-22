@@ -49,10 +49,20 @@
                     <span class="grid h-7 w-7 place-items-center rounded-full bg-teal-600 text-sm font-bold text-white">1</span>
                     <h2 class="font-semibold text-gray-900">📷 Photos</h2>
                 </div>
-                <label for="images" class="{{ $lbl }}">Ajoute tes photos</label>
-                <input id="images" type="file" name="images[]" multiple accept="image/*"
-                       class="w-full rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-teal-600 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-teal-700">
-                <p class="mt-2 text-xs text-gray-500">Plusieurs photos possibles · max 5 Mo par image. Une belle 1ʳᵉ photo = plus de ventes.</p>
+                <span class="{{ $lbl }}">Ajoute tes photos</span>
+
+                <input id="images" type="file" name="images[]" multiple accept="image/*" class="hidden">
+
+                <div id="photo-previews" class="hidden grid grid-cols-3 sm:grid-cols-4 gap-3 mb-3"></div>
+
+                <button type="button" id="photo-add-btn"
+                        class="flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center transition hover:border-teal-400 hover:bg-teal-50">
+                    <span class="text-3xl" aria-hidden="true">📷</span>
+                    <span class="font-semibold text-teal-700" id="photo-add-label">Ajouter des photos</span>
+                    <span class="text-xs text-gray-500">Tu peux en ajouter plusieurs, une par une ou en lot.</span>
+                </button>
+
+                <p class="mt-2 text-xs text-gray-500">Plusieurs photos possibles · max 5 Mo par image. La 1ʳᵉ photo sera la photo principale.</p>
             </div>
 
             {{-- Étape 2 : Ton article --}}
@@ -454,5 +464,101 @@ document.addEventListener('DOMContentLoaded', function () {
     fillLevel2(oldLevel2);
     syncPaymentDelivery();
 });
+</script>
+
+<script>
+(function () {
+    const input = document.getElementById('images');
+    const addBtn = document.getElementById('photo-add-btn');
+    const label = document.getElementById('photo-add-label');
+    const previews = document.getElementById('photo-previews');
+
+    if (!input || !addBtn || !previews) return;
+
+    // Repli : si DataTransfer n'est pas supporté, on garde l'input natif visible.
+    let supportsDataTransfer = true;
+    try { new DataTransfer(); } catch (e) { supportsDataTransfer = false; }
+
+    if (!supportsDataTransfer) {
+        input.classList.remove('hidden');
+        addBtn.classList.add('hidden');
+        return;
+    }
+
+    const MAX_BYTES = 5 * 1024 * 1024;
+    let files = [];
+
+    addBtn.addEventListener('click', () => input.click());
+
+    input.addEventListener('change', () => {
+        let skipped = 0;
+        for (const f of input.files) {
+            if (!f.type.startsWith('image/')) continue;
+            if (f.size > MAX_BYTES) { skipped++; continue; }
+            // évite les doublons (même nom + taille)
+            if (files.some(x => x.name === f.name && x.size === f.size)) continue;
+            files.push(f);
+        }
+        sync();
+        render();
+        if (skipped > 0) {
+            alert(skipped + ' photo(s) ignorée(s) : chaque image doit faire moins de 5 Mo.');
+        }
+    });
+
+    function sync() {
+        const dt = new DataTransfer();
+        files.forEach(f => dt.items.add(f));
+        input.files = dt.files;
+    }
+
+    function render() {
+        previews.innerHTML = '';
+        if (files.length === 0) {
+            previews.classList.add('hidden');
+            label.textContent = 'Ajouter des photos';
+            return;
+        }
+        previews.classList.remove('hidden');
+        label.textContent = 'Ajouter d’autres photos';
+
+        files.forEach((file, i) => {
+            const url = URL.createObjectURL(file);
+            const cell = document.createElement('div');
+            cell.className = 'relative aspect-square overflow-hidden rounded-xl border border-gray-200 bg-gray-100';
+
+            const img = document.createElement('img');
+            img.src = url;
+            img.className = 'h-full w-full object-cover';
+            img.onload = () => URL.revokeObjectURL(url);
+            cell.appendChild(img);
+
+            if (i === 0) {
+                const badge = document.createElement('span');
+                badge.textContent = 'Principale';
+                badge.className = 'absolute left-1 top-1 rounded-full bg-teal-600 px-2 py-0.5 text-[10px] font-bold text-white';
+                cell.appendChild(badge);
+            }
+
+            const rm = document.createElement('button');
+            rm.type = 'button';
+            rm.dataset.i = i;
+            rm.textContent = '✕';
+            rm.setAttribute('aria-label', 'Supprimer cette photo');
+            rm.className = 'remove-photo absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-xs font-bold text-white hover:bg-black';
+            cell.appendChild(rm);
+
+            previews.appendChild(cell);
+        });
+    }
+
+    previews.addEventListener('click', (e) => {
+        const btn = e.target.closest('.remove-photo');
+        if (!btn) return;
+        files.splice(Number(btn.dataset.i), 1);
+        sync();
+        render();
+    });
+})();
 </script>
 @endsection

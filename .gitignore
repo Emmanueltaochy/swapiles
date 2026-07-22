@@ -50,3 +50,6 @@ yarn-error.log
 *.broken
 *.broken-*
 *.php.bak*
+
+# Skills de sécurité (outillage dev local, ne pas déployer en prod)
+.claude/skills/[0-9]*/

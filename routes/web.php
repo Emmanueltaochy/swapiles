@@ -65,10 +65,10 @@ Route::get('/annonce/{listing}', [ListingController::class, 'show'])->name('list
 
 Route::middleware('guest')->group(function () {
     Route::get('/connexion', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/connexion', [AuthController::class, 'login'])->name('login.store');
+    Route::post('/connexion', [AuthController::class, 'login'])->middleware('throttle:8,1')->name('login.store');
 
     Route::get('/inscription', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/inscription', [AuthController::class, 'register'])->name('register.store');
+    Route::post('/inscription', [AuthController::class, 'register'])->middleware('throttle:5,1')->name('register.store');
 });
 
 // Confirmation d'adresse e-mail (lien signé, accessible même déconnecté).
@@ -175,7 +175,7 @@ Route::get('/search-suggestions', SearchSuggestionController::class)->name('sear
 
 Route::middleware('guest')->group(function () {
     Route::get('/mot-de-passe-oublie', [PasswordResetController::class, 'request'])->name('password.request');
-    Route::post('/mot-de-passe/email', [PasswordResetController::class, 'email'])->name('password.email');
+    Route::post('/mot-de-passe/email', [PasswordResetController::class, 'email'])->middleware('throttle:5,1')->name('password.email');
     Route::get('/mot-de-passe/reinitialiser/{token}', [PasswordResetController::class, 'reset'])->name('password.reset');
     Route::post('/mot-de-passe/reset', [PasswordResetController::class, 'update'])->name('password.update');
 });

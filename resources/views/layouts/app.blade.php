@@ -32,6 +32,35 @@ html, body {
     <meta property="og:description" content="@yield('meta_description', 'La marketplace seconde main des îles.')">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:image" content="@yield('og_image', asset('images/logo.png'))">
+    <meta property="og:site_name" content="Swap'Îles">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="@yield('title', 'Swap’Îles')">
+    <meta name="twitter:description" content="@yield('meta_description', 'La marketplace seconde main des îles.')">
+    <meta name="twitter:image" content="@yield('og_image', asset('images/logo.png'))">
+
+    {{-- Suivi publicitaire (activé seulement si les identifiants sont définis dans le .env) --}}
+    @if(env('META_PIXEL_ID'))
+        <script>
+        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+        n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+        document,'script','https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init', '{{ env('META_PIXEL_ID') }}');
+        fbq('track', 'PageView');
+        </script>
+        <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id={{ env('META_PIXEL_ID') }}&ev=PageView&noscript=1"/></noscript>
+    @endif
+    @if(env('GOOGLE_TAG_ID'))
+        <script async src="https://www.googletagmanager.com/gtag/js?id={{ env('GOOGLE_TAG_ID') }}"></script>
+        <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', '{{ env('GOOGLE_TAG_ID') }}');
+        </script>
+    @endif
 
 <!-- SWAPILES_COLISSIMO_BANNER_FIX_START -->
 <style>
@@ -266,9 +295,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
             <div>
                 <p class="font-extrabold mb-3">Légal</p>
-                <p class="text-gray-500">CGU</p>
-                <p class="text-gray-500">Confidentialité</p>
-                <p class="text-gray-500">Contact</p>
+                <a href="{{ route('legal.cgu') }}" class="block text-gray-500 hover:text-teal-700">CGU</a>
+                <a href="{{ route('legal.cgv') }}" class="block text-gray-500 hover:text-teal-700">CGV</a>
+                <a href="{{ route('legal.privacy') }}" class="block text-gray-500 hover:text-teal-700">Confidentialité</a>
+                <a href="{{ route('legal.mentions') }}" class="block text-gray-500 hover:text-teal-700">Mentions légales</a>
+                <a href="mailto:contact@swapiles.com" class="block text-gray-500 hover:text-teal-700">Contact</a>
             </div>
         </div>
     </footer>

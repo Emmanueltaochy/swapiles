@@ -53,6 +53,13 @@ Route::get('/territoire/{territoire}', function (string $territoire) {
         ->withCookie(cookie('swapiles_territoire', $territoires[$territoire], 60 * 24 * 365));
 })->name('territoire.switch');
 Route::get('/recherche', [HomeController::class, 'search'])->name('search');
+
+// Pages légales
+Route::get('/mentions-legales', [\App\Http\Controllers\LegalController::class, 'mentions'])->name('legal.mentions');
+Route::get('/cgu', [\App\Http\Controllers\LegalController::class, 'cgu'])->name('legal.cgu');
+Route::get('/cgv', [\App\Http\Controllers\LegalController::class, 'cgv'])->name('legal.cgv');
+Route::get('/confidentialite', [\App\Http\Controllers\LegalController::class, 'confidentialite'])->name('legal.privacy');
+
 Route::get('/annonce/{listing}', [ListingController::class, 'show'])->name('listings.show');
 
 

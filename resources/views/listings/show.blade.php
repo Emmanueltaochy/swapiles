@@ -1,6 +1,10 @@
 @extends('layouts.app')
 
 @section('title', $listing->title . ' — Swap\'Îles')
+@section('meta_description', \Illuminate\Support\Str::limit(strip_tags($listing->description), 150))
+@if($listing->images->first())
+    @section('og_image', \Illuminate\Support\Str::startsWith($listing->images->first()->url, 'http') ? $listing->images->first()->url : url($listing->images->first()->url))
+@endif
 
 @section('content')
 

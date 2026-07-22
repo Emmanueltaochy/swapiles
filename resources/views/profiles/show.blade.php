@@ -1,7 +1,39 @@
 @extends('layouts.app')
 
-@section('title', $user->name . ' — Profil vendeur Swap\'Îles')
-@section('meta_description', 'Découvrez le dressing de ' . $user->name . ' sur Swap’Îles : annonces, avis vendeur et articles disponibles.')
+@section('title', $user->name . ' — Profil vendeur' . ($user->territoire ? ' ' . $user->territoire : '') . ' | Swap\'Îles')
+@section('meta_description', 'Découvrez le dressing de ' . $user->name . ' sur Swap’Îles : ' . $publishedListingsCount . ' article' . ($publishedListingsCount > 1 ? 's' : '') . ' en vente, ' . $soldListingsCount . ' vendu' . ($soldListingsCount > 1 ? 's' : '') . '. Achat, vente et échange de seconde main dans les îles.')
+
+@php
+    $personSchema = array_filter([
+        '@type' => 'Person',
+        '@id' => route('profiles.show', $user) . '#seller',
+        'name' => $user->name,
+        'url' => route('profiles.show', $user),
+        'image' => $user->avatar ? (\Illuminate\Support\Str::startsWith($user->avatar, 'http') ? $user->avatar : url($user->avatar)) : null,
+        'address' => $user->territoire ? ['@type' => 'PostalAddress', 'addressRegion' => $user->territoire, 'addressCountry' => 'FR'] : null,
+    ]);
+
+    if ($reviewsCount > 0 && (float) ($user->rating ?? 0) > 0) {
+        $personSchema['aggregateRating'] = [
+            '@type' => 'AggregateRating',
+            'ratingValue' => number_format((float) $user->rating, 1, '.', ''),
+            'reviewCount' => $reviewsCount,
+            'bestRating' => '5',
+            'worstRating' => '1',
+        ];
+    }
+
+    $profilePageSchema = [
+        '@type' => 'ProfilePage',
+        'mainEntity' => $personSchema,
+    ];
+@endphp
+
+@push('structured_data')
+<script type="application/ld+json">
+{!! json_encode(['@context' => 'https://schema.org'] + $profilePageSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+</script>
+@endpush
 
 @section('content')
 

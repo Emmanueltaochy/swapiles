@@ -1,6 +1,26 @@
 @extends('layouts.app')
 
-@section('title', 'Recherche — Swap\'Îles')
+@php
+    $seoQ = trim((string) request('q'));
+    // Paramètres de facettage qui multiplient les URLs quasi-dupliquées
+    $seoFacetKeys = ['category_level1', 'category_level2', 'category_level3', 'etat', 'marque', 'prix_min', 'prix_max', 'page', 'sort'];
+    $seoHasFacets = collect($seoFacetKeys)->contains(fn ($k) => filled(request($k)));
+
+    if ($seoQ !== '') {
+        $seoTitle = '« ' . $seoQ . ' » d\'occasion' . ($selectedTerritoire ? ' — ' . $selectedTerritoire : '') . ' | Swap\'Îles';
+        $seoMeta = 'Achetez, vendez et échangez « ' . $seoQ . ' » d\'occasion' . ($selectedTerritoire ? ' à ' . $selectedTerritoire : ' dans les îles') . ' sur Swap\'Îles. Livraison Colissimo ou remise en main propre.';
+    } else {
+        $seoTitle = 'Rechercher un article d\'occasion' . ($selectedTerritoire ? ' à ' . $selectedTerritoire : '') . ' | Swap\'Îles';
+        $seoMeta = 'Parcourez des milliers d\'articles de seconde main dans les îles : mode, maison, high-tech, enfants et plus. Achetez, vendez, échangez sur Swap\'Îles.';
+    }
+    // On indexe la recherche simple (mot-clé seul), on désindexe les combinaisons à facettes/pagination
+    $seoRobots = $seoHasFacets ? 'noindex, follow' : 'index, follow, max-image-preview:large';
+@endphp
+
+@section('title', $seoTitle)
+@section('meta_description', $seoMeta)
+@section('robots', $seoRobots)
+@section('canonical', $seoQ !== '' ? route('search', ['q' => $seoQ]) : route('search'))
 
 @section('content')
 @php

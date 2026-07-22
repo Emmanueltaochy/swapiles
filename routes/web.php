@@ -271,13 +271,19 @@ Sitemap: " . url('/sitemap.xml') . "
 
 Route::get('/sitemap.xml', function () {
     $urls = collect([
-        ['loc' => url('/'), 'priority' => '1.0'],
-        ['loc' => route('search'), 'priority' => '0.9'],
+        ['loc' => url('/'), 'priority' => '1.0', 'changefreq' => 'daily'],
+        ['loc' => route('search'), 'priority' => '0.9', 'changefreq' => 'daily'],
     ]);
 
+    // Pages légales (confiance / E-E-A-T)
+    foreach (['legal.mentions', 'legal.cgu', 'legal.cgv', 'legal.privacy'] as $legalRoute) {
+        $urls->push(['loc' => route($legalRoute), 'priority' => '0.3', 'changefreq' => 'yearly']);
+    }
+
+    // Annonces publiées
     $listings = \App\Models\Listing::where('status', 'published')
         ->latest('updated_at')
-        ->limit(2000)
+        ->limit(5000)
         ->get(['id', 'updated_at']);
 
     foreach ($listings as $listing) {
@@ -285,7 +291,29 @@ Route::get('/sitemap.xml', function () {
             'loc' => route('listings.show', $listing),
             'lastmod' => optional($listing->updated_at)->toAtomString(),
             'priority' => '0.8',
+            'changefreq' => 'weekly',
         ]);
+    }
+
+    // Profils vendeurs ayant au moins une annonce publiée
+    $sellerIds = \App\Models\Listing::where('status', 'published')
+        ->distinct()
+        ->limit(2000)
+        ->pluck('user_id')
+        ->filter();
+
+    if ($sellerIds->isNotEmpty()) {
+        $sellers = \App\Models\User::whereIn('id', $sellerIds)
+            ->get(['id', 'updated_at']);
+
+        foreach ($sellers as $seller) {
+            $urls->push([
+                'loc' => route('profiles.show', $seller),
+                'lastmod' => optional($seller->updated_at)->toAtomString(),
+                'priority' => '0.5',
+                'changefreq' => 'weekly',
+            ]);
+        }
     }
 
     $xml = view('sitemap', compact('urls'))->render();

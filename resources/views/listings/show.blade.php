@@ -1,10 +1,78 @@
 @extends('layouts.app')
 
-@section('title', $listing->title . ' — Swap\'Îles')
-@section('meta_description', \Illuminate\Support\Str::limit(strip_tags($listing->description), 150))
+@section('title', $listing->title . ($listing->territoire ? ' — ' . $listing->territoire : '') . ' | Swap\'Îles')
+@php
+    $seoPrice = $listing->price > 0 ? number_format($listing->price, 0, ',', ' ') . ' €' : 'Gratuit';
+    $seoDesc = trim(($listing->marque ? $listing->marque . ' — ' : '') . $seoPrice . '. ' . \Illuminate\Support\Str::limit(strip_tags($listing->description), 130));
+@endphp
+@section('meta_description', \Illuminate\Support\Str::limit($seoDesc, 155))
+@section('og_type', 'product')
 @if($listing->images->first())
     @section('og_image', \Illuminate\Support\Str::startsWith($listing->images->first()->url, 'http') ? $listing->images->first()->url : url($listing->images->first()->url))
 @endif
+
+@php
+    // Disponibilité et état au format Schema.org pour les rich results Google
+    $schemaAvailability = $listing->status === 'sold'
+        ? 'https://schema.org/SoldOut'
+        : 'https://schema.org/InStock';
+    $schemaCondition = in_array($listing->etat, ['Neuf avec étiquette', 'Neuf sans étiquette'], true)
+        ? 'https://schema.org/NewCondition'
+        : 'https://schema.org/UsedCondition';
+
+    $schemaImages = $listing->images
+        ->map(fn ($img) => \Illuminate\Support\Str::startsWith($img->url, 'http') ? $img->url : url($img->url))
+        ->values()->all();
+
+    $productSchema = array_filter([
+        '@type' => 'Product',
+        'name' => $listing->title,
+        'description' => \Illuminate\Support\Str::limit(strip_tags($listing->description), 500) ?: $listing->title,
+        'image' => $schemaImages ?: [asset('images/logo.png')],
+        'sku' => 'SWP-' . $listing->id,
+        'category' => trim(collect([$listing->category_level1, $listing->category_level2, $listing->category_level3])->filter()->implode(' > ')) ?: null,
+        'brand' => $listing->marque ? ['@type' => 'Brand', 'name' => $listing->marque] : null,
+        'color' => is_array($listing->couleurs) ? implode(', ', $listing->couleurs) : ($listing->couleurs ?: null),
+        'itemCondition' => $schemaCondition,
+    ]);
+
+    if ($listing->price > 0) {
+        $productSchema['offers'] = array_filter([
+            '@type' => 'Offer',
+            'url' => route('listings.show', $listing),
+            'priceCurrency' => $listing->currency ?: 'EUR',
+            'price' => number_format((float) $listing->price, 2, '.', ''),
+            'availability' => $schemaAvailability,
+            'itemCondition' => $schemaCondition,
+            'seller' => $listing->user ? ['@type' => 'Person', 'name' => $listing->user->name] : null,
+        ]);
+    }
+
+    $breadcrumbItems = collect([
+        ['name' => 'Accueil', 'item' => url('/')],
+        $listing->category_level1 ? ['name' => $listing->category_level1, 'item' => route('search', ['q' => $listing->category_level1])] : null,
+        ['name' => $listing->title, 'item' => route('listings.show', $listing)],
+    ])->filter()->values();
+
+    $breadcrumbSchema = [
+        '@type' => 'BreadcrumbList',
+        'itemListElement' => $breadcrumbItems->map(fn ($crumb, $i) => [
+            '@type' => 'ListItem',
+            'position' => $i + 1,
+            'name' => $crumb['name'],
+            'item' => $crumb['item'],
+        ])->all(),
+    ];
+@endphp
+
+@push('structured_data')
+<script type="application/ld+json">
+{!! json_encode(['@context' => 'https://schema.org'] + $productSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+</script>
+<script type="application/ld+json">
+{!! json_encode(['@context' => 'https://schema.org'] + $breadcrumbSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+</script>
+@endpush
 
 @section('content')
 
@@ -93,8 +161,8 @@
                 <div class="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
                     @if($mainImage)
                         <div class="flex items-center justify-center bg-white">
-                            <img loading="lazy" decoding="async" id="main-listing-image"
-                                 src="{{ $mainImage->url }}" alt="{{ $listing->title }}"
+                            <img loading="eager" fetchpriority="high" decoding="async" id="main-listing-image"
+                                 src="{{ $mainImage->url }}" alt="{{ $listing->title }}{{ $listing->marque ? ' — ' . $listing->marque : '' }}{{ $listing->territoire ? ' — ' . $listing->territoire : '' }}"
                                  class="w-full max-h-[720px] object-contain cursor-zoom-in" data-gallery-main>
                         </div>
                     @else

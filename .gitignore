@@ -53,3 +53,4 @@ yarn-error.log
 
 # Skills de sécurité (outillage dev local, ne pas déployer en prod)
 .claude/skills/[0-9]*/
+.claude/skills/seo*/

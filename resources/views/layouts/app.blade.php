@@ -27,17 +27,58 @@ html, body {
     }
 }
 </style>
-    <meta name="description" content="@yield('meta_description', 'Swap’Îles, la marketplace seconde main des îles : achetez, vendez, échangez et donnez près de chez vous.')">
+    <meta name="description" content="@yield('meta_description', 'Swap’Îles, la marketplace seconde main des îles : achetez, vendez, échangez et donnez près de chez vous à La Réunion, en Martinique, Guadeloupe, Guyane et Mayotte.')">
+    <meta name="robots" content="@yield('robots', 'index, follow, max-image-preview:large')">
+    <link rel="canonical" href="@yield('canonical', url()->current())">
     <meta property="og:title" content="@yield('title', 'Swap’Îles')">
     <meta property="og:description" content="@yield('meta_description', 'La marketplace seconde main des îles.')">
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="@yield('og_type', 'website')">
     <meta property="og:url" content="{{ url()->current() }}">
     <meta property="og:image" content="@yield('og_image', asset('images/logo.png'))">
     <meta property="og:site_name" content="Swap'Îles">
+    <meta property="og:locale" content="fr_FR">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="@yield('title', 'Swap’Îles')">
     <meta name="twitter:description" content="@yield('meta_description', 'La marketplace seconde main des îles.')">
     <meta name="twitter:image" content="@yield('og_image', asset('images/logo.png'))">
+
+    {{-- Données structurées site-wide : entité de marque + boîte de recherche sitelinks (Schema.org) --}}
+    <script type="application/ld+json">
+    @php
+        echo json_encode([
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'Organization',
+                    '@id' => url('/') . '/#organization',
+                    'name' => "Swap'Îles",
+                    'url' => url('/'),
+                    'logo' => asset('images/logo.png'),
+                    'description' => "Marketplace de seconde main dédiée aux îles françaises (La Réunion, Martinique, Guadeloupe, Guyane, Mayotte).",
+                    'areaServed' => ['La Réunion', 'Martinique', 'Guadeloupe', 'Guyane', 'Mayotte'],
+                    'email' => 'contact@swapiles.com',
+                ],
+                [
+                    '@type' => 'WebSite',
+                    '@id' => url('/') . '/#website',
+                    'name' => "Swap'Îles",
+                    'url' => url('/'),
+                    'inLanguage' => 'fr-FR',
+                    'publisher' => ['@id' => url('/') . '/#organization'],
+                    'potentialAction' => [
+                        '@type' => 'SearchAction',
+                        'target' => [
+                            '@type' => 'EntryPoint',
+                            'urlTemplate' => route('search') . '?q={search_term_string}',
+                        ],
+                        'query-input' => 'required name=search_term_string',
+                    ],
+                ],
+            ],
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    @endphp
+    </script>
+    @stack('structured_data')
 
     {{-- Suivi publicitaire, conditionné au consentement cookies (RGPD) --}}
     @php

@@ -5,7 +5,7 @@
                class="flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50">
                 <div class="w-14 h-14 rounded-xl bg-gray-100 overflow-hidden shrink-0">
                     @if($listing->images->first())
-                        <img src="{{ $listing->images->first()->url }}" class="w-full h-full object-cover">
+                        <img src="{{ $listing->images->first()->url }}" alt="{{ $listing->title }}" loading="lazy" class="w-full h-full object-cover">
                     @endif
                 </div>
 

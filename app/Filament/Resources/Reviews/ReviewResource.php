@@ -20,9 +20,36 @@ class ReviewResource extends Resource
 {
     protected static ?string $model = Review::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-star';
+
+    protected static ?int $navigationSort = 40;
 
     protected static ?string $recordTitleAttribute = 'comment';
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Avis';
+    }
+
+    public static function getModelLabel(): string
+    {
+        return 'avis';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'avis';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Communauté';
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) static::getModel()::count();
+    }
 
     public static function form(Schema $schema): Schema
     {

@@ -20,9 +20,41 @@ class TransactionResource extends Resource
 {
     protected static ?string $model = Transaction::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-banknotes';
+
+    protected static ?int $navigationSort = 30;
 
     protected static ?string $recordTitleAttribute = 'id';
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Transactions';
+    }
+
+    public static function getModelLabel(): string
+    {
+        return 'transaction';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'transactions';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Marketplace';
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) static::getModel()::whereIn('status', ['paid', 'completed'])->count();
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
+    }
 
     public static function form(Schema $schema): Schema
     {

@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->appendToGroup('web', TrackLiveVisit::class);
+        $middleware->appendToGroup('web', \App\Http\Middleware\EnsureNotBanned::class);
         $middleware->validateCsrfTokens(except: [
             'stripe/webhook',
         ]);

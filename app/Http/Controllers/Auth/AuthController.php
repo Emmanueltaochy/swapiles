@@ -28,6 +28,16 @@ class AuthController extends Controller
         ]);
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            if (Auth::user()->is_banned) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withErrors([
+                    'email' => 'Votre compte a été suspendu. Contactez contact@swapiles.com.',
+                ])->onlyInput('email');
+            }
+
             $request->session()->regenerate();
             return redirect()->intended(route('account.dashboard'));
         }

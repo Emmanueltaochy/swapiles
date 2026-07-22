@@ -22,9 +22,41 @@ class ListingResource extends Resource
 {
     protected static ?string $model = Listing::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-shopping-bag';
+
+    protected static ?int $navigationSort = 20;
 
     protected static ?string $recordTitleAttribute = 'title';
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Annonces';
+    }
+
+    public static function getModelLabel(): string
+    {
+        return 'annonce';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'annonces';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Marketplace';
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) static::getModel()::where('status', 'published')->count();
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'success';
+    }
 
     public static function form(Schema $schema): Schema
     {

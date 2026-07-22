@@ -2,90 +2,109 @@
 
 namespace App\Filament\Resources\Listings\Tables;
 
+use App\Models\Listing;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
-use Filament\Tables\Columns\IconColumn;
+use Filament\Notifications\Notification as FilamentNotification;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 
 class ListingsTable
 {
+    protected const TYPE_LABELS = [
+        'achat' => 'Vente',
+        'negoce-prix' => 'Négociable',
+        'echange-produits' => 'Échange',
+        'don' => 'Don',
+        'location-vetements' => 'Location',
+    ];
+
+    protected const STATUS_LABELS = [
+        'published' => 'En ligne',
+        'draft' => 'Masquée',
+        'sold' => 'Vendue',
+    ];
+
     public static function configure(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 ImageColumn::make('cover_image')
                     ->label('Photo')
-                    ->getStateUsing(fn ($record) => optional($record->images()->orderBy('order')->first())->url)
-                    ->circular()
-                    ->size(50),
-                TextColumn::make('sharetribe_id')
-                    ->searchable(),
-                TextColumn::make('user_id')
-                    ->numeric()
-                    ->sortable(),
+                    ->getStateUsing(fn (Listing $record) => optional($record->images()->orderBy('order')->first())->url)
+                    ->square()
+                    ->size(48),
                 TextColumn::make('title')
-                    ->searchable(),
+                    ->label('Annonce')
+                    ->searchable()
+                    ->weight('bold')
+                    ->limit(32)
+                    ->description(fn (Listing $record) => 'par ' . (optional($record->user)->name ?? '—')),
                 TextColumn::make('price')
-                    ->money('EUR')
+                    ->label('Prix')
+                    ->formatStateUsing(fn ($state) => number_format((float) $state, 2, ',', ' ') . ' €')
                     ->sortable(),
-                TextColumn::make('currency')
-                    ->searchable(),
                 TextColumn::make('listing_type')
-                    ->badge(),
+                    ->label('Type')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state) => self::TYPE_LABELS[$state] ?? $state)
+                    ->color('info'),
                 TextColumn::make('status')
-                    ->badge(),
+                    ->label('Statut')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state) => self::STATUS_LABELS[$state] ?? $state)
+                    ->color(fn (?string $state) => match ($state) {
+                        'published' => 'success',
+                        'sold' => 'warning',
+                        'draft' => 'gray',
+                        default => 'gray',
+                    }),
                 TextColumn::make('territoire')
-                    ->searchable(),
-                TextColumn::make('category_level1')
-                    ->searchable(),
-                TextColumn::make('category_level2')
-                    ->searchable(),
-                TextColumn::make('category_level3')
-                    ->searchable(),
-                TextColumn::make('etat')
-                    ->searchable(),
-                TextColumn::make('marque')
-                    ->searchable(),
-                TextColumn::make('taille')
-                    ->searchable(),
-                TextColumn::make('location_address')
-                    ->searchable(),
-                IconColumn::make('pickup_enabled')
-                    ->boolean(),
-                IconColumn::make('shipping_enabled')
-                    ->boolean(),
-                TextColumn::make('shipping_price')
-                    ->money('EUR')
-                    ->sortable(),
+                    ->label('Île')
+                    ->badge()
+                    ->toggleable(),
                 TextColumn::make('views_count')
+                    ->label('Vues')
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->label('Publiée le')
+                    ->date('d/m/Y')
+                    ->sortable(),
             ])
             ->filters([
+                SelectFilter::make('status')
+                    ->label('Statut')
+                    ->options(self::STATUS_LABELS),
+                SelectFilter::make('listing_type')
+                    ->label('Type')
+                    ->options(self::TYPE_LABELS),
+                SelectFilter::make('territoire')
+                    ->label('Île')
+                    ->options([
+                        'La Réunion' => 'La Réunion',
+                        'Martinique' => 'Martinique',
+                        'Guadeloupe' => 'Guadeloupe',
+                        'Guyane' => 'Guyane',
+                        'Mayotte' => 'Mayotte',
+                    ]),
                 TrashedFilter::make(),
             ])
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
+                static::statusAction('publish', 'Remettre en ligne', 'heroicon-o-arrow-up-tray', 'success', 'published', fn (Listing $r) => $r->status !== 'published'),
+                static::statusAction('hide', 'Masquer', 'heroicon-o-eye-slash', 'gray', 'draft', fn (Listing $r) => $r->status === 'published'),
+                static::statusAction('markSold', 'Marquer vendue', 'heroicon-o-check-badge', 'warning', 'sold', fn (Listing $r) => $r->status !== 'sold'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
@@ -94,5 +113,23 @@ class ListingsTable
                     RestoreBulkAction::make(),
                 ]),
             ]);
+    }
+
+    protected static function statusAction(string $name, string $label, string $icon, string $color, string $newStatus, \Closure $visible): Action
+    {
+        return Action::make($name)
+            ->label($label)
+            ->icon($icon)
+            ->color($color)
+            ->requiresConfirmation()
+            ->visible($visible)
+            ->action(function (Listing $record) use ($newStatus, $label) {
+                $record->update(['status' => $newStatus]);
+
+                FilamentNotification::make()
+                    ->title('Annonce mise à jour : ' . $label)
+                    ->success()
+                    ->send();
+            });
     }
 }

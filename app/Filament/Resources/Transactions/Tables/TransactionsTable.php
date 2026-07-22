@@ -7,66 +7,100 @@ use App\Models\Transaction;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification as FilamentNotification;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Stripe\StripeClient;
 
 class TransactionsTable
 {
+    protected const STATUS_LABELS = [
+        'pending' => 'En attente',
+        'paid' => 'Payée',
+        'completed' => 'Terminée',
+        'cancelled' => 'Annulée',
+        'refunded' => 'Remboursée',
+    ];
+
+    protected const SHIPPING_LABELS = [
+        'pending' => 'À expédier',
+        'shipped' => 'Expédiée',
+        'received' => 'Reçue',
+        'hand_delivered' => 'Remise en main propre',
+        'exchanged' => 'Échangée',
+        'given' => 'Donnée',
+    ];
+
     public static function configure(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
-                TextColumn::make('sharetribe_id')
+                TextColumn::make('id')
+                    ->label('#')
+                    ->sortable(),
+                TextColumn::make('listing.title')
+                    ->label('Annonce')
+                    ->limit(28)
+                    ->searchable()
+                    ->weight('bold'),
+                TextColumn::make('buyer.name')
+                    ->label('Acheteur')
+                    ->default('—')
                     ->searchable(),
-                TextColumn::make('listing_id')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('seller_id')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('buyer_id')
-                    ->numeric()
-                    ->sortable(),
+                TextColumn::make('seller.name')
+                    ->label('Vendeur')
+                    ->default('—')
+                    ->searchable(),
                 TextColumn::make('amount')
-                    ->numeric()
+                    ->label('Montant')
+                    ->formatStateUsing(fn ($state) => number_format((float) $state, 2, ',', ' ') . ' €')
                     ->sortable(),
-                TextColumn::make('buyer_protection_fee')
-                    ->label('Protection acheteur')
-                    ->money('EUR')
-                    ->sortable(),
-                TextColumn::make('commission')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('currency')
-                    ->searchable(),
-                TextColumn::make('payment_method')
-                    ->badge(),
                 TextColumn::make('status')
-                    ->badge(),
-                TextColumn::make('stripe_payment_intent_id')
-                    ->searchable(),
-                TextColumn::make('completed_at')
-                    ->dateTime()
-                    ->sortable(),
+                    ->label('Statut')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state) => self::STATUS_LABELS[$state] ?? $state)
+                    ->color(fn (?string $state) => match ($state) {
+                        'paid' => 'info',
+                        'completed' => 'success',
+                        'refunded' => 'danger',
+                        'cancelled' => 'gray',
+                        default => 'warning',
+                    }),
+                TextColumn::make('shipping_status')
+                    ->label('Livraison')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state) => self::SHIPPING_LABELS[$state] ?? $state)
+                    ->color('gray')
+                    ->toggleable(),
+                TextColumn::make('delivery_method')
+                    ->label('Mode')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state) => $state === 'colissimo' ? '📦 Colissimo' : ($state === 'hand_delivery' ? '🤝 Main propre' : $state))
+                    ->toggleable(),
                 TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->label('Date')
+                    ->date('d/m/Y')
+                    ->sortable(),
             ])
             ->filters([
-                //
+                SelectFilter::make('status')
+                    ->label('Statut')
+                    ->options(self::STATUS_LABELS),
+                SelectFilter::make('shipping_status')
+                    ->label('Livraison')
+                    ->options(self::SHIPPING_LABELS),
+                SelectFilter::make('delivery_method')
+                    ->label('Mode de livraison')
+                    ->options([
+                        'colissimo' => 'Colissimo',
+                        'hand_delivery' => 'Main propre',
+                    ]),
             ])
             ->recordActions([
                 ViewAction::make(),
-                EditAction::make(),
                 static::refundAction(),
             ])
             ->toolbarActions([

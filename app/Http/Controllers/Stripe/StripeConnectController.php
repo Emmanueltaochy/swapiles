@@ -112,6 +112,18 @@ class StripeConnectController extends Controller
     private function ensureStripeAccount($user, StripeClient $stripe): void
     {
         if ($user->stripe_account_id) {
+            // Compte déjà créé mais pas encore finalisé : on renseigne le profil
+            // d'activité pour éviter que Stripe demande un « site web » au particulier.
+            if (! $user->stripe_payouts_enabled) {
+                try {
+                    $stripe->accounts->update($user->stripe_account_id, [
+                        'business_profile' => $this->sellerBusinessProfile($user),
+                    ]);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            }
+
             return;
         }
 
@@ -120,6 +132,7 @@ class StripeConnectController extends Controller
             'country' => 'FR',
             'email' => $user->email,
             'business_type' => 'individual',
+            'business_profile' => $this->sellerBusinessProfile($user),
             'capabilities' => [
                 'transfers' => ['requested' => true],
             ],
@@ -128,6 +141,21 @@ class StripeConnectController extends Controller
         $user->update([
             'stripe_account_id' => $account->id,
         ]);
+    }
+
+    /**
+     * Profil d'activité pré-rempli côté plateforme : le vendeur est un
+     * particulier qui revend ses articles d'occasion sur Swap'Îles. En
+     * fournissant l'URL (sa page profil) et une description, Stripe ne
+     * demande plus au vendeur de renseigner un « site web d'entreprise ».
+     */
+    private function sellerBusinessProfile($user): array
+    {
+        return [
+            'mcc' => '5931', // Used Merchandise and Secondhand Stores
+            'url' => route('profiles.show', $user),
+            'product_description' => "Revente d'articles d'occasion entre particuliers sur la marketplace Swap'Îles.",
+        ];
     }
 
     public function refresh()

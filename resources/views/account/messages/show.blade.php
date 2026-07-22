@@ -182,7 +182,7 @@
                         <div class="flex gap-3">
                             <div class="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-gray-100">
                                 @if($exPhoto)
-                                    <img src="{{ $exPhoto }}" class="h-full w-full object-cover" alt="">
+                                    <img src="{{ $exPhoto }}" class="h-full w-full object-cover js-zoomable cursor-zoom-in" alt="Photo de l'échange">
                                 @else
                                     <div class="grid h-full w-full place-items-center text-2xl text-gray-300">🔄</div>
                                 @endif
@@ -234,4 +234,49 @@
         </div>
     </div>
 </section>
+
+{{-- Lightbox : agrandir les photos au clic --}}
+<div id="msg-lightbox" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/80 p-4" role="dialog" aria-modal="true">
+    <button type="button" id="msg-lightbox-close" class="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full bg-white/15 text-2xl text-white hover:bg-white/25" aria-label="Fermer">✕</button>
+    <img id="msg-lightbox-img" src="" alt="" class="max-h-[90vh] max-w-[95vw] rounded-2xl object-contain shadow-2xl">
+</div>
+
+<script>
+(function () {
+    const box = document.getElementById('msg-lightbox');
+    const img = document.getElementById('msg-lightbox-img');
+    const closeBtn = document.getElementById('msg-lightbox-close');
+    if (!box || !img) return;
+
+    function open(src) {
+        img.src = src;
+        box.classList.remove('hidden');
+        box.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    }
+    function close() {
+        box.classList.add('hidden');
+        box.classList.remove('flex');
+        img.src = '';
+        document.body.style.overflow = '';
+    }
+
+    document.addEventListener('click', function (e) {
+        const zoomable = e.target.closest('.js-zoomable');
+        if (zoomable && zoomable.tagName === 'IMG') {
+            e.preventDefault();
+            open(zoomable.currentSrc || zoomable.src);
+        }
+    });
+
+    box.addEventListener('click', function (e) {
+        if (e.target === box || e.target === closeBtn || closeBtn.contains(e.target)) {
+            close();
+        }
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') close();
+    });
+})();
+</script>
 @endsection

@@ -7,7 +7,7 @@
     <div class="max-w-3xl mx-auto px-4 sm:px-6">
         <div class="rounded-2xl border border-gray-100 bg-white p-6 sm:p-10 shadow-sm text-gray-700 leading-relaxed space-y-4">
             <h1 class="text-3xl font-extrabold text-gray-900">Politique de confidentialité</h1>
-            <p class="text-sm text-gray-400">Dernière mise à jour : [À COMPLÉTER : date]</p>
+            <p class="text-sm text-gray-400">Dernière mise à jour : 22 juillet 2026</p>
 
             <p>
                 Cette politique explique quelles données personnelles Swap'Îles collecte, pourquoi, et vos droits
@@ -15,7 +15,7 @@
             </p>
 
             <h2 class="text-xl font-bold text-gray-900 pt-4">1. Responsable du traitement</h2>
-            <p>[À COMPLÉTER : raison sociale / nom], contact : contact@swapiles.com</p>
+            <p>Emmanuel Taochy (EI) — 124 route des canots, 97427 Étang-Salé, La Réunion. Contact : contact@swapiles.com</p>
 
             <h2 class="text-xl font-bold text-gray-900 pt-4">2. Données collectées</h2>
             <ul class="list-disc pl-6 space-y-1">
@@ -50,14 +50,16 @@
 
             <h2 class="text-xl font-bold text-gray-900 pt-4">7. Cookies & mesure d'audience</h2>
             <p>
-                Le site utilise des cookies nécessaires à son fonctionnement (session, sécurité) et, le cas échéant, des
-                outils de mesure d'audience et de publicité (ex. Meta Pixel, Google) pour améliorer le service. [À COMPLÉTER :
-                préciser les outils réellement activés et proposer un bandeau de consentement si nécessaire.]
+                Le site utilise des cookies strictement <strong>nécessaires à son fonctionnement</strong> (session, sécurité)
+                qui ne requièrent pas de consentement. Avec votre accord, il utilise également des outils de <strong>mesure
+                d'audience et de publicité</strong> — <strong>Meta Pixel</strong> (Meta Platforms) et <strong>Google Tag /
+                Analytics</strong> (Google) — afin de mesurer la performance du site et de nos campagnes.
+            </p>
+            <p>
+                Ces outils ne sont <strong>activés qu'après votre consentement</strong> via le bandeau cookies. Vous pouvez
+                refuser, ou modifier votre choix en supprimant les cookies du site dans votre navigateur.
             </p>
 
-            <p class="text-xs text-gray-400 pt-6 border-t border-gray-100">
-                Ce document est un modèle à adapter. Nous vous recommandons de le faire vérifier par un professionnel du droit.
-            </p>
         </div>
     </div>
 </section>

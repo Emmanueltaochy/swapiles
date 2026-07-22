@@ -7,7 +7,7 @@
     <div class="max-w-3xl mx-auto px-4 sm:px-6">
         <div class="rounded-2xl border border-gray-100 bg-white p-6 sm:p-10 shadow-sm text-gray-700 leading-relaxed space-y-4">
             <h1 class="text-3xl font-extrabold text-gray-900">Conditions générales d'utilisation (CGU)</h1>
-            <p class="text-sm text-gray-400">Dernière mise à jour : [À COMPLÉTER : date]</p>
+            <p class="text-sm text-gray-400">Dernière mise à jour : 22 juillet 2026</p>
 
             <h2 class="text-xl font-bold text-gray-900 pt-4">1. Objet</h2>
             <p>
@@ -61,8 +61,8 @@
             <h2 class="text-xl font-bold text-gray-900 pt-4">9. Contact</h2>
             <p><a href="mailto:contact@swapiles.com" class="font-semibold text-teal-700">contact@swapiles.com</a></p>
 
-            <p class="text-xs text-gray-400 pt-6 border-t border-gray-100">
-                Ce document est un modèle à adapter. Nous vous recommandons de le faire vérifier par un professionnel du droit.
+            <p class="pt-4">
+                Éditeur : Emmanuel Taochy (EI) — 124 route des canots, 97427 Étang-Salé, La Réunion — SIRET 884 270 604 00025.
             </p>
         </div>
     </div>

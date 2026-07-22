@@ -7,24 +7,22 @@
     <div class="max-w-3xl mx-auto px-4 sm:px-6">
         <div class="rounded-2xl border border-gray-100 bg-white p-6 sm:p-10 shadow-sm text-gray-700 leading-relaxed space-y-4">
             <h1 class="text-3xl font-extrabold text-gray-900">Mentions légales</h1>
-            <p class="text-sm text-gray-400">Dernière mise à jour : [À COMPLÉTER : date]</p>
+            <p class="text-sm text-gray-400">Dernière mise à jour : 22 juillet 2026</p>
 
             <h2 class="text-xl font-bold text-gray-900 pt-4">Éditeur du site</h2>
             <p>
                 Le site <strong>Swap'Îles</strong> (swapiles.com) est édité par :<br>
-                <strong>[À COMPLÉTER : raison sociale / nom]</strong><br>
-                Forme juridique : [À COMPLÉTER : SAS, auto-entrepreneur, etc.]<br>
-                Adresse : [À COMPLÉTER : adresse du siège]<br>
-                SIRET : [À COMPLÉTER]<br>
-                Capital social : [À COMPLÉTER, si société]<br>
+                <strong>Emmanuel Taochy</strong> — Entreprise individuelle (EI)<br>
+                Adresse : 124 route des canots, 97427 Étang-Salé, La Réunion<br>
+                SIRET : 884 270 604 00025<br>
                 E-mail : contact@swapiles.com<br>
-                Directeur de la publication : [À COMPLÉTER : nom]
+                Directeur de la publication : Emmanuel Taochy
             </p>
 
             <h2 class="text-xl font-bold text-gray-900 pt-4">Hébergement</h2>
             <p>
-                Le site est hébergé par : <strong>[À COMPLÉTER : nom de l'hébergeur, ex. Hostinger]</strong><br>
-                Adresse : [À COMPLÉTER : adresse de l'hébergeur]
+                Le site est hébergé par : <strong>Hostinger International Ltd</strong><br>
+                61 Lordou Vironos Street, 6023 Larnaca, Chypre
             </p>
 
             <h2 class="text-xl font-bold text-gray-900 pt-4">Prestataire de paiement</h2>
@@ -43,9 +41,6 @@
             <h2 class="text-xl font-bold text-gray-900 pt-4">Contact</h2>
             <p>Pour toute question : <a href="mailto:contact@swapiles.com" class="font-semibold text-teal-700">contact@swapiles.com</a>.</p>
 
-            <p class="text-xs text-gray-400 pt-6 border-t border-gray-100">
-                Ce document est un modèle à adapter. Nous vous recommandons de le faire vérifier par un professionnel du droit.
-            </p>
         </div>
     </div>
 </section>

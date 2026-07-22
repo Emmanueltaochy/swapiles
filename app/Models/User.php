@@ -29,6 +29,8 @@ class User extends Authenticatable
         'name', 'email', 'password',
         'sharetribe_id', 'phone', 'avatar',
         'stripe_account_id', 'territoire',
+        'stripe_charges_enabled', 'stripe_payouts_enabled',
+        'stripe_details_submitted', 'stripe_onboarding_complete',
         'comment_connu', 'is_pro', 'is_banned',
         'rating', 'transactions_count',
     ];

@@ -45,6 +45,36 @@
             </div>
         </x-filament::section>
 
+        {{-- Graphique d'évolution --}}
+        <x-filament::section>
+            <x-slot name="heading">📈 Évolution ({{ $evolution['days'] }} derniers jours)</x-slot>
+            <x-slot name="description">Inscriptions, annonces et ventes au fil du temps</x-slot>
+
+            <div style="display:flex;flex-wrap:wrap;gap:1rem;font-size:.8rem;font-weight:600;margin-bottom:.5rem;">
+                <span style="display:inline-flex;align-items:center;gap:.4rem;opacity:.8;"><i style="width:.7rem;height:.7rem;border-radius:.2rem;background:#0d9488;display:inline-block;"></i> Inscriptions</span>
+                <span style="display:inline-flex;align-items:center;gap:.4rem;opacity:.8;"><i style="width:.7rem;height:.7rem;border-radius:.2rem;background:#3b82f6;display:inline-block;"></i> Annonces</span>
+                <span style="display:inline-flex;align-items:center;gap:.4rem;opacity:.8;"><i style="width:.7rem;height:.7rem;border-radius:.2rem;background:#f59e0b;display:inline-block;"></i> Ventes</span>
+            </div>
+
+            <div style="color:inherit;">
+                {!! \App\Support\Charts::line(
+                    $evolution['labels'],
+                    [
+                        ['name' => 'Inscriptions', 'color' => '#0d9488', 'data' => $evolution['signups']],
+                        ['name' => 'Annonces', 'color' => '#3b82f6', 'data' => $evolution['listings']],
+                        ['name' => 'Ventes', 'color' => '#f59e0b', 'data' => $evolution['sales']],
+                    ],
+                    240
+                ) !!}
+            </div>
+
+            <div style="margin-top:.75rem;text-align:right;">
+                <x-filament::button tag="a" :href="\App\Filament\Pages\AdvancedAnalytics::getUrl()" size="sm" color="gray" icon="heroicon-o-presentation-chart-line">
+                    Voir l'analyse avancée
+                </x-filament::button>
+            </div>
+        </x-filament::section>
+
         {{-- État actuel : indépendant de la période --}}
         <div>
             <div class="swp-section-title">
@@ -194,7 +224,7 @@
             $analyticsViewsCount = 0;
             $analyticsConnectedViewsCount = 0;
             $analyticsTopPages = collect();
-            $analyticsRecentConnectedEvents = collect();
+            $analyticsMemberActivity = collect();
 
             if ($analyticsTableExists) {
                 $analyticsBaseQuery = \App\Models\AnalyticsEvent::query()
@@ -213,12 +243,26 @@
                     ->limit(8)
                     ->get();
 
-                $analyticsRecentConnectedEvents = (clone $analyticsBaseQuery)
+                // On récupère les activités récentes des membres connectés puis on
+                // les REGROUPE PAR MEMBRE (menu déroulant) pour éviter une longue
+                // liste à faire défiler quand une seule personne est active.
+                $analyticsMemberActivity = (clone $analyticsBaseQuery)
                     ->with('user')
                     ->whereNotNull('user_id')
                     ->latest('created_at')
-                    ->paginate(10, ['*'], 'activite')
-                    ->withQueryString();
+                    ->limit(400)
+                    ->get()
+                    ->groupBy('user_id')
+                    ->map(function ($events) {
+                        return [
+                            'user' => $events->first()->user,
+                            'events' => $events,
+                            'count' => $events->count(),
+                            'last_at' => $events->max('created_at'),
+                        ];
+                    })
+                    ->sortByDesc('last_at')
+                    ->values();
             }
         @endphp
 
@@ -270,35 +314,49 @@
                 </div>
 
                 <div>
-                    <h3 style="font-size:1rem;font-weight:800;margin-bottom:.5rem;">Activité des membres connectés</h3>
-                    @forelse($analyticsRecentConnectedEvents as $event)
-                        <div class="swp-row">
-                            <div class="swp-trunc">
-                                <div style="font-weight:700;" class="swp-trunc">{{ $event->user?->name ?? $event->user?->email ?? 'Membre connecté' }}</div>
-                                <div style="font-size:.8rem;opacity:.55;" class="swp-trunc">{{ $event->page_name ?: $event->path }}</div>
+                    <h3 style="font-size:1rem;font-weight:800;margin-bottom:.5rem;">Activité des membres connectés
+                        <small style="font-weight:600;opacity:.55;">· {{ $analyticsMemberActivity->count() }} membre(s)</small>
+                    </h3>
+                    <style>
+                        .swp-mact{border:1px solid rgba(148,163,184,.2);border-radius:.75rem;margin-bottom:.5rem;overflow:hidden;}
+                        .swp-mact>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.7rem .85rem;font-weight:700;}
+                        .swp-mact>summary::-webkit-details-marker{display:none;}
+                        .swp-mact>summary:hover{background:rgba(148,163,184,.08);}
+                        .swp-mact[open]>summary{border-bottom:1px solid rgba(148,163,184,.18);}
+                        .swp-mact .chev{transition:transform .15s;opacity:.5;}
+                        .swp-mact[open] .chev{transform:rotate(90deg);}
+                        .swp-mact .tl{padding:.4rem .85rem .7rem;}
+                        .swp-mact .tl-row{display:flex;align-items:baseline;justify-content:space-between;gap:.75rem;padding:.28rem 0;border-top:1px dashed rgba(148,163,184,.16);font-size:.82rem;}
+                        .swp-mact .tl-row:first-child{border-top:none;}
+                        .swp-mact .tl-hour{font-variant-numeric:tabular-nums;font-weight:800;opacity:.65;white-space:nowrap;}
+                    </style>
+                    @forelse($analyticsMemberActivity as $member)
+                        <details class="swp-mact">
+                            <summary>
+                                <span class="swp-trunc" style="min-width:0;">
+                                    {{ $member['user']?->name ?? $member['user']?->email ?? 'Membre connecté' }}
+                                    <span style="font-weight:600;opacity:.5;font-size:.8rem;">· {{ $member['count'] }} action(s)</span>
+                                </span>
+                                <span style="display:inline-flex;align-items:center;gap:.5rem;white-space:nowrap;">
+                                    <span style="font-size:.75rem;font-weight:700;opacity:.55;">{{ optional($member['last_at'])->diffForHumans() }}</span>
+                                    <span class="chev">▶</span>
+                                </span>
+                            </summary>
+                            <div class="tl">
+                                @foreach($member['events']->take(40) as $event)
+                                    <div class="tl-row">
+                                        <span class="swp-trunc" style="min-width:0;">{{ $event->page_name ?: $event->path }}</span>
+                                        <span class="tl-hour">{{ optional($event->created_at)->format('d/m H:i') }}</span>
+                                    </div>
+                                @endforeach
+                                @if($member['count'] > 40)
+                                    <div style="font-size:.75rem;opacity:.5;padding-top:.4rem;">… et {{ $member['count'] - 40 }} action(s) de plus</div>
+                                @endif
                             </div>
-                            <div style="font-size:.78rem;font-weight:700;opacity:.55;white-space:nowrap;">{{ optional($event->created_at)->diffForHumans() }}</div>
-                        </div>
+                        </details>
                     @empty
                         <p style="opacity:.6;">Aucune activité connectée pour le moment.</p>
                     @endforelse
-
-                    @if($analyticsRecentConnectedEvents->hasPages())
-                        <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-top:1rem;flex-wrap:wrap;">
-                            <span style="font-size:.78rem;opacity:.6;">
-                                Page {{ $analyticsRecentConnectedEvents->currentPage() }} / {{ $analyticsRecentConnectedEvents->lastPage() }}
-                                · {{ $analyticsRecentConnectedEvents->total() }} activités
-                            </span>
-                            <div style="display:flex;gap:.4rem;">
-                                @if($analyticsRecentConnectedEvents->previousPageUrl())
-                                    <x-filament::button tag="a" size="sm" color="gray" :href="$analyticsRecentConnectedEvents->previousPageUrl()">← Précédent</x-filament::button>
-                                @endif
-                                @if($analyticsRecentConnectedEvents->nextPageUrl())
-                                    <x-filament::button tag="a" size="sm" color="gray" :href="$analyticsRecentConnectedEvents->nextPageUrl()">Suivant →</x-filament::button>
-                                @endif
-                            </div>
-                        </div>
-                    @endif
                 </div>
             </div>
         </x-filament::section>

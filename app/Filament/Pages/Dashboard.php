@@ -83,6 +83,33 @@ class Dashboard extends BaseDashboard
                 ->latest()
                 ->limit(6)
                 ->get(),
+
+            'evolution' => $this->evolutionSeries($period),
+        ];
+    }
+
+    /**
+     * Séries journalières (inscriptions, annonces, ventes) pour le graphique
+     * d'évolution en haut du tableau de bord.
+     */
+    private function evolutionSeries(string $period): array
+    {
+        $days = \App\Support\AnalyticsMetrics::chartDays($period);
+
+        $signups = \App\Support\AnalyticsMetrics::dailySeries(User::class, $days);
+        $listings = \App\Support\AnalyticsMetrics::dailySeries(Listing::class, $days);
+        $sales = \App\Support\AnalyticsMetrics::dailySeries(
+            Transaction::class,
+            $days,
+            fn ($q) => $q->whereIn('status', ['paid', 'completed'])
+        );
+
+        return [
+            'days' => $days,
+            'labels' => $signups['labels'],
+            'signups' => $signups['data'],
+            'listings' => $listings['data'],
+            'sales' => $sales['data'],
         ];
     }
 

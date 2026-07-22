@@ -31,6 +31,7 @@ class User extends Authenticatable
         'stripe_account_id', 'territoire',
         'stripe_charges_enabled', 'stripe_payouts_enabled',
         'stripe_details_submitted', 'stripe_onboarding_complete',
+        'address_line1', 'address_line2', 'postal_code', 'city', 'country_code',
         'comment_connu', 'is_pro', 'is_banned',
         'rating', 'transactions_count',
     ];

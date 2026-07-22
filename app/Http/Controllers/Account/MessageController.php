@@ -84,7 +84,16 @@ class MessageController extends Controller
             ->latest()
             ->get();
 
-        return view('account.messages.show', compact('listing', 'user', 'messages', 'pendingOffers'));
+        $exchangeProposals = \App\Models\ExchangeProposal::where('listing_id', $listing->id)
+            ->where(function ($q) use ($authId, $user) {
+                $q->where('proposer_id', $authId)->where('seller_id', $user->id)
+                  ->orWhere('proposer_id', $user->id)->where('seller_id', $authId);
+            })
+            ->with(['offeredListing.images', 'proposer'])
+            ->latest()
+            ->get();
+
+        return view('account.messages.show', compact('listing', 'user', 'messages', 'pendingOffers', 'exchangeProposals'));
     }
 
 
@@ -115,8 +124,9 @@ class MessageController extends Controller
 
         $listing = null;
         $pendingOffers = collect();
+        $exchangeProposals = collect();
 
-        return view('account.messages.show', compact('listing', 'user', 'messages', 'pendingOffers'));
+        return view('account.messages.show', compact('listing', 'user', 'messages', 'pendingOffers', 'exchangeProposals'));
     }
 
     public function storeGeneral(Request $request, User $user)

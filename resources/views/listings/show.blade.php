@@ -214,10 +214,7 @@
                                         @endif
 
                                         @if($canExchange)
-                                            <form method="POST" action="{{ route('listings.request-mode', ['listing' => $listing, 'mode' => 'exchange']) }}">
-                                                @csrf
-                                                <button class="w-full rounded-xl border-2 border-indigo-500 px-6 py-3.5 font-semibold text-indigo-600 transition hover:bg-indigo-50">🔄 Proposer un échange</button>
-                                            </form>
+                                            <a href="{{ route('exchange.create', $listing) }}" class="block w-full rounded-xl border-2 border-indigo-500 px-6 py-3.5 text-center font-semibold text-indigo-600 transition hover:bg-indigo-50">🔄 Proposer un échange</a>
                                         @endif
 
                                         @if($canDon)

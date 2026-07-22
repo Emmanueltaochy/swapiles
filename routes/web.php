@@ -291,6 +291,19 @@ Route::post('/annonce/{listing}/demande/{mode}', [\App\Http\Controllers\ListingC
     ->middleware('auth')
     ->name('listings.request-mode');
 
+// Système d'échange
+Route::get('/annonce/{listing}/proposer-echange', [\App\Http\Controllers\ExchangeController::class, 'create'])
+    ->name('exchange.create');
+Route::post('/annonce/{listing}/proposer-echange', [\App\Http\Controllers\ExchangeController::class, 'store'])
+    ->middleware('auth')
+    ->name('exchange.store');
+Route::post('/echanges/{proposal}/accepter', [\App\Http\Controllers\ExchangeController::class, 'accept'])
+    ->middleware('auth')
+    ->name('exchange.accept');
+Route::post('/echanges/{proposal}/refuser', [\App\Http\Controllers\ExchangeController::class, 'refuse'])
+    ->middleware('auth')
+    ->name('exchange.refuse');
+
 Route::patch('/mes-annonces/{listing}/paiement-especes-recu', [\App\Http\Controllers\Account\ListingManageController::class, 'markCashPaid'])
     ->middleware('auth')
     ->name('account.listings.cash-paid');

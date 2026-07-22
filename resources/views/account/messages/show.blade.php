@@ -163,6 +163,59 @@
                         <p class="mt-1 text-gray-500">{{ $hasListing ? 'Envoie un premier message concernant cette annonce.' : 'Envoie un premier message à ce membre.' }}</p>
                     </div>
                 @endforelse
+
+                @foreach($exchangeProposals as $proposal)
+                    @php
+                        $exPhoto = $proposal->photoUrl();
+                        $exStatus = [
+                            'pending' => ['⏳ En attente', 'bg-amber-50 text-amber-800 border-amber-100'],
+                            'accepted' => ['✅ Acceptée', 'bg-emerald-50 text-emerald-800 border-emerald-100'],
+                            'refused' => ['❌ Refusée', 'bg-red-50 text-red-700 border-red-100'],
+                        ];
+                        [$exLabel, $exClass] = $exStatus[$proposal->status] ?? ['—', 'bg-gray-50 text-gray-600 border-gray-100'];
+                    @endphp
+                    <div class="rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm">
+                        <div class="mb-3 flex items-center justify-between gap-2">
+                            <p class="text-xs font-bold uppercase tracking-wide text-indigo-600">🔄 Proposition d'échange</p>
+                            <span class="rounded-full border px-2.5 py-0.5 text-xs font-bold {{ $exClass }}">{{ $exLabel }}</span>
+                        </div>
+                        <div class="flex gap-3">
+                            <div class="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-gray-100">
+                                @if($exPhoto)
+                                    <img src="{{ $exPhoto }}" class="h-full w-full object-cover" alt="">
+                                @else
+                                    <div class="grid h-full w-full place-items-center text-2xl text-gray-300">🔄</div>
+                                @endif
+                            </div>
+                            <div class="min-w-0">
+                                <p class="font-bold text-gray-900">{{ $proposal->displayTitle() }}</p>
+                                @if($proposal->offered_condition)
+                                    <p class="text-sm text-gray-500">État : {{ $proposal->offered_condition }}</p>
+                                @endif
+                                @if($proposal->offered_description)
+                                    <p class="mt-1 text-sm text-gray-600">{{ $proposal->offered_description }}</p>
+                                @endif
+                                @if($proposal->message)
+                                    <p class="mt-1 text-sm italic text-gray-500">« {{ $proposal->message }} »</p>
+                                @endif
+                                <p class="mt-1 text-xs text-gray-400">Proposé par {{ $proposal->proposer->name ?? 'un membre' }}</p>
+                            </div>
+                        </div>
+
+                        @if($proposal->status === 'pending' && $proposal->seller_id === auth()->id())
+                            <div class="mt-4 flex gap-2">
+                                <form method="POST" action="{{ route('exchange.accept', $proposal) }}">
+                                    @csrf
+                                    <button class="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700">Accepter l'échange</button>
+                                </form>
+                                <form method="POST" action="{{ route('exchange.refuse', $proposal) }}">
+                                    @csrf
+                                    <button class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Refuser</button>
+                                </form>
+                            </div>
+                        @endif
+                    </div>
+                @endforeach
             </div>
 
             <form method="POST"

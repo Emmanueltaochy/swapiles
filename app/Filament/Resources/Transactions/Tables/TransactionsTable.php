@@ -166,7 +166,7 @@ class TransactionsTable
                             'title' => 'Remboursement effectué 💶',
                             'message' => 'Votre achat "' . ($record->listing->title ?? 'Annonce')
                                 . '" a été remboursé (' . number_format((float) $record->amount, 2, ',', ' ') . ' €).',
-                            'url' => route('account.transactions.show', $record),
+                            'url' => route('account.transactions.show', $record, absolute: false),
                         ]);
                     }
 

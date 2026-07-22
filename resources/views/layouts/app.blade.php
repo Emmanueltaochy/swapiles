@@ -332,8 +332,10 @@ document.addEventListener('DOMContentLoaded', function () {
     <footer class="bg-white border-t border-gray-100 mt-16 pb-24 lg:pb-0">
         <div class="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-4 gap-8 text-sm">
             <div>
-                <p class="text-2xl font-extrabold text-teal-700">Swap'Îles</p>
-                <p class="text-gray-500 mt-2">La marketplace seconde main pensée pour les territoires ultramarins.</p>
+                <a href="{{ route('home') }}" class="inline-flex items-center">
+                    <img src="{{ asset('images/logo.png') }}" alt="Swap'Îles" class="h-10 w-auto">
+                </a>
+                <p class="text-gray-500 mt-3">La marketplace seconde main pensée pour les territoires ultramarins.</p>
             </div>
 
             <div>

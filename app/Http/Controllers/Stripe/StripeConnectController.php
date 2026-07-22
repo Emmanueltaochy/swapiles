@@ -153,7 +153,7 @@ class StripeConnectController extends Controller
     {
         return [
             'mcc' => '5931', // Used Merchandise and Secondhand Stores
-            'url' => route('profiles.show', $user),
+            'url' => route('profiles.show', $user, absolute: false),
             'product_description' => "Revente d'articles d'occasion entre particuliers sur la marketplace Swap'Îles.",
         ];
     }

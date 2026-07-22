@@ -185,7 +185,7 @@ class ListingManageController extends Controller
             'shipping_fee' => 0,
             'seller_amount' => (float) $listing->price,
             'currency' => 'EUR',
-            'payment_method' => 'cash',
+            'payment_method' => 'especes',
             'delivery_method' => 'hand_delivery',
             'status' => 'completed',
             'shipping_status' => 'hand_delivered',
@@ -213,7 +213,7 @@ class ListingManageController extends Controller
             'shipping_fee' => 0,
             'seller_amount' => 0,
             'currency' => 'EUR',
-            'payment_method' => 'exchange',
+            'payment_method' => 'echange',
             'delivery_method' => 'hand_delivery',
             'status' => 'completed',
             'shipping_status' => 'exchanged',
@@ -393,7 +393,7 @@ class ListingManageController extends Controller
                             'type' => 'seller_published_listing',
                             'title' => 'Nouvelle annonce 🆕',
                             'message' => ($listing->user->name ?? 'Un vendeur que vous suivez') . ' a publié : ' . $listing->title,
-                            'url' => route('listings.show', $listing),
+                            'url' => route('listings.show', $listing, absolute: false),
                         ]);
 
                         SendSellerPublishedListingEmail::dispatch($listing->id, $follower->id);

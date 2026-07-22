@@ -39,7 +39,7 @@ class FavoriteController extends Controller
                     'type' => 'favorite_added',
                     'title' => 'Nouveau favori ❤️',
                     'message' => $user->name . ' a ajouté "' . $listing->title . '" à ses favoris.',
-                    'url' => route('listings.show', $listing),
+                    'url' => route('listings.show', $listing, absolute: false),
                 ]);
 
                 try {

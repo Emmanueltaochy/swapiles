@@ -100,7 +100,7 @@ class ListingController extends Controller
                 'url' => route('account.messages.show', [
                     'listing' => $listing,
                     'user' => $buyer,
-                ]),
+                ], absolute: false),
             ]);
 
             SendMessageReceivedEmail::dispatch($message->id, $seller->id);

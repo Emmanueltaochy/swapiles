@@ -184,7 +184,7 @@ class ExchangeController extends Controller
                 'url' => route('account.messages.show', [
                     'listing' => $message->listing_id,
                     'user' => $message->sender_id,
-                ]),
+                ], absolute: false),
             ]);
 
             SendMessageReceivedEmail::dispatch($message->id, $recipientId);

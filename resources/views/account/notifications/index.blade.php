@@ -39,7 +39,7 @@
 
         <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
             @forelse($notifications as $notification)
-                <a href="{{ $notification->url ?: '#' }}" class="block p-5 border-b border-gray-100 hover:bg-gray-50 transition {{ is_null($notification->read_at) ? 'bg-red-50 border-l-4 border-l-red-500' : 'bg-white' }}">
+                <a href="{{ $notification->clickUrl() }}" class="block p-5 border-b border-gray-100 hover:bg-gray-50 transition {{ is_null($notification->read_at) ? 'bg-red-50 border-l-4 border-l-red-500' : 'bg-white' }}">
 
                     <div class="flex items-start justify-between gap-4">
                         <div>

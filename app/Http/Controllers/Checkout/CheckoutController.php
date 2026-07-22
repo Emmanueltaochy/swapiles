@@ -295,7 +295,7 @@ class CheckoutController extends Controller
                 'type' => 'transaction_paid_seller',
                 'title' => 'Nouvelle vente 🎉',
                 'message' => 'Votre article "' . ($transaction->listing->title ?? 'Annonce') . '" a été acheté.',
-                'url' => route('account.transactions.show', $transaction),
+                'url' => route('account.transactions.show', $transaction, absolute: false),
             ]);
 
         }
@@ -306,7 +306,7 @@ class CheckoutController extends Controller
                 'type' => 'transaction_paid_buyer',
                 'title' => 'Achat confirmé ✅',
                 'message' => 'Votre paiement a été validé pour "' . ($transaction->listing->title ?? 'Annonce') . '".',
-                'url' => route('account.transactions.show', $transaction),
+                'url' => route('account.transactions.show', $transaction, absolute: false),
             ]);
 
         }

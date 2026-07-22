@@ -69,7 +69,7 @@ class StripeWebhookController extends Controller
                             'user_id' => $transaction->seller_id,
                             'title' => 'Nouvelle vente 🎉',
                             'message' => 'Votre article a été acheté.',
-                            'url' => route('account.transactions.show', $transaction),
+                            'url' => route('account.transactions.show', $transaction, absolute: false),
                         ]);
 
                         try {
@@ -87,7 +87,7 @@ class StripeWebhookController extends Controller
                             'user_id' => $transaction->buyer_id,
                             'title' => 'Achat confirmé ✅',
                             'message' => 'Votre paiement a été validé.',
-                            'url' => route('account.transactions.show', $transaction),
+                            'url' => route('account.transactions.show', $transaction, absolute: false),
                         ]);
 
                         try {
@@ -132,7 +132,7 @@ class StripeWebhookController extends Controller
                                 'user_id' => $transaction->seller_id,
                                 'title' => 'Nouvelle vente 🎉',
                                 'message' => 'Votre article a été acheté.',
-                                'url' => route('account.transactions.show', $transaction),
+                                'url' => route('account.transactions.show', $transaction, absolute: false),
                             ]);
 
                             try {
@@ -150,7 +150,7 @@ class StripeWebhookController extends Controller
                                 'user_id' => $transaction->buyer_id,
                                 'title' => 'Achat confirmé ✅',
                                 'message' => 'Votre paiement a été validé.',
-                                'url' => route('account.transactions.show', $transaction),
+                                'url' => route('account.transactions.show', $transaction, absolute: false),
                             ]);
 
                             try {

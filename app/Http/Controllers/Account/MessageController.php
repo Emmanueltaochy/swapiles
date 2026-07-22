@@ -170,8 +170,8 @@ class MessageController extends Controller
             $message = $message->loadMissing(['listing', 'sender']);
 
             $url = $message->listing
-                ? route('account.messages.show', ['listing' => $message->listing, 'user' => $message->sender])
-                : route('account.messages.show.general', ['user' => $message->sender]);
+                ? route('account.messages.show', ['listing' => $message->listing, 'user' => $message->sender], absolute: false)
+                : route('account.messages.show.general', ['user' => $message->sender], absolute: false);
 
             \App\Models\Notification::create([
                 'user_id' => $user->id,

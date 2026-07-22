@@ -16,18 +16,23 @@ class ColissimoLabelService
         $seller = $transaction->seller;
         $buyer = $transaction->buyer;
 
-        foreach ([
-            'adresse vendeur' => $seller,
-            'adresse acheteur' => $buyer,
-        ] as $label => $user) {
-            if (
-                ! $user ||
-                empty($user->address_line1) ||
-                empty($user->postal_code) ||
-                empty($user->city)
-            ) {
-                throw new RuntimeException("Adresse manquante : {$label}. Veuillez compléter les coordonnées avant de générer le bordereau.");
-            }
+        // Adresse de livraison : on prend en priorité l'adresse saisie par
+        // l'acheteur au moment du paiement (sur la transaction), sinon on
+        // retombe sur l'adresse de son profil.
+        $buyerLine1 = $transaction->shipping_address_line1 ?: $buyer?->address_line1;
+        $buyerLine2 = $transaction->shipping_address_line2 ?: $buyer?->address_line2;
+        $buyerCity = $transaction->shipping_city ?: $buyer?->city;
+        $buyerZip = $transaction->shipping_postal_code ?: $buyer?->postal_code;
+        $buyerCountry = $transaction->shipping_country ?: ($buyer?->country_code ?: 'FR');
+        $buyerName = $transaction->buyer_full_name ?: ($buyer?->name ?: 'Client');
+        $buyerPhone = $transaction->buyer_phone ?: $buyer?->phone;
+
+        if (! $seller || empty($seller->address_line1) || empty($seller->postal_code) || empty($seller->city)) {
+            throw new RuntimeException("Adresse du vendeur manquante. Complétez votre adresse d'expédition dans votre profil avant de générer le bordereau.");
+        }
+
+        if (empty($buyerLine1) || empty($buyerZip) || empty($buyerCity)) {
+            throw new RuntimeException("Adresse de livraison de l'acheteur manquante sur cette commande.");
         }
 
         $endpoint = 'https://ws.colissimo.fr/sls-ws/SlsServiceWSRest/2.0/generateLabel';
@@ -62,14 +67,14 @@ class ColissimoLabelService
                 ],
                 'addressee' => [
                     'address' => [
-                        'lastName' => $buyer->name ?: 'Client',
+                        'lastName' => $buyerName,
                         'firstName' => '',
-                        'line2' => $buyer->address_line1,
-                        'line3' => $buyer->address_line2,
-                        'countryCode' => $buyer->country_code ?: 'FR',
-                        'city' => $buyer->city,
-                        'zipCode' => $buyer->postal_code,
-                        'phoneNumber' => $buyer->phone,
+                        'line2' => $buyerLine1,
+                        'line3' => $buyerLine2,
+                        'countryCode' => $buyerCountry,
+                        'city' => $buyerCity,
+                        'zipCode' => $buyerZip,
+                        'phoneNumber' => $buyerPhone,
                     ],
                 ],
             ],

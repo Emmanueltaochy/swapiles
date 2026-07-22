@@ -7,6 +7,7 @@ use App\Models\Listing;
 use App\Models\Transaction;
 use App\Models\ListingOffer;
 use App\Models\Notification;
+use App\Jobs\SendSellerPaymentReceivedEmail;
 use App\Notifications\TransactionPaidNotification;
 use App\Notifications\TransactionBuyerPaidNotification;
 use App\Support\AdminEvent;
@@ -265,7 +266,9 @@ class CheckoutController extends Controller
             ]);
 
             try {
-                $transaction->seller->notify(new TransactionPaidNotification($transaction));
+                // E-mail fiable (Mail::raw, même mécanisme que les e-mails qui
+                // fonctionnent déjà) plutôt que la notification MailMessage.
+                SendSellerPaymentReceivedEmail::dispatch($transaction->id);
             } catch (\Throwable $e) {
                 report($e);
             }

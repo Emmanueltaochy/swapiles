@@ -34,6 +34,14 @@
             </div>
         @endif
 
+        @if($errors->any())
+            <div class="mb-6 rounded-2xl bg-red-50 border border-red-200 text-red-800 p-4 text-sm font-semibold">
+                @foreach($errors->all() as $error)
+                    <p>⚠️ {{ $error }}</p>
+                @endforeach
+            </div>
+        @endif
+
         <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
             <div>
                 <h1 class="text-3xl font-extrabold text-gray-900">Mes transactions</h1>

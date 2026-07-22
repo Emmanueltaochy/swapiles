@@ -29,7 +29,7 @@ class User extends Authenticatable implements FilamentUser
 
         $admins = array_filter(array_map(
             'trim',
-            explode(',', (string) env('ADMIN_EMAILS', 'taochy.consulting@gmail.com'))
+            explode(',', (string) env('ADMIN_EMAILS', 'cabinet@taochyconsulting.fr'))
         ));
 
         $admins = array_map('strtolower', $admins);

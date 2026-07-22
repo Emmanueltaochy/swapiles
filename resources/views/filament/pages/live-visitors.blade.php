@@ -1,117 +1,161 @@
 <x-filament-panels::page>
     <style>
-        .live-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:24px}
-        .live-card{background:#fff;border:1px solid #e5e7eb;border-radius:28px;padding:24px;box-shadow:0 10px 30px rgba(15,23,42,.06)}
-        .live-top{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-        .stat{background:#0f172a;color:white;border-radius:24px;padding:18px;border:1px solid #1e293b}
-        .stat span{font-size:12px;color:#94a3b8;font-weight:900}
-        .stat strong{display:block;font-size:34px;margin-top:8px}
-        .globe-wrap{position:relative;width:min(620px,100%);aspect-ratio:1;margin:auto;perspective:1200px}
-        .globe{
-            position:absolute;inset:0;border-radius:50%;
-            background:
-                radial-gradient(circle at 32% 26%, rgba(255,255,255,.75), transparent 6%),
-                radial-gradient(circle at 35% 30%, #38bdf8 0, transparent 10%),
-                radial-gradient(circle at 35% 35%, #14b8a6 0, #0f766e 28%, #0f172a 70%);
-            box-shadow:inset -50px -35px 80px rgba(0,0,0,.55), inset 20px 20px 40px rgba(255,255,255,.12), 0 35px 90px rgba(15,23,42,.35);
-            overflow:hidden;
-            transform-style:preserve-3d;
-            animation:globeFloat 7s ease-in-out infinite;
-        }
-        .globe:before{
-            content:"";position:absolute;inset:7%;border-radius:50%;
-            background:
-                repeating-linear-gradient(90deg,rgba(255,255,255,.10) 0 1px,transparent 1px 38px),
-                repeating-linear-gradient(0deg,rgba(255,255,255,.08) 0 1px,transparent 1px 38px);
-            opacity:.45;
-            animation:gridSpin 18s linear infinite;
-        }
-        .globe:after{
-            content:"";position:absolute;inset:-8%;border-radius:50%;
-            background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.16) 50%,transparent 100%);
-            transform:rotate(25deg);
-            animation:shine 5s ease-in-out infinite;
-        }
-        .orbit{position:absolute;inset:-3%;border-radius:50%;border:1px solid rgba(20,184,166,.25);animation:orbit 12s linear infinite}
-        .dot{
-            position:absolute;width:16px;height:16px;border-radius:50%;background:#ef4444;border:3px solid #fff;
-            box-shadow:0 0 0 0 rgba(239,68,68,.7),0 0 20px rgba(239,68,68,.8);
-            animation:pulse 1.6s infinite;transform:translate(-50%,-50%);z-index:5;
-        }
-        .dot small{
-            position:absolute;top:18px;left:50%;transform:translateX(-50%);
-            background:#111827;color:#fff;padding:5px 9px;border-radius:999px;font-size:11px;white-space:nowrap;font-weight:800;
-        }
-        .visitor{border:1px solid #e5e7eb;border-radius:20px;padding:14px}
-        @keyframes pulse{70%{box-shadow:0 0 0 20px rgba(239,68,68,0),0 0 20px rgba(239,68,68,.8)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0),0 0 20px rgba(239,68,68,.8)}}
-        @keyframes globeFloat{0%,100%{transform:rotateX(8deg) rotateY(-12deg) translateY(0)}50%{transform:rotateX(4deg) rotateY(12deg) translateY(-8px)}}
-        @keyframes gridSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
-        @keyframes orbit{from{transform:rotateZ(0)}to{transform:rotateZ(360deg)}}
-        @keyframes shine{0%,100%{opacity:.15;transform:translateX(-30%) rotate(25deg)}50%{opacity:.32;transform:translateX(30%) rotate(25deg)}}
-        @media(max-width:1100px){.live-grid,.live-top{grid-template-columns:1fr 1fr}}
-        @media(max-width:700px){.live-grid,.live-top{grid-template-columns:1fr}}
+        .lv-grid{display:grid;gap:1rem}
+        .lv-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+        .lv-2{grid-template-columns:1.3fr .7fr}
+        @media(max-width:1024px){.lv-4{grid-template-columns:repeat(2,minmax(0,1fr))}.lv-2{grid-template-columns:1fr}}
+        @media(max-width:560px){.lv-4{grid-template-columns:1fr}}
+        .lv-klabel{font-size:.78rem;font-weight:700;opacity:.6}
+        .lv-kvalue{font-size:2.1rem;font-weight:800;line-height:1;margin-top:.4rem}
+        .lv-pulse{display:inline-block;width:.6rem;height:.6rem;border-radius:50%;background:#10b981;box-shadow:0 0 0 0 rgba(16,185,129,.6);animation:lvPulse 1.6s infinite}
+        @keyframes lvPulse{70%{box-shadow:0 0 0 .55rem rgba(16,185,129,0)}100%{box-shadow:0 0 0 0 rgba(16,185,129,0)}}
+        .lv-island{display:flex;align-items:center;gap:.9rem;padding:.7rem 0;border-bottom:1px solid rgba(148,163,184,.18)}
+        .lv-island:last-child{border-bottom:0}
+        .lv-flag{font-size:1.6rem;line-height:1}
+        .lv-bar{height:.5rem;border-radius:999px;background:rgba(148,163,184,.2);overflow:hidden;margin-top:.35rem}
+        .lv-bar>div{height:100%;background:#0d9488;border-radius:999px;transition:width .5s ease}
+        .lv-feed{display:flex;flex-direction:column;gap:.6rem;max-height:520px;overflow:auto;padding-right:.4rem}
+        .lv-feeditem{display:flex;justify-content:space-between;gap:.8rem;border:1px solid rgba(148,163,184,.22);border-radius:1rem;padding:.7rem .85rem}
+        .lv-trunc{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .lv-chip{font-size:.68rem;font-weight:800;padding:.12rem .5rem;border-radius:999px;background:rgba(13,148,136,.14);color:#0d9488}
     </style>
 
-    <div wire:poll.10s style="display:flex;flex-direction:column;gap:24px;">
-        @php
-            $visits = $this->getLiveVisits();
-            $activeCount = $visits->count();
-            $connectedCount = $visits->whereNotNull('user_id')->count();
-            $mobileCount = $visits->where('device', 'Mobile')->count();
-            $desktopCount = $visits->where('device', 'Desktop')->count();
-        @endphp
+    @php
+        $visits = $this->getLiveVisits();
+        $active = $visits->count();
+        $connected = $visits->whereNotNull('user_id')->count();
+        $mobile = $visits->where('device', 'Mobile')->count();
+        $desktop = $visits->where('device', 'Desktop')->count();
 
-        <div class="live-top">
-            <div class="stat"><span>🟢 Visiteurs en ligne</span><strong>{{ $activeCount }}</strong></div>
-            <div class="stat"><span>👤 Connectés</span><strong>{{ $connectedCount }}</strong></div>
-            <div class="stat"><span>📱 Mobile</span><strong>{{ $mobileCount }}</strong></div>
-            <div class="stat"><span>🖥️ Desktop</span><strong>{{ $desktopCount }}</strong></div>
+        $islands = [
+            'La Réunion' => '🇷🇪',
+            'Martinique' => '🇲🇶',
+            'Guadeloupe' => '🇬🇵',
+            'Guyane' => '🇬🇫',
+            'Mayotte' => '🇾🇹',
+        ];
+
+        $islandCounts = collect($islands)
+            ->map(fn ($flag, $name) => ['name' => $name, 'flag' => $flag, 'count' => $visits->where('territoire', $name)->count()])
+            ->sortByDesc('count')
+            ->values();
+
+        $topPages = $visits
+            ->groupBy('path')
+            ->map(fn ($group) => $group->count())
+            ->sortDesc()
+            ->take(8);
+
+        $pageLabels = [
+            '/' => '🏠 Accueil',
+            '/recherche' => '🔍 Recherche',
+            '/deposer-une-annonce' => '➕ Déposer une annonce',
+            '/mon-compte' => '👤 Mon compte',
+            '/connexion' => '🔑 Connexion',
+            '/inscription' => '✍️ Inscription',
+        ];
+    @endphp
+
+    <div wire:poll.10s style="display:flex;flex-direction:column;gap:1.5rem;">
+
+        <div style="display:flex;align-items:center;gap:.6rem;">
+            <span class="lv-pulse"></span>
+            <span style="font-weight:800;">En direct</span>
+            <span style="opacity:.55;font-size:.85rem;">· actualisé automatiquement toutes les 10 s</span>
         </div>
 
-        <div class="live-grid">
-            <div class="live-card">
-                <h2 style="font-size:24px;font-weight:950;margin-bottom:16px;">🌍 Globe en direct</h2>
+        {{-- KPI --}}
+        <div class="lv-grid lv-4">
+            <x-filament::section>
+                <div class="lv-klabel">🟢 Visiteurs en ligne</div>
+                <div class="lv-kvalue" style="color:#10b981;">{{ $active }}</div>
+            </x-filament::section>
+            <x-filament::section>
+                <div class="lv-klabel">👤 Connectés</div>
+                <div class="lv-kvalue">{{ $connected }}</div>
+            </x-filament::section>
+            <x-filament::section>
+                <div class="lv-klabel">📱 Mobile</div>
+                <div class="lv-kvalue">{{ $mobile }}</div>
+            </x-filament::section>
+            <x-filament::section>
+                <div class="lv-klabel">🖥️ Desktop</div>
+                <div class="lv-kvalue">{{ $desktop }}</div>
+            </x-filament::section>
+        </div>
 
-                <div class="globe-wrap">
-                    <div class="orbit"></div>
-                    <div class="globe">
-                        @foreach($visits as $visit)
-                            @php
-                                $x = ((float) $visit->lng + 180) / 360 * 100;
-                                $y = (90 - (float) $visit->lat) / 180 * 100;
-                                $x = max(15, min(85, $x));
-                                $y = max(15, min(85, $y));
-                            @endphp
+        <div class="lv-grid lv-2">
+            {{-- Activité par île --}}
+            <x-filament::section>
+                <x-slot name="heading">🏝️ Activité par île</x-slot>
+                <x-slot name="description">Répartition des visiteurs en ligne par territoire.</x-slot>
 
-                            <span class="dot" style="left:{{ $x }}%;top:{{ $y }}%;">
-                                <small>{{ $visit->territoire ?: 'Visiteur' }}</small>
-                            </span>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-
-            <div class="live-card">
-                <h3 style="font-size:22px;font-weight:950;margin-bottom:16px;">Visiteurs actifs ({{ $activeCount }})</h3>
-
-                <div style="display:flex;flex-direction:column;gap:12px;max-height:560px;overflow:auto;padding-right:6px;">
-                    @forelse($visits as $visit)
-                        <div class="visitor">
-                            <div style="display:flex;justify-content:space-between;gap:12px;">
-                                <strong>🟢 {{ $visit->territoire ?: 'Non renseigné' }}</strong>
-                                <span style="font-size:12px;color:#64748b;">{{ $visit->last_seen_at->diffForHumans() }}</span>
+                @foreach($islandCounts as $island)
+                    @php $share = $active > 0 ? round(($island['count'] / $active) * 100) : 0; @endphp
+                    <div class="lv-island">
+                        <span class="lv-flag">{{ $island['flag'] }}</span>
+                        <div style="flex:1;min-width:0;">
+                            <div style="display:flex;justify-content:space-between;font-weight:700;font-size:.9rem;">
+                                <span>{{ $island['name'] }}</span>
+                                <span>{{ $island['count'] }} · {{ $share }}%</span>
                             </div>
-                            <div style="font-size:13px;color:#64748b;margin-top:6px;">
-                                {{ $visit->device }} · {{ $visit->path }}
+                            <div class="lv-bar"><div style="width:{{ $share }}%"></div></div>
+                        </div>
+                    </div>
+                @endforeach
+
+                @if($active === 0)
+                    <p style="opacity:.55;margin-top:.75rem;">Personne en ligne pour le moment.</p>
+                @endif
+            </x-filament::section>
+
+            {{-- Flux en direct --}}
+            <x-filament::section>
+                <x-slot name="heading">📡 Flux en direct</x-slot>
+                <x-slot name="description">{{ $active }} visiteur{{ $active > 1 ? 's' : '' }} actif{{ $active > 1 ? 's' : '' }}.</x-slot>
+
+                <div class="lv-feed">
+                    @forelse($visits as $visit)
+                        <div class="lv-feeditem">
+                            <div class="lv-trunc">
+                                <div style="font-weight:700;" class="lv-trunc">
+                                    {{ $islands[$visit->territoire] ?? '📍' }} {{ $visit->territoire ?: 'Non renseigné' }}
+                                    @if($visit->user_id)<span class="lv-chip">membre</span>@endif
+                                </div>
+                                <div style="font-size:.8rem;opacity:.6;" class="lv-trunc">
+                                    {{ $pageLabels[$visit->path] ?? $visit->path }} · {{ $visit->device }}
+                                </div>
+                            </div>
+                            <div style="font-size:.72rem;font-weight:700;opacity:.55;white-space:nowrap;">
+                                {{ $visit->last_seen_at->diffForHumans(null, true) }}
                             </div>
                         </div>
                     @empty
-                        <div style="text-align:center;color:#64748b;padding:40px;">
+                        <div style="text-align:center;opacity:.55;padding:2.5rem 0;">
                             Aucun visiteur actif pour le moment.
                         </div>
                     @endforelse
                 </div>
-            </div>
+            </x-filament::section>
         </div>
+
+        {{-- Pages consultées maintenant --}}
+        <x-filament::section>
+            <x-slot name="heading">🔥 Pages consultées en ce moment</x-slot>
+
+            @forelse($topPages as $path => $count)
+                @php $share = $active > 0 ? round(($count / $active) * 100) : 0; @endphp
+                <div style="padding:.6rem 0;border-bottom:1px solid rgba(148,163,184,.15);">
+                    <div style="display:flex;justify-content:space-between;gap:1rem;font-weight:700;font-size:.9rem;">
+                        <span class="lv-trunc">{{ $pageLabels[$path] ?? $path }}</span>
+                        <span style="white-space:nowrap;">{{ $count }} 👀</span>
+                    </div>
+                    <div class="lv-bar"><div style="width:{{ $share }}%"></div></div>
+                </div>
+            @empty
+                <p style="opacity:.55;">Aucune page consultée pour le moment.</p>
+            @endforelse
+        </x-filament::section>
+
     </div>
 </x-filament-panels::page>

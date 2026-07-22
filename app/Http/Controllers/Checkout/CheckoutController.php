@@ -47,7 +47,12 @@ class CheckoutController extends Controller
                 ->where('listing_id', $listing->id)
                 ->where('buyer_id', Auth::id())
                 ->where('status', 'accepted')
-                ->firstOrFail();
+                ->first();
+
+            if (!$offer) {
+                return redirect()->route('listings.show', $listing)
+                    ->with('status', "Cette offre n'est plus disponible.");
+            }
         }
 
         if ($request->isMethod('GET')) {
@@ -298,6 +303,11 @@ class CheckoutController extends Controller
     public function cancel(Transaction $transaction)
     {
         abort_unless(auth()->id() === $transaction->buyer_id, 403);
+
+        if (!$transaction->listing) {
+            return redirect()->route('home')
+                ->with('status', 'Paiement annulé.');
+        }
 
         return redirect()
             ->route('listings.show', $transaction->listing)

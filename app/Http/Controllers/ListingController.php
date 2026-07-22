@@ -61,7 +61,11 @@ class ListingController extends Controller
     {
         abort_unless(Auth::check(), 403);
         abort_if(Auth::id() === $listing->user_id, 403);
-        abort_if($listing->status !== 'published', 404);
+
+        if ($listing->status !== 'published') {
+            return redirect()->route('listings.show', $listing)
+                ->with('status', "Cet article n'est plus disponible.");
+        }
 
         abort_unless(in_array($mode, ['cash', 'exchange', 'don'], true), 404);
 

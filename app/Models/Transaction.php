@@ -14,10 +14,12 @@ class Transaction extends Model
     protected $fillable = [
         'sharetribe_id',
         'listing_id',
+        'listing_offer_id',
         'seller_id',
         'buyer_id',
         'amount',
         'commission',
+        'platform_commission',
         'currency',
         'payment_method',
         'seller_amount',

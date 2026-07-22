@@ -26,7 +26,7 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     protected $fillable = [
-        'name', 'email', 'password',
+        'name', 'email', 'password', 'email_verified_at',
         'sharetribe_id', 'phone', 'avatar',
         'stripe_account_id', 'territoire',
         'stripe_charges_enabled', 'stripe_payouts_enabled',

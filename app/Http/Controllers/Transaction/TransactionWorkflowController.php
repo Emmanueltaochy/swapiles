@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Transaction;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendTransactionStatusEmails;
 use App\Models\Transaction;
 use App\Models\Notification;
 use Illuminate\Http\Request;
@@ -43,7 +44,7 @@ class TransactionWorkflowController extends Controller
         ]);
 
         try {
-            $transaction->buyer?->notify(new TransactionShippedNotification($transaction));
+            SendTransactionStatusEmails::dispatch($transaction->id, 'shipped');
         } catch (\Throwable $e) {
             report($e);
         }
@@ -63,6 +64,12 @@ class TransactionWorkflowController extends Controller
             'completed_at' => now(),
             'wallet_status' => 'processing',
         ]);
+
+        try {
+            SendTransactionStatusEmails::dispatch($transaction->id, 'received');
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         $this->releaseSellerPayout($transaction);
 
@@ -113,6 +120,8 @@ class TransactionWorkflowController extends Controller
                 'transferred_at' => now(),
                 'estimated_payout_date' => now()->addDays(2),
             ]);
+
+            SendTransactionStatusEmails::dispatch($transaction->id, 'released');
         } catch (\Throwable $e) {
             report($e);
         }

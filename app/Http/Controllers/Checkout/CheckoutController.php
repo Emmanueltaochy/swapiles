@@ -8,6 +8,7 @@ use App\Models\Transaction;
 use App\Models\ListingOffer;
 use App\Models\Notification;
 use App\Jobs\SendSellerPaymentReceivedEmail;
+use App\Jobs\SendTransactionStatusEmails;
 use App\Notifications\TransactionPaidNotification;
 use App\Notifications\TransactionBuyerPaidNotification;
 use App\Support\AdminEvent;
@@ -265,13 +266,6 @@ class CheckoutController extends Controller
                 'url' => route('account.transactions.show', $transaction),
             ]);
 
-            try {
-                // E-mail fiable (Mail::raw, même mécanisme que les e-mails qui
-                // fonctionnent déjà) plutôt que la notification MailMessage.
-                SendSellerPaymentReceivedEmail::dispatch($transaction->id);
-            } catch (\Throwable $e) {
-                report($e);
-            }
         }
 
         if ($transaction->buyer) {
@@ -283,11 +277,13 @@ class CheckoutController extends Controller
                 'url' => route('account.transactions.show', $transaction),
             ]);
 
-            try {
-                $transaction->buyer->notify(new TransactionBuyerPaidNotification($transaction));
-            } catch (\Throwable $e) {
-                report($e);
-            }
+        }
+
+        // E-mails fiables (Mail::raw) à l'acheteur ET au vendeur.
+        try {
+            SendTransactionStatusEmails::dispatch($transaction->id, 'paid');
+        } catch (\Throwable $e) {
+            report($e);
         }
     }
 

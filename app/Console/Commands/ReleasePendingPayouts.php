@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\SendTransactionStatusEmails;
 use App\Models\Transaction;
 use Illuminate\Console\Command;
 use Stripe\StripeClient;
@@ -65,7 +66,10 @@ class ReleasePendingPayouts extends Command
                 $transaction->update([
                     'stripe_transfer_id' => $transfer->id,
                     'released_at' => now(),
+                    'wallet_status' => 'paid',
                 ]);
+
+                SendTransactionStatusEmails::dispatch($transaction->id, 'released');
 
                 $this->info("✅ Transfert créé : {$transfer->id}");
             } catch (\Throwable $e) {

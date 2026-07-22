@@ -88,6 +88,42 @@ class ColissimoLabelService
             ],
         ];
 
+        // Envois vers/depuis les DOM (97x : Réunion, Antilles, Guyane, Mayotte) :
+        // Colissimo exige une déclaration douanière du contenu, sinon erreur 30500
+        // « Le contenu du colis n'a pas été transmis ».
+        $senderZip = (string) $seller->postal_code;
+        $isOverseas = str_starts_with($senderZip, '97') || str_starts_with((string) $buyerZip, '97');
+
+        if ($isOverseas) {
+            $itemValue = max(
+                1,
+                (float) $transaction->amount
+                - (float) $transaction->buyer_protection_fee
+                - (float) $transaction->shipping_fee
+            );
+
+            $payload['letter']['customsDeclarations'] = [
+                'includeCustomsDeclarations' => 1,
+                'numberOfCopies' => 1,
+                'contents' => [
+                    'article' => [
+                        [
+                            'description' => mb_substr($transaction->listing->title ?? "Article d'occasion", 0, 64),
+                            'quantity' => 1,
+                            'weight' => (float) ($transaction->listing->weight_kg ?? 0.5),
+                            'value' => round($itemValue, 2),
+                            'hsCode' => '630900',
+                            'originCountry' => 'FR',
+                            'currency' => 'EUR',
+                        ],
+                    ],
+                    'category' => [
+                        'value' => 3,
+                    ],
+                ],
+            ];
+        }
+
         $response = Http::timeout(60)->acceptJson()->asJson()->post($endpoint, $payload);
 
         $body = $response->body();

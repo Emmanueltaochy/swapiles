@@ -58,6 +58,8 @@ class ColissimoLabelService
                     'productCode' => 'COL',
                     'depositDate' => now()->addDay()->format('Y-m-d'),
                     'orderNumber' => 'SWAP-' . $transaction->id,
+                    // Montant des frais de transport en centimes (requis pour la douane DOM).
+                    'totalAmount' => (int) round(((float) $transaction->shipping_fee) * 100),
                 ],
                 'parcel' => [
                     'weight' => (float) ($transaction->listing->weight_kg ?? 0.5),

@@ -143,6 +143,14 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/stripe/connect/return', [StripeConnectController::class, 'returned'])
         ->name('stripe.connect.return');
+
+    // Activation du portefeuille façon Vinted : onboarding Stripe intégré (embedded)
+    Route::get('/portefeuille/activer', [StripeConnectController::class, 'activate'])
+        ->name('stripe.connect.activate');
+    Route::post('/portefeuille/session', [StripeConnectController::class, 'accountSession'])
+        ->name('stripe.connect.account-session');
+    Route::get('/portefeuille/active', [StripeConnectController::class, 'activated'])
+        ->name('stripe.connect.activated');
 });
 
 Route::get('/activity/recent', [PublicActivityController::class, 'recent'])->name('activity.recent');

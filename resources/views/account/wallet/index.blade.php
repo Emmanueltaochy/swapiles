@@ -60,8 +60,8 @@
                     Ajoutez votre IBAN et finalisez la vérification pour recevoir automatiquement vos ventes.
                 </p>
 
-                <a href="{{ route('stripe.connect.onboarding') }}" class="inline-flex mt-4 bg-yellow-500 hover:bg-yellow-600 text-white font-extrabold px-6 py-3 rounded-2xl transition">
-                    {{ $user->stripe_account_id ? 'Terminer la configuration' : 'Ajouter mon IBAN' }}
+                <a href="{{ route('stripe.connect.activate') }}" class="inline-flex mt-4 bg-yellow-500 hover:bg-yellow-600 text-white font-extrabold px-6 py-3 rounded-2xl transition">
+                    Activer mon portefeuille
                 </a>
             </div>
         @endif

@@ -15,13 +15,16 @@ class ListingController extends Controller
 {
     public function show(Request $request, Listing $listing)
     {
-        abort_if($listing->status !== 'published', 404);
+        // On autorise la consultation des annonces en ligne ET vendues
+        // (sinon un clic sur une notification d'un article vendu → 404).
+        abort_unless(in_array($listing->status, ['published', 'sold'], true), 404);
 
-        $listing->increment('views_count');
+        if ($listing->status === 'published') {
+            $listing->increment('views_count');
+            $this->notifySellerOfView($request, $listing);
+        }
+
         $listing->loadCount('favoritedBy');
-
-        $this->notifySellerOfView($request, $listing);
-
         $listing->load(['images' => fn($q) => $q->orderBy('order')]);
 
         return view('listings.show', compact('listing'));

@@ -46,10 +46,13 @@ class Dashboard extends BaseDashboard
             ],
 
             'usersCount' => $filter(User::query())->count(),
-            'publishedListingsCount' => (clone $publishedListings)->count(),
-            'totalListingsCount' => (clone $allListings)->count(),
+            // « Annonces en ligne » et « Vues » sont des indicateurs d'état ACTUEL :
+            // ils ne dépendent pas de la période sélectionnée (sinon ils affichent 0
+            // pour une période courte alors que des annonces sont bien en ligne).
+            'publishedListingsCount' => Listing::where('status', 'published')->count(),
+            'totalListingsCount' => Listing::count(),
             'messagesCount' => $filter(Message::query())->count(),
-            'viewsCount' => (int) (clone $publishedListings)->sum('views_count'),
+            'viewsCount' => (int) Listing::sum('views_count'),
             'favoritesCount' => $filter(Favorite::query())->count(),
             'transactionsCount' => (clone $transactions)->count(),
             'paidTransactionsCount' => (clone $paidTransactions)->count(),

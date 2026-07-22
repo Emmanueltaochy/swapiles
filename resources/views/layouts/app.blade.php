@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="google-site-verification" content="jl2dzZ3jQ5JfJg-QrS6qftgcitH7oS6oVXopqLDSW4U">
     <title>@yield('title', "Swap'Îles")</title>
     @vite(['resources/css/app.css','resources/js/app.js'])
 

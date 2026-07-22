@@ -64,6 +64,11 @@ Route::middleware('guest')->group(function () {
     Route::post('/inscription', [AuthController::class, 'register'])->name('register.store');
 });
 
+// Confirmation d'adresse e-mail (lien signé, accessible même déconnecté).
+Route::get('/email/verifier/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+    ->middleware('signed')
+    ->name('verification.verify');
+
 Route::middleware('auth')->group(function () {
     Route::get('/mon-compte', [AccountController::class, 'dashboard'])->name('account.dashboard');
     Route::get('/mon-wallet', [WalletController::class, 'index'])->name('account.wallet.index');
@@ -100,6 +105,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/favoris/{listing}/toggle', [FavoriteController::class, 'toggle'])->name('account.favorites.toggle.get');
 
     Route::post('/deconnexion', [AuthController::class, 'logout'])->name('logout');
+
+    Route::post('/email/renvoyer-confirmation', [AuthController::class, 'resendVerification'])
+        ->name('verification.send');
 });
 
 

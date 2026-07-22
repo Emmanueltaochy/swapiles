@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendWelcomeEmail;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -66,7 +67,50 @@ class AuthController extends Controller
 
         Auth::login($user);
 
-        return redirect()->route('account.dashboard');
+        try {
+            SendWelcomeEmail::dispatch($user->id);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return redirect()->route('account.dashboard')
+            ->with('status', "Bienvenue sur Swap'Îles ! Un e-mail de bienvenue vient de vous être envoyé.");
+    }
+
+    public function verifyEmail(Request $request, $id, $hash)
+    {
+        $user = User::find($id);
+
+        if (!$user || !hash_equals((string) $hash, sha1($user->email))) {
+            abort(403);
+        }
+
+        if (is_null($user->email_verified_at)) {
+            $user->forceFill(['email_verified_at' => now()])->save();
+        }
+
+        if (Auth::check() && Auth::id() === $user->id) {
+            return redirect()->route('account.dashboard')
+                ->with('status', '✅ Votre adresse e-mail est confirmée, merci !');
+        }
+
+        return redirect()->route('login')
+            ->with('status', '✅ Adresse e-mail confirmée. Vous pouvez vous connecter.');
+    }
+
+    public function resendVerification(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user && is_null($user->email_verified_at)) {
+            try {
+                SendWelcomeEmail::dispatch($user->id);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        return back()->with('status', 'E-mail de confirmation renvoyé.');
     }
 
     public function logout(Request $request)

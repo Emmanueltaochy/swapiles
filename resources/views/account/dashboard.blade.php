@@ -58,6 +58,25 @@
             </div>
         </header>
 
+        {{-- Confirmation d'e-mail (non bloquant) --}}
+        @if(is_null($user->email_verified_at))
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-4">
+                <div class="flex items-center gap-3 min-w-0">
+                    <span class="text-2xl" aria-hidden="true">✉️</span>
+                    <div class="min-w-0">
+                        <p class="font-semibold text-sky-900">Confirmez votre adresse e-mail</p>
+                        <p class="text-sm text-sky-700">Un e-mail vous a été envoyé. Cliquez sur le lien pour sécuriser votre compte.</p>
+                    </div>
+                </div>
+                <form method="POST" action="{{ route('verification.send') }}" class="shrink-0">
+                    @csrf
+                    <button class="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-700">
+                        Renvoyer l'e-mail
+                    </button>
+                </form>
+            </div>
+        @endif
+
         {{-- 2. À traiter (uniquement s'il y a une action requise) --}}
         @if($todoCount > 0)
             <section aria-labelledby="todo-title" class="space-y-3">

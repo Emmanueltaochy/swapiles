@@ -21,16 +21,24 @@ class CheckoutController extends Controller
 {
     public function start(Request $request, Listing $listing)
     {
-        abort_unless(Auth::check(), 403);
-        abort_unless($listing->listing_type === 'achat', 403);
-        abort_if($listing->price <= 0, 403);
+        if (!Auth::check()) {
+            return redirect()->route('login')->with('status', 'Connectez-vous pour finaliser votre achat.');
+        }
 
-        abort_if(
-            Transaction::where('listing_id', $listing->id)
+        // Article déjà vendu / indisponible : message clair plutôt qu'une erreur brute.
+        $alreadySold = $listing->status === 'sold'
+            || Transaction::where('listing_id', $listing->id)
                 ->whereIn('status', ['paid', 'completed'])
-                ->exists(),
-            403
-        );
+                ->exists();
+
+        if ($alreadySold) {
+            return redirect()->route('listings.show', $listing)
+                ->with('status', "Cet article vient d'être vendu. 😔");
+        }
+
+        // Achat en ligne possible pour une vente classique ou à prix négociable.
+        abort_unless(in_array($listing->listing_type, ['achat', 'negoce-prix'], true), 403);
+        abort_if($listing->price <= 0, 403);
 
         $offer = null;
 

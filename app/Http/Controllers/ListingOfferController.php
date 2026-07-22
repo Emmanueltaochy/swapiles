@@ -19,6 +19,11 @@ class ListingOfferController extends Controller
         abort_unless(Auth::check(), 403);
         abort_if($listing->user_id === Auth::id(), 403);
 
+        if ($listing->status === 'sold') {
+            return redirect()->route('listings.show', $listing)
+                ->with('status', "Cet article n'est plus disponible.");
+        }
+
         $data = $request->validate([
             'amount' => ['required', 'integer', 'min:1'],
             'message' => ['nullable', 'string', 'max:500'],

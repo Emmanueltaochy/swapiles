@@ -37,9 +37,17 @@ class ColissimoLabelService
 
         $endpoint = 'https://ws.colissimo.fr/sls-ws/SlsServiceWSRest/2.0/generateLabel';
 
+        // Le numéro de contrat peut être renseigné sous l'un ou l'autre nom.
+        $contractNumber = trim((string) (env('COLISSIMO_ACCOUNT_NUMBER') ?: env('COLISSIMO_CONTRACT_NUMBER')));
+        $password = trim((string) env('COLISSIMO_PASSWORD'));
+
+        if ($contractNumber === '' || $password === '') {
+            throw new RuntimeException("Identifiants Colissimo non configurés sur le serveur (COLISSIMO_ACCOUNT_NUMBER ou COLISSIMO_CONTRACT_NUMBER + COLISSIMO_PASSWORD dans le .env).");
+        }
+
         $payload = [
-            'contractNumber' => env('COLISSIMO_ACCOUNT_NUMBER'),
-            'password' => env('COLISSIMO_PASSWORD'),
+            'contractNumber' => $contractNumber,
+            'password' => $password,
             'outputFormat' => [
                 'x' => 0,
                 'y' => 0,

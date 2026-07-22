@@ -13,8 +13,9 @@
         <div class="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm">
             <h1 class="text-2xl font-extrabold text-gray-900">Activer mon portefeuille</h1>
             <p class="mt-2 text-gray-500">
-                Ajoutez votre IBAN, votre adresse de facturation et vos informations de contact pour recevoir vos paiements.
-                Tout se passe ici, en toute sécurité — vos données bancaires sont traitées directement par notre partenaire de paiement Stripe.
+                Ajoutez votre IBAN, votre adresse de facturation et vos informations de contact pour recevoir l'argent de vos ventes.
+                Pour votre sécurité, une <span class="font-semibold text-gray-700">fenêtre sécurisée de notre partenaire Stripe</span> s'ouvrira
+                pour saisir vos coordonnées bancaires — vos données ne transitent jamais par Swap'Îles.
             </p>
 
             <div class="mt-4 flex flex-wrap gap-2 text-xs font-semibold">

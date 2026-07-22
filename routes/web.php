@@ -54,6 +54,10 @@ Route::get('/territoire/{territoire}', function (string $territoire) {
 })->name('territoire.switch');
 Route::get('/recherche', [HomeController::class, 'search'])->name('search');
 
+// Pages de destination SEO : catalogue par territoire et par catégorie
+Route::get('/iles/{territoire}', [\App\Http\Controllers\CatalogController::class, 'territoire'])->name('catalog.territoire');
+Route::get('/iles/{territoire}/{categorie}', [\App\Http\Controllers\CatalogController::class, 'category'])->name('catalog.category');
+
 // Pages légales
 Route::get('/mentions-legales', [\App\Http\Controllers\LegalController::class, 'mentions'])->name('legal.mentions');
 Route::get('/cgu', [\App\Http\Controllers\LegalController::class, 'cgu'])->name('legal.cgu');
@@ -278,6 +282,33 @@ Route::get('/sitemap.xml', function () {
     // Pages légales (confiance / E-E-A-T)
     foreach (['legal.mentions', 'legal.cgu', 'legal.cgv', 'legal.privacy'] as $legalRoute) {
         $urls->push(['loc' => route($legalRoute), 'priority' => '0.3', 'changefreq' => 'yearly']);
+    }
+
+    // Pages de destination par territoire + catégorie (fort levier SEO)
+    $territoiresMap = [
+        'la-reunion' => 'La Réunion',
+        'martinique' => 'Martinique',
+        'guadeloupe' => 'Guadeloupe',
+        'guyane' => 'Guyane',
+        'mayotte' => 'Mayotte',
+    ];
+    foreach ($territoiresMap as $slug => $label) {
+        $urls->push(['loc' => route('catalog.territoire', $slug), 'priority' => '0.9', 'changefreq' => 'daily']);
+
+        $cats = \App\Models\Listing::where('status', 'published')
+            ->where('territoire', $label)
+            ->whereNotNull('category_level1')
+            ->where('category_level1', '!=', '')
+            ->distinct()
+            ->pluck('category_level1');
+
+        foreach ($cats as $cat) {
+            $urls->push([
+                'loc' => route('catalog.category', [$slug, \Illuminate\Support\Str::slug($cat)]),
+                'priority' => '0.7',
+                'changefreq' => 'weekly',
+            ]);
+        }
     }
 
     // Annonces publiées

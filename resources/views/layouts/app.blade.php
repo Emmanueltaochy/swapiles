@@ -347,11 +347,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
             <div>
                 <p class="font-extrabold mb-3">Territoires</p>
-                <p class="text-gray-500">🇷🇪 La Réunion</p>
-                <p class="text-gray-500">🇬🇫 Guyane</p>
-                <p class="text-gray-500">🇲🇶 Martinique</p>
-                <p class="text-gray-500">🇬🇵 Guadeloupe</p>
-                <p class="text-gray-500">🇾🇹 Mayotte</p>
+                <a href="{{ route('catalog.territoire', 'la-reunion') }}" class="block text-gray-500 hover:text-teal-700">🇷🇪 La Réunion</a>
+                <a href="{{ route('catalog.territoire', 'guyane') }}" class="block text-gray-500 hover:text-teal-700">🇬🇫 Guyane</a>
+                <a href="{{ route('catalog.territoire', 'martinique') }}" class="block text-gray-500 hover:text-teal-700">🇲🇶 Martinique</a>
+                <a href="{{ route('catalog.territoire', 'guadeloupe') }}" class="block text-gray-500 hover:text-teal-700">🇬🇵 Guadeloupe</a>
+                <a href="{{ route('catalog.territoire', 'mayotte') }}" class="block text-gray-500 hover:text-teal-700">🇾🇹 Mayotte</a>
             </div>
 
             <div>

@@ -92,9 +92,9 @@
             </div>
 
             <div class="live-card">
-                <h3 style="font-size:22px;font-weight:950;margin-bottom:16px;">Visiteurs actifs</h3>
+                <h3 style="font-size:22px;font-weight:950;margin-bottom:16px;">Visiteurs actifs ({{ $activeCount }})</h3>
 
-                <div style="display:flex;flex-direction:column;gap:12px;">
+                <div style="display:flex;flex-direction:column;gap:12px;max-height:560px;overflow:auto;padding-right:6px;">
                     @forelse($visits as $visit)
                         <div class="visitor">
                             <div style="display:flex;justify-content:space-between;gap:12px;">

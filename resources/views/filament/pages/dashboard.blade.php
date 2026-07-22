@@ -137,6 +137,26 @@
         @php
             $analyticsTableExists = \Illuminate\Support\Facades\Schema::hasTable('analytics_events');
 
+            $analyticsPeriod = request('analytics_period', '30d');
+            $analyticsPeriodLabels = [
+                'today' => 'Aujourd’hui',
+                'week' => 'Cette semaine',
+                '15d' => '15 derniers jours',
+                '30d' => '30 derniers jours',
+                '3m' => '3 mois',
+                'all' => 'Depuis le début',
+            ];
+            $analyticsPeriodLabel = $analyticsPeriodLabels[$analyticsPeriod] ?? '30 derniers jours';
+
+            $analyticsStart = match ($analyticsPeriod) {
+                'today' => today(),
+                'week' => now()->startOfWeek(),
+                '15d' => now()->subDays(15),
+                '3m' => now()->subMonths(3),
+                'all' => null,
+                default => now()->subDays(30),
+            };
+
             $analyticsViewsCount = 0;
             $analyticsConnectedViewsCount = 0;
             $analyticsTopPages = collect();
@@ -144,7 +164,7 @@
 
             if ($analyticsTableExists) {
                 $analyticsBaseQuery = \App\Models\AnalyticsEvent::query()
-                    ->where('created_at', '>=', now()->subDays(30));
+                    ->when($analyticsStart, fn ($q) => $q->where('created_at', '>=', $analyticsStart));
 
                 $analyticsViewsCount = (clone $analyticsBaseQuery)->count();
 
@@ -159,7 +179,7 @@
                     ->limit(8)
                     ->get();
 
-                $analyticsRecentConnectedEvents = \App\Models\AnalyticsEvent::query()
+                $analyticsRecentConnectedEvents = (clone $analyticsBaseQuery)
                     ->with('user')
                     ->whereNotNull('user_id')
                     ->latest('created_at')
@@ -170,7 +190,19 @@
 
         <x-filament::section>
             <x-slot name="heading">📊 Analytics site</x-slot>
-            <x-slot name="description">Suivi des vues de pages sur les 30 derniers jours.</x-slot>
+            <x-slot name="description">Vues de pages · {{ $analyticsPeriodLabel }}</x-slot>
+
+            <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.25rem;">
+                @foreach($analyticsPeriodLabels as $key => $label)
+                    <x-filament::button
+                        tag="a"
+                        :href="request()->fullUrlWithQuery(['analytics_period' => $key])"
+                        :color="$analyticsPeriod === $key ? 'primary' : 'gray'"
+                        size="sm">
+                        {{ $label }}
+                    </x-filament::button>
+                @endforeach
+            </div>
 
             <div class="swp-grid swp-3" style="margin-bottom:1.5rem;">
                 <div style="border-radius:1rem;background:rgba(148,163,184,.1);padding:1rem;">

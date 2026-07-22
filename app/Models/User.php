@@ -9,9 +9,34 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use App\Support\AdminEvent;
 use Illuminate\Notifications\Notifiable;
 use App\Notifications\ResetPasswordSwapiles;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
+    /**
+     * Contrôle l'accès au panneau d'administration Filament.
+     *
+     * En production, Filament exige cette méthode : sans elle, personne ne peut
+     * ouvrir /admin (erreur 403). L'accès est réservé aux e-mails administrateurs
+     * (liste configurable via ADMIN_EMAILS dans le .env, séparés par des virgules).
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        if ($this->is_banned) {
+            return false;
+        }
+
+        $admins = array_filter(array_map(
+            'trim',
+            explode(',', (string) env('ADMIN_EMAILS', 'taochy.consulting@gmail.com'))
+        ));
+
+        $admins = array_map('strtolower', $admins);
+
+        return in_array(strtolower((string) $this->email), $admins, true);
+    }
+
     protected static function booted(): void
     {
         static::created(function ($user) {

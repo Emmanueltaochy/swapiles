@@ -54,13 +54,22 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'comment_connu' => ['nullable', 'string', 'max:255'],
+            'comment_connu_autre' => ['nullable', 'string', 'max:255'],
         ]);
+
+        // Si « Autre » est choisi, on enregistre la précision saisie.
+        $commentConnu = $data['comment_connu'] ?? null;
+        if ($commentConnu === 'Autre' && ! empty($data['comment_connu_autre'])) {
+            $commentConnu = 'Autre : ' . $data['comment_connu_autre'];
+        }
 
         $user = User::create([
             'name' => $data['name'],
             'email' => strtolower($data['email']),
             'password' => Hash::make($data['password']),
             'territoire' => $request->cookie('swapiles_territoire', 'La Réunion'),
+            'comment_connu' => $commentConnu,
             'rating' => 0,
             'transactions_count' => 0,
         ]);

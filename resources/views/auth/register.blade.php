@@ -58,6 +58,36 @@
                            class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
                 </div>
 
+                @php
+                    $commentConnuOptions = [
+                        'Réseaux sociaux (Instagram, TikTok, Facebook…)',
+                        'Recherche Google',
+                        'Bouche à oreille (ami, famille)',
+                        'Publicité en ligne',
+                        'Affiche / flyer / événement local',
+                        'Presse / radio',
+                        'Autre',
+                    ];
+                @endphp
+                <div>
+                    <label for="comment_connu" class="mb-1 block text-sm font-semibold text-gray-700">Comment nous avez-vous connu ?</label>
+                    <select id="comment_connu" name="comment_connu"
+                            onchange="document.getElementById('comment_connu_autre_wrap').style.display = (this.value === 'Autre' ? 'block' : 'none');"
+                            class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
+                        <option value="">— Choisir (facultatif) —</option>
+                        @foreach($commentConnuOptions as $opt)
+                            <option value="{{ $opt }}" @selected(old('comment_connu') === $opt)>{{ $opt }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div id="comment_connu_autre_wrap" style="display: {{ old('comment_connu') === 'Autre' ? 'block' : 'none' }};">
+                    <label for="comment_connu_autre" class="mb-1 block text-sm font-semibold text-gray-700">Précisez</label>
+                    <input id="comment_connu_autre" type="text" name="comment_connu_autre" value="{{ old('comment_connu_autre') }}" maxlength="255"
+                           placeholder="Dites-nous comment"
+                           class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
+                </div>
+
                 <button class="w-full rounded-xl bg-teal-600 px-5 py-3 font-semibold text-white transition hover:bg-teal-700 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
                     Créer mon compte
                 </button>

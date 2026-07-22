@@ -253,9 +253,10 @@
                         </label>
 
                         <div id="weight_box">
-                            <label for="weight_kg" class="{{ $lbl }}">Poids du colis (kg)</label>
+                            <label for="weight_kg" class="{{ $lbl }}">Poids du colis (kg) <span class="text-red-500">*</span></label>
                             <input id="weight_kg" type="number" step="0.01" min="0.01" max="30" name="weight_kg" value="{{ old('weight_kg', isset($listing) ? $listing->weight_kg : '') }}" placeholder="Ex : 0.50" class="{{ $inp }}">
-                            <p class="mt-1 text-xs text-gray-500">Obligatoire si tu proposes Colissimo.</p>
+                            <p class="mt-1 text-xs text-gray-500">Obligatoire pour Colissimo — le poids sert à calculer l'affranchissement et à générer le bordereau.</p>
+                            @error('weight_kg')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
                         </div>
                     </div>
                 </div>
@@ -395,6 +396,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const coli = document.getElementById('allows_colissimo');
     const coliBox = document.getElementById('colissimo_box');
     const weightBox = document.getElementById('weight_box');
+    const weight = document.getElementById('weight_kg');
 
     function normalize(v) {
         return (v || '').toString().toLowerCase();
@@ -448,6 +450,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (weightBox) {
             weightBox.style.display = coli?.checked ? 'block' : 'none';
+        }
+
+        // Le poids n'est requis (et bloquant) que si Colissimo est coché.
+        if (weight) {
+            weight.required = !!coli?.checked;
         }
     }
 

@@ -16,9 +16,13 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    public function showRegister()
+    public function showRegister(Request $request)
     {
-        return view('auth.register');
+        $valid = ['La Réunion', 'Martinique', 'Guadeloupe', 'Guyane', 'Mayotte'];
+        $cookie = $request->cookie('swapiles_territoire');
+        $preselect = in_array($cookie, $valid, true) ? $cookie : 'La Réunion';
+
+        return view('auth.register', ['territoirePreselect' => $preselect]);
     }
 
     public function login(Request $request)
@@ -58,6 +62,7 @@ class AuthController extends Controller
             'comment_connu_autre' => ['nullable', 'string', 'max:255'],
             'reseaux' => ['nullable', 'array'],
             'reseaux.*' => ['string', 'max:50'],
+            'territoire' => ['required', 'string', 'in:La Réunion,Martinique,Guadeloupe,Guyane,Mayotte'],
         ]);
 
         $commentConnu = $data['comment_connu'] ?? null;
@@ -79,7 +84,7 @@ class AuthController extends Controller
             'name' => $data['name'],
             'email' => strtolower($data['email']),
             'password' => Hash::make($data['password']),
-            'territoire' => $request->cookie('swapiles_territoire', 'La Réunion'),
+            'territoire' => $data['territoire'],
             'comment_connu' => $commentConnu,
             'rating' => 0,
             'transactions_count' => 0,
@@ -95,7 +100,8 @@ class AuthController extends Controller
 
         return redirect()->route('account.dashboard')
             ->with('status', "Bienvenue sur Swap'Îles ! Un e-mail de bienvenue vient de vous être envoyé.")
-            ->with('pixel_event', ['event' => 'CompleteRegistration', 'params' => []]);
+            ->with('pixel_event', ['event' => 'CompleteRegistration', 'params' => []])
+            ->withCookie(cookie('swapiles_territoire', $data['territoire'], 60 * 24 * 365));
     }
 
     public function verifyEmail(Request $request, $id, $hash)

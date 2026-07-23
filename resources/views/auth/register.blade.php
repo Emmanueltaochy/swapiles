@@ -45,6 +45,28 @@
                     @error('email')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
 
+                @php
+                    $territoiresInscription = [
+                        'La Réunion' => '🇷🇪 La Réunion',
+                        'Martinique' => '🇲🇶 La Martinique',
+                        'Guadeloupe' => '🇬🇵 La Guadeloupe',
+                        'Guyane' => '🇬🇫 La Guyane',
+                        'Mayotte' => '🇾🇹 Mayotte',
+                    ];
+                    $territoireOld = old('territoire', $territoirePreselect ?? 'La Réunion');
+                @endphp
+                <div>
+                    <label for="territoire" class="mb-1 block text-sm font-semibold text-gray-700">Votre île</label>
+                    <select id="territoire" name="territoire" required
+                            class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100 @error('territoire') border-red-300 @enderror">
+                        @foreach($territoiresInscription as $value => $labelAffiche)
+                            <option value="{{ $value }}" @selected($territoireOld === $value)>{{ $labelAffiche }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-gray-400">On vous montrera en priorité les annonces de votre île.</p>
+                    @error('territoire')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+
                 <div>
                     <label for="password" class="mb-1 block text-sm font-semibold text-gray-700">Mot de passe</label>
                     <input id="password" type="password" name="password" required autocomplete="new-password"

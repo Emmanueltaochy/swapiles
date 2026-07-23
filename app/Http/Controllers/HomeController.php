@@ -17,10 +17,22 @@ class HomeController extends Controller
 
     public function index(Request $request)
     {
-        $cookieTerritoire = $request->cookie('swapiles_territoire');
-        $hasSelectedTerritoire = $cookieTerritoire && in_array($cookieTerritoire, array_column($this->territoires, 'label'));
+        $validLabels = array_column($this->territoires, 'label');
 
-        $selectedTerritoire = $hasSelectedTerritoire ? $cookieTerritoire : 'La Réunion';
+        // Priorité : l'île du membre connecté > le cookie > La Réunion par défaut.
+        $authTerritoire = $request->user()?->territoire;
+        $cookieTerritoire = $request->cookie('swapiles_territoire');
+
+        if ($authTerritoire && in_array($authTerritoire, $validLabels, true)) {
+            $selectedTerritoire = $authTerritoire;
+            $hasSelectedTerritoire = true;
+        } elseif ($cookieTerritoire && in_array($cookieTerritoire, $validLabels, true)) {
+            $selectedTerritoire = $cookieTerritoire;
+            $hasSelectedTerritoire = true;
+        } else {
+            $selectedTerritoire = 'La Réunion';
+            $hasSelectedTerritoire = false;
+        }
 
         $selectedKey = collect($this->territoires)
             ->search(fn ($item) => $item['label'] === $selectedTerritoire);

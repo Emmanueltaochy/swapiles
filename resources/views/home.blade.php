@@ -4,6 +4,10 @@
 
 @section('content')
 
+@php
+    // Nom affiché avec « La » (sauf Mayotte) ; la valeur stockée reste inchangée.
+    $selectedDisplay = \App\Support\Territoires::display($selectedTerritoire);
+@endphp
 
 @if(!$hasSelectedTerritoire)
     <div class="fixed inset-0 z-[9999] bg-slate-950/75 backdrop-blur-md">
@@ -36,7 +40,7 @@
                             </span>
 
                             <span>
-                                <span class="block text-lg font-bold text-gray-950">{{ $territoire['label'] }}</span>
+                                <span class="block text-lg font-bold text-gray-950">{{ \App\Support\Territoires::display($territoire['label']) }}</span>
                                 <span class="text-sm text-gray-500">
                                     @if($count > 0)
                                         {{ number_format($count, 0, ',', ' ') }} annonces disponibles
@@ -79,7 +83,7 @@
             <div>
                 <p class="text-xs uppercase tracking-wide font-bold text-teal-700">Territoire sélectionné</p>
                 <p class="font-bold text-gray-900">
-                    Vous naviguez sur {{ $selectedTerritoire }}
+                    Vous naviguez sur {{ $selectedDisplay }}
                     <span class="text-gray-500 font-bold">· {{ number_format($activeListingsCount, 0, ',', ' ') }} annonces</span>
                 </p>
             </div>
@@ -90,7 +94,7 @@
                 <a href="{{ route('territoire.switch', $key) }}"
                    class="shrink-0 rounded-full px-4 py-2 text-sm font-bold border transition
                    {{ $territoire['label'] === $selectedTerritoire ? 'bg-teal-700 text-white border-teal-700' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50' }}">
-                    {{ $territoire['flag'] }} {{ $territoire['label'] }}
+                    {{ $territoire['flag'] }} {{ \App\Support\Territoires::display($territoire['label']) }}
                 </a>
             @endforeach
         </div>
@@ -121,12 +125,12 @@
             </span>
 
             <h1 class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
-                La seconde main, pensée pour {{ $selectedTerritoire }}.
+                La seconde main, pensée pour {{ $selectedDisplay }}.
             </h1>
 
             <p class="mt-5 text-lg sm:text-xl text-white/90 max-w-2xl leading-relaxed">
                 Vendez, achetez, échangez ou donnez près de chez vous.
-                Déjà <span class="font-bold text-white">{{ number_format($activeListingsCount, 0, ',', ' ') }}</span> annonces à {{ $selectedTerritoire }} et <span class="font-bold text-white">{{ number_format($totalListingsCount, 0, ',', ' ') }}</span> annonces sur les îles.
+                Déjà <span class="font-bold text-white">{{ number_format($activeListingsCount, 0, ',', ' ') }}</span> annonces à {{ $selectedDisplay }} et <span class="font-bold text-white">{{ number_format($totalListingsCount, 0, ',', ' ') }}</span> annonces sur les îles.
             </p>
 
             <form method="GET" action="{{ route('search', ['territoire' => $selectedTerritoire]) }}" class="mt-8 bg-white rounded-3xl shadow-2xl p-3 max-w-5xl">
@@ -168,7 +172,7 @@
 
             <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-5">
                 <p class="text-3xl font-bold text-teal-700">{{ number_format($activeListingsCount, 0, ',', ' ') }}</p>
-                <p class="text-sm font-bold text-gray-500 mt-1">à {{ $selectedTerritoire }}</p>
+                <p class="text-sm font-bold text-gray-500 mt-1">à {{ $selectedDisplay }}</p>
             </div>
 
             <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-5">
@@ -259,7 +263,7 @@
         <div>
             <p class="text-sm font-bold uppercase tracking-wide text-rose-600">Tendance</p>
             <h2 class="text-3xl md:text-4xl font-bold text-gray-950">🔥 Les annonces populaires</h2>
-            <p class="text-gray-500 mt-2">Les articles les plus regardés à {{ $selectedTerritoire }}.</p>
+            <p class="text-gray-500 mt-2">Les articles les plus regardés à {{ $selectedDisplay }}.</p>
         </div>
 
         <a href="{{ route('search', ['territoire' => $selectedTerritoire]) }}"
@@ -296,6 +300,31 @@
                 </div>
             </a>
         @endforeach
+    </div>
+</section>
+@elseif(($activeListingsCount ?? 0) === 0)
+{{-- Aucune annonce sur cette île : on invite à être le premier (au lieu des populaires) --}}
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="rounded-3xl border-2 border-dashed border-teal-200 bg-teal-50/60 p-8 sm:p-12 text-center">
+        <div class="text-6xl mb-4">🏝️</div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-950">Pas encore d'annonce à {{ $selectedDisplay }}</h2>
+        <p class="mt-3 text-gray-600 max-w-xl mx-auto">
+            Soyez le tout premier à publier à {{ $selectedDisplay }} ! Videz votre dressing, donnez une seconde vie à vos objets
+            et lancez la communauté sur votre île. 🌴
+        </p>
+        <div class="mt-6 flex flex-wrap justify-center gap-3">
+            @auth
+                <a href="{{ route('account.listings.create', ['territoire' => $selectedTerritoire]) }}"
+                   class="rounded-xl bg-teal-600 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-teal-700">
+                    ➕ Déposer la première annonce
+                </a>
+            @else
+                <a href="{{ route('register') }}"
+                   class="rounded-xl bg-teal-600 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-teal-700">
+                    ➕ M'inscrire et publier
+                </a>
+            @endauth
+        </div>
     </div>
 </section>
 @endif
@@ -385,7 +414,7 @@
                 </p>
 
                 <h2 class="text-2xl sm:text-3xl font-bold mt-1">
-                    {{ number_format($activeListingsCount, 0, ',', ' ') }} annonce locale à {{ $selectedTerritoire }}
+                    {{ number_format($activeListingsCount, 0, ',', ' ') }} annonce locale à {{ $selectedDisplay }}
                     · {{ number_format($crossIslandAvailableCount, 0, ',', ' ') }} produits expédiables depuis les autres îles
                 </h2>
 
@@ -406,7 +435,7 @@
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="flex items-end justify-between mb-6">
         <div>
-            <h2 class="text-2xl md:text-3xl font-bold text-gray-900">{{ $selectedMeta['flag'] }} Les dernières annonces à {{ $selectedTerritoire }}</h2>
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-900">{{ $selectedMeta['flag'] }} Les dernières annonces à {{ $selectedDisplay }}</h2>
             <p class="text-gray-500 mt-1">Les nouvelles pépites publiées près de chez vous.</p>
         </div>
     </div>
@@ -414,7 +443,7 @@
     @if($listings->count() === 0)
         <div class="rounded-3xl bg-amber-50 border border-amber-100 p-8 text-center mb-8">
             <div class="text-5xl mb-3">🌴</div>
-            <h3 class="text-2xl font-bold text-gray-900">Pas encore d’annonces à {{ $selectedTerritoire }}</h3>
+            <h3 class="text-2xl font-bold text-gray-900">Pas encore d’annonces à {{ $selectedDisplay }}</h3>
             <p class="text-gray-600 mt-2">Découvrez en attendant les annonces disponibles sur les autres îles.</p>
         </div>
     @endif

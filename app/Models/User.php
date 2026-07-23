@@ -132,6 +132,49 @@ class User extends Authenticatable implements FilamentUser
         return $this->belongsToMany(User::class, 'seller_follows', 'seller_id', 'follower_id')
             ->withTimestamps();
     }
+
+    /**
+     * Critères de complétion du profil (pour la barre de progression + le badge).
+     *
+     * @return array<int,array{key:string,label:string,hint:string,done:bool}>
+     */
+    public function profileChecklistItems(): array
+    {
+        $hasAddress = filled($this->address_line1) && filled($this->postal_code) && filled($this->city);
+
+        $paymentsOn = $this->stripe_account_id
+            && $this->stripe_charges_enabled
+            && $this->stripe_payouts_enabled
+            && $this->stripe_details_submitted;
+
+        return [
+            ['key' => 'avatar', 'label' => 'Photo de profil', 'hint' => 'Ajoutez une photo pour inspirer confiance', 'done' => filled($this->avatar)],
+            ['key' => 'email', 'label' => 'E-mail vérifié', 'hint' => 'Confirmez votre adresse e-mail', 'done' => ! is_null($this->email_verified_at)],
+            ['key' => 'phone', 'label' => 'Téléphone', 'hint' => 'Renseignez votre numéro', 'done' => filled($this->phone)],
+            ['key' => 'address', 'label' => 'Adresse complète', 'hint' => 'Indispensable pour expédier vos ventes', 'done' => $hasAddress],
+            ['key' => 'payments', 'label' => 'Paiements activés (CB)', 'hint' => 'Recevez vos ventes en CB sécurisé', 'done' => (bool) $paymentsOn],
+            ['key' => 'listing', 'label' => 'Première annonce publiée', 'hint' => 'Mettez un article en vente', 'done' => $this->listings()->exists()],
+        ];
+    }
+
+    /** Pourcentage de complétion du profil (0-100). */
+    public function profileCompletion(): int
+    {
+        $items = $this->profileChecklistItems();
+        $done = 0;
+        foreach ($items as $item) {
+            if ($item['done']) {
+                $done++;
+            }
+        }
+
+        return count($items) > 0 ? (int) round($done / count($items) * 100) : 0;
+    }
+
+    public function hasCompleteProfile(): bool
+    {
+        return $this->profileCompletion() >= 100;
+    }
 }
 
 

@@ -61,7 +61,15 @@
                         <span>· {{ number_format($soldListingsCount, 0, ',', ' ') }} vendue{{ $soldListingsCount > 1 ? 's' : '' }}</span>
                     </div>
 
+                    @php
+                        $profilePct = $user->profileCompletion();
+                        $profileComplete = $profilePct >= 100;
+                        $isOwnProfile = auth()->check() && auth()->id() === $user->id;
+                    @endphp
                     <div class="mt-3 flex flex-wrap gap-2 text-xs font-medium">
+                        @if($profileComplete)
+                            <span class="rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-2.5 py-1 font-bold text-white shadow-sm">🏆 Profil complet</span>
+                        @endif
                         <span class="rounded-full bg-teal-50 px-2.5 py-1 text-teal-700">✅ Membre vérifié</span>
                         @if($user->territoire)
                             <span class="rounded-full bg-gray-100 px-2.5 py-1 text-gray-600">📍 {{ $user->territoire }}</span>
@@ -106,6 +114,64 @@
                 </div>
             @endforeach
         </div>
+
+        {{-- Barre de complétion du profil (visible par le propriétaire uniquement) --}}
+        @if($isOwnProfile && ! $profileComplete)
+            @php
+                $checklist = $user->profileChecklistItems();
+                $checklistUrls = [
+                    'avatar' => route('account.profile.edit'),
+                    'phone' => route('account.profile.edit'),
+                    'address' => route('account.addresses.edit'),
+                    'payments' => route('stripe.connect.activate'),
+                    'listing' => route('account.listings.create'),
+                ];
+            @endphp
+            <div class="mt-6 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 sm:p-5">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-base font-extrabold text-gray-900">🏆 Complétez votre profil</h2>
+                        <p class="mt-0.5 text-sm text-gray-600">Atteignez 100 % et débloquez le badge <strong>« Profil complet »</strong> affiché à tous les acheteurs — un gage de confiance qui fait vendre plus vite&nbsp;!</p>
+                    </div>
+                    <div class="shrink-0 text-right">
+                        <span class="text-2xl font-black text-amber-600">{{ $profilePct }}%</span>
+                    </div>
+                </div>
+
+                <div class="mt-3 h-3 w-full overflow-hidden rounded-full bg-amber-100">
+                    <div class="h-full rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 transition-all" style="width: {{ max(4, $profilePct) }}%;"></div>
+                </div>
+
+                <div class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    @foreach($checklist as $item)
+                        @if($item['done'])
+                            <div class="flex items-center gap-2 rounded-xl bg-white/70 px-3 py-2 text-sm">
+                                <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-emerald-500 text-xs text-white">✓</span>
+                                <span class="font-semibold text-gray-500 line-through">{{ $item['label'] }}</span>
+                            </div>
+                        @elseif($item['key'] === 'email')
+                            <form method="POST" action="{{ route('verification.send') }}">
+                                @csrf
+                                <button type="submit" class="flex w-full items-center gap-2 rounded-xl border border-amber-200 bg-white px-3 py-2 text-left text-sm transition hover:border-amber-400 hover:bg-amber-50">
+                                    <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 border-amber-300 text-xs text-amber-500">+</span>
+                                    <span><span class="font-bold text-gray-900">{{ $item['label'] }}</span><br><span class="text-xs text-gray-500">{{ $item['hint'] }} — renvoyer l'e-mail</span></span>
+                                </button>
+                            </form>
+                        @else
+                            <a href="{{ $checklistUrls[$item['key']] ?? route('account.profile.edit') }}"
+                               class="flex items-center gap-2 rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm transition hover:border-amber-400 hover:bg-amber-50">
+                                <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 border-amber-300 text-xs text-amber-500">+</span>
+                                <span><span class="font-bold text-gray-900">{{ $item['label'] }}</span><br><span class="text-xs text-gray-500">{{ $item['hint'] }}</span></span>
+                            </a>
+                        @endif
+                    @endforeach
+                </div>
+            </div>
+        @elseif($isOwnProfile && $profileComplete)
+            <div class="mt-6 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 p-4 text-center">
+                <p class="text-sm font-bold text-gray-900">🏆 Bravo, votre profil est complet à 100 %&nbsp;! Le badge « Profil complet » est visible par tous les acheteurs.</p>
+            </div>
+        @endif
     </div>
 </section>
 

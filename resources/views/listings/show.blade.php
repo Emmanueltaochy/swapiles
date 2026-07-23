@@ -372,6 +372,39 @@
                         </div>
                     </div>
 
+                    {{-- Partage sur les réseaux sociaux (promotion par la communauté) --}}
+                    @php
+                        $shareUrl = route('listings.show', $listing);
+                        $shareText = 'Découvrez « ' . $listing->title . ' » sur Swap\'Îles 🌴';
+                        $waHref = 'https://wa.me/?text=' . rawurlencode($shareText . ' ' . $shareUrl);
+                        $fbHref = 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode($shareUrl);
+                        $xHref = 'https://twitter.com/intent/tweet?text=' . rawurlencode($shareText) . '&url=' . rawurlencode($shareUrl);
+                    @endphp
+                    <div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                        <p class="mb-3 text-sm font-semibold text-gray-900">📣 Partager cette annonce</p>
+                        <div class="flex flex-wrap gap-2">
+                            <a href="{{ $waHref }}" target="_blank" rel="noopener noreferrer"
+                               class="inline-flex items-center gap-1.5 rounded-xl bg-[#25D366] px-3.5 py-2 text-sm font-semibold text-white transition hover:opacity-90">
+                                <span aria-hidden="true">🟢</span> WhatsApp
+                            </a>
+                            <a href="{{ $fbHref }}" target="_blank" rel="noopener noreferrer"
+                               class="inline-flex items-center gap-1.5 rounded-xl bg-[#1877F2] px-3.5 py-2 text-sm font-semibold text-white transition hover:opacity-90">
+                                <span aria-hidden="true">📘</span> Facebook
+                            </a>
+                            <a href="{{ $xHref }}" target="_blank" rel="noopener noreferrer"
+                               class="inline-flex items-center gap-1.5 rounded-xl bg-gray-900 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-black">
+                                <span aria-hidden="true">✖️</span> X
+                            </a>
+                            <button type="button"
+                                    data-share-url="{{ $shareUrl }}"
+                                    data-share-text="{{ $shareText }}"
+                                    onclick="swpShareListing(this)"
+                                    class="js-share-copy inline-flex items-center gap-1.5 rounded-xl border-2 border-gray-200 px-3.5 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
+                                <span aria-hidden="true">🔗</span> Copier le lien
+                            </button>
+                        </div>
+                    </div>
+
                     {{-- Protection acheteur --}}
                     @if($canBuyOnline && !$isSold)
                         <div class="flex gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
@@ -671,6 +704,31 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
+</script>
+
+<script>
+// Partage d'annonce : menu natif du téléphone si dispo, sinon copie du lien.
+function swpShareListing(btn) {
+    var url = btn.getAttribute('data-share-url');
+    var text = btn.getAttribute('data-share-text') || '';
+
+    if (navigator.share) {
+        navigator.share({ title: "Swap'Îles", text: text, url: url }).catch(function () {});
+        return;
+    }
+
+    var done = function () {
+        var original = btn.innerHTML;
+        btn.innerHTML = '<span aria-hidden="true">✅</span> Lien copié';
+        setTimeout(function () { btn.innerHTML = original; }, 1800);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(done).catch(function () { window.prompt('Copiez le lien :', url); });
+    } else {
+        window.prompt('Copiez le lien :', url);
+    }
+}
 </script>
 
 @endsection

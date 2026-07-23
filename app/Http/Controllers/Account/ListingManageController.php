@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Account;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SendSellerPublishedListingEmail;
+use App\Jobs\SendListingPublishedShareEmail;
 use App\Models\Listing;
 use App\Models\ListingImage;
 use Illuminate\Http\Request;
@@ -77,6 +78,13 @@ class ListingManageController extends Controller
         $this->storeImages($request, $listing);
 
         $this->notifyFollowersNewListing($listing);
+
+        // E-mail au vendeur : « partagez votre annonce sur vos réseaux ».
+        try {
+            SendListingPublishedShareEmail::dispatch($listing->id);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         AdminEvent::notify(
             'Nouvelle annonce publiée',

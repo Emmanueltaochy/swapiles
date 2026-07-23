@@ -106,7 +106,7 @@
                     {!! \App\Support\Charts::line($todayConcurrent['labels'], [['name' => 'Connectés', 'color' => '#0d9488', 'data' => $todayConcurrent['data']]], 200) !!}
                 </div>
             @else
-                <p style="font-size:.85rem;opacity:.6;">⏳ La courbe des connectés simultanés se construit toutes les 5 minutes — elle apparaîtra très bientôt.</p>
+                <p style="font-size:.85rem;opacity:.6;">⏳ La courbe des connectés simultanés se construit chaque minute — elle apparaîtra très bientôt.</p>
             @endif
         </x-filament::section>
 

@@ -111,7 +111,7 @@
                 <div class="swp-kpi">
                     <div class="l">📸 Relevés du jour</div>
                     <div class="v">{{ $num(count($todayConcurrent['labels'])) }}</div>
-                    <div class="s">mesures toutes les 5 min</div>
+                    <div class="s">mesures chaque minute</div>
                 </div>
             </div>
 
@@ -121,7 +121,7 @@
                     {!! \App\Support\Charts::line($todayConcurrent['labels'], [['name' => 'Connectés', 'color' => '#0d9488', 'data' => $todayConcurrent['data']]], 200) !!}
                 </div>
             @else
-                <p style="font-size:.85rem;opacity:.6;padding:.5rem 0 1rem;">⏳ La courbe des connectés se construit toutes les 5 minutes. Elle apparaîtra dès les premiers relevés (reviens dans quelques minutes).</p>
+                <p style="font-size:.85rem;opacity:.6;padding:.5rem 0 1rem;">⏳ La courbe des connectés se construit chaque minute. Elle apparaîtra dès les premiers relevés (reviens dans quelques minutes).</p>
             @endif
 
             <div style="margin:1rem 0 .35rem;font-size:.85rem;font-weight:700;opacity:.7;">Visiteurs par heure (aujourd'hui)</div>

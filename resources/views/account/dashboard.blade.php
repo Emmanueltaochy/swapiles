@@ -58,6 +58,27 @@
             </div>
         </header>
 
+        {{-- Incitation à compléter le profil (tant qu'il n'est pas à 100 %) --}}
+        @php $profilePct = $user->profileCompletion(); @endphp
+        @if($profilePct < 100)
+            <a href="{{ route('profiles.show', $user) }}"
+               class="block rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:p-5 transition hover:border-amber-300 hover:bg-amber-50">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                        <p class="text-base font-extrabold text-gray-900">🏆 Complétez votre profil ({{ $profilePct }}%)</p>
+                        <p class="mt-0.5 text-sm text-gray-600">
+                            Finalisez votre profil pour débloquer le badge <strong>« Profil complet »</strong> et vendre plus vite.
+                            <span class="font-semibold text-amber-700">Voir ce qu'il reste à faire →</span>
+                        </p>
+                    </div>
+                    <span class="shrink-0 text-2xl font-black text-amber-600">{{ $profilePct }}%</span>
+                </div>
+                <div class="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-amber-100">
+                    <div class="h-full rounded-full bg-gradient-to-r from-amber-400 to-yellow-500" style="width: {{ max(4, $profilePct) }}%;"></div>
+                </div>
+            </a>
+        @endif
+
         {{-- Confirmation d'e-mail (non bloquant) --}}
         @if(is_null($user->email_verified_at))
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-4">

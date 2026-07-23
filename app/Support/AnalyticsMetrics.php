@@ -162,6 +162,26 @@ class AnalyticsMetrics
         return $hours;
     }
 
+    /** Visiteurs uniques (sessions distinctes) aujourd'hui — sans double comptage. */
+    public static function todayUniqueVisitors(): int
+    {
+        if (! self::eventsTableExists()) {
+            return 0;
+        }
+
+        try {
+            return (int) DB::table('analytics_events')
+                ->whereDate('created_at', Carbon::today())
+                ->whereNotNull('session_id')
+                ->distinct()
+                ->count('session_id');
+        } catch (\Throwable $e) {
+            report($e);
+
+            return 0;
+        }
+    }
+
     /**
      * Courbe des connectés simultanés aujourd'hui + pic du jour.
      *

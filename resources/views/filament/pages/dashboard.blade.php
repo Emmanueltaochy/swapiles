@@ -90,9 +90,9 @@
                     <div style="font-size:.72rem;opacity:.55;font-weight:600;">{{ $todayConcurrent['peak']['time'] ? 'à ' . $todayConcurrent['peak']['time'] : 'relevés en cours…' }}</div>
                 </div>
                 <div style="border-radius:1rem;background:rgba(148,163,184,.1);padding:1rem;">
-                    <div class="swp-klabel">👥 Visiteurs aujourd'hui</div>
-                    <div class="swp-kvalue">{{ number_format(array_sum($todayHourly), 0, ',', ' ') }}</div>
-                    <div style="font-size:.72rem;opacity:.55;font-weight:600;">sessions cumulées</div>
+                    <div class="swp-klabel">👥 Visiteurs uniques aujourd'hui</div>
+                    <div class="swp-kvalue">{{ number_format($todayUnique, 0, ',', ' ') }}</div>
+                    <div style="font-size:.72rem;opacity:.55;font-weight:600;">sessions distinctes du jour</div>
                 </div>
                 <div style="border-radius:1rem;background:rgba(59,130,246,.12);padding:1rem;">
                     <div class="swp-klabel">🕐 Heure la plus active</div>
@@ -326,7 +326,7 @@
 
             <div class="swp-grid swp-4" style="margin-bottom:1.5rem;">
                 <div style="border-radius:1rem;background:rgba(99,102,241,.14);padding:1rem;">
-                    <div class="swp-klabel">👥 Visiteurs uniques</div>
+                    <div class="swp-klabel">👥 Visiteurs uniques <span style="opacity:.6;font-weight:600;">· {{ $analyticsPeriodLabel }}</span></div>
                     <div class="swp-kvalue">{{ number_format($analyticsUniqueVisitors, 0, ',', ' ') }}</div>
                     <div style="font-size:.72rem;opacity:.55;font-weight:600;margin-top:.15rem;">sessions distinctes · hors robots</div>
                 </div>

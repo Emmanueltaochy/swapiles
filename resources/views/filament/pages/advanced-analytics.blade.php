@@ -98,9 +98,9 @@
                     <div class="s">{{ $todayConcurrent['peak']['time'] ? 'à ' . $todayConcurrent['peak']['time'] : 'en attente de données' }}</div>
                 </div>
                 <div class="swp-kpi">
-                    <div class="l">👥 Visiteurs aujourd'hui</div>
-                    <div class="v">{{ $num(array_sum($todayHourly)) }}</div>
-                    <div class="s">sessions cumulées</div>
+                    <div class="l">👥 Visiteurs uniques aujourd'hui</div>
+                    <div class="v">{{ $num($todayUnique) }}</div>
+                    <div class="s">sessions distinctes du jour</div>
                 </div>
                 <div class="swp-kpi">
                     <div class="l">🕐 Heure la plus active</div>

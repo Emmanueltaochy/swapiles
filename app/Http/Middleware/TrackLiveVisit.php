@@ -17,7 +17,7 @@ class TrackLiveVisit
                 return $response;
             }
 
-            if ($request->is('admin*') || $request->is('livewire*') || $request->is('build*') || $request->is('storage*')) {
+            if ($request->is('admin*') || $request->is('livewire*') || $request->is('build*') || $request->is('storage*') || $request->is('n/*')) {
                 return $response;
             }
 

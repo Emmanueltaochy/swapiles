@@ -4,6 +4,8 @@ namespace App\Filament\Pages;
 
 use App\Models\User;
 use App\Models\LoginToken;
+use App\Models\NewsletterCampaign;
+use App\Models\NewsletterRecipient;
 use App\Mail\MagicLoginLinkMail;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -129,11 +131,33 @@ class CommunityNewsletter extends Page
 
         $sent = 0;
         $failed = 0;
+        $format = $state['format'] ?? 'text';
+
+        // Campagne pour le suivi statistique (ouvertures, clics, taux…).
+        $campaign = NewsletterCampaign::create([
+            'subject' => mb_substr((string) ($state['subject'] ?? 'Newsletter'), 0, 255),
+            'format' => $format,
+            'audience' => $audience,
+            'recipients_count' => count($recipients),
+            'sent_count' => 0,
+            'failed_count' => 0,
+            'created_at' => now(),
+        ]);
 
         foreach ($recipients as $email) {
             try {
-                if (($state['format'] ?? 'text') === 'html') {
-                    Mail::html($this->htmlBody($state), function ($message) use ($email, $state) {
+                $token = Str::random(48);
+
+                NewsletterRecipient::create([
+                    'campaign_id' => $campaign->id,
+                    'email' => $email,
+                    'token' => $token,
+                ]);
+
+                if ($format === 'html') {
+                    $body = $this->trackHtml($this->htmlBody($state), $token);
+
+                    Mail::html($body, function ($message) use ($email, $state) {
                         $message->from('contact@swapiles.com', 'Swap’Îles')
                             ->to($email)
                             ->subject($state['subject']);
@@ -153,11 +177,39 @@ class CommunityNewsletter extends Page
             }
         }
 
+        $campaign->update(['sent_count' => $sent, 'failed_count' => $failed]);
+
         FilamentNotification::make()
             ->title('Newsletter envoyée')
-            ->body($sent . ' email(s) envoyé(s).' . ($failed ? ' ' . $failed . ' erreur(s).' : ''))
+            ->body($sent . ' email(s) envoyé(s).' . ($failed ? ' ' . $failed . ' erreur(s).' : '') . ' Suivi des ouvertures/clics activé.')
             ->success()
             ->send();
+    }
+
+    /**
+     * Injecte le suivi dans un e-mail HTML : réécrit les liens (clic) et ajoute
+     * le pixel d'ouverture. Utilise le domaine canonique pour que les URLs soient
+     * valides même si l'e-mail est composé depuis admin.swapiles.com.
+     */
+    private function trackHtml(string $html, string $token): string
+    {
+        $base = rtrim((string) env('APP_CANONICAL_URL', 'https://swapiles.com'), '/');
+        $clickBase = $base . '/n/c/' . $token . '?u=';
+        $openUrl = $base . '/n/o/' . $token;
+
+        // Réécriture des liens http(s) -> passage par la redirection de suivi.
+        $html = preg_replace_callback('/href="(https?:\/\/[^"]+)"/i', function ($m) use ($clickBase) {
+            return 'href="' . $clickBase . rawurlencode($m[1]) . '"';
+        }, $html);
+
+        // Pixel d'ouverture (1x1 invisible).
+        $pixel = '<img src="' . $openUrl . '" width="1" height="1" alt="" style="display:none;max-height:0;overflow:hidden;">';
+
+        if (str_contains($html, '</body>')) {
+            return str_replace('</body>', $pixel . '</body>', $html);
+        }
+
+        return $html . $pixel;
     }
 
     private function parseEmails(?string $raw): array

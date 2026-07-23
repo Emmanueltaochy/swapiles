@@ -54,6 +54,10 @@ Route::get('/territoire/{territoire}', function (string $territoire) {
 })->name('territoire.switch');
 Route::get('/recherche', [HomeController::class, 'search'])->name('search');
 
+// Suivi newsletter (ouvertures + clics) — accès public, sans authentification
+Route::get('/n/o/{token}', [\App\Http\Controllers\NewsletterTrackingController::class, 'open'])->name('newsletter.open');
+Route::get('/n/c/{token}', [\App\Http\Controllers\NewsletterTrackingController::class, 'click'])->name('newsletter.click');
+
 // Pages de destination SEO : catalogue par territoire et par catégorie
 Route::get('/iles/{territoire}', [\App\Http\Controllers\CatalogController::class, 'territoire'])->name('catalog.territoire');
 Route::get('/iles/{territoire}/{categorie}', [\App\Http\Controllers\CatalogController::class, 'category'])->name('catalog.category');

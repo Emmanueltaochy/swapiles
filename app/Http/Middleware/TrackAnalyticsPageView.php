@@ -40,6 +40,7 @@ class TrackAnalyticsPageView
                 str_starts_with($path, '/build') ||
                 str_starts_with($path, '/storage') ||
                 str_starts_with($path, '/_debugbar') ||
+                str_starts_with($path, '/n/') ||
                 str_contains($path, 'favicon')
             ) {
                 return;

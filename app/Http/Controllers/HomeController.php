@@ -19,15 +19,18 @@ class HomeController extends Controller
     {
         $validLabels = array_column($this->territoires, 'label');
 
-        // Priorité : l'île du membre connecté > le cookie > La Réunion par défaut.
-        $authTerritoire = $request->user()?->territoire;
+        // Priorité : le choix explicite (cookie, mis à jour à chaque changement
+        // de territoire) > l'île du profil par défaut > La Réunion.
+        // L'inscription enregistre déjà le cookie = île du profil, donc le défaut
+        // reste l'île du membre, tout en laissant le changement de territoire agir.
         $cookieTerritoire = $request->cookie('swapiles_territoire');
+        $authTerritoire = $request->user()?->territoire;
 
-        if ($authTerritoire && in_array($authTerritoire, $validLabels, true)) {
-            $selectedTerritoire = $authTerritoire;
-            $hasSelectedTerritoire = true;
-        } elseif ($cookieTerritoire && in_array($cookieTerritoire, $validLabels, true)) {
+        if ($cookieTerritoire && in_array($cookieTerritoire, $validLabels, true)) {
             $selectedTerritoire = $cookieTerritoire;
+            $hasSelectedTerritoire = true;
+        } elseif ($authTerritoire && in_array($authTerritoire, $validLabels, true)) {
+            $selectedTerritoire = $authTerritoire;
             $hasSelectedTerritoire = true;
         } else {
             $selectedTerritoire = 'La Réunion';

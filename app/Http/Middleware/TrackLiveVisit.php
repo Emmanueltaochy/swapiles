@@ -21,6 +21,11 @@ class TrackLiveVisit
                 return $response;
             }
 
+            // On ignore les robots pour ne pas fausser le compteur « en direct ».
+            if (\App\Support\BotDetector::isBot($request->userAgent())) {
+                return $response;
+            }
+
             $territoire = $request->cookie('swapiles_territoire') ?: 'La Réunion';
 
             $coords = [

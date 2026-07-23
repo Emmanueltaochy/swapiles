@@ -19,7 +19,10 @@ class ListingController extends Controller
         // (sinon un clic sur une notification d'un article vendu → 404).
         abort_unless(in_array($listing->status, ['published', 'sold'], true), 404);
 
-        if ($listing->status === 'published') {
+        // On ne compte pas les vues des robots/crawlers (chiffres gonflés).
+        $isBot = \App\Support\BotDetector::isBot($request->userAgent());
+
+        if ($listing->status === 'published' && ! $isBot) {
             $listing->increment('views_count');
             $this->notifySellerOfView($request, $listing);
         }

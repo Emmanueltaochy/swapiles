@@ -222,6 +222,7 @@
             };
 
             $analyticsViewsCount = 0;
+            $analyticsUniqueVisitors = 0;
             $analyticsConnectedViewsCount = 0;
             $analyticsTopPages = collect();
             $analyticsMemberActivity = collect();
@@ -231,6 +232,12 @@
                     ->when($analyticsStart, fn ($q) => $q->where('created_at', '>=', $analyticsStart));
 
                 $analyticsViewsCount = (clone $analyticsBaseQuery)->count();
+
+                // Visiteurs uniques = sessions distinctes sur la période.
+                $analyticsUniqueVisitors = (clone $analyticsBaseQuery)
+                    ->whereNotNull('session_id')
+                    ->distinct()
+                    ->count('session_id');
 
                 $analyticsConnectedViewsCount = (clone $analyticsBaseQuery)
                     ->whereNotNull('user_id')
@@ -282,7 +289,12 @@
                 @endforeach
             </div>
 
-            <div class="swp-grid swp-3" style="margin-bottom:1.5rem;">
+            <div class="swp-grid swp-4" style="margin-bottom:1.5rem;">
+                <div style="border-radius:1rem;background:rgba(99,102,241,.14);padding:1rem;">
+                    <div class="swp-klabel">👥 Visiteurs uniques</div>
+                    <div class="swp-kvalue">{{ number_format($analyticsUniqueVisitors, 0, ',', ' ') }}</div>
+                    <div style="font-size:.72rem;opacity:.55;font-weight:600;margin-top:.15rem;">sessions distinctes · hors robots</div>
+                </div>
                 <div style="border-radius:1rem;background:rgba(148,163,184,.1);padding:1rem;">
                     <div class="swp-klabel">👁️ Vues pages</div>
                     <div class="swp-kvalue">{{ number_format($analyticsViewsCount, 0, ',', ' ') }}</div>

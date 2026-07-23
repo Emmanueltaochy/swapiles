@@ -53,6 +53,11 @@ class TrackAnalyticsPageView
 
             $userAgent = (string) $request->userAgent();
 
+            // On n'enregistre pas les robots/crawlers pour ne pas gonfler les stats.
+            if (\App\Support\BotDetector::isBot($userAgent)) {
+                return;
+            }
+
             AnalyticsEvent::create([
                 'user_id' => optional($request->user())->id,
                 'session_id' => optional($request->session())->getId(),

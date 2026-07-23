@@ -47,6 +47,14 @@ class ListingManageController extends Controller
                 ->withInput();
         }
 
+        // Vendre sur d'autres îles nécessite Colissimo (pas de main propre inter-îles).
+        $alsoTerritoires = $this->extraTerritoires($data, $data['territoire']);
+        if (! empty($alsoTerritoires) && ! $allowsColissimo) {
+            return back()
+                ->withErrors(['also_territoires' => 'Pour vendre sur d’autres îles, activez Colissimo : la remise en main propre n’est pas possible entre deux îles.'])
+                ->withInput();
+        }
+
         if ($allowsColissimo && empty($data['weight_kg'])) {
             return back()
                 ->withErrors(['weight_kg' => 'Le poids du colis est obligatoire pour proposer Colissimo.'])
@@ -64,6 +72,7 @@ class ListingManageController extends Controller
             'allows_exchange' => $request->boolean('payment_exchange') || $data['listing_type'] === 'echange-produits',
             'status' => 'published',
             'territoire' => $data['territoire'],
+            'also_territoires' => $alsoTerritoires ?: null,
             'category_level1' => $data['category_level1'],
             'category_level2' => $data['category_level2'] ?? null,
             'category_level3' => $data['category_level3'] ?? null,
@@ -138,6 +147,13 @@ class ListingManageController extends Controller
                 ->withInput();
         }
 
+        $alsoTerritoires = $this->extraTerritoires($data, $data['territoire']);
+        if (! empty($alsoTerritoires) && ! $allowsColissimo) {
+            return back()
+                ->withErrors(['also_territoires' => 'Pour vendre sur d’autres îles, activez Colissimo : la remise en main propre n’est pas possible entre deux îles.'])
+                ->withInput();
+        }
+
         if ($allowsColissimo && empty($data['weight_kg'])) {
             return back()
                 ->withErrors(['weight_kg' => 'Le poids du colis est obligatoire pour proposer Colissimo.'])
@@ -152,6 +168,7 @@ class ListingManageController extends Controller
             'allows_offers' => $request->boolean('payment_negociable') || $data['listing_type'] === 'negoce-prix',
             'allows_exchange' => $request->boolean('payment_exchange') || $data['listing_type'] === 'echange-produits',
             'territoire' => $data['territoire'],
+            'also_territoires' => $alsoTerritoires ?: null,
             'category_level1' => $data['category_level1'],
             'category_level2' => $data['category_level2'] ?? null,
             'category_level3' => $data['category_level3'] ?? null,
@@ -345,6 +362,8 @@ class ListingManageController extends Controller
             'price' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'listing_type' => ['required', 'in:achat,echange-produits,don,location-vetements,negoce-prix'],
             'territoire' => ['required', 'string', 'max:80'],
+            'also_territoires' => ['nullable', 'array'],
+            'also_territoires.*' => ['string', 'in:La Réunion,Martinique,Guadeloupe,Guyane,Mayotte'],
             'category_level1' => ['required', 'string', 'max:80'],
             'category_level2' => ['nullable', 'string', 'max:120'],
             'category_level3' => ['nullable', 'string', 'max:120'],
@@ -373,6 +392,18 @@ class ListingManageController extends Controller
             && $user->stripe_payouts_enabled
             && $user->stripe_details_submitted
         );
+    }
+
+    /** Îles supplémentaires choisies (hors île principale), nettoyées. */
+    private function extraTerritoires(array $data, string $primary): array
+    {
+        return collect($data['also_territoires'] ?? [])
+            ->filter()
+            ->map(fn ($t) => (string) $t)
+            ->reject(fn ($t) => $t === $primary)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /** L'adresse d'expédition (vendeur) est complète : requise pour Colissimo. */

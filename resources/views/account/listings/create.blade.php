@@ -13,6 +13,11 @@
         && filled(auth()->user()?->postal_code)
         && filled(auth()->user()?->city);
 
+    // Par défaut, l'annonce est sur l'île du profil (là où se trouve l'article).
+    $profileTerritoire = auth()->user()?->territoire ?: request()->cookie('swapiles_territoire', 'La Réunion');
+    $allIslands = ['La Réunion' => '🇷🇪', 'Martinique' => '🇲🇶', 'Guadeloupe' => '🇬🇵', 'Guyane' => '🇬🇫', 'Mayotte' => '🇾🇹'];
+    $oldAlso = (array) old('also_territoires', isset($listing) ? ($listing->also_territoires ?? []) : []);
+
     $territoireCookie = request('territoire', request()->cookie('swapiles_territoire', 'La Réunion'));
 
     $oldLevel1 = old('category_level1', isset($listing) ? $listing->category_level1 : '');
@@ -185,19 +190,36 @@
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label for="territoire" class="{{ $lbl }}">Territoire</label>
+                        <label for="territoire" class="{{ $lbl }}">Votre île <span class="text-gray-400 font-normal">(où se trouve l'article)</span></label>
                         <select id="territoire" name="territoire" required class="{{ $inp }}">
-                            <option value="La Réunion" @selected(old('territoire', $territoireCookie) === 'La Réunion')>🇷🇪 La Réunion</option>
-                            <option value="Martinique" @selected(old('territoire', $territoireCookie) === 'Martinique')>🇲🇶 Martinique</option>
-                            <option value="Guadeloupe" @selected(old('territoire', $territoireCookie) === 'Guadeloupe')>🇬🇵 Guadeloupe</option>
-                            <option value="Guyane" @selected(old('territoire', $territoireCookie) === 'Guyane')>🇬🇫 Guyane</option>
-                            <option value="Mayotte" @selected(old('territoire', $territoireCookie) === 'Mayotte')>🇾🇹 Mayotte</option>
+                            @foreach($allIslands as $islLabel => $islFlag)
+                                <option value="{{ $islLabel }}" @selected(old('territoire', isset($listing) ? $listing->territoire : $profileTerritoire) === $islLabel)>{{ $islFlag }} {{ \App\Support\Territoires::display($islLabel) }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div>
                         <label for="location_address" class="{{ $lbl }}">Localisation (ville)</label>
                         <input id="location_address" type="text" name="location_address" value="{{ old('location_address') }}" placeholder="Ex : Saint-Pierre, La Réunion" class="{{ $inp }}">
                     </div>
+                </div>
+
+                {{-- Vendre aussi sur d'autres îles (nécessite Colissimo) --}}
+                <div class="mt-4 rounded-xl border border-gray-200 p-4">
+                    <p class="text-sm font-semibold text-gray-800">🌍 Vendre aussi sur d'autres îles <span class="font-normal text-gray-400">(optionnel)</span></p>
+                    <p class="mt-1 text-xs text-gray-500">La remise en main propre n'est pas possible entre îles : proposer votre article à une autre île nécessite <strong>Colissimo</strong>.</p>
+                    <div id="also-islands" class="mt-3 grid grid-cols-2 gap-2">
+                        @foreach($allIslands as $islLabel => $islFlag)
+                            <label data-island="{{ $islLabel }}" class="also-island flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 cursor-pointer hover:border-teal-400">
+                                <input type="checkbox" name="also_territoires[]" value="{{ $islLabel }}" @checked(in_array($islLabel, $oldAlso, true)) class="also-island-cb rounded text-teal-600 focus:ring-teal-500">
+                                {{ $islFlag }} {{ \App\Support\Territoires::display($islLabel) }}
+                            </label>
+                        @endforeach
+                    </div>
+                    <div id="also_colissimo_notice" class="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3" style="display:none;">
+                        <p class="text-sm font-semibold text-amber-900">📦 Colissimo requis pour vendre sur d'autres îles</p>
+                        <p class="mt-1 text-xs text-amber-800">Cochez <strong>Colissimo</strong> dans les options de livraison ci-dessous (paiement CB sécurisé requis) pour proposer votre article aux autres îles.</p>
+                    </div>
+                    @error('also_territoires')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
                 </div>
             </div>
 
@@ -416,6 +438,29 @@ document.addEventListener('DOMContentLoaded', function () {
     const weight = document.getElementById('weight_kg');
     const hasAddress = @json((bool) $hasAddress);
     const coliNotice = document.getElementById('colissimo_address_notice');
+    const territoireSel = document.getElementById('territoire');
+    const alsoLabels = Array.from(document.querySelectorAll('.also-island'));
+    const alsoNotice = document.getElementById('also_colissimo_notice');
+
+    function syncAlsoIslands() {
+        const primary = territoireSel?.value;
+        let anyOther = false;
+        alsoLabels.forEach(function (lbl) {
+            const island = lbl.getAttribute('data-island');
+            const cb = lbl.querySelector('.also-island-cb');
+            if (island === primary) {
+                lbl.style.display = 'none';
+                if (cb) cb.checked = false;
+            } else {
+                lbl.style.display = '';
+                if (cb && cb.checked) anyOther = true;
+            }
+        });
+        if (alsoNotice) {
+            alsoNotice.style.display = (anyOther && !coli?.checked) ? 'block' : 'none';
+        }
+        return anyOther;
+    }
 
     function normalize(v) {
         return (v || '').toString().toLowerCase();
@@ -485,15 +530,26 @@ document.addEventListener('DOMContentLoaded', function () {
     l1?.addEventListener('change', () => fillLevel2(''));
     l2?.addEventListener('change', () => fillLevel3(''));
 
-    [cb, cash, exchange, don, coli].forEach(el => el?.addEventListener('change', syncPaymentDelivery));
+    [cb, cash, exchange, don, coli].forEach(el => el?.addEventListener('change', function () { syncPaymentDelivery(); syncAlsoIslands(); }));
+    territoireSel?.addEventListener('change', syncAlsoIslands);
+    document.querySelectorAll('.also-island-cb').forEach(el => el.addEventListener('change', syncAlsoIslands));
 
-    // On empêche la publication si Colissimo est coché sans adresse renseignée.
+    // On empêche la publication si Colissimo est coché sans adresse, ou si on vend
+    // sur d'autres îles sans Colissimo activé.
     coli?.closest('form')?.addEventListener('submit', function (e) {
         if (coli?.checked && !hasAddress) {
             e.preventDefault();
             if (coliNotice) {
                 coliNotice.style.display = 'block';
                 coliNotice.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+        }
+        if (syncAlsoIslands() && !coli?.checked) {
+            e.preventDefault();
+            if (alsoNotice) {
+                alsoNotice.style.display = 'block';
+                alsoNotice.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }
     });
@@ -505,6 +561,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     fillLevel2(oldLevel2);
     syncPaymentDelivery();
+    syncAlsoIslands();
 });
 </script>
 

@@ -39,10 +39,20 @@ class HomeController extends Controller
 
         $selectedMeta = $this->territoires[$selectedKey ?: 'reunion'];
 
+        // Une annonce apparaît sur son île principale ET sur ses îles
+        // supplémentaires (vendeurs ayant activé Colissimo pour l'inter-îles).
+        $alsoColExists = \Illuminate\Support\Facades\Schema::hasColumn('listings', 'also_territoires');
+        $territoireFilter = function ($q) use ($selectedTerritoire, $alsoColExists) {
+            $q->where('territoire', $selectedTerritoire);
+            if ($alsoColExists) {
+                $q->orWhereRaw('JSON_CONTAINS(also_territoires, ?)', ['"' . $selectedTerritoire . '"']);
+            }
+        };
+
         $listings = Listing::query()
             ->with(['images', 'user'])->withCount('favoritedBy')
             ->where('status', 'published')
-            ->where('territoire', $selectedTerritoire)
+            ->where($territoireFilter)
             ->latest()
             ->paginate(24);
 
@@ -74,7 +84,7 @@ class HomeController extends Controller
         $popularListings = Listing::query()
             ->with(['images', 'user'])->withCount('favoritedBy')
             ->where('status', 'published')
-            ->where('territoire', $selectedTerritoire)
+            ->where($territoireFilter)
             ->orderByDesc('views_count')
             ->latest()
             ->take(8)
@@ -227,7 +237,13 @@ class HomeController extends Controller
             : $request->cookie('swapiles_territoire', 'La Réunion');
 
         if ($selectedTerritoire) {
-            $query->where('territoire', $selectedTerritoire);
+            $alsoColExists = \Illuminate\Support\Facades\Schema::hasColumn('listings', 'also_territoires');
+            $query->where(function ($q) use ($selectedTerritoire, $alsoColExists) {
+                $q->where('territoire', $selectedTerritoire);
+                if ($alsoColExists) {
+                    $q->orWhereRaw('JSON_CONTAINS(also_territoires, ?)', ['"' . $selectedTerritoire . '"']);
+                }
+            });
         }
 
         if ($request->filled('etat')) {

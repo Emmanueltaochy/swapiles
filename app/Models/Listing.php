@@ -21,6 +21,7 @@ class Listing extends Model
         'allows_exchange',
         'status',
         'territoire',
+        'also_territoires',
         'category_level1',
         'category_level2',
         'category_level3',
@@ -42,6 +43,7 @@ class Listing extends Model
 
     protected $casts = [
         'couleurs' => 'array',
+        'also_territoires' => 'array',
         'pickup_enabled' => 'boolean',
         'shipping_enabled' => 'boolean',
         'allows_hand_delivery' => 'boolean',

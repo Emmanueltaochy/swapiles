@@ -36,6 +36,8 @@ html, body {
     <meta property="og:type" content="@yield('og_type', 'website')">
     <meta property="og:url" content="{{ url()->current() }}">
     <meta property="og:image" content="@yield('og_image', asset('images/logo.png'))">
+    <meta property="og:image:secure_url" content="@yield('og_image', asset('images/logo.png'))">
+    <meta property="og:image:alt" content="@yield('title', 'Swap’Îles')">
     <meta property="og:site_name" content="Swap'Îles">
     <meta property="og:locale" content="fr_FR">
     <meta name="twitter:card" content="summary_large_image">

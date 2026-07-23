@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\TrackAnalyticsPageView::class,
         ]);
 
+        $middleware->prependToGroup('web', \App\Http\Middleware\ForceCanonicalHost::class);
         $middleware->appendToGroup('web', TrackLiveVisit::class);
         $middleware->appendToGroup('web', \App\Http\Middleware\EnsureNotBanned::class);
         $middleware->appendToGroup('web', \App\Http\Middleware\SecurityHeaders::class);

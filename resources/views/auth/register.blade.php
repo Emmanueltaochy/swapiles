@@ -69,10 +69,15 @@
                         'Autre',
                     ];
                 @endphp
+                @php
+                    $reseauxOptions = ['Instagram', 'TikTok', 'Facebook', 'Snapchat', 'YouTube', 'X (Twitter)', 'LinkedIn', 'Autre réseau'];
+                    $oldReseaux = (array) old('reseaux', []);
+                    $isReseaux = \Illuminate\Support\Str::startsWith((string) old('comment_connu'), 'Réseaux sociaux');
+                @endphp
                 <div>
                     <label for="comment_connu" class="mb-1 block text-sm font-semibold text-gray-700">Comment nous avez-vous connu ?</label>
                     <select id="comment_connu" name="comment_connu"
-                            onchange="document.getElementById('comment_connu_autre_wrap').style.display = (this.value === 'Autre' ? 'block' : 'none');"
+                            onchange="swpToggleConnu(this.value)"
                             class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
                         <option value="">— Choisir (facultatif) —</option>
                         @foreach($commentConnuOptions as $opt)
@@ -81,12 +86,34 @@
                     </select>
                 </div>
 
+                {{-- Quel(s) réseau(x) social(aux) : affiché si « Réseaux sociaux » est choisi --}}
+                <div id="comment_connu_reseaux_wrap" style="display: {{ $isReseaux ? 'block' : 'none' }};">
+                    <p class="mb-2 text-sm font-semibold text-gray-700">Sur quel(s) réseau(x) ? <span class="font-normal text-gray-400">(plusieurs choix possibles)</span></p>
+                    <div class="grid grid-cols-2 gap-2">
+                        @foreach($reseauxOptions as $rs)
+                            <label class="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 cursor-pointer hover:border-teal-400">
+                                <input type="checkbox" name="reseaux[]" value="{{ $rs }}" @checked(in_array($rs, $oldReseaux, true))
+                                       class="rounded border-gray-300 text-teal-600 focus:ring-teal-500">
+                                {{ $rs }}
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+
                 <div id="comment_connu_autre_wrap" style="display: {{ old('comment_connu') === 'Autre' ? 'block' : 'none' }};">
                     <label for="comment_connu_autre" class="mb-1 block text-sm font-semibold text-gray-700">Précisez</label>
                     <input id="comment_connu_autre" type="text" name="comment_connu_autre" value="{{ old('comment_connu_autre') }}" maxlength="255"
                            placeholder="Dites-nous comment"
                            class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
                 </div>
+
+                <script>
+                    function swpToggleConnu(value) {
+                        var isReseaux = value.indexOf('Réseaux sociaux') === 0;
+                        document.getElementById('comment_connu_reseaux_wrap').style.display = isReseaux ? 'block' : 'none';
+                        document.getElementById('comment_connu_autre_wrap').style.display = (value === 'Autre') ? 'block' : 'none';
+                    }
+                </script>
 
                 <button class="w-full rounded-xl bg-teal-600 px-5 py-3 font-semibold text-white transition hover:bg-teal-700 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
                     Créer mon compte

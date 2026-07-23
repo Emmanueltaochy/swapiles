@@ -56,13 +56,24 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'comment_connu' => ['nullable', 'string', 'max:255'],
             'comment_connu_autre' => ['nullable', 'string', 'max:255'],
+            'reseaux' => ['nullable', 'array'],
+            'reseaux.*' => ['string', 'max:50'],
         ]);
 
-        // Si « Autre » est choisi, on enregistre la précision saisie.
         $commentConnu = $data['comment_connu'] ?? null;
+
+        // Si « Réseaux sociaux » est choisi, on précise le(s)quel(s).
+        if (is_string($commentConnu) && str_starts_with($commentConnu, 'Réseaux sociaux') && ! empty($data['reseaux'])) {
+            $reseaux = array_slice(array_filter($data['reseaux']), 0, 8);
+            $commentConnu = 'Réseaux sociaux : ' . implode(', ', $reseaux);
+        }
+
+        // Si « Autre » est choisi, on enregistre la précision saisie.
         if ($commentConnu === 'Autre' && ! empty($data['comment_connu_autre'])) {
             $commentConnu = 'Autre : ' . $data['comment_connu_autre'];
         }
+
+        $commentConnu = $commentConnu ? mb_substr($commentConnu, 0, 255) : null;
 
         $user = User::create([
             'name' => $data['name'],

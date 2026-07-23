@@ -235,11 +235,16 @@ class HomeController extends Controller
                   ->where('allows_colissimo', true);
         }
 
-        $selectedTerritoire = $request->filled('territoire')
-            ? $request->territoire
-            : $request->cookie('swapiles_territoire', 'La Réunion');
+        // Si le paramètre territoire est présent (même vide = « Tous les
+        // territoires »), on respecte ce choix explicite. Sinon, on retombe sur
+        // le cookie / défaut.
+        if ($request->has('territoire')) {
+            $selectedTerritoire = trim((string) $request->territoire); // '' = tous
+        } else {
+            $selectedTerritoire = $request->cookie('swapiles_territoire', 'La Réunion');
+        }
 
-        if ($selectedTerritoire) {
+        if ($selectedTerritoire !== '' && $selectedTerritoire !== null) {
             $alsoColExists = \Illuminate\Support\Facades\Schema::hasColumn('listings', 'also_territoires');
             $query->where(function ($q) use ($selectedTerritoire, $alsoColExists) {
                 $q->where('territoire', $selectedTerritoire);

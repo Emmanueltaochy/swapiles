@@ -67,7 +67,7 @@
                 </select>
 
                 <select name="territoire" onchange="this.form.submit()" class="{{ $pillSelect }}">
-                    <option value="">Tous les territoires</option>
+                    <option value="" @selected(($selectedTerritoire ?? null) === '')>🌍 Tous les territoires</option>
                     <option value="La Réunion" @selected(($selectedTerritoire ?? request('territoire')) === 'La Réunion')>🇷🇪 La Réunion</option>
                     <option value="Martinique" @selected(($selectedTerritoire ?? request('territoire')) === 'Martinique')>🇲🇶 Martinique</option>
                     <option value="Guadeloupe" @selected(($selectedTerritoire ?? request('territoire')) === 'Guadeloupe')>🇬🇵 Guadeloupe</option>

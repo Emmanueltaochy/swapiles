@@ -71,3 +71,50 @@
         <p style="opacity:.6;font-size:.85rem;">Aucun clic sur un lien pour l'instant.</p>
     @endforelse
 @endif
+
+{{-- Détail par destinataire (qui a ouvert / cliqué) --}}
+@php
+    $recipients = \App\Models\NewsletterRecipient::where('campaign_id', $campaign->id)
+        ->orderByDesc('click_count')
+        ->orderByDesc('open_count')
+        ->orderBy('email')
+        ->limit(1000)
+        ->get();
+@endphp
+<div style="font-size:.9rem;font-weight:700;opacity:.75;margin:1.5rem 0 .5rem;">👤 Détail par destinataire <small style="opacity:.6;">({{ $num($recipients->count()) }})</small></div>
+<div style="max-height:420px;overflow-y:auto;border:1px solid rgba(148,163,184,.2);border-radius:.6rem;">
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+        <thead>
+            <tr style="position:sticky;top:0;background:var(--fi-color-gray-50,#f9fafb);text-align:left;">
+                <th style="padding:.5rem .7rem;font-weight:800;">E-mail</th>
+                <th style="padding:.5rem .7rem;font-weight:800;">Ouvert</th>
+                <th style="padding:.5rem .7rem;font-weight:800;">Cliqué</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($recipients as $rcp)
+                <tr style="border-top:1px solid rgba(148,163,184,.14);">
+                    <td style="padding:.45rem .7rem;font-weight:600;">{{ $rcp->email }}</td>
+                    <td style="padding:.45rem .7rem;">
+                        @if($rcp->opened_at)
+                            <span style="color:#0d9488;font-weight:700;">✓ {{ optional($rcp->opened_at)->format('d/m H:i') }}</span>
+                            @if($rcp->open_count > 1)<span style="opacity:.5;"> ×{{ $rcp->open_count }}</span>@endif
+                        @else
+                            <span style="opacity:.4;">—</span>
+                        @endif
+                    </td>
+                    <td style="padding:.45rem .7rem;">
+                        @if($rcp->first_clicked_at)
+                            <span style="color:#f59e0b;font-weight:700;">✓ {{ optional($rcp->first_clicked_at)->format('d/m H:i') }}</span>
+                            @if($rcp->click_count > 1)<span style="opacity:.5;"> ×{{ $rcp->click_count }}</span>@endif
+                        @else
+                            <span style="opacity:.4;">—</span>
+                        @endif
+                    </td>
+                </tr>
+            @empty
+                <tr><td colspan="3" style="padding:1rem;text-align:center;opacity:.5;">Aucun destinataire enregistré.</td></tr>
+            @endforelse
+        </tbody>
+    </table>
+</div>

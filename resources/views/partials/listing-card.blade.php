@@ -25,7 +25,7 @@
             <span class="absolute left-2 top-2 rounded-full bg-green-600 px-2 py-1 text-[11px] font-semibold text-white">🎁 Don</span>
         @elseif($listing->listing_type === 'echange-produits')
             <span class="absolute left-2 top-2 rounded-full bg-blue-600 px-2 py-1 text-[11px] font-semibold text-white">🔄 Échange</span>
-        @elseif($listing->listing_type === 'achat')
+        @elseif($listing->requires_online_payment)
             <span class="absolute left-2 top-2 rounded-full bg-teal-700 px-2 py-1 text-[11px] font-semibold text-white">🔒 Protégé</span>
         @endif
     </div>

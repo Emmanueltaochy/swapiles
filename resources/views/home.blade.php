@@ -453,7 +453,7 @@
 
                     @if(($listing->price ?? 0) > 0)
                         @php
-    $protectionFee = ($listing->shipping_enabled ?? false)
+    $protectionFee = ($listing->requires_online_payment ?? false)
         ? max(0.99, round(($listing->price * 0.05) + 0.70, 2))
         : 0;
 
@@ -462,7 +462,7 @@
 
 <p class="text-lg font-bold text-gray-900 mt-2">{{ number_format($listing->price, 0, ',', ' ') }} €</p>
 
-                        @if(($listing->shipping_enabled ?? false))
+                        @if(($listing->requires_online_payment ?? false))
                         <button type="button"
                             class="prix-protege text-xs font-bold text-teal-700 hover:underline"
                             data-title="{{ e($listing->title) }}"

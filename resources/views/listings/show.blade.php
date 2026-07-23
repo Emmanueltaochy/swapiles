@@ -92,7 +92,7 @@
     $images = $listing->images ?? collect();
     $mainImage = $images->first();
 
-    $protectionFee = ($listing->shipping_enabled ?? false)
+    $protectionFee = ($listing->requires_online_payment ?? false)
         ? max(0.99, round(($listing->price * 0.05) + 0.70, 2))
         : 0;
 
@@ -230,7 +230,7 @@
                                 {{ $listing->price > 0 ? number_format($listing->price, 0, ',', ' ') . ' €' : 'Gratuit' }}
                             </p>
 
-                            @if($listing->shipping_enabled ?? false)
+                            @if($listing->requires_online_payment ?? false)
                                 <button type="button" class="prix-protege mt-3 block text-left"
                                         data-title="{{ e($listing->title) }}"
                                         data-price="{{ number_format($listing->price, 2, ',', ' ') }}"
@@ -262,8 +262,10 @@
 
                         {{-- Modes de livraison --}}
                         <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium">
-                            @if($listing->shipping_enabled ?? false)
+                            @if(($listing->allows_colissimo ?? false) || ($listing->shipping_enabled ?? false))
                                 <span class="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700">📦 Colissimo</span>
+                            @endif
+                            @if($listing->requires_online_payment ?? false)
                                 <span class="rounded-full bg-teal-50 px-2.5 py-1 text-teal-700">🔒 CB sécurisé</span>
                             @endif
                             @if($listing->pickup_enabled ?? true)

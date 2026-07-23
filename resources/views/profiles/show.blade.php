@@ -190,7 +190,7 @@
                             @else
                                 <div class="grid h-full w-full place-items-center text-5xl text-gray-300" aria-hidden="true">📦</div>
                             @endif
-                            @if(($listing->shipping_enabled ?? false))
+                            @if(($listing->requires_online_payment ?? false))
                                 <span class="absolute left-2 top-2 rounded-full bg-teal-700 px-2.5 py-1 text-[11px] font-semibold text-white">🛡️ Protégé</span>
                             @endif
                         </div>

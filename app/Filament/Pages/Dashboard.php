@@ -85,6 +85,8 @@ class Dashboard extends BaseDashboard
                 ->get(),
 
             'evolution' => $this->evolutionSeries($period),
+            'todayConcurrent' => \App\Support\AnalyticsMetrics::todayConcurrent(),
+            'todayHourly' => \App\Support\AnalyticsMetrics::todayHourlyVisitors(),
         ];
     }
 

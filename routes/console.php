@@ -10,6 +10,10 @@ Artisan::command('inspire', function () {
 
 Schedule::command('swapiles:cleanup-pending')->hourly();
 
+// Relève le nombre de connectés toutes les 5 min pour tracer la fréquentation
+// dans la journée et repérer les pics de visiteurs simultanés.
+Schedule::command('traffic:snapshot')->everyFiveMinutes()->withoutOverlapping();
+
 // Synchronise l'état des comptes Stripe Connect (charges/payouts/details) :
 // Stripe active souvent le compte quelques minutes après l'onboarding, de façon
 // asynchrone. Sans ça, un nouveau vendeur ne peut pas encaisser en CB.

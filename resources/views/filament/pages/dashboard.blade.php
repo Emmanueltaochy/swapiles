@@ -75,6 +75,41 @@
             </div>
         </x-filament::section>
 
+        {{-- Trafic aujourd'hui (pic de connectés) --}}
+        <x-filament::section>
+            <x-slot name="heading">🕐 Trafic aujourd'hui</x-slot>
+            <x-slot name="description">Fréquentation du jour et pic de visiteurs connectés en même temps</x-slot>
+
+            @php
+                $peakHourDash = array_keys($todayHourly, max($todayHourly))[0] ?? 0;
+            @endphp
+            <div class="swp-grid swp-3" style="margin-bottom:1rem;">
+                <div style="border-radius:1rem;background:rgba(13,148,136,.12);padding:1rem;">
+                    <div class="swp-klabel">🔥 Pic de connectés simultanés</div>
+                    <div class="swp-kvalue">{{ number_format($todayConcurrent['peak']['count'], 0, ',', ' ') }}</div>
+                    <div style="font-size:.72rem;opacity:.55;font-weight:600;">{{ $todayConcurrent['peak']['time'] ? 'à ' . $todayConcurrent['peak']['time'] : 'relevés en cours…' }}</div>
+                </div>
+                <div style="border-radius:1rem;background:rgba(148,163,184,.1);padding:1rem;">
+                    <div class="swp-klabel">👥 Visiteurs aujourd'hui</div>
+                    <div class="swp-kvalue">{{ number_format(array_sum($todayHourly), 0, ',', ' ') }}</div>
+                    <div style="font-size:.72rem;opacity:.55;font-weight:600;">sessions cumulées</div>
+                </div>
+                <div style="border-radius:1rem;background:rgba(59,130,246,.12);padding:1rem;">
+                    <div class="swp-klabel">🕐 Heure la plus active</div>
+                    <div class="swp-kvalue">{{ str_pad((string) $peakHourDash, 2, '0', STR_PAD_LEFT) }}h</div>
+                    <div style="font-size:.72rem;opacity:.55;font-weight:600;">{{ number_format(max($todayHourly), 0, ',', ' ') }} visiteurs</div>
+                </div>
+            </div>
+
+            @if(count($todayConcurrent['labels']) > 1)
+                <div style="color:inherit;">
+                    {!! \App\Support\Charts::line($todayConcurrent['labels'], [['name' => 'Connectés', 'color' => '#0d9488', 'data' => $todayConcurrent['data']]], 200) !!}
+                </div>
+            @else
+                <p style="font-size:.85rem;opacity:.6;">⏳ La courbe des connectés simultanés se construit toutes les 5 minutes — elle apparaîtra très bientôt.</p>
+            @endif
+        </x-filament::section>
+
         {{-- État actuel : indépendant de la période --}}
         <div>
             <div class="swp-section-title">

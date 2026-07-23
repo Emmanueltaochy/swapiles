@@ -58,6 +58,8 @@ class AdvancedAnalytics extends Page
                 'events' => $events,
             ],
             'chartDays' => $chartDays,
+            'todayHourly' => AnalyticsMetrics::todayHourlyVisitors(),
+            'todayConcurrent' => AnalyticsMetrics::todayConcurrent(),
         ]);
     }
 

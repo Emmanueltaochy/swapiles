@@ -86,6 +86,50 @@
             @endunless
         </x-filament::section>
 
+        {{-- Trafic dans la journée (aujourd'hui) --}}
+        <x-filament::section>
+            <x-slot name="heading">🕐 Trafic aujourd'hui</x-slot>
+            <x-slot name="description">Fréquentation heure par heure et pic de connectés simultanés</x-slot>
+
+            <div class="swp-aa-grid swp-aa-4" style="margin-bottom:1.25rem;">
+                <div class="swp-kpi" style="background:rgba(13,148,136,.12);">
+                    <div class="l">🔥 Pic de connectés</div>
+                    <div class="v">{{ $num($todayConcurrent['peak']['count']) }}</div>
+                    <div class="s">{{ $todayConcurrent['peak']['time'] ? 'à ' . $todayConcurrent['peak']['time'] : 'en attente de données' }}</div>
+                </div>
+                <div class="swp-kpi">
+                    <div class="l">👥 Visiteurs aujourd'hui</div>
+                    <div class="v">{{ $num(array_sum($todayHourly)) }}</div>
+                    <div class="s">sessions cumulées</div>
+                </div>
+                <div class="swp-kpi">
+                    <div class="l">🕐 Heure la plus active</div>
+                    @php $peakHour = array_keys($todayHourly, max($todayHourly))[0] ?? 0; @endphp
+                    <div class="v">{{ str_pad((string) $peakHour, 2, '0', STR_PAD_LEFT) }}h</div>
+                    <div class="s">{{ $num(max($todayHourly)) }} visiteurs</div>
+                </div>
+                <div class="swp-kpi">
+                    <div class="l">📸 Relevés du jour</div>
+                    <div class="v">{{ $num(count($todayConcurrent['labels'])) }}</div>
+                    <div class="s">mesures toutes les 5 min</div>
+                </div>
+            </div>
+
+            <div style="margin-bottom:.35rem;font-size:.85rem;font-weight:700;opacity:.7;">Connectés simultanés (courbe de la journée)</div>
+            @if(count($todayConcurrent['labels']) > 1)
+                <div style="color:inherit;">
+                    {!! \App\Support\Charts::line($todayConcurrent['labels'], [['name' => 'Connectés', 'color' => '#0d9488', 'data' => $todayConcurrent['data']]], 200) !!}
+                </div>
+            @else
+                <p style="font-size:.85rem;opacity:.6;padding:.5rem 0 1rem;">⏳ La courbe des connectés se construit toutes les 5 minutes. Elle apparaîtra dès les premiers relevés (reviens dans quelques minutes).</p>
+            @endif
+
+            <div style="margin:1rem 0 .35rem;font-size:.85rem;font-weight:700;opacity:.7;">Visiteurs par heure (aujourd'hui)</div>
+            <div style="color:inherit;">
+                {!! \App\Support\Charts::bars(array_map(fn ($h) => str_pad((string) $h, 2, '0', STR_PAD_LEFT) . 'h', range(0, 23)), array_values($todayHourly), '#3b82f6', 170) !!}
+            </div>
+        </x-filament::section>
+
         {{-- KPIs vue d'ensemble --}}
         <div class="swp-aa-grid swp-aa-4">
             <div class="swp-kpi">

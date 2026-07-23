@@ -133,6 +133,69 @@ class AnalyticsMetrics
     }
 
     /**
+     * Visiteurs uniques (sessions) par heure aujourd'hui.
+     *
+     * @return array<int,int> index 0-23
+     */
+    public static function todayHourlyVisitors(): array
+    {
+        $hours = array_fill(0, 24, 0);
+
+        if (! self::eventsTableExists()) {
+            return $hours;
+        }
+
+        try {
+            $rows = DB::table('analytics_events')
+                ->whereDate('created_at', Carbon::today())
+                ->selectRaw('HOUR(created_at) as h, COUNT(DISTINCT session_id) as c')
+                ->groupBy('h')
+                ->pluck('c', 'h');
+
+            foreach ($rows as $h => $c) {
+                $hours[(int) $h] = (int) $c;
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return $hours;
+    }
+
+    /**
+     * Courbe des connectés simultanés aujourd'hui + pic du jour.
+     *
+     * @return array{labels:array<int,string>,data:array<int,int>,peak:array{count:int,time:?string}}
+     */
+    public static function todayConcurrent(): array
+    {
+        $labels = [];
+        $data = [];
+        $peak = ['count' => 0, 'time' => null];
+
+        if (! Schema::hasTable('visitor_snapshots')) {
+            return ['labels' => $labels, 'data' => $data, 'peak' => $peak];
+        }
+
+        $rows = DB::table('visitor_snapshots')
+            ->whereDate('created_at', Carbon::today())
+            ->orderBy('created_at')
+            ->get(['live_count', 'created_at']);
+
+        foreach ($rows as $r) {
+            $t = Carbon::parse($r->created_at);
+            $labels[] = $t->format('H:i');
+            $data[] = (int) $r->live_count;
+
+            if ((int) $r->live_count > $peak['count']) {
+                $peak = ['count' => (int) $r->live_count, 'time' => $t->format('H:i')];
+            }
+        }
+
+        return ['labels' => $labels, 'data' => $data, 'peak' => $peak];
+    }
+
+    /**
      * Bloc complet de métriques pour la page d'analyse avancée.
      *
      * @param  Carbon|null  $from  Date de début personnalisée (prioritaire sur $period).

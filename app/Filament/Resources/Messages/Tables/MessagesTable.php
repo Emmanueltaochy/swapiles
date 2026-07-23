@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Messages\Tables;
 
+use App\Filament\Resources\Users\UserResource;
 use App\Models\Message;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -33,20 +34,28 @@ class MessagesTable
                     ->default('—')
                     ->description(fn (Message $record) => $record->sender?->email)
                     ->searchable()
-                    ->weight('bold'),
+                    ->weight('bold')
+                    ->color('primary')
+                    ->url(fn (Message $record) => $record->sender_id ? UserResource::getUrl('view', ['record' => $record->sender_id]) : null),
 
                 TextColumn::make('receiver.name')
                     ->label('Destinataire')
                     ->default('—')
                     ->description(fn (Message $record) => $record->receiver?->email)
-                    ->searchable(),
+                    ->searchable()
+                    ->color('primary')
+                    ->url(fn (Message $record) => $record->receiver_id ? UserResource::getUrl('view', ['record' => $record->receiver_id]) : null),
 
                 TextColumn::make('listing.title')
                     ->label('Annonce')
                     ->default('— (conversation générale)')
                     ->limit(30)
                     ->tooltip(fn (Message $record) => $record->listing?->title)
-                    ->searchable(),
+                    ->searchable()
+                    ->color(fn (Message $record) => $record->listing_id ? 'primary' : 'gray')
+                    ->url(fn (Message $record) => $record->listing_id
+                        ? \App\Filament\Resources\Listings\ListingResource::getUrl('view', ['record' => $record->listing_id])
+                        : null),
 
                 TextColumn::make('body')
                     ->label('Message')

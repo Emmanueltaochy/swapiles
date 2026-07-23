@@ -42,13 +42,42 @@
                 @foreach($periods as $key => $label)
                     <x-filament::button
                         tag="a"
-                        :href="request()->fullUrlWithQuery(['period' => $key])"
-                        :color="$period === $key ? 'primary' : 'gray'"
+                        :href="url()->current() . '?period=' . $key"
+                        :color="(! $isCustom && $period === $key) ? 'primary' : 'gray'"
                         size="sm">
                         {{ $label }}
                     </x-filament::button>
                 @endforeach
             </div>
+
+            {{-- Plage personnalisée date à date --}}
+            <form method="GET" action="{{ url()->current() }}"
+                  style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:.6rem;margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(148,163,184,.18);">
+                <div>
+                    <label style="display:block;font-size:.72rem;font-weight:700;opacity:.6;margin-bottom:.2rem;">Du</label>
+                    <input type="date" name="from" value="{{ $from }}"
+                           style="border:1px solid rgba(148,163,184,.4);border-radius:.55rem;padding:.4rem .6rem;background:transparent;color:inherit;font-size:.85rem;">
+                </div>
+                <div>
+                    <label style="display:block;font-size:.72rem;font-weight:700;opacity:.6;margin-bottom:.2rem;">Au</label>
+                    <input type="date" name="to" value="{{ $to }}"
+                           style="border:1px solid rgba(148,163,184,.4);border-radius:.55rem;padding:.4rem .6rem;background:transparent;color:inherit;font-size:.85rem;">
+                </div>
+                <x-filament::button type="submit" size="sm" color="{{ $isCustom ? 'primary' : 'gray' }}" icon="heroicon-o-calendar-days">
+                    Appliquer
+                </x-filament::button>
+                @if($isCustom)
+                    <x-filament::button tag="a" :href="url()->current() . '?period=30d'" size="sm" color="gray">
+                        Réinitialiser
+                    </x-filament::button>
+                    <span style="font-size:.8rem;font-weight:600;opacity:.6;align-self:center;">
+                        Plage active : {{ $periodLabel }}
+                    </span>
+                @endif
+            </form>
+            <p style="margin-top:.5rem;font-size:.78rem;opacity:.55;">
+                💡 Astuce : les vues cumulées d'avant l'exclusion des robots sont gonflées. Choisis une date de début récente pour analyser uniquement le trafic propre.
+            </p>
 
             @unless($hasEvents)
                 <p style="margin-top:1rem;font-size:.85rem;opacity:.6;">

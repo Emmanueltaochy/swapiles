@@ -93,15 +93,71 @@ class AnalyticsMetrics
     }
 
     /**
-     * Bloc complet de métriques pour la page d'analyse avancée.
+     * Série journalière entre deux dates (bornes incluses), trous remplis à 0.
+     *
+     * @return array{labels: array<int,string>, data: array<int,int>}
      */
-    public static function advanced(string $period): array
+    public static function dailySeriesBetween(string $modelClass, Carbon $start, Carbon $end, ?callable $constrain = null): array
     {
-        $start = self::startDate($period);
+        $start = $start->copy()->startOfDay();
+        $end = $end->copy()->startOfDay();
+
+        // Sécurité : on borne à 366 jours pour éviter un graphique démesuré.
+        if ($start->diffInDays($end) > 366) {
+            $start = $end->copy()->subDays(366);
+        }
+
+        $query = $modelClass::query()
+            ->where('created_at', '>=', $start)
+            ->where('created_at', '<', $end->copy()->addDay());
+        if ($constrain) {
+            $query = $constrain($query);
+        }
+
+        $rows = $query
+            ->selectRaw('DATE(created_at) as d, COUNT(*) as c')
+            ->groupBy('d')
+            ->pluck('c', 'd');
+
+        $labels = [];
+        $data = [];
+        $cursor = $start->copy();
+        while ($cursor <= $end) {
+            $key = $cursor->toDateString();
+            $labels[] = $cursor->format('d/m');
+            $data[] = (int) ($rows[$key] ?? 0);
+            $cursor->addDay();
+        }
+
+        return ['labels' => $labels, 'data' => $data];
+    }
+
+    /**
+     * Bloc complet de métriques pour la page d'analyse avancée.
+     *
+     * @param  Carbon|null  $from  Date de début personnalisée (prioritaire sur $period).
+     * @param  Carbon|null  $to    Date de fin personnalisée (incluse).
+     */
+    public static function advanced(string $period, ?Carbon $from = null, ?Carbon $to = null): array
+    {
+        // Une plage personnalisée (date à date) est prioritaire sur la période.
+        $custom = $from !== null || $to !== null;
+        $start = $custom ? ($from?->copy()->startOfDay()) : self::startDate($period);
+        $end = $to?->copy()->endOfDay();
+
         $hasEvents = self::eventsTableExists();
 
-        // --- Helpers de filtrage par période ---
-        $inPeriod = fn ($q) => $start ? $q->where('created_at', '>=', $start) : $q;
+        // --- Helper de filtrage par période (bornes début ET fin) ---
+        $inPeriod = function ($q) use ($start, $end) {
+            if ($start) {
+                $q->where('created_at', '>=', $start);
+            }
+            if ($end) {
+                $q->where('created_at', '<=', $end);
+            }
+
+            return $q;
+        };
 
         // ============ ACQUISITION ============
         $newUsers = $inPeriod(User::query())->count();
@@ -126,6 +182,9 @@ class AnalyticsMetrics
             if ($start) {
                 $base->where('created_at', '>=', $start);
             }
+            if ($end) {
+                $base->where('created_at', '<=', $end);
+            }
 
             $pageViews = (clone $base)->count();
 
@@ -149,6 +208,7 @@ class AnalyticsMetrics
             $returningVisitors = DB::table('analytics_events')
                 ->whereNotNull('session_id')
                 ->when($start, fn ($q) => $q->where('created_at', '>=', $start))
+                ->when($end, fn ($q) => $q->where('created_at', '<=', $end))
                 ->select('session_id')
                 ->groupBy('session_id')
                 ->havingRaw('COUNT(DISTINCT DATE(created_at)) >= 2')
@@ -245,8 +305,13 @@ class AnalyticsMetrics
         $arpu = $newUsers > 0 ? $netRevenue / max($activeBuyers, 1) : 0.0;
 
         return [
-            'period' => $period,
-            'periodLabel' => self::periods()[$period] ?? 'Depuis le début',
+            'period' => $custom ? 'custom' : $period,
+            'periodLabel' => $custom
+                ? 'Du ' . ($start ? $start->format('d/m/Y') : '…') . ' au ' . ($end ? $end->format('d/m/Y') : "aujourd'hui")
+                : (self::periods()[$period] ?? 'Depuis le début'),
+            'from' => $start?->toDateString(),
+            'to' => $to?->toDateString(),
+            'isCustom' => $custom,
 
             // Acquisition
             'newUsers' => $newUsers,

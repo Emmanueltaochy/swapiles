@@ -9,6 +9,10 @@
         && auth()->user()?->stripe_payouts_enabled
         && auth()->user()?->stripe_details_submitted;
 
+    $hasAddress = filled(auth()->user()?->address_line1)
+        && filled(auth()->user()?->postal_code)
+        && filled(auth()->user()?->city);
+
     $territoireCookie = request('territoire', request()->cookie('swapiles_territoire', 'La Réunion'));
 
     $oldLevel1 = old('category_level1', isset($listing) ? $listing->category_level1 : '');
@@ -252,6 +256,19 @@
                             </span>
                         </label>
 
+                        {{-- Colissimo exige l'adresse d'expédition du vendeur --}}
+                        @if(!$hasAddress)
+                            <div id="colissimo_address_notice" class="rounded-xl border border-amber-200 bg-amber-50 p-4" @unless(session('need_address') || old('allows_colissimo')) style="display:none;" @endunless>
+                                <p class="text-sm font-semibold text-amber-900">📍 Renseignez votre adresse pour activer Colissimo</p>
+                                <p class="mt-1 text-sm text-amber-800">Votre adresse sert d'adresse d'expédition pour générer le bordereau Colissimo. Elle est obligatoire pour proposer l'envoi.</p>
+                                <a href="{{ route('account.addresses.edit') }}" class="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-700">
+                                    Renseigner mon adresse →
+                                </a>
+                            </div>
+                        @endif
+
+                        @error('allows_colissimo')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
+
                         <div id="weight_box">
                             <label for="weight_kg" class="{{ $lbl }}">Poids du colis (kg) <span class="text-red-500">*</span></label>
                             <input id="weight_kg" type="number" step="0.01" min="0.01" max="30" name="weight_kg" value="{{ old('weight_kg', isset($listing) ? $listing->weight_kg : '') }}" placeholder="Ex : 0.50" class="{{ $inp }}">
@@ -397,6 +414,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const coliBox = document.getElementById('colissimo_box');
     const weightBox = document.getElementById('weight_box');
     const weight = document.getElementById('weight_kg');
+    const hasAddress = @json((bool) $hasAddress);
+    const coliNotice = document.getElementById('colissimo_address_notice');
 
     function normalize(v) {
         return (v || '').toString().toLowerCase();
@@ -456,12 +475,28 @@ document.addEventListener('DOMContentLoaded', function () {
         if (weight) {
             weight.required = !!coli?.checked;
         }
+
+        // Colissimo exige une adresse d'expédition : on affiche l'alerte si besoin.
+        if (coliNotice) {
+            coliNotice.style.display = (coli?.checked && !hasAddress) ? 'block' : 'none';
+        }
     }
 
     l1?.addEventListener('change', () => fillLevel2(''));
     l2?.addEventListener('change', () => fillLevel3(''));
 
     [cb, cash, exchange, don, coli].forEach(el => el?.addEventListener('change', syncPaymentDelivery));
+
+    // On empêche la publication si Colissimo est coché sans adresse renseignée.
+    coli?.closest('form')?.addEventListener('submit', function (e) {
+        if (coli?.checked && !hasAddress) {
+            e.preventDefault();
+            if (coliNotice) {
+                coliNotice.style.display = 'block';
+                coliNotice.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    });
 
     if (oldLevel1) {
         const normalized = normalize(oldLevel1);

@@ -40,6 +40,13 @@ class ListingManageController extends Controller
                 ->withInput();
         }
 
+        if ($allowsColissimo && ! $this->userHasCompleteAddress()) {
+            return back()
+                ->withErrors(['allows_colissimo' => 'Veuillez renseigner votre adresse pour activer Colissimo (elle sert d’adresse d’expédition).'])
+                ->with('need_address', true)
+                ->withInput();
+        }
+
         if ($allowsColissimo && empty($data['weight_kg'])) {
             return back()
                 ->withErrors(['weight_kg' => 'Le poids du colis est obligatoire pour proposer Colissimo.'])
@@ -121,6 +128,13 @@ class ListingManageController extends Controller
         if ($request->boolean('allows_colissimo') && ! $cbEnabled) {
             return back()
                 ->withErrors(['allows_colissimo' => 'Colissimo est disponible uniquement si le paiement CB sécurisé est activé.'])
+                ->withInput();
+        }
+
+        if ($allowsColissimo && ! $this->userHasCompleteAddress()) {
+            return back()
+                ->withErrors(['allows_colissimo' => 'Veuillez renseigner votre adresse pour activer Colissimo (elle sert d’adresse d’expédition).'])
+                ->with('need_address', true)
                 ->withInput();
         }
 
@@ -358,6 +372,19 @@ class ListingManageController extends Controller
             && $user->stripe_charges_enabled
             && $user->stripe_payouts_enabled
             && $user->stripe_details_submitted
+        );
+    }
+
+    /** L'adresse d'expédition (vendeur) est complète : requise pour Colissimo. */
+    private function userHasCompleteAddress(): bool
+    {
+        $user = Auth::user();
+
+        return (bool) (
+            $user
+            && filled($user->address_line1)
+            && filled($user->postal_code)
+            && filled($user->city)
         );
     }
 

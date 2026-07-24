@@ -41,8 +41,8 @@ class HidePhotolessListings extends Command
 
                 $listing->update(['status' => 'draft']);
 
-                // On prévient le vendeur (notification in-app) pour qu'il ajoute
-                // une photo et remette son annonce en ligne.
+                // On prévient le vendeur (notification in-app + e-mail) pour qu'il
+                // ajoute une photo et remette son annonce en ligne.
                 if ($listing->user_id) {
                     try {
                         Notification::create([
@@ -52,6 +52,13 @@ class HidePhotolessListings extends Command
                             'message' => 'Votre annonce « ' . $listing->title . ' » a été temporairement masquée car elle n’a pas de photo. Ajoutez une photo pour la remettre en ligne — les annonces avec photo se vendent bien mieux !',
                             'url' => route('account.listings.edit', $listing, absolute: false),
                         ]);
+                    } catch (\Throwable $e) {
+                        report($e);
+                    }
+
+                    // E-mail au vendeur : « votre annonce est masquée par manque de photo ».
+                    try {
+                        $listing->user?->notify(new \App\Notifications\ListingHiddenNoPhotoNotification($listing));
                     } catch (\Throwable $e) {
                         report($e);
                     }

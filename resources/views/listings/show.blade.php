@@ -298,16 +298,16 @@
                                             <div class="rounded-xl border-2 border-amber-300 bg-amber-50 p-4">
                                                 <p class="text-sm font-bold text-amber-900">🌍 Ce vendeur est sur une autre île</p>
                                                 <p class="mt-1 text-sm text-amber-800">
-                                                    Il n'a pas activé Colissimo (livraison). Comme vous êtes sur une autre île, la remise en main propre est impossible —
-                                                    mais vous pouvez lui faire savoir que ce produit vous intéresse pour qu'il active la livraison.
+                                                    Il n'a pas activé la livraison (Colissimo). Comme vous êtes sur une autre île, la remise en main propre est impossible.
+                                                    En demandant la livraison, un message est envoyé au vendeur (et un e-mail) pour qu'il active Colissimo — vous serez prévenu dès que ce sera possible.
                                                 </p>
                                                 @if($alreadyInterested)
-                                                    <p class="mt-3 rounded-lg bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-800">✅ Intérêt envoyé ! Le produit est dans vos favoris — vous serez notifié dès qu'il sera livrable.</p>
+                                                    <p class="mt-3 rounded-lg bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-800">✅ Demande de livraison envoyée ! Le produit est dans vos favoris — vous serez notifié dès qu'il sera livrable.</p>
                                                 @else
                                                     <form method="POST" action="{{ route('listings.interest', $listing) }}" class="mt-3">
                                                         @csrf
                                                         <button class="w-full rounded-xl bg-amber-500 px-6 py-3.5 font-semibold text-white shadow-sm transition hover:bg-amber-600">
-                                                            📩 Ce produit m'intéresse — prévenir le vendeur
+                                                            📩 Demander la livraison
                                                         </button>
                                                     </form>
                                                 @endif

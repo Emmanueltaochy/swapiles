@@ -58,7 +58,22 @@ class ListingInterestController extends Controller
         }
 
         // On prévient le vendeur (une seule fois, à la première demande).
-        if ($isNew) {
+        if ($isNew && $listing->user_id) {
+            // 1) Message prérempli dans la messagerie (de l'acheteur vers le vendeur).
+            try {
+                \App\Models\Message::create([
+                    'listing_id' => $listing->id,
+                    'sender_id' => $user->id,
+                    'receiver_id' => $listing->user_id,
+                    'body' => 'Bonjour, je suis intéressé(e) par votre article « ' . $listing->title . ' » '
+                        . 'mais je suis à ' . Territoires::display($user->territoire) . ' et la livraison n’est pas activée. '
+                        . 'Pouvez-vous activer la livraison Colissimo (paiement CB en ligne) pour que je puisse l’acheter ? Merci ! 🙏',
+                ]);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+
+            // 2) Notification in-app + e-mail au vendeur (call-to-action Colissimo).
             try {
                 Notification::create([
                     'user_id' => $listing->user_id,
@@ -76,7 +91,7 @@ class ListingInterestController extends Controller
         }
 
         return back()->with('status', $isNew
-            ? '✅ Le vendeur a été prévenu de votre intérêt ! Le produit est ajouté à vos favoris — vous serez notifié dès qu’il sera livrable.'
-            : 'Vous avez déjà signalé votre intérêt. Le produit est dans vos favoris, vous serez notifié dès qu’il sera livrable.');
+            ? '✅ Votre demande de livraison a été envoyée au vendeur (message + e-mail) ! Le produit est ajouté à vos favoris — vous serez notifié dès qu’il sera livrable.'
+            : 'Vous avez déjà demandé la livraison. Le produit est dans vos favoris, vous serez notifié dès qu’il sera livrable.');
     }
 }

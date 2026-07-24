@@ -154,14 +154,25 @@
             </details>
 
             {{-- Filtres actifs --}}
-            @if(collect(request()->query())->filter(fn ($v) => filled($v) && $v !== '0')->isNotEmpty())
+            @php
+                // On aplatit les paramètres (certains sont des tableaux, ex. payment[])
+                // pour ne jamais passer un tableau à une fonction attendant une chaîne.
+                $paymentLabels = ['cb' => 'Carte sécurisée', 'cash' => 'Espèces / main propre', 'exchange' => 'Échange', 'don' => 'Don'];
+                $activeChips = [];
+                foreach (request()->query() as $key => $value) {
+                    if ($key === 'page') { continue; }
+                    foreach ((is_array($value) ? $value : [$value]) as $v) {
+                        if (! filled($v) || $v === '0') { continue; }
+                        if ($key === 'inter_iles') { $activeChips[] = 'Inter-îles'; }
+                        elseif ($key === 'payment') { $activeChips[] = $paymentLabels[$v] ?? $prettyCategory($v); }
+                        else { $activeChips[] = $prettyCategory($v); }
+                    }
+                }
+            @endphp
+            @if(! empty($activeChips))
                 <div class="flex flex-wrap items-center gap-2 pt-1 text-sm">
-                    @foreach(request()->query() as $key => $value)
-                        @if(filled($value) && $value !== '0' && $key !== 'page')
-                            <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-gray-700">
-                                {{ $key === 'inter_iles' ? 'Inter-îles' : $prettyCategory($value) }}
-                            </span>
-                        @endif
+                    @foreach($activeChips as $chip)
+                        <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-gray-700">{{ $chip }}</span>
                     @endforeach
                     <a href="{{ route('search') }}" class="font-semibold text-teal-700 hover:text-teal-900">Réinitialiser</a>
                 </div>

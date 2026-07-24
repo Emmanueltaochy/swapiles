@@ -252,7 +252,7 @@
                                     <div class="rounded-xl border border-gray-100 p-3"><p class="text-gray-500">Taille</p><p class="font-semibold text-gray-900">{{ strtoupper($listing->taille) }}</p></div>
                                 @endif
                                 @if($listing->etat)
-                                    <div class="rounded-xl border border-gray-100 p-3"><p class="text-gray-500">État</p><p class="font-semibold text-gray-900">{{ $listing->etat }}</p></div>
+                                    <div class="rounded-xl border border-gray-100 p-3"><p class="text-gray-500">État</p><p class="font-semibold text-gray-900">{{ \App\Support\Etat::label($listing->etat) }}</p></div>
                                 @endif
                                 @if($listing->category_level3)
                                     <div class="rounded-xl border border-gray-100 p-3"><p class="text-gray-500">Catégorie</p><p class="font-semibold text-gray-900">{{ str_replace('-', ' ', $listing->category_level3) }}</p></div>

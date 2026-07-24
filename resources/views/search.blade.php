@@ -258,7 +258,7 @@
                     @endif
                     <p class="mt-0.5 line-clamp-1 text-xs text-gray-400">
                         @if($listing->taille){{ strtoupper($listing->taille) }}@endif
-                        @if($listing->etat) · {{ $listing->etat }}@endif
+                        @if($listing->etat) · {{ \App\Support\Etat::label($listing->etat) }}@endif
                         @if($listing->marque) · {{ $listing->marque }}@endif
                     </p>
                     <p class="mt-1 text-sm font-bold text-gray-900">

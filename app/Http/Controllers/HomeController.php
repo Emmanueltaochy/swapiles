@@ -308,11 +308,30 @@ class HomeController extends Controller
         $alsoColExists = \Illuminate\Support\Facades\Schema::hasColumn('listings', 'also_territoires');
 
         if ($request->filled('etat')) {
-            $query->where('etat', $request->etat);
+            // On matche toutes les variantes du même état (« Très bon état »,
+            // « Tres-bon-etat »…) pour ne pas rater les annonces importées.
+            $target = \App\Support\Etat::normalize($request->etat);
+
+            $variants = Listing::query()
+                ->where('status', 'published')
+                ->whereNotNull('etat')
+                ->distinct()
+                ->pluck('etat')
+                ->filter(fn ($e) => \App\Support\Etat::normalize($e) === $target)
+                ->values()
+                ->all();
+
+            if (! empty($variants)) {
+                $query->whereIn('etat', $variants);
+            } else {
+                $query->where('etat', $request->etat);
+            }
         }
 
         if ($request->filled('taille')) {
-            $query->where('taille', $request->taille);
+            // Insensible à la casse / aux espaces (S = s = « S »).
+            $taille = trim((string) $request->taille);
+            $query->whereRaw('LOWER(TRIM(taille)) = ?', [mb_strtolower($taille)]);
         }
 
         if ($request->filled('min_price')) {

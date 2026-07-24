@@ -74,6 +74,15 @@ class FavoritesTable
                         ? UserResource::getUrl('view', ['record' => $record->user_id])
                         : null),
 
+                TextColumn::make('origin')
+                    ->label('Origine')
+                    ->badge()
+                    ->getStateUsing(fn (Favorite $record) => \App\Models\ListingInterest::where('buyer_id', $record->user_id)
+                        ->where('listing_id', $record->listing_id)
+                        ->exists() ? 'livraison' : 'favori')
+                    ->formatStateUsing(fn (string $state) => $state === 'livraison' ? '📩 Demande de livraison' : '⭐ Favori')
+                    ->color(fn (string $state) => $state === 'livraison' ? 'warning' : 'gray'),
+
                 TextColumn::make('listing.territoire')
                     ->label('Île')
                     ->badge()
@@ -99,6 +108,25 @@ class FavoritesTable
                         };
 
                         return $start ? $query->where('created_at', '>=', $start) : $query;
+                    }),
+
+                SelectFilter::make('origin')
+                    ->label('Origine du favori')
+                    ->options([
+                        'favori' => '⭐ Vrai favori (cœur)',
+                        'livraison' => '📩 Demande de livraison',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        $sub = fn ($q) => $q->selectRaw('1')
+                            ->from('listing_interests')
+                            ->whereColumn('listing_interests.buyer_id', 'favorites.user_id')
+                            ->whereColumn('listing_interests.listing_id', 'favorites.listing_id');
+
+                        return match ($data['value'] ?? null) {
+                            'livraison' => $query->whereExists($sub),
+                            'favori' => $query->whereNotExists($sub),
+                            default => $query,
+                        };
                     }),
 
                 SelectFilter::make('listing_id')

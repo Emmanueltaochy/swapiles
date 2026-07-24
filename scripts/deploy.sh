@@ -101,6 +101,11 @@ php artisan listings:hide-photoless 2>/dev/null || true
 # profils « La Réunion » par défaut alors que l'adresse est ailleurs). Idempotent.
 php artisan users:sync-territoire-from-postal 2>/dev/null || true
 
+# Activer le paiement CB sur les annonces des vendeurs déjà en IBAN OK (compte
+# Stripe opérationnel) mais dont l'annonce ne proposait pas encore la carte.
+# Reste en main propre (pas de Colissimo) mais permet l'achat carte + commission.
+php artisan listings:enable-cb-for-stripe-sellers 2>/dev/null || true
+
 # ---------------------------------------------------------------------------
 # 6. REDÉMARRER LES WORKERS DE QUEUE (pour qu'ils chargent le nouveau code)
 # ---------------------------------------------------------------------------

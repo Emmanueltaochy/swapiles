@@ -24,7 +24,9 @@
     $oldLevel2 = old('category_level2', isset($listing) ? $listing->category_level2 : '');
     $oldLevel3 = old('category_level3', isset($listing) ? $listing->category_level3 : '');
 
-    $oldCb = old('payment_cb', (isset($listing) ? $listing->requires_online_payment : false) ? 1 : 0);
+    // Par défaut, le paiement CB est coché si le vendeur a déjà activé Stripe
+    // (IBAN OK) : il gagne la vente par carte + protection acheteur sans y penser.
+    $oldCb = old('payment_cb', (isset($listing) ? $listing->requires_online_payment : $stripeReady) ? 1 : 0);
     $oldCash = old('payment_cash', 1);
     $oldExchange = old('payment_exchange', (isset($listing) && ($listing->allows_exchange || $listing->listing_type === 'echange-produits')) ? 1 : 0);
     $oldDon = old('payment_don', (isset($listing) ? $listing->listing_type : '') === 'don' ? 1 : 0);

@@ -127,7 +127,7 @@ class StripeConnectController extends Controller
             return;
         }
 
-        $account = $stripe->accounts->create([
+        $params = [
             'type' => 'express',
             'country' => 'FR',
             'email' => $user->email,
@@ -136,7 +136,17 @@ class StripeConnectController extends Controller
             'capabilities' => [
                 'transfers' => ['requested' => true],
             ],
-        ]);
+        ];
+
+        try {
+            $account = $stripe->accounts->create($params);
+        } catch (\Throwable $e) {
+            // Filet de sécurité : si le business_profile pose problème, on crée
+            // quand même le compte (sans lui) pour ne jamais bloquer le vendeur.
+            report($e);
+            unset($params['business_profile']);
+            $account = $stripe->accounts->create($params);
+        }
 
         $user->update([
             'stripe_account_id' => $account->id,
@@ -151,9 +161,16 @@ class StripeConnectController extends Controller
      */
     private function sellerBusinessProfile($user): array
     {
+        // ⚠️ Stripe exige une URL ABSOLUE (https://…) pour business_profile[url].
+        // Une URL relative fait échouer la création du compte (nouveaux vendeurs).
+        $url = route('profiles.show', $user);
+        if (! \Illuminate\Support\Str::startsWith($url, ['http://', 'https://'])) {
+            $url = rtrim((string) env('APP_CANONICAL_URL', 'https://swapiles.com'), '/') . '/' . ltrim($url, '/');
+        }
+
         return [
             'mcc' => '5931', // Used Merchandise and Secondhand Stores
-            'url' => route('profiles.show', $user, absolute: false),
+            'url' => $url,
             'product_description' => "Revente d'articles d'occasion entre particuliers sur la marketplace Swap'Îles.",
         ];
     }

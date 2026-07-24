@@ -16,6 +16,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ListingsTable
 {
@@ -98,6 +99,35 @@ class ListingsTable
                         'Guyane' => 'Guyane',
                         'Mayotte' => 'Mayotte',
                     ]),
+                SelectFilter::make('payment')
+                    ->label('Type de paiement')
+                    ->options([
+                        'cb_ok' => '🔒 Carte sécurisée (vendeur prêt)',
+                        'cb_pending' => '⚠️ Carte activée · vendeur NON prêt',
+                        'cash' => '💵 Espèces / main propre',
+                        'exchange' => '🔄 Échange',
+                        'don' => '🎁 Don',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        $ready = fn (Builder $u) => $u->whereNotNull('stripe_account_id')
+                            ->where('stripe_charges_enabled', true)
+                            ->where('stripe_payouts_enabled', true);
+
+                        return match ($data['value'] ?? null) {
+                            'cb_ok' => $query->where('requires_online_payment', true)
+                                ->whereHas('user', $ready),
+                            'cb_pending' => $query->where('requires_online_payment', true)
+                                ->whereDoesntHave('user', $ready),
+                            'cash' => $query->where('allows_hand_delivery', true)
+                                ->where('price', '>', 0)
+                                ->whereIn('listing_type', ['achat', 'negoce-prix']),
+                            'exchange' => $query->where(fn (Builder $q) => $q->where('allows_exchange', true)
+                                ->orWhere('listing_type', 'echange-produits')),
+                            'don' => $query->where(fn (Builder $q) => $q->where('listing_type', 'don')
+                                ->orWhere('price', '<=', 0)),
+                            default => $query,
+                        };
+                    }),
                 TrashedFilter::make(),
             ])
             ->recordActions([

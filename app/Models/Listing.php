@@ -39,6 +39,7 @@ class Listing extends Model
         'shipping_price',
         'weight_kg',
         'views_count',
+        'photoless_hidden_at',
     ];
 
     protected $casts = [
@@ -51,6 +52,7 @@ class Listing extends Model
         'allows_offers' => 'boolean',
         'allows_exchange' => 'boolean',
         'requires_online_payment' => 'boolean',
+        'photoless_hidden_at' => 'datetime',
     ];
 
     public function user()

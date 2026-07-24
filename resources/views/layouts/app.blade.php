@@ -521,6 +521,37 @@ document.addEventListener('DOMContentLoaded', function () {
             img.src = src;
         });
     });
+
+    // Image qui échoue (scroll rapide qui avorte la requête, ou fichier absent) :
+    // on réessaie une fois, puis on affiche un placeholder propre (📦) au lieu de
+    // l'icône « image cassée ». Écouteur en capture car l'événement error ne bulle pas.
+    var PLACEHOLDER = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="250">' +
+        '<rect width="100%" height="100%" fill="#f3f4f6"/>' +
+        '<text x="50%" y="52%" font-size="64" text-anchor="middle" dominant-baseline="middle">📦</text></svg>'
+    );
+
+    document.addEventListener('error', function (e) {
+        var img = e.target;
+        if (!(img instanceof HTMLImageElement)) return;
+
+        var src = img.getAttribute('src');
+        if (!src || src.indexOf('data:') === 0) return;
+
+        var tries = parseInt(img.getAttribute('data-imgretry') || '0', 10);
+
+        if (tries >= 1) {
+            img.setAttribute('data-imgretry', '2');
+            img.src = PLACEHOLDER;
+            return;
+        }
+
+        img.setAttribute('data-imgretry', String(tries + 1));
+        var clean = src.split('#')[0];
+        setTimeout(function () {
+            img.src = clean + (clean.indexOf('?') > -1 ? '&' : '?') + '_r=' + Date.now();
+        }, 500);
+    }, true);
 })();
 </script>
 

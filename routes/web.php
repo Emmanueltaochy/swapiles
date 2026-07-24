@@ -362,6 +362,11 @@ Route::post('/annonce/{listing}/demande/{mode}', [\App\Http\Controllers\ListingC
     ->middleware('auth')
     ->name('listings.request-mode');
 
+// Gestion des photos d'annonce (admin uniquement)
+Route::post('/gestion-annonces/{listing}/photos', [\App\Http\Controllers\Admin\ListingPhotosController::class, 'update'])
+    ->middleware('auth')
+    ->name('admin.listing-photos.update');
+
 // Demande d'intérêt inter-îles (vendeur sans Colissimo)
 Route::post('/annonce/{listing}/interesse', [\App\Http\Controllers\ListingInterestController::class, 'store'])
     ->middleware('auth')

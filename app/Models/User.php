@@ -23,6 +23,12 @@ class User extends Authenticatable implements FilamentUser
      */
     public function canAccessPanel(Panel $panel): bool
     {
+        return $this->isAdmin();
+    }
+
+    /** L'utilisateur fait-il partie des administrateurs (liste ADMIN_EMAILS) ? */
+    public function isAdmin(): bool
+    {
         if ($this->is_banned) {
             return false;
         }

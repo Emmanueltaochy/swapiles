@@ -102,6 +102,16 @@ class ListingsTable
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
+                Action::make('photos')
+                    ->label('Photos')
+                    ->icon('heroicon-o-photo')
+                    ->color('info')
+                    ->modalHeading('Gérer les photos de l\'annonce')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Fermer')
+                    ->modalContent(fn (Listing $record) => view('filament.listings.photos', [
+                        'listing' => $record->load('images'),
+                    ])),
                 static::statusAction('publish', 'Remettre en ligne', 'heroicon-o-arrow-up-tray', 'success', 'published', fn (Listing $r) => $r->status !== 'published'),
                 static::statusAction('hide', 'Masquer', 'heroicon-o-eye-slash', 'gray', 'draft', fn (Listing $r) => $r->status === 'published'),
                 static::statusAction('markSold', 'Marquer vendue', 'heroicon-o-check-badge', 'warning', 'sold', fn (Listing $r) => $r->status !== 'sold'),

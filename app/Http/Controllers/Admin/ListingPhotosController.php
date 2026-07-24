@@ -10,6 +10,15 @@ use Illuminate\Support\Facades\Storage;
 
 class ListingPhotosController extends Controller
 {
+    public function edit(Listing $listing)
+    {
+        abort_unless(auth()->check() && auth()->user()->isAdmin(), 403);
+
+        return view('admin.listing-photos.edit', [
+            'listing' => $listing->load('images'),
+        ]);
+    }
+
     public function update(Request $request, Listing $listing)
     {
         abort_unless(auth()->check() && auth()->user()->isAdmin(), 403);
@@ -61,6 +70,8 @@ class ListingPhotosController extends Controller
             }
         }
 
-        return back()->with('status', 'Photos de l’annonce mises à jour.');
+        return redirect()
+            ->route('admin.listing-photos.edit', $listing)
+            ->with('status', 'Photos de l’annonce mises à jour.');
     }
 }

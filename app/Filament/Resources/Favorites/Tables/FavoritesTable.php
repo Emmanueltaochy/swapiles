@@ -31,7 +31,8 @@ class FavoritesTable
 
                 ImageColumn::make('listing_cover')
                     ->label('Photo')
-                    ->getStateUsing(fn (Favorite $record) => optional($record->listing?->images()->orderBy('order')->first())->url)
+                    ->getStateUsing(fn (Favorite $record) => \App\Support\ImageUrl::absolute(optional($record->listing?->images()->orderBy('order')->first())->url))
+                    ->checkFileExistence(false)
                     ->square()
                     ->size(48),
 

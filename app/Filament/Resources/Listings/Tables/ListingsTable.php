@@ -40,7 +40,8 @@ class ListingsTable
             ->columns([
                 ImageColumn::make('cover_image')
                     ->label('Photo')
-                    ->getStateUsing(fn (Listing $record) => optional($record->images()->orderBy('order')->first())->url)
+                    ->getStateUsing(fn (Listing $record) => \App\Support\ImageUrl::absolute(optional($record->images()->orderBy('order')->first())->url))
+                    ->checkFileExistence(false)
                     ->square()
                     ->size(48),
                 TextColumn::make('title')
@@ -106,12 +107,8 @@ class ListingsTable
                     ->label('Photos')
                     ->icon('heroicon-o-photo')
                     ->color('info')
-                    ->modalHeading('Gérer les photos de l\'annonce')
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel('Fermer')
-                    ->modalContent(fn (Listing $record) => view('filament.listings.photos', [
-                        'listing' => $record->load('images'),
-                    ])),
+                    ->url(fn (Listing $record) => route('admin.listing-photos.edit', $record))
+                    ->openUrlInNewTab(),
                 static::statusAction('publish', 'Remettre en ligne', 'heroicon-o-arrow-up-tray', 'success', 'published', fn (Listing $r) => $r->status !== 'published'),
                 static::statusAction('hide', 'Masquer', 'heroicon-o-eye-slash', 'gray', 'draft', fn (Listing $r) => $r->status === 'published'),
                 static::statusAction('markSold', 'Marquer vendue', 'heroicon-o-check-badge', 'warning', 'sold', fn (Listing $r) => $r->status !== 'sold'),

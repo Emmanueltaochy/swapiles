@@ -363,6 +363,9 @@ Route::post('/annonce/{listing}/demande/{mode}', [\App\Http\Controllers\ListingC
     ->name('listings.request-mode');
 
 // Gestion des photos d'annonce (admin uniquement)
+Route::get('/gestion-annonces/{listing}/photos', [\App\Http\Controllers\Admin\ListingPhotosController::class, 'edit'])
+    ->middleware('auth')
+    ->name('admin.listing-photos.edit');
 Route::post('/gestion-annonces/{listing}/photos', [\App\Http\Controllers\Admin\ListingPhotosController::class, 'update'])
     ->middleware('auth')
     ->name('admin.listing-photos.update');

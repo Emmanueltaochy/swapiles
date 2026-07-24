@@ -21,12 +21,8 @@ class EditListing extends EditRecord
                 ->label('Photos')
                 ->icon('heroicon-o-photo')
                 ->color('info')
-                ->modalHeading('Gérer les photos de l\'annonce')
-                ->modalSubmitAction(false)
-                ->modalCancelActionLabel('Fermer')
-                ->modalContent(fn () => view('filament.listings.photos', [
-                    'listing' => $this->getRecord()->load('images'),
-                ])),
+                ->url(fn () => route('admin.listing-photos.edit', $this->getRecord()))
+                ->openUrlInNewTab(),
             ViewAction::make(),
             DeleteAction::make(),
             ForceDeleteAction::make(),

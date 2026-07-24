@@ -61,6 +61,15 @@ class ListingManageController extends Controller
                 ->withInput();
         }
 
+        // Remise en main propre : ville + code postal obligatoires (pour situer
+        // l'annonce sur la carte, au niveau de la commune ; l'adresse exacte
+        // n'est jamais affichée).
+        if ($allowsHandDelivery && (blank($data['pickup_city'] ?? null) || blank($data['pickup_postal_code'] ?? null))) {
+            return back()
+                ->withErrors(['pickup_city' => 'Indiquez la ville et le code postal de remise en main propre. Votre adresse exacte ne sera jamais affichée.'])
+                ->withInput();
+        }
+
         $listing = Listing::create([
             'user_id' => Auth::id(),
             'title' => $data['title'],
@@ -80,7 +89,9 @@ class ListingManageController extends Controller
             'marque' => $data['marque'] ?? null,
             'taille' => $data['taille'] ?? null,
             'location_address' => $data['location_address'] ?? null,
-            'hand_delivery_location' => $data['hand_delivery_location'] ?? $data['location_address'] ?? null,
+            'pickup_city' => $data['pickup_city'] ?? null,
+            'pickup_postal_code' => $data['pickup_postal_code'] ?? null,
+            'hand_delivery_location' => $data['pickup_city'] ?? $data['hand_delivery_location'] ?? null,
             'pickup_enabled' => $allowsHandDelivery,
             'shipping_enabled' => $allowsColissimo,
             'allows_hand_delivery' => $allowsHandDelivery,
@@ -171,6 +182,12 @@ class ListingManageController extends Controller
                 ->withInput();
         }
 
+        if ($allowsHandDelivery && (blank($data['pickup_city'] ?? null) || blank($data['pickup_postal_code'] ?? null))) {
+            return back()
+                ->withErrors(['pickup_city' => 'Indiquez la ville et le code postal de remise en main propre. Votre adresse exacte ne sera jamais affichée.'])
+                ->withInput();
+        }
+
         $listing->update([
             'title' => $data['title'],
             'description' => $data['description'],
@@ -187,7 +204,9 @@ class ListingManageController extends Controller
             'marque' => $data['marque'] ?? null,
             'taille' => $data['taille'] ?? null,
             'location_address' => $data['location_address'] ?? null,
-            'hand_delivery_location' => $data['hand_delivery_location'] ?? $data['location_address'] ?? null,
+            'pickup_city' => $data['pickup_city'] ?? null,
+            'pickup_postal_code' => $data['pickup_postal_code'] ?? null,
+            'hand_delivery_location' => $data['pickup_city'] ?? $data['hand_delivery_location'] ?? null,
             'pickup_enabled' => $allowsHandDelivery,
             'shipping_enabled' => $allowsColissimo,
             'allows_hand_delivery' => $allowsHandDelivery,
@@ -427,6 +446,8 @@ class ListingManageController extends Controller
             'marque' => ['nullable', 'string', 'max:120'],
             'taille' => ['nullable', 'string', 'max:50'],
             'location_address' => ['nullable', 'string', 'max:255'],
+            'pickup_city' => ['nullable', 'string', 'max:120'],
+            'pickup_postal_code' => ['nullable', 'string', 'max:20'],
             'hand_delivery_location' => ['nullable', 'string', 'max:255'],
             'pickup_enabled' => ['nullable'],
             'shipping_enabled' => ['nullable'],

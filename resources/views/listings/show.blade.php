@@ -275,7 +275,7 @@
 
                         {{-- Secteur de remise en main propre (répond à « vous êtes de quel secteur ? ») --}}
                         @php
-                            $pickupWhere = $listing->hand_delivery_location ?: ($listing->location_address ?: null);
+                            $pickupWhere = $listing->hand_delivery_location ?: ($listing->pickup_city ?: null);
                         @endphp
                         @if(($listing->pickup_enabled ?? true) && ($pickupWhere || $listing->territoire))
                             <div class="mt-3 flex items-start gap-2 rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5 text-sm">
@@ -519,13 +519,17 @@
 
                     @if($listing->territoire)
                         @php
-                            $mapCity = $listing->user->city ?? null;
-                            $mapCoords = \App\Support\DomTomGeo::coords($listing->territoire, $mapCity, $listing->user->postal_code ?? null);
+                            // On situe l'annonce à partir de SA ville/code postal (repli
+                            // sur le profil vendeur), au niveau de la commune uniquement —
+                            // l'adresse exacte (location_address) n'est jamais utilisée ici.
+                            $mapCity = $listing->pickup_city ?: ($listing->user->city ?? null);
+                            $mapPostal = $listing->pickup_postal_code ?: ($listing->user->postal_code ?? null);
+                            $mapCoords = \App\Support\DomTomGeo::coords($listing->territoire, $mapCity, $mapPostal);
                             $mapCenterRaw = \App\Support\DomTomGeo::center($listing->territoire);
                             $mapLat = $mapCoords[0] ?? $mapCenterRaw[0];
                             $mapLng = $mapCoords[1] ?? $mapCenterRaw[1];
                             $mapZoom = $mapCoords ? 13 : ($mapCenterRaw[2] ?? 10);
-                            $mapLabel = $listing->location_address ?: ($mapCity ?: $listing->territoire);
+                            $mapLabel = $mapCity ?: $listing->territoire;
                         @endphp
                         <div class="mt-5">
                             <div class="mb-2 flex items-center gap-2 text-sm text-gray-700">

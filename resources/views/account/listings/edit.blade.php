@@ -430,9 +430,26 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
 
                 <div>
-                    <label class="block text-sm font-bold text-gray-800 mb-2">Localisation</label>
-                    <input type="text" name="location_address" value="{{ old('location_address', $listing->location_address) }}" placeholder="Ex : Saint-Pierre, La Réunion" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
+                    <label class="block text-sm font-bold text-gray-800 mb-2">Ville <span class="text-red-500">*</span></label>
+                    <input type="text" name="pickup_city" value="{{ old('pickup_city', $listing->pickup_city ?? (auth()->user()->city ?? '')) }}" placeholder="Ex : Saint-Pierre" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
+                    @error('pickup_city')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
                 </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-800 mb-2">Code postal <span class="text-red-500">*</span></label>
+                    <input type="text" inputmode="numeric" name="pickup_postal_code" value="{{ old('pickup_postal_code', $listing->pickup_postal_code ?? (auth()->user()->postal_code ?? '')) }}" placeholder="Ex : 97410" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
+                    @error('pickup_postal_code')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-800 mb-2">Adresse exacte <span class="font-normal text-gray-400">(recommandé)</span></label>
+                    <input type="text" name="location_address" value="{{ old('location_address', $listing->location_address) }}" placeholder="Ex : 12 rue des Filaos" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
+                </div>
+            </div>
+            <div class="mt-1 flex items-start gap-2 rounded-xl border border-teal-100 bg-teal-50 px-3 py-2.5 text-xs text-teal-800">
+                <span class="text-sm leading-none">🔒</span>
+                <span>Votre <strong>adresse exacte n'est JAMAIS affichée</strong> publiquement — seule une <strong>zone approximative</strong> (commune) apparaît sur la carte de l'annonce.</span>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">

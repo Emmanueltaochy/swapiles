@@ -31,6 +31,8 @@ class Listing extends Model
         'couleurs',
         'location_address',
         'hand_delivery_location',
+        'pickup_city',
+        'pickup_postal_code',
         'pickup_enabled',
         'shipping_enabled',
         'allows_hand_delivery',

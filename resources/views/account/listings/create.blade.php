@@ -198,9 +198,28 @@
                         </select>
                     </div>
                     <div>
-                        <label for="location_address" class="{{ $lbl }}">Localisation (ville)</label>
-                        <input id="location_address" type="text" name="location_address" value="{{ old('location_address') }}" placeholder="Ex : Saint-Pierre, La Réunion" class="{{ $inp }}">
+                        <label for="pickup_city" class="{{ $lbl }}">Ville <span class="text-red-500">*</span></label>
+                        <input id="pickup_city" type="text" name="pickup_city" value="{{ old('pickup_city', isset($listing) ? $listing->pickup_city : (auth()->user()->city ?? '')) }}" placeholder="Ex : Saint-Pierre" class="{{ $inp }}">
+                        @error('pickup_city')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
                     </div>
+                </div>
+
+                {{-- Adresse de remise en main propre (situe l'annonce sur la carte) --}}
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="pickup_postal_code" class="{{ $lbl }}">Code postal <span class="text-red-500">*</span></label>
+                        <input id="pickup_postal_code" type="text" inputmode="numeric" name="pickup_postal_code" value="{{ old('pickup_postal_code', isset($listing) ? $listing->pickup_postal_code : (auth()->user()->postal_code ?? '')) }}" placeholder="Ex : 97410" class="{{ $inp }}">
+                        @error('pickup_postal_code')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label for="location_address" class="{{ $lbl }}">Adresse exacte <span class="font-normal text-gray-400">(recommandé)</span></label>
+                        <input id="location_address" type="text" name="location_address" value="{{ old('location_address', isset($listing) ? $listing->location_address : (auth()->user()->address_line1 ?? '')) }}" placeholder="Ex : 12 rue des Filaos" class="{{ $inp }}">
+                        @error('location_address')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                </div>
+                <div class="mt-2 flex items-start gap-2 rounded-xl border border-teal-100 bg-teal-50 px-3 py-2.5 text-xs text-teal-800">
+                    <span class="text-sm leading-none">🔒</span>
+                    <span>Votre <strong>adresse exacte n'est JAMAIS affichée</strong> publiquement. Sur la fiche, seule une <strong>zone approximative</strong> (au niveau de la commune) apparaît sur la carte, pour aider les acheteurs à se situer.</span>
                 </div>
 
                 {{-- Vendre aussi sur d'autres îles (nécessite Colissimo) --}}

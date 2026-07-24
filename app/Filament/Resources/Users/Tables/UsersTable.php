@@ -13,6 +13,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
+use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Table;
 
 class UsersTable
@@ -80,6 +81,22 @@ class UsersTable
                         'Guyane' => 'Guyane',
                         'Mayotte' => 'Mayotte',
                     ]),
+                TernaryFilter::make('stripe_ready')
+                    ->label('Paiement IBAN')
+                    ->placeholder('Tous')
+                    ->trueLabel('IBAN OK (configuré)')
+                    ->falseLabel('Non configuré')
+                    ->queries(
+                        true: fn (Builder $q) => $q->whereNotNull('stripe_account_id')
+                            ->where('stripe_charges_enabled', true)
+                            ->where('stripe_payouts_enabled', true),
+                        false: fn (Builder $q) => $q->where(function (Builder $sub) {
+                            $sub->whereNull('stripe_account_id')
+                                ->orWhere('stripe_charges_enabled', false)
+                                ->orWhere('stripe_payouts_enabled', false);
+                        }),
+                        blank: fn (Builder $q) => $q,
+                    ),
             ])
             ->recordActions([
                 ViewAction::make(),

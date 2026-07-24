@@ -273,6 +273,23 @@
                             @endif
                         </div>
 
+                        {{-- Secteur de remise en main propre (répond à « vous êtes de quel secteur ? ») --}}
+                        @php
+                            $pickupWhere = $listing->hand_delivery_location ?: ($listing->location_address ?: null);
+                        @endphp
+                        @if(($listing->pickup_enabled ?? true) && ($pickupWhere || $listing->territoire))
+                            <div class="mt-3 flex items-start gap-2 rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5 text-sm">
+                                <span class="text-base leading-none">📍</span>
+                                <span class="text-gray-700">
+                                    Remise en main propre :
+                                    <span class="font-semibold text-gray-900">{{ $pickupWhere ?: $listing->territoire }}</span>
+                                    @if($pickupWhere && $listing->territoire)
+                                        <span class="text-gray-500">· {{ $listing->territoire }}</span>
+                                    @endif
+                                </span>
+                            </div>
+                        @endif
+
                         {{-- Actions --}}
                         @php
                             $isSold = $listing->status === 'sold';
@@ -500,8 +517,51 @@
                     <h2 class="font-semibold text-gray-900">Description</h2>
                     <p class="mt-3 whitespace-pre-line leading-relaxed text-gray-700">{{ $listing->description ?: 'Aucune description renseignée.' }}</p>
 
-                    @if($listing->location_address || $listing->territoire)
-                        <div class="mt-5 rounded-xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-700">📍 {{ $listing->location_address ?? $listing->territoire }}</div>
+                    @if($listing->territoire)
+                        @php
+                            $mapCity = $listing->user->city ?? null;
+                            $mapCoords = \App\Support\DomTomGeo::coords($listing->territoire, $mapCity);
+                            $mapCenterRaw = \App\Support\DomTomGeo::center($listing->territoire);
+                            $mapLat = $mapCoords[0] ?? $mapCenterRaw[0];
+                            $mapLng = $mapCoords[1] ?? $mapCenterRaw[1];
+                            $mapZoom = $mapCoords ? 13 : ($mapCenterRaw[2] ?? 10);
+                            $mapLabel = $listing->location_address ?: ($mapCity ?: $listing->territoire);
+                        @endphp
+                        <div class="mt-5">
+                            <div class="mb-2 flex items-center gap-2 text-sm text-gray-700">
+                                <span>📍</span>
+                                <span>
+                                    Se situe à <span class="font-semibold text-gray-900">{{ $mapLabel }}</span>@if($mapLabel !== $listing->territoire) · {{ $listing->territoire }}@endif
+                                    <span class="text-gray-400">(zone approximative)</span>
+                                </span>
+                            </div>
+                            <div id="listing-map" class="h-64 w-full overflow-hidden rounded-xl border border-gray-100 bg-gray-100"
+                                 data-lat="{{ $mapLat }}" data-lng="{{ $mapLng }}" data-zoom="{{ $mapZoom }}"
+                                 data-label="{{ e($mapLabel) }}"></div>
+                            <p class="mt-1.5 text-xs text-gray-400">Emplacement indicatif — l'adresse exacte n'est jamais affichée publiquement.</p>
+                        </div>
+
+                        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+                              integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+                        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+                                integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+                        <script>
+                            (function () {
+                                var el = document.getElementById('listing-map');
+                                if (!el || el._leaflet_id || typeof L === 'undefined') return;
+                                var lat = parseFloat(el.dataset.lat), lng = parseFloat(el.dataset.lng);
+                                var zoom = parseInt(el.dataset.zoom, 10) || 12;
+                                var map = L.map(el, { scrollWheelZoom: false }).setView([lat, lng], zoom);
+                                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                    maxZoom: 18,
+                                    attribution: '© OpenStreetMap'
+                                }).addTo(map);
+                                L.circle([lat, lng], {
+                                    radius: 1500, color: '#0d9488', weight: 2,
+                                    fillColor: '#14b8a6', fillOpacity: 0.18
+                                }).addTo(map).bindPopup(el.dataset.label || '');
+                            })();
+                        </script>
                     @endif
                 </div>
             </div>

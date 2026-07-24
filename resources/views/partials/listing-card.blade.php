@@ -37,8 +37,13 @@
             $cardNeedsColissimo = $buyerT && ! $cardLocal && ! $cardShippable;
         @endphp
         @if($cardNeedsColissimo && $listing->status !== 'sold')
-            <span class="absolute inset-x-2 bottom-2 rounded-lg bg-amber-500/95 px-2 py-1 text-center text-[11px] font-semibold text-white">
-                📍 {{ $listing->territoire }} · À faire expédier
+            <span class="absolute inset-x-2 bottom-2 flex flex-col items-center gap-1">
+                <span class="w-full rounded-lg bg-amber-500/95 px-2 py-1 text-center text-[11px] font-semibold text-white">
+                    📍 {{ $listing->territoire }} : demander la livraison
+                </span>
+                <span class="inline-flex items-center rounded bg-gray-900/75 px-1.5 py-0.5 text-[10px] font-medium text-white/90">
+                    🚫 livraison désactivée
+                </span>
             </span>
         @elseif($cardShippable && $listing->status !== 'sold')
             <span class="absolute inset-x-2 bottom-2 rounded-lg bg-emerald-600/95 px-2 py-1 text-center text-[11px] font-semibold text-white">
@@ -51,6 +56,9 @@
         <p class="line-clamp-1 text-sm font-medium text-gray-900">{{ $listing->title }}</p>
         @if($listing->user)
             <p class="mt-0.5 line-clamp-1 text-xs text-gray-500">{{ $listing->user->name }}</p>
+        @endif
+        @if($listing->territoire)
+            <p class="mt-0.5 line-clamp-1 text-xs text-gray-400">📍 {{ $listing->territoire }}</p>
         @endif
         <p class="mt-0.5 line-clamp-1 text-xs text-gray-400">
             @if($listing->taille){{ strtoupper($listing->taille) }}@endif

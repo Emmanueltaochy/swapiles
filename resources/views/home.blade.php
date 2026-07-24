@@ -482,8 +482,13 @@
                         $cardNeedsColissimo = $buyerT && ! $cardLocal && ! $cardShippable;
                     @endphp
                     @if($cardNeedsColissimo && $listing->status !== 'sold')
-                        <div class="mt-2 inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-2.5 py-1 text-[11px] font-bold">
-                            📍 {{ $listing->territoire }} · À faire expédier
+                        <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                            <span class="inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-2.5 py-1 text-[11px] font-bold">
+                                📍 {{ $listing->territoire }} : demander la livraison
+                            </span>
+                            <span class="inline-flex items-center rounded-full bg-gray-100 text-gray-500 px-2 py-1 text-[10px] font-semibold">
+                                🚫 livraison désactivée
+                            </span>
                         </div>
                     @elseif($cardShippable)
                         <div class="mt-2 inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-2.5 py-1 text-[11px] font-bold">

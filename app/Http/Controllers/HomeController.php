@@ -306,8 +306,22 @@ class HomeController extends Controller
             ),
         };
 
+        // Y a-t-il au moins une annonce « autour de vous » (île sélectionnée) dans
+        // les résultats ? Sinon on affiche un message avant les annonces des autres îles.
+        $localCount = 0;
+        if ($selectedTerritoire !== '' && $selectedTerritoire !== null) {
+            $localCount = (clone $query)
+                ->where(function ($q) use ($selectedTerritoire, $alsoColExists) {
+                    $q->where('territoire', $selectedTerritoire);
+                    if ($alsoColExists) {
+                        $q->orWhereRaw('JSON_CONTAINS(also_territoires, ?)', ['"' . $selectedTerritoire . '"']);
+                    }
+                })
+                ->count();
+        }
+
         $listings = $query->paginate(48)->withQueryString();
 
-        return view('search', compact('listings', 'selectedTerritoire', 'categoryTree'));
+        return view('search', compact('listings', 'selectedTerritoire', 'categoryTree', 'localCount'));
     }
 }

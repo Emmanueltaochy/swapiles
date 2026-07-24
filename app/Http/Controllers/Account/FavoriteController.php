@@ -13,13 +13,44 @@ class FavoriteController extends Controller
 {
     public function index()
     {
-        $favorites = Auth::user()
-            ->favorites()
-            ->with('images', 'user')
-            ->latest('favorites.created_at')
-            ->paginate(40);
+        $user = Auth::user();
 
-        return view('account.favorites.index', compact('favorites'));
+        // Annonces pour lesquelles l'utilisateur a fait une DEMANDE DE LIVRAISON
+        // (bouton « Demander la livraison » qui ajoute aussi aux favoris).
+        $interestIds = \App\Models\ListingInterest::where('buyer_id', $user->id)
+            ->pluck('listing_id');
+
+        // Comptes par onglet.
+        $favListingIds = $user->favorites()->pluck('listings.id');
+        $countAll = $favListingIds->count();
+        $countLivraison = $favListingIds->intersect($interestIds)->count();
+        $countDirect = $countAll - $countLivraison;
+
+        $filter = request('filter', 'all');
+        if (! in_array($filter, ['all', 'direct', 'livraison'], true)) {
+            $filter = 'all';
+        }
+
+        $query = $user->favorites()->with('images', 'user');
+
+        if ($filter === 'direct') {
+            $query->whereNotIn('listings.id', $interestIds);
+        } elseif ($filter === 'livraison') {
+            $query->whereIn('listings.id', $interestIds);
+        }
+
+        $favorites = $query->latest('favorites.created_at')
+            ->paginate(40)
+            ->withQueryString();
+
+        return view('account.favorites.index', [
+            'favorites' => $favorites,
+            'interestIds' => $interestIds,
+            'filter' => $filter,
+            'countAll' => $countAll,
+            'countDirect' => $countDirect,
+            'countLivraison' => $countLivraison,
+        ]);
     }
 
     public function toggle(Listing $listing)

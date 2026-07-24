@@ -56,7 +56,7 @@ class UsersMap extends Page
         $approx = 0;
 
         foreach ($users as $u) {
-            $coords = DomTomGeo::coords($territoire, $u->city);
+            $coords = DomTomGeo::coords($territoire, $u->city, $u->postal_code);
             $isApprox = false;
 
             if (! $coords) {

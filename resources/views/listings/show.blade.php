@@ -520,7 +520,7 @@
                     @if($listing->territoire)
                         @php
                             $mapCity = $listing->user->city ?? null;
-                            $mapCoords = \App\Support\DomTomGeo::coords($listing->territoire, $mapCity);
+                            $mapCoords = \App\Support\DomTomGeo::coords($listing->territoire, $mapCity, $listing->user->postal_code ?? null);
                             $mapCenterRaw = \App\Support\DomTomGeo::center($listing->territoire);
                             $mapLat = $mapCoords[0] ?? $mapCenterRaw[0];
                             $mapLng = $mapCoords[1] ?? $mapCenterRaw[1];

@@ -231,18 +231,98 @@ class DomTomGeo
         return preg_replace('/[^a-z0-9]/', '', $s);
     }
 
-    /** Coordonnées [lat, lng] d'une ville dans un territoire, ou null si inconnue. */
-    public static function coords(string $territoire, ?string $city): ?array
+    /**
+     * Boîtes englobantes [latMin, latMax, lngMin, lngMax] de chaque territoire.
+     * Sert à rejeter un géocodage qui tomberait sur une autre île (homonymies).
+     */
+    private const BBOX = [
+        'La Réunion' => [-21.45, -20.80, 55.15, 55.90],
+        'Martinique' => [14.35, 14.92, -61.28, -60.78],
+        'Guadeloupe' => [15.80, 16.55, -61.85, -60.95],
+        'Guyane'     => [2.00, 6.00, -55.00, -51.50],
+        'Mayotte'    => [-13.10, -12.58, 45.00, 45.35],
+    ];
+
+    /**
+     * Coordonnées [lat, lng] d'une ville/quartier dans un territoire.
+     *
+     * 1) Table statique des communes (instantané, hors-ligne).
+     * 2) Repli sur le géocodage gratuit de la Base Adresse Nationale
+     *    (api-adresse.data.gouv.fr, sans clé), mis en cache, pour couvrir les
+     *    quartiers et localités absents de la table. Le résultat est validé dans
+     *    la boîte englobante du territoire (évite les homonymies entre îles).
+     *
+     * @return array{0:float,1:float}|null
+     */
+    public static function coords(string $territoire, ?string $city, ?string $postal = null): ?array
     {
         $key = self::normalize($city);
-        if ($key === '' || ! isset(self::COMMUNES[$territoire])) {
-            return null;
-        }
 
-        if (isset(self::COMMUNES[$territoire][$key])) {
+        if ($key !== '' && isset(self::COMMUNES[$territoire][$key])) {
             return [self::COMMUNES[$territoire][$key][0], self::COMMUNES[$territoire][$key][1]];
         }
 
-        return null;
+        return self::geocode($territoire, $city, $postal);
+    }
+
+    /** Géocodage BAN mis en cache (90 j). Renvoie [lat, lng] ou null. */
+    protected static function geocode(string $territoire, ?string $city, ?string $postal): ?array
+    {
+        $city = trim((string) $city);
+        $postal = preg_replace('/\D/', '', (string) $postal);
+
+        if ($city === '' && strlen($postal) < 5) {
+            return null;
+        }
+
+        $cacheKey = 'geo:' . md5($territoire . '|' . mb_strtolower($city) . '|' . $postal);
+        $cached = \Illuminate\Support\Facades\Cache::get($cacheKey);
+        if ($cached !== null) {
+            return $cached === 'none' ? null : $cached;
+        }
+
+        $result = null;
+
+        try {
+            $params = [
+                'q' => trim($city . ' ' . $postal) ?: $territoire,
+                'limit' => 1,
+            ];
+            if (strlen($postal) === 5) {
+                $params['postcode'] = $postal;
+            }
+
+            $response = \Illuminate\Support\Facades\Http::timeout(6)
+                ->get('https://api-adresse.data.gouv.fr/search/', $params);
+
+            if ($response->ok()) {
+                $feature = $response->json('features.0');
+                $lng = $feature['geometry']['coordinates'][0] ?? null;
+                $lat = $feature['geometry']['coordinates'][1] ?? null;
+
+                if ($lat !== null && $lng !== null && self::withinBbox($territoire, (float) $lat, (float) $lng)) {
+                    $result = [round((float) $lat, 6), round((float) $lng, 6)];
+                }
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        \Illuminate\Support\Facades\Cache::put($cacheKey, $result ?: 'none', now()->addDays(90));
+
+        return $result;
+    }
+
+    /** Le point tombe-t-il dans la zone du territoire ? */
+    protected static function withinBbox(string $territoire, float $lat, float $lng): bool
+    {
+        $box = self::BBOX[$territoire] ?? null;
+        if (! $box) {
+            return true;
+        }
+
+        [$latMin, $latMax, $lngMin, $lngMax] = $box;
+
+        return $lat >= $latMin && $lat <= $latMax && $lng >= $lngMin && $lng <= $lngMax;
     }
 }

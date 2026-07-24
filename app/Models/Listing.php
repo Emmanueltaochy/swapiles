@@ -62,6 +62,30 @@ class Listing extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * L'article est-il RÉELLEMENT payable par carte maintenant ? Il ne suffit
+     * pas que l'annonce soit marquée « paiement en ligne » : le vendeur doit
+     * avoir un compte Stripe opérationnel (encaissements ET versements activés).
+     * Un simple stripe_account_id ne suffit pas (onboarding souvent incomplet).
+     */
+    public function isOnlinePayable(): bool
+    {
+        return (bool) $this->requires_online_payment
+            && $this->user
+            && $this->user->stripe_account_id
+            && $this->user->stripe_charges_enabled
+            && $this->user->stripe_payouts_enabled;
+    }
+
+    /** Filtre : uniquement les annonces réellement payables par carte. */
+    public function scopeOnlinePayable($query)
+    {
+        return $query->where('requires_online_payment', true)
+            ->whereHas('user', fn ($q) => $q->whereNotNull('stripe_account_id')
+                ->where('stripe_charges_enabled', true)
+                ->where('stripe_payouts_enabled', true));
+    }
+
     public function images()
     {
         return $this->hasMany(ListingImage::class)->orderBy('order');

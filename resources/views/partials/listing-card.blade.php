@@ -25,14 +25,14 @@
             <span class="absolute left-2 top-2 rounded-full bg-green-600 px-2 py-1 text-[11px] font-semibold text-white">🎁 Don</span>
         @elseif($listing->listing_type === 'echange-produits')
             <span class="absolute left-2 top-2 rounded-full bg-blue-600 px-2 py-1 text-[11px] font-semibold text-white">🔄 Échange</span>
-        @elseif($listing->requires_online_payment)
+        @elseif($listing->isOnlinePayable())
             <span class="absolute left-2 top-2 rounded-full bg-teal-700 px-2 py-1 text-[11px] font-semibold text-white">🔒 Protégé</span>
         @endif
 
         @php
             $buyerT = $selectedTerritoire ?? null;
             $cardAlsoT = is_array($listing->also_territoires ?? null) ? $listing->also_territoires : [];
-            $cardShippable = ($listing->requires_online_payment ?? false) && ($listing->allows_colissimo ?? false);
+            $cardShippable = $listing->isOnlinePayable() && ($listing->allows_colissimo ?? false);
             $cardLocal = $buyerT && ($listing->territoire === $buyerT || in_array($buyerT, $cardAlsoT));
             $cardNeedsColissimo = $buyerT && ! $cardLocal && ! $cardShippable;
         @endphp

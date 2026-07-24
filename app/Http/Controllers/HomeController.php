@@ -259,8 +259,33 @@ class HomeController extends Controller
         }
 
         if ($request->boolean('inter_iles')) {
-            $query->where('requires_online_payment', true)
+            $query->onlinePayable()
                   ->where('allows_colissimo', true);
+        }
+
+        // Facette PAIEMENT (choix multiple, OR entre les options cochées).
+        $payments = array_values(array_filter((array) $request->input('payment', [])));
+        if (! empty($payments)) {
+            $query->where(function ($outer) use ($payments) {
+                foreach ($payments as $payment) {
+                    match ($payment) {
+                        // Carte : réellement payable (vendeur Stripe opérationnel).
+                        'cb' => $outer->orWhere(fn ($q) => $q->where('requires_online_payment', true)
+                            ->whereHas('user', fn ($u) => $u->whereNotNull('stripe_account_id')
+                                ->where('stripe_charges_enabled', true)
+                                ->where('stripe_payouts_enabled', true))),
+                        // Espèces / remise en main propre (vente avec prix).
+                        'cash' => $outer->orWhere(fn ($q) => $q->where('allows_hand_delivery', true)
+                            ->where('price', '>', 0)
+                            ->whereIn('listing_type', ['achat', 'negoce-prix'])),
+                        'exchange' => $outer->orWhere(fn ($q) => $q->where('allows_exchange', true)
+                            ->orWhere('listing_type', 'echange-produits')),
+                        'don' => $outer->orWhere(fn ($q) => $q->where('listing_type', 'don')
+                            ->orWhere('price', '<=', 0)),
+                        default => null,
+                    };
+                }
+            });
         }
 
         // Si le paramètre territoire est présent (même vide = « Tous les

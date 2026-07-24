@@ -261,11 +261,12 @@
                         @endif
 
                         {{-- Modes de livraison --}}
+                        @php $listingOnlinePayable = $listing->isOnlinePayable(); @endphp
                         <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium">
-                            @if(($listing->allows_colissimo ?? false) || ($listing->shipping_enabled ?? false))
+                            @if(($listing->allows_colissimo ?? false) && $listingOnlinePayable)
                                 <span class="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700">📦 Colissimo</span>
                             @endif
-                            @if($listing->requires_online_payment ?? false)
+                            @if($listingOnlinePayable)
                                 <span class="rounded-full bg-teal-50 px-2.5 py-1 text-teal-700">🔒 CB sécurisé</span>
                             @endif
                             @if($listing->pickup_enabled ?? true)
@@ -293,14 +294,14 @@
                         {{-- Actions --}}
                         @php
                             $isSold = $listing->status === 'sold';
-                            $canBuyOnline = in_array($listing->listing_type, ['achat', 'negoce-prix'], true) && $listing->requires_online_payment && $listing->price > 0;
+                            $canBuyOnline = in_array($listing->listing_type, ['achat', 'negoce-prix'], true) && $listing->isOnlinePayable() && $listing->price > 0;
                             $canCash = in_array($listing->listing_type, ['achat', 'negoce-prix'], true) && $listing->allows_hand_delivery && $listing->price > 0;
                             $canOffer = ($listing->allows_offers || $listing->listing_type === 'negoce-prix') && $listing->price > 0;
                             $canExchange = $listing->allows_exchange || $listing->listing_type === 'echange-produits';
                             $canDon = $listing->listing_type === 'don' || $listing->price <= 0;
 
-                            // Acheteur d'une autre île + vendeur sans Colissimo -> demande d'intérêt.
-                            $isShippable = $listing->requires_online_payment && $listing->allows_colissimo;
+                            // Acheteur d'une autre île + vendeur sans Colissimo (ou non prêt) -> demande d'intérêt.
+                            $isShippable = $listing->isOnlinePayable() && $listing->allows_colissimo;
                             $isCrossIsland = auth()->check() && auth()->id() !== $listing->user_id
                                 && auth()->user()->territoire && auth()->user()->territoire !== $listing->territoire;
                             $showInterest = $isCrossIsland && ! $isShippable && ! $isSold;

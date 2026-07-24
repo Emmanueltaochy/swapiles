@@ -40,6 +40,13 @@ class CheckoutController extends Controller
         abort_unless(in_array($listing->listing_type, ['achat', 'negoce-prix'], true), 403);
         abort_if($listing->price <= 0, 403);
 
+        // Le vendeur doit RÉELLEMENT pouvoir encaisser par carte (compte Stripe
+        // opérationnel). Sinon on renvoie vers l'annonce (remise en main propre).
+        if (! $listing->isOnlinePayable()) {
+            return redirect()->route('listings.show', $listing)
+                ->with('status', "Le paiement par carte n'est pas disponible pour cet article. Contactez le vendeur pour une remise en main propre.");
+        }
+
         $offer = null;
 
         if ($request->filled('offer')) {

@@ -477,7 +477,7 @@
                     @php
                         $buyerT = $selectedTerritoire ?? null;
                         $cardAlsoT = is_array($listing->also_territoires ?? null) ? $listing->also_territoires : [];
-                        $cardShippable = ($listing->requires_online_payment ?? false) && ($listing->allows_colissimo ?? false);
+                        $cardShippable = $listing->isOnlinePayable() && ($listing->allows_colissimo ?? false);
                         $cardLocal = $buyerT && ($listing->territoire === $buyerT || in_array($buyerT, $cardAlsoT));
                         $cardNeedsColissimo = $buyerT && ! $cardLocal && ! $cardShippable;
                     @endphp

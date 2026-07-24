@@ -59,8 +59,8 @@
 
                 <select name="listing_type" onchange="this.form.submit()" class="{{ $pillSelect }}">
                     <option value="">Tous types</option>
-                    <option value="achat" @selected(request('listing_type') === 'achat')>🔒 Achat protégé</option>
-                    <option value="negoce-prix" @selected(request('listing_type') === 'negoce-prix')>💵 Prix négociable</option>
+                    <option value="achat" @selected(request('listing_type') === 'achat')>🛍️ Achat / Vente</option>
+                    <option value="negoce-prix" @selected(request('listing_type') === 'negoce-prix')>💬 Prix négociable</option>
                     <option value="don" @selected(request('listing_type') === 'don')>🎁 Don</option>
                     <option value="echange-produits" @selected(request('listing_type') === 'echange-produits')>🔄 Échange</option>
                     <option value="location-vetements" @selected(request('listing_type') === 'location-vetements')>👗 Location</option>
@@ -86,6 +86,24 @@
                     <input type="checkbox" name="inter_iles" value="1" onchange="this.form.submit()" @checked(request()->boolean('inter_iles')) class="rounded text-emerald-600 focus:ring-emerald-500">
                     🌍 Inter-îles
                 </label>
+            </div>
+
+            {{-- Facette PAIEMENT (choix multiple) : distincte du type d'annonce --}}
+            @php $selPayments = (array) request('payment', []); @endphp
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+                <span class="text-xs font-bold uppercase tracking-wide text-gray-400">Paiement :</span>
+                @foreach([
+                    'cb' => '🔒 Carte sécurisée',
+                    'cash' => '💵 Espèces / main propre',
+                    'exchange' => '🔄 Échange',
+                    'don' => '🎁 Don',
+                ] as $pKey => $pLabel)
+                    <label class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition
+                                  {{ in_array($pKey, $selPayments, true) ? 'border-teal-600 bg-teal-600 text-white' : 'border-gray-200 bg-white text-gray-700 hover:border-teal-300' }}">
+                        <input type="checkbox" name="payment[]" value="{{ $pKey }}" onchange="this.form.submit()" @checked(in_array($pKey, $selPayments, true)) class="hidden">
+                        {{ $pLabel }}
+                    </label>
+                @endforeach
             </div>
 
             {{-- Filtres avancés (repliables) --}}
@@ -192,14 +210,14 @@
                         <span class="absolute left-2 top-2 rounded-full bg-green-600 px-2 py-1 text-[11px] font-semibold text-white">🎁 Don</span>
                     @elseif($listing->listing_type === 'echange-produits')
                         <span class="absolute left-2 top-2 rounded-full bg-blue-600 px-2 py-1 text-[11px] font-semibold text-white">🔄 Échange</span>
-                    @elseif($listing->requires_online_payment)
+                    @elseif($listing->isOnlinePayable())
                         <span class="absolute left-2 top-2 rounded-full bg-teal-700 px-2 py-1 text-[11px] font-semibold text-white">🔒 Protégé</span>
                     @endif
 
                     @php
                         $buyerT = $selectedTerritoire ?? null;
                         $cardAlsoT = is_array($listing->also_territoires ?? null) ? $listing->also_territoires : [];
-                        $cardShippable = ($listing->requires_online_payment ?? false) && ($listing->allows_colissimo ?? false);
+                        $cardShippable = $listing->isOnlinePayable() && ($listing->allows_colissimo ?? false);
                         $cardLocal = $buyerT && ($listing->territoire === $buyerT || in_array($buyerT, $cardAlsoT));
                         $cardNeedsColissimo = $buyerT && ! $cardLocal && ! $cardShippable;
                     @endphp

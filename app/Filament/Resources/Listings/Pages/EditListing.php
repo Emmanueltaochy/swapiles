@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Listings\Pages;
 
 use App\Filament\Resources\Listings\ListingResource;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
@@ -16,6 +17,16 @@ class EditListing extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('photos')
+                ->label('Photos')
+                ->icon('heroicon-o-photo')
+                ->color('info')
+                ->modalHeading('Gérer les photos de l\'annonce')
+                ->modalSubmitAction(false)
+                ->modalCancelActionLabel('Fermer')
+                ->modalContent(fn () => view('filament.listings.photos', [
+                    'listing' => $this->getRecord()->load('images'),
+                ])),
             ViewAction::make(),
             DeleteAction::make(),
             ForceDeleteAction::make(),

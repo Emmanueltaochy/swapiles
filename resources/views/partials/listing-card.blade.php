@@ -28,6 +28,23 @@
         @elseif($listing->requires_online_payment)
             <span class="absolute left-2 top-2 rounded-full bg-teal-700 px-2 py-1 text-[11px] font-semibold text-white">🔒 Protégé</span>
         @endif
+
+        @php
+            $buyerT = $selectedTerritoire ?? null;
+            $cardAlsoT = is_array($listing->also_territoires ?? null) ? $listing->also_territoires : [];
+            $cardShippable = ($listing->requires_online_payment ?? false) && ($listing->allows_colissimo ?? false);
+            $cardLocal = $buyerT && ($listing->territoire === $buyerT || in_array($buyerT, $cardAlsoT));
+            $cardNeedsColissimo = $buyerT && ! $cardLocal && ! $cardShippable;
+        @endphp
+        @if($cardNeedsColissimo && $listing->status !== 'sold')
+            <span class="absolute inset-x-2 bottom-2 rounded-lg bg-amber-500/95 px-2 py-1 text-center text-[11px] font-semibold text-white">
+                📍 {{ $listing->territoire }} · À faire expédier
+            </span>
+        @elseif($cardShippable && $listing->status !== 'sold')
+            <span class="absolute inset-x-2 bottom-2 rounded-lg bg-emerald-600/95 px-2 py-1 text-center text-[11px] font-semibold text-white">
+                📦 Expédiable Colissimo
+            </span>
+        @endif
     </div>
 
     <div class="pt-2">

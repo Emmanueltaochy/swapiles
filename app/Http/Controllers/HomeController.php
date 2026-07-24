@@ -52,12 +52,14 @@ class HomeController extends Controller
             }
         };
 
-        $listings = Listing::query()
+        // Feed : on montre TOUTES les annonces (toutes îles), mais on remonte
+        // d'abord celles achetables depuis l'île choisie (locale en main propre
+        // OU expédiables Colissimo), puis les autres îles (à faire expédier).
+        $listingsQuery = Listing::query()
             ->with(['images', 'user'])->withCount('favoritedBy')
-            ->where('status', 'published')
-            ->where($territoireFilter)
-            ->latest()
-            ->paginate(24);
+            ->where('status', 'published');
+        $this->applyBuyableOrdering($listingsQuery, $selectedTerritoire, $alsoColExists);
+        $listings = $listingsQuery->paginate(24);
 
         $territoryCounts = Listing::query()
             ->where('status', 'published')
@@ -145,6 +147,32 @@ class HomeController extends Controller
             'membersCount' => $membersCount,
             'todayListingsCount' => $todayListingsCount,
         ]);
+    }
+
+    /**
+     * Trie une requête d'annonces pour remonter d'abord celles achetables depuis
+     * l'île sélectionnée (locale = remise en main propre, OU expédiable Colissimo),
+     * puis les autres (autres îles non expédiables, à demander au vendeur).
+     */
+    private function applyBuyableOrdering($query, ?string $territoire, bool $alsoColExists): void
+    {
+        if (! $territoire) {
+            $query->latest();
+
+            return;
+        }
+
+        $sql = 'CASE WHEN (territoire = ? ';
+        $bindings = [$territoire];
+
+        if ($alsoColExists) {
+            $sql .= 'OR JSON_CONTAINS(also_territoires, ?) ';
+            $bindings[] = '"' . $territoire . '"';
+        }
+
+        $sql .= 'OR (requires_online_payment = 1 AND allows_colissimo = 1)) THEN 0 ELSE 1 END';
+
+        $query->orderByRaw($sql, $bindings)->latest();
     }
 
     public function search(Request $request)
@@ -244,15 +272,11 @@ class HomeController extends Controller
             $selectedTerritoire = $request->cookie('swapiles_territoire', 'La Réunion');
         }
 
-        if ($selectedTerritoire !== '' && $selectedTerritoire !== null) {
-            $alsoColExists = \Illuminate\Support\Facades\Schema::hasColumn('listings', 'also_territoires');
-            $query->where(function ($q) use ($selectedTerritoire, $alsoColExists) {
-                $q->where('territoire', $selectedTerritoire);
-                if ($alsoColExists) {
-                    $q->orWhereRaw('JSON_CONTAINS(also_territoires, ?)', ['"' . $selectedTerritoire . '"']);
-                }
-            });
-        }
+        // On NE filtre PLUS par territoire : les annonces des autres îles restent
+        // visibles (même non expédiables) pour que l'acheteur puisse signaler son
+        // intérêt et pousser le vendeur à activer Colissimo. Le territoire choisi
+        // sert uniquement à remonter en premier les annonces achetables (voir plus bas).
+        $alsoColExists = \Illuminate\Support\Facades\Schema::hasColumn('listings', 'also_territoires');
 
         if ($request->filled('etat')) {
             $query->where('etat', $request->etat);
@@ -274,7 +298,12 @@ class HomeController extends Controller
             'price_asc' => $query->orderBy('price', 'asc'),
             'price_desc' => $query->orderBy('price', 'desc'),
             'oldest' => $query->oldest(),
-            default => $query->latest(),
+            // Tri par défaut : achetables depuis l'île choisie d'abord, puis le reste.
+            default => $this->applyBuyableOrdering(
+                $query,
+                ($selectedTerritoire !== '' && $selectedTerritoire !== null) ? $selectedTerritoire : null,
+                $alsoColExists
+            ),
         };
 
         $listings = $query->paginate(48)->withQueryString();

@@ -435,8 +435,8 @@
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="flex items-end justify-between mb-6">
         <div>
-            <h2 class="text-2xl md:text-3xl font-bold text-gray-900">{{ $selectedMeta['flag'] }} Les dernières annonces à {{ $selectedDisplay }}</h2>
-            <p class="text-gray-500 mt-1">Les nouvelles pépites publiées près de chez vous.</p>
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-900">{{ $selectedMeta['flag'] }} Annonces à {{ $selectedDisplay }} &amp; sur les autres îles</h2>
+            <p class="text-gray-500 mt-1">D'abord ce que vous pouvez acheter depuis {{ $selectedDisplay }} (main propre ou Colissimo), puis les articles des autres îles à faire expédier.</p>
         </div>
     </div>
 
@@ -474,7 +474,18 @@
                         </div>
                     @endif
 
-                    @if(($listing->requires_online_payment ?? false) && ($listing->allows_colissimo ?? false))
+                    @php
+                        $buyerT = $selectedTerritoire ?? null;
+                        $cardAlsoT = is_array($listing->also_territoires ?? null) ? $listing->also_territoires : [];
+                        $cardShippable = ($listing->requires_online_payment ?? false) && ($listing->allows_colissimo ?? false);
+                        $cardLocal = $buyerT && ($listing->territoire === $buyerT || in_array($buyerT, $cardAlsoT));
+                        $cardNeedsColissimo = $buyerT && ! $cardLocal && ! $cardShippable;
+                    @endphp
+                    @if($cardNeedsColissimo && $listing->status !== 'sold')
+                        <div class="mt-2 inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-2.5 py-1 text-[11px] font-bold">
+                            📍 {{ $listing->territoire }} · À faire expédier
+                        </div>
+                    @elseif($cardShippable)
                         <div class="mt-2 inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-2.5 py-1 text-[11px] font-bold">
                             🌍 Expédiable inter-îles
                         </div>

@@ -47,8 +47,22 @@ class ProfileSettingsController extends Controller
 
         $data['country_code'] = $data['country_code'] ?? 'FR';
 
+        // Le code postal DOM-TOM détermine l'île de façon certaine (971 = Guadeloupe,
+        // 972 = Martinique, 973 = Guyane, 974 = La Réunion, 976 = Mayotte). Quand il
+        // correspond à une de nos îles, il fait foi sur le territoire (évite les
+        // profils marqués « La Réunion » par défaut alors que l'adresse est ailleurs).
+        $territoireFromPostal = \App\Support\DomTomGeo::territoireFromPostal($data['postal_code'] ?? null);
+        if ($territoireFromPostal) {
+            $data['territoire'] = $territoireFromPostal;
+        }
+
         $user->forceFill($data)->save();
 
-        return back()->with('status', 'Profil mis à jour.');
+        $status = 'Profil mis à jour.';
+        if ($territoireFromPostal && ($request->input('territoire') !== $territoireFromPostal)) {
+            $status = 'Profil mis à jour. Votre île a été ajustée sur « ' . $territoireFromPostal . ' » d’après votre code postal.';
+        }
+
+        return back()->with('status', $status);
     }
 }

@@ -97,6 +97,10 @@ fi
 # ---------------------------------------------------------------------------
 php artisan listings:hide-photoless 2>/dev/null || true
 
+# Aligner le territoire des membres sur leur code postal DOM-TOM (corrige les
+# profils « La Réunion » par défaut alors que l'adresse est ailleurs). Idempotent.
+php artisan users:sync-territoire-from-postal 2>/dev/null || true
+
 # ---------------------------------------------------------------------------
 # 6. REDÉMARRER LES WORKERS DE QUEUE (pour qu'ils chargent le nouveau code)
 # ---------------------------------------------------------------------------

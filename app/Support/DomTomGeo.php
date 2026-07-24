@@ -186,6 +186,29 @@ class DomTomGeo
         return array_keys(self::CENTERS);
     }
 
+    /**
+     * Déduit l'île DOM-TOM à partir d'un code postal français (fiable à 100 % :
+     * le préfixe est garanti par La Poste). Renvoie null si le code postal n'est
+     * pas un DOM-TOM géré (métropole, Saint-Barthélemy/Saint-Martin, vide…).
+     */
+    public static function territoireFromPostal(?string $postal): ?string
+    {
+        $digits = preg_replace('/\D/', '', (string) $postal);
+
+        if (strlen($digits) < 3) {
+            return null;
+        }
+
+        return match (substr($digits, 0, 3)) {
+            '971' => 'Guadeloupe',
+            '972' => 'Martinique',
+            '973' => 'Guyane',
+            '974' => 'La Réunion',
+            '976' => 'Mayotte',
+            default => null,
+        };
+    }
+
     /** [lat, lng, zoom] du centre d'un territoire. */
     public static function center(string $territoire): array
     {

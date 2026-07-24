@@ -62,6 +62,31 @@ class WalletController extends Controller
             ])->save();
         }
 
+        // Compte bancaire lié (4 derniers chiffres) — mis en cache pour ne pas
+        // interroger Stripe à chaque affichage.
+        $bankInfo = null;
+        if ($stripeReady) {
+            try {
+                $bankInfo = \Illuminate\Support\Facades\Cache::remember(
+                    'stripe_bank_' . $user->id,
+                    now()->addHours(6),
+                    function () use ($user) {
+                        $stripe = new \Stripe\StripeClient(env('STRIPE_SECRET'));
+                        $ext = $stripe->accounts->allExternalAccounts(
+                            $user->stripe_account_id,
+                            ['object' => 'bank_account', 'limit' => 1]
+                        );
+                        $ba = $ext->data[0] ?? null;
+
+                        return $ba ? ['last4' => $ba->last4, 'bank' => $ba->bank_name] : null;
+                    }
+                );
+            } catch (\Throwable $e) {
+                report($e);
+                $bankInfo = null;
+            }
+        }
+
         return view('account.wallet.index', [
             'sales' => $sales,
             'pendingAmount' => $pendingAmount,
@@ -69,6 +94,7 @@ class WalletController extends Controller
             'paidAmount' => $paidAmount,
             'user' => $user,
             'stripeReady' => $stripeReady,
+            'bankInfo' => $bankInfo,
         ]);
     }
 }

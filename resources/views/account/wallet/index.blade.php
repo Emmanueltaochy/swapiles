@@ -64,6 +64,25 @@
                     Activer mon portefeuille
                 </a>
             </div>
+        @else
+            <div class="bg-green-50 border border-green-200 rounded-3xl p-5 mt-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-start gap-3">
+                    <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-green-100 text-2xl" aria-hidden="true">✅</span>
+                    <div>
+                        <h2 class="text-lg font-extrabold text-green-900">Portefeuille activé</h2>
+                        <p class="text-sm text-green-800 mt-0.5">
+                            @if($bankInfo && !empty($bankInfo['last4']))
+                                Compte bancaire lié{{ $bankInfo['bank'] ? ' (' . $bankInfo['bank'] . ')' : '' }} : IBAN se terminant par <span class="font-bold">•••• {{ $bankInfo['last4'] }}</span>. Vos ventes sont versées automatiquement.
+                            @else
+                                Votre IBAN est enregistré. Vos ventes sont versées automatiquement sur votre compte bancaire.
+                            @endif
+                        </p>
+                    </div>
+                </div>
+                <a href="{{ route('stripe.connect.activate') }}" class="shrink-0 inline-flex items-center justify-center rounded-2xl border border-green-300 bg-white px-4 py-2.5 text-sm font-semibold text-green-800 hover:bg-green-50 transition">
+                    Gérer / modifier
+                </a>
+            </div>
         @endif
 
         <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden mt-8">

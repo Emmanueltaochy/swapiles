@@ -281,11 +281,38 @@
                             $canOffer = ($listing->allows_offers || $listing->listing_type === 'negoce-prix') && $listing->price > 0;
                             $canExchange = $listing->allows_exchange || $listing->listing_type === 'echange-produits';
                             $canDon = $listing->listing_type === 'don' || $listing->price <= 0;
+
+                            // Acheteur d'une autre île + vendeur sans Colissimo -> demande d'intérêt.
+                            $isShippable = $listing->requires_online_payment && $listing->allows_colissimo;
+                            $isCrossIsland = auth()->check() && auth()->id() !== $listing->user_id
+                                && auth()->user()->territoire && auth()->user()->territoire !== $listing->territoire;
+                            $showInterest = $isCrossIsland && ! $isShippable && ! $isSold;
+                            $alreadyInterested = $showInterest && \App\Models\ListingInterest::where('listing_id', $listing->id)
+                                ->where('buyer_id', auth()->id())->exists();
                         @endphp
                         <div class="mt-6 space-y-3">
                             @if(!$isSold)
                                 @auth
                                     @if(auth()->id() !== $listing->user_id)
+                                        @if($showInterest)
+                                            <div class="rounded-xl border-2 border-amber-300 bg-amber-50 p-4">
+                                                <p class="text-sm font-bold text-amber-900">🌍 Ce vendeur est sur une autre île</p>
+                                                <p class="mt-1 text-sm text-amber-800">
+                                                    Il n'a pas activé Colissimo (livraison). Comme vous êtes sur une autre île, la remise en main propre est impossible —
+                                                    mais vous pouvez lui faire savoir que ce produit vous intéresse pour qu'il active la livraison.
+                                                </p>
+                                                @if($alreadyInterested)
+                                                    <p class="mt-3 rounded-lg bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-800">✅ Intérêt envoyé ! Le produit est dans vos favoris — vous serez notifié dès qu'il sera livrable.</p>
+                                                @else
+                                                    <form method="POST" action="{{ route('listings.interest', $listing) }}" class="mt-3">
+                                                        @csrf
+                                                        <button class="w-full rounded-xl bg-amber-500 px-6 py-3.5 font-semibold text-white shadow-sm transition hover:bg-amber-600">
+                                                            📩 Ce produit m'intéresse — prévenir le vendeur
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </div>
+                                        @else
                                         @if($canBuyOnline)
                                             <a href="{{ route('checkout.show', $listing) }}" class="block w-full rounded-xl bg-teal-600 px-6 py-4 text-center font-semibold text-white shadow-sm transition hover:bg-teal-700 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
                                                 💳 Acheter par CB sécurisé
@@ -331,6 +358,7 @@
                                                 </form>
                                             </div>
                                         @endif
+                                        @endif {{-- fin @if($showInterest) --}}
                                     @endif
                                 @else
                                     <a href="{{ route('login') }}" class="block w-full rounded-xl bg-teal-600 px-6 py-4 text-center font-semibold text-white shadow-sm transition hover:bg-teal-700">

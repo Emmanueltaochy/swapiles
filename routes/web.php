@@ -362,6 +362,11 @@ Route::post('/annonce/{listing}/demande/{mode}', [\App\Http\Controllers\ListingC
     ->middleware('auth')
     ->name('listings.request-mode');
 
+// Demande d'intérêt inter-îles (vendeur sans Colissimo)
+Route::post('/annonce/{listing}/interesse', [\App\Http\Controllers\ListingInterestController::class, 'store'])
+    ->middleware('auth')
+    ->name('listings.interest');
+
 // Système d'échange
 Route::get('/annonce/{listing}/proposer-echange', [\App\Http\Controllers\ExchangeController::class, 'create'])
     ->name('exchange.create');

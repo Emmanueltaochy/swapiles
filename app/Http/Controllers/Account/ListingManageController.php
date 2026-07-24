@@ -122,6 +122,9 @@ class ListingManageController extends Controller
     {
         $this->authorizeOwner($listing);
 
+        // Était-elle déjà livrable (Colissimo + CB) avant modification ?
+        $wasShippable = (bool) ($listing->requires_online_payment && $listing->allows_colissimo);
+
         $data = $this->validateListing($request);
 
         $cbEnabled = $request->boolean('payment_cb') && $this->userCanReceiveOnlinePayments();
@@ -188,7 +191,44 @@ class ListingManageController extends Controller
 
         $this->storeImages($request, $listing);
 
+        // L'annonce devient livrable inter-îles : on prévient les acheteurs
+        // d'autres îles qui avaient signalé leur intérêt.
+        if (! $wasShippable && $cbEnabled && $allowsColissimo) {
+            $this->notifyInterestedBuyers($listing);
+        }
+
         return redirect()->route('account.dashboard')->with('status', 'Annonce mise à jour.');
+    }
+
+    /** Prévient les acheteurs ayant signalé leur intérêt que l'article est livrable. */
+    private function notifyInterestedBuyers(Listing $listing): void
+    {
+        try {
+            \App\Models\ListingInterest::where('listing_id', $listing->id)
+                ->whereNull('notified_buyer_at')
+                ->with('buyer')
+                ->chunkById(100, function ($interests) use ($listing) {
+                    foreach ($interests as $interest) {
+                        if (! $interest->buyer) {
+                            continue;
+                        }
+
+                        \App\Models\Notification::create([
+                            'user_id' => $interest->buyer_id,
+                            'type' => 'listing_available_colissimo',
+                            'title' => 'Article disponible 🎉',
+                            'message' => '« ' . $listing->title . ' » est maintenant livrable en Colissimo — vous pouvez l’acheter !',
+                            'url' => route('listings.show', $listing, absolute: false),
+                        ]);
+
+                        \App\Jobs\SendListingAvailableColissimoEmail::dispatch($listing->id, $interest->buyer_id);
+
+                        $interest->forceFill(['notified_buyer_at' => now()])->save();
+                    }
+                });
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     public function hide(Listing $listing)

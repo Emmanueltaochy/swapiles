@@ -22,7 +22,7 @@ class ListingManageController extends Controller
 
     public function store(Request $request)
     {
-        $data = $this->validateListing($request);
+        $data = $this->validateListing($request, requireImages: true);
 
         $cbEnabled = $request->boolean('payment_cb') && $this->userCanReceiveOnlinePayments();
         $allowsColissimo = $cbEnabled && $request->boolean('allows_colissimo');
@@ -126,6 +126,14 @@ class ListingManageController extends Controller
         $wasShippable = (bool) ($listing->requires_online_payment && $listing->allows_colissimo);
 
         $data = $this->validateListing($request);
+
+        // Une annonce ne doit jamais rester sans photo : si elle n'en a aucune
+        // et qu'aucune n'est ajoutée dans cette mise à jour, on bloque.
+        if (! $request->hasFile('images') && $listing->images()->count() === 0) {
+            return back()
+                ->withErrors(['images' => 'Ajoutez au moins une photo à votre annonce : les annonces avec photo se vendent bien mieux.'])
+                ->withInput();
+        }
 
         $cbEnabled = $request->boolean('payment_cb') && $this->userCanReceiveOnlinePayments();
         $allowsColissimo = $cbEnabled && $request->boolean('allows_colissimo');
@@ -375,6 +383,14 @@ class ListingManageController extends Controller
 
         abort_unless($image->listing_id === $listing->id, 403);
 
+        // On empêche de supprimer la dernière photo : une annonce doit toujours
+        // conserver au moins une image (sinon elle disparaît de la recherche).
+        if ($listing->images()->count() <= 1) {
+            return back()->withErrors([
+                'image' => 'Impossible de supprimer la dernière photo. Ajoutez d’abord une autre photo, ou masquez / supprimez l’annonce.',
+            ]);
+        }
+
         if (str_starts_with($image->url, '/storage/')) {
             $path = str_replace('/storage/', '', $image->url);
             Storage::disk('public')->delete($path);
@@ -394,7 +410,7 @@ class ListingManageController extends Controller
         return redirect()->route('account.dashboard')->with('status', 'Annonce supprimée.');
     }
 
-    private function validateListing(Request $request): array
+    private function validateListing(Request $request, bool $requireImages = false): array
     {
         return $request->validate([
             'title' => ['required', 'string', 'max:120'],
@@ -417,7 +433,14 @@ class ListingManageController extends Controller
             'allows_hand_delivery' => ['nullable'],
             'allows_colissimo' => ['nullable'],
             'weight_kg' => ['nullable', 'numeric', 'min:0.01', 'max:30'],
+            // Photo obligatoire à la publication (bien meilleure conversion).
+            'images' => $requireImages ? ['required', 'array', 'min:1'] : ['nullable', 'array'],
             'images.*' => ['nullable', 'image', 'max:5120'],
+        ], [
+            'images.required' => 'Ajoutez au moins une photo à votre annonce : les annonces avec photo se vendent bien mieux.',
+            'images.min' => 'Ajoutez au moins une photo à votre annonce.',
+            'images.*.image' => 'Chaque fichier ajouté doit être une image (JPG, PNG…).',
+            'images.*.max' => 'Chaque photo doit faire moins de 5 Mo.',
         ]);
     }
 

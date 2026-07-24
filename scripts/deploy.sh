@@ -91,6 +91,13 @@ if ! php artisan route:cache 2>/dev/null; then
 fi
 
 # ---------------------------------------------------------------------------
+# 5c. QUALITÉ : masquer les annonces publiées sans photo (conversion recherche)
+#     Idempotent : après le premier passage il n'en reste plus, les suivants
+#     ne font rien. Ne bloque jamais le déploiement.
+# ---------------------------------------------------------------------------
+php artisan listings:hide-photoless 2>/dev/null || true
+
+# ---------------------------------------------------------------------------
 # 6. REDÉMARRER LES WORKERS DE QUEUE (pour qu'ils chargent le nouveau code)
 # ---------------------------------------------------------------------------
 php artisan queue:restart 2>/dev/null || true

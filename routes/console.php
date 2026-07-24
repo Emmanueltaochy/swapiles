@@ -31,3 +31,7 @@ Schedule::command('transactions:auto-resolve')->dailyAt('07:00')->withoutOverlap
 // dont un article favori (encore en ligne) date d'au moins une semaine. Un
 // favori n'est relancé qu'une seule fois (colonne favorites.reminded_at).
 Schedule::command('favorites:remind')->dailyAt('09:00')->withoutOverlapping();
+
+// Qualité / conversion : masque les annonces publiées sans aucune photo (elles
+// nuisent à la conversion sur la page recherche). Idempotent et réversible.
+Schedule::command('listings:hide-photoless')->dailyAt('06:30')->withoutOverlapping();

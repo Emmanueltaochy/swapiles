@@ -264,28 +264,32 @@ class HomeController extends Controller
         }
 
         // Facette PAIEMENT (choix multiple, OR entre les options cochées).
+        // On applique chaque condition via une sous-requête booléenne compilée
+        // (whereIn sur des ids) pour éviter tout souci d'imbrication/bindings
+        // avec le tri (orderByRaw) sur MySQL.
         $payments = array_values(array_filter((array) $request->input('payment', [])));
         if (! empty($payments)) {
-            $query->where(function ($outer) use ($payments) {
-                foreach ($payments as $payment) {
-                    match ($payment) {
-                        // Carte : réellement payable (vendeur Stripe opérationnel).
-                        'cb' => $outer->orWhere(fn ($q) => $q->where('requires_online_payment', true)
-                            ->whereHas('user', fn ($u) => $u->whereNotNull('stripe_account_id')
-                                ->where('stripe_charges_enabled', true)
-                                ->where('stripe_payouts_enabled', true))),
-                        // Espèces / remise en main propre (vente avec prix).
-                        'cash' => $outer->orWhere(fn ($q) => $q->where('allows_hand_delivery', true)
-                            ->where('price', '>', 0)
-                            ->whereIn('listing_type', ['achat', 'negoce-prix'])),
-                        'exchange' => $outer->orWhere(fn ($q) => $q->where('allows_exchange', true)
-                            ->orWhere('listing_type', 'echange-produits')),
-                        'don' => $outer->orWhere(fn ($q) => $q->where('listing_type', 'don')
-                            ->orWhere('price', '<=', 0)),
-                        default => null,
-                    };
-                }
-            });
+            $matchIds = collect();
+
+            foreach ($payments as $payment) {
+                $sub = Listing::query()->where('status', 'published')->select('id');
+
+                match ($payment) {
+                    'cb' => $sub->onlinePayable(),
+                    'cash' => $sub->where('allows_hand_delivery', true)
+                        ->where('price', '>', 0)
+                        ->whereIn('listing_type', ['achat', 'negoce-prix']),
+                    'exchange' => $sub->where(fn ($q) => $q->where('allows_exchange', true)
+                        ->orWhere('listing_type', 'echange-produits')),
+                    'don' => $sub->where(fn ($q) => $q->where('listing_type', 'don')
+                        ->orWhere('price', '<=', 0)),
+                    default => $sub->whereRaw('1 = 0'),
+                };
+
+                $matchIds = $matchIds->merge($sub->pluck('id'));
+            }
+
+            $query->whereIn('id', $matchIds->unique()->values());
         }
 
         // Si le paramètre territoire est présent (même vide = « Tous les

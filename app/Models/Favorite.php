@@ -9,6 +9,11 @@ class Favorite extends Model
     protected $fillable = [
         'user_id',
         'listing_id',
+        'reminded_at',
+    ];
+
+    protected $casts = [
+        'reminded_at' => 'datetime',
     ];
 
     public function user()

@@ -26,3 +26,8 @@ Schedule::command('payouts:release-pending')->everyFifteenMinutes()->withoutOver
 // Filets de sécurité paiement : versement auto (colis expédié depuis longtemps
 // sans confirmation) + signalement des ventes non expédiées à rembourser.
 Schedule::command('transactions:auto-resolve')->dailyAt('07:00')->withoutOverlapping();
+
+// Rappel « N'oubliez pas votre favori » : chaque jour, on relance les membres
+// dont un article favori (encore en ligne) date d'au moins une semaine. Un
+// favori n'est relancé qu'une seule fois (colonne favorites.reminded_at).
+Schedule::command('favorites:remind')->dailyAt('09:00')->withoutOverlapping();

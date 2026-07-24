@@ -503,6 +503,27 @@ document.addEventListener('DOMContentLoaded', function () {
 })();
 </script>
 
+<script>
+(function () {
+    // iOS/Safari : au retour arrière (swipe du pouce ou bouton) la page est
+    // restaurée depuis le bfcache, mais des images en loading="lazy" peuvent
+    // rester vides. On force leur (re)chargement à la restauration.
+    window.addEventListener('pageshow', function (event) {
+        if (!event.persisted) return;
+
+        document.querySelectorAll('img[loading="lazy"]').forEach(function (img) {
+            if (img.complete && img.naturalWidth > 0) return;
+
+            var src = img.getAttribute('src');
+            if (!src) return;
+
+            img.loading = 'eager';
+            img.src = src;
+        });
+    });
+})();
+</script>
+
 </body>
 </html>
 

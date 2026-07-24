@@ -136,7 +136,9 @@
 {{-- Barre de navigation --}}
 <section class="bg-white border-b border-gray-100">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-3">
-        <a href="{{ url()->previous() }}" class="text-sm font-semibold text-gray-500 hover:text-teal-700">← Retour</a>
+        <a href="{{ url()->previous() }}"
+           onclick="if (window.history.length > 1) { event.preventDefault(); window.history.back(); }"
+           class="text-sm font-semibold text-gray-500 hover:text-teal-700">← Retour</a>
         @if($listing->territoire)
             <a href="{{ route('search', ['territoire' => $listing->territoire]) }}" class="text-sm font-semibold text-teal-700 hover:text-teal-900">
                 Annonces à {{ $listing->territoire }} →

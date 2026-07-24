@@ -35,7 +35,7 @@ class SendListingInterestSellerEmail implements ShouldQueue
         }
 
         $seller = $listing->user;
-        $ile = e(Territoires::display($this->buyerTerritoire ?: 'une autre île'));
+        $ile = e(Territoires::origin($this->buyerTerritoire));
         $title = e($listing->title);
         $editUrl = e(route('account.listings.edit', $listing));
         $walletUrl = e(route('account.wallet.index'));
@@ -53,7 +53,7 @@ class SendListingInterestSellerEmail implements ShouldQueue
     <div style="padding:30px;">
       <h1 style="font-size:22px;margin:0 0 14px;">Un acheteur veut votre article ! 🌍</h1>
       <p style="font-size:16px;line-height:1.7;color:#374151;margin:0 0 14px;">
-        Bonne nouvelle : un acheteur de <strong>{$ile}</strong> est intéressé par votre article
+        Bonne nouvelle : un acheteur <strong>{$ile}</strong> est intéressé par votre article
         <strong>« {$title} »</strong>.
       </p>
       <p style="font-size:16px;line-height:1.7;color:#374151;margin:0 0 18px;">

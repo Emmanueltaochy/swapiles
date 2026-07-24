@@ -66,7 +66,7 @@ class ListingInterestController extends Controller
                     'sender_id' => $user->id,
                     'receiver_id' => $listing->user_id,
                     'body' => 'Bonjour, je suis intéressé(e) par votre article « ' . $listing->title . ' » '
-                        . 'mais je suis à ' . Territoires::display($user->territoire) . ' et la livraison n’est pas activée. '
+                        . 'mais je suis ' . Territoires::locative($user->territoire) . ' et la livraison n’est pas activée. '
                         . 'Pouvez-vous activer la livraison Colissimo (paiement CB en ligne) pour que je puisse l’acheter ? Merci ! 🙏',
                 ]);
             } catch (\Throwable $e) {
@@ -79,7 +79,7 @@ class ListingInterestController extends Controller
                     'user_id' => $listing->user_id,
                     'type' => 'listing_interest',
                     'title' => 'Un acheteur veut votre article 🌍',
-                    'message' => 'Un acheteur de ' . Territoires::display($user->territoire)
+                    'message' => 'Un acheteur ' . Territoires::origin($user->territoire)
                         . ' est intéressé par « ' . $listing->title . ' » mais ne peut pas l’acheter : activez Colissimo (CB en ligne) pour vendre à toutes les îles.',
                     'url' => route('account.listings.edit', $listing, absolute: false),
                 ]);

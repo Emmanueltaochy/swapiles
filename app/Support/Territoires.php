@@ -22,4 +22,36 @@ class Territoires
             default => (string) $label, // « La Réunion » et « Mayotte » restent tels quels
         };
     }
+
+    /**
+     * Forme LOCATIVE (« je suis … », « livrer … ») avec la bonne préposition :
+     * « à la Réunion », « en Guadeloupe », « en Martinique », « en Guyane », « à Mayotte ».
+     */
+    public static function locative(?string $label): string
+    {
+        return match ($label) {
+            'La Réunion' => 'à la Réunion',
+            'Martinique' => 'en Martinique',
+            'Guadeloupe' => 'en Guadeloupe',
+            'Guyane' => 'en Guyane',
+            'Mayotte' => 'à Mayotte',
+            default => $label ? 'à ' . $label : 'sur une autre île',
+        };
+    }
+
+    /**
+     * Forme d'ORIGINE (« un acheteur … ») :
+     * « de la Réunion », « de Guadeloupe », « de Martinique », « de Guyane », « de Mayotte ».
+     */
+    public static function origin(?string $label): string
+    {
+        return match ($label) {
+            'La Réunion' => 'de la Réunion',
+            'Martinique' => 'de Martinique',
+            'Guadeloupe' => 'de Guadeloupe',
+            'Guyane' => 'de Guyane',
+            'Mayotte' => 'de Mayotte',
+            default => $label ? 'de ' . $label : 'd’une autre île',
+        };
+    }
 }

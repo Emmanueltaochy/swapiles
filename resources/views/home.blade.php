@@ -367,7 +367,7 @@
     </div>
 </section>
 
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<section id="comment-ca-marche" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 scroll-mt-24">
     <div class="rounded-3xl bg-gray-950 text-white p-6 sm:p-8 lg:p-10 overflow-hidden relative">
         <div class="absolute -right-10 -top-10 text-9xl opacity-10">🌴</div>
 

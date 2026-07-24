@@ -67,6 +67,7 @@ Route::get('/mentions-legales', [\App\Http\Controllers\LegalController::class, '
 Route::get('/cgu', [\App\Http\Controllers\LegalController::class, 'cgu'])->name('legal.cgu');
 Route::get('/cgv', [\App\Http\Controllers\LegalController::class, 'cgv'])->name('legal.cgv');
 Route::get('/confidentialite', [\App\Http\Controllers\LegalController::class, 'confidentialite'])->name('legal.privacy');
+Route::get('/faq', [\App\Http\Controllers\LegalController::class, 'faq'])->name('faq');
 
 Route::get('/annonce/{listing}', [ListingController::class, 'show'])->name('listings.show');
 
@@ -284,8 +285,8 @@ Route::get('/sitemap.xml', function () {
     ]);
 
     // Pages légales (confiance / E-E-A-T)
-    foreach (['legal.mentions', 'legal.cgu', 'legal.cgv', 'legal.privacy'] as $legalRoute) {
-        $urls->push(['loc' => route($legalRoute), 'priority' => '0.3', 'changefreq' => 'yearly']);
+    foreach (['legal.mentions', 'legal.cgu', 'legal.cgv', 'legal.privacy', 'faq'] as $legalRoute) {
+        $urls->push(['loc' => route($legalRoute), 'priority' => '0.4', 'changefreq' => 'monthly']);
     }
 
     // Pages de destination par territoire + catégorie (fort levier SEO)

@@ -343,9 +343,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
             <div>
                 <p class="font-extrabold mb-3">Plateforme</p>
-                <p class="text-gray-500">Comment ça marche</p>
-                <p class="text-gray-500">Catégories</p>
-                <p class="text-gray-500">FAQ</p>
+                <a href="{{ route('home') }}#comment-ca-marche" class="block text-gray-500 hover:text-teal-700">Comment ça marche</a>
+                <a href="{{ route('search') }}" class="block text-gray-500 hover:text-teal-700">Catégories</a>
+                <a href="{{ route('faq') }}" class="block text-gray-500 hover:text-teal-700">FAQ</a>
             </div>
 
             <div>

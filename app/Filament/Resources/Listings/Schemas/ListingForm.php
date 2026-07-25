@@ -61,13 +61,16 @@ class ListingForm
                 TextInput::make('pickup_postal_code')
                     ->label('Code postal (remise main propre)'),
                 TextInput::make('weight_kg')
-                    ->label('Poids du colis (kg)')
-                    ->helperText('Utilisé pour calculer les frais Colissimo. Ex. 0.5 pour 500 g.')
+                    ->label('Poids du colis (en grammes)')
+                    ->helperText('En GRAMMES (ex. 250 pour 250 g). Sert au calcul des frais Colissimo.')
                     ->numeric()
-                    ->minValue(0.01)
-                    ->maxValue(30)
-                    ->step(0.01)
-                    ->suffix('kg'),
+                    ->minValue(1)
+                    ->maxValue(30000)
+                    ->step(10)
+                    ->suffix('g')
+                    // La colonne est stockée en kg : on convertit à l'affichage et à l'enregistrement.
+                    ->formatStateUsing(fn ($state) => $state !== null ? (int) round(((float) $state) * 1000) : null)
+                    ->dehydrateStateUsing(fn ($state) => filled($state) ? round(((float) $state) / 1000, 3) : null),
                 Toggle::make('pickup_enabled')
                     ->label('Remise en main propre'),
                 Toggle::make('allows_hand_delivery')

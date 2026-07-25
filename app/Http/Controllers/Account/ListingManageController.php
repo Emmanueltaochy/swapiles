@@ -55,9 +55,9 @@ class ListingManageController extends Controller
                 ->withInput();
         }
 
-        if ($allowsColissimo && empty($data['weight_kg'])) {
+        if ($allowsColissimo && blank($data['weight_g'] ?? null)) {
             return back()
-                ->withErrors(['weight_kg' => 'Le poids du colis est obligatoire pour proposer Colissimo.'])
+                ->withErrors(['weight_g' => 'Le poids du colis est obligatoire pour proposer Colissimo.'])
                 ->withInput();
         }
 
@@ -98,7 +98,7 @@ class ListingManageController extends Controller
             'allows_colissimo' => $allowsColissimo,
             'requires_online_payment' => $cbEnabled,
             'shipping_price' => 0,
-            'weight_kg' => $allowsColissimo ? ($data['weight_kg'] ?? null) : null,
+            'weight_kg' => $allowsColissimo && filled($data['weight_g'] ?? null) ? round(((float) $data['weight_g']) / 1000, 3) : null,
             'views_count' => 0,
         ]);
 
@@ -176,9 +176,9 @@ class ListingManageController extends Controller
                 ->withInput();
         }
 
-        if ($allowsColissimo && empty($data['weight_kg'])) {
+        if ($allowsColissimo && blank($data['weight_g'] ?? null)) {
             return back()
-                ->withErrors(['weight_kg' => 'Le poids du colis est obligatoire pour proposer Colissimo.'])
+                ->withErrors(['weight_g' => 'Le poids du colis est obligatoire pour proposer Colissimo.'])
                 ->withInput();
         }
 
@@ -213,7 +213,7 @@ class ListingManageController extends Controller
             'allows_colissimo' => $allowsColissimo,
             'requires_online_payment' => $cbEnabled,
             'shipping_price' => 0,
-            'weight_kg' => $allowsColissimo ? ($data['weight_kg'] ?? null) : null,
+            'weight_kg' => $allowsColissimo && filled($data['weight_g'] ?? null) ? round(((float) $data['weight_g']) / 1000, 3) : null,
         ]);
 
         $this->storeImages($request, $listing);
@@ -453,7 +453,7 @@ class ListingManageController extends Controller
             'shipping_enabled' => ['nullable'],
             'allows_hand_delivery' => ['nullable'],
             'allows_colissimo' => ['nullable'],
-            'weight_kg' => ['nullable', 'numeric', 'min:0.01', 'max:30'],
+            'weight_g' => ['nullable', 'numeric', 'min:1', 'max:30000'],
             // Photo obligatoire à la publication (bien meilleure conversion).
             'images' => $requireImages ? ['required', 'array', 'min:1'] : ['nullable', 'array'],
             'images.*' => ['nullable', 'image', 'max:5120'],

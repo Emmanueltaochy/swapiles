@@ -13,6 +13,7 @@ use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification as FilamentNotification;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
@@ -74,6 +75,12 @@ class ListingsTable
                     ->label('Île')
                     ->badge()
                     ->toggleable(),
+                TextColumn::make('weight_kg')
+                    ->label('Poids')
+                    ->formatStateUsing(fn ($state) => $state !== null ? number_format((float) $state * 1000, 0, ',', ' ') . ' g' : '—')
+                    ->color(fn ($state) => $state !== null && (float) $state > 2 ? 'danger' : null)
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('views_count')
                     ->label('Vues')
                     ->numeric()
@@ -128,6 +135,9 @@ class ListingsTable
                             default => $query,
                         };
                     }),
+                Filter::make('weight_suspect')
+                    ->label('Poids à vérifier (> 2 kg)')
+                    ->query(fn (Builder $query) => $query->where('weight_kg', '>', 2)),
                 TrashedFilter::make(),
             ])
             ->recordActions([

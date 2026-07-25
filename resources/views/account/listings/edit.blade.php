@@ -212,9 +212,9 @@
     </label>
 
     <div id="weight_box">
-        <label class="block text-sm font-bold text-gray-700 mb-2">Poids du colis en kg</label>
-        <input type="number" step="0.01" min="0.01" max="30" name="weight_kg" value="{{ old('weight_kg', isset($listing) ? $listing->weight_kg : '') }}" placeholder="Ex : 0.50" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-        <p class="text-xs text-gray-500 mt-1">Obligatoire si vous proposez Colissimo.</p>
+        <label class="block text-sm font-bold text-gray-700 mb-2">Poids du colis (en grammes)</label>
+        <input id="weight_g" type="number" step="10" min="1" max="30000" name="weight_g" value="{{ old('weight_g', isset($listing) && $listing->weight_kg ? (int) round($listing->weight_kg * 1000) : '') }}" placeholder="Ex : 250" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
+        <p class="text-xs text-gray-500 mt-1">En <strong>grammes</strong> (ex. 250 g). T-shirt ~200 g · jean ~600 g · manteau ~1200 g. Obligatoire pour Colissimo.</p>
     </div>
 </div>
 

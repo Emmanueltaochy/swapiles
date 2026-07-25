@@ -313,10 +313,25 @@
                         @error('allows_colissimo')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
 
                         <div id="weight_box">
-                            <label for="weight_kg" class="{{ $lbl }}">Poids du colis (kg) <span class="text-red-500">*</span></label>
-                            <input id="weight_kg" type="number" step="0.01" min="0.01" max="30" name="weight_kg" value="{{ old('weight_kg', isset($listing) ? $listing->weight_kg : '') }}" placeholder="Ex : 0.50" class="{{ $inp }}">
-                            <p class="mt-1 text-xs text-gray-500">Obligatoire pour Colissimo — le poids sert à calculer l'affranchissement et à générer le bordereau.</p>
-                            @error('weight_kg')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
+                            <label for="weight_g" class="{{ $lbl }}">Poids du colis (en grammes) <span class="text-red-500">*</span></label>
+                            <input id="weight_g" type="number" step="10" min="1" max="30000" name="weight_g" value="{{ old('weight_g', isset($listing) && $listing->weight_kg ? (int) round($listing->weight_kg * 1000) : '') }}" placeholder="Ex : 250" class="{{ $inp }}">
+                            <p class="mt-1 text-xs text-gray-500">Obligatoire pour Colissimo — indiquez le poids <strong>en grammes</strong> (ex. 250 g). Il sert à calculer l'affranchissement.</p>
+                            @error('weight_g')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
+
+                            <details class="mt-2 rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs">
+                                <summary class="cursor-pointer font-semibold text-gray-700">📦 Guide des poids (aide à l'estimation)</summary>
+                                <ul class="mt-2 space-y-1 text-gray-600">
+                                    <li>👕 T-shirt / débardeur : <strong>~150–250 g</strong></li>
+                                    <li>👚 Chemise / blouse : <strong>~200–300 g</strong></li>
+                                    <li>👗 Robe : <strong>~300–500 g</strong></li>
+                                    <li>👖 Jean / pantalon : <strong>~500–800 g</strong></li>
+                                    <li>🧥 Pull / sweat : <strong>~400–700 g</strong></li>
+                                    <li>🧥 Manteau / grosse veste : <strong>~900–1500 g</strong></li>
+                                    <li>👟 Chaussures : <strong>~700–1200 g</strong></li>
+                                    <li>👜 Sac : <strong>~300–800 g</strong></li>
+                                </ul>
+                                <p class="mt-2 text-gray-400">Pèse l'article emballé si tu peux. En cas de doute, arrondis au-dessus.</p>
+                            </details>
                         </div>
                     </div>
                 </div>
@@ -456,7 +471,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const coli = document.getElementById('allows_colissimo');
     const coliBox = document.getElementById('colissimo_box');
     const weightBox = document.getElementById('weight_box');
-    const weight = document.getElementById('weight_kg');
+    const weight = document.getElementById('weight_g');
     const hasAddress = @json((bool) $hasAddress);
     const coliNotice = document.getElementById('colissimo_address_notice');
     const territoireSel = document.getElementById('territoire');

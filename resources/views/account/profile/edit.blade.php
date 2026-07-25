@@ -96,13 +96,13 @@
 
                 <div class="space-y-4">
                     <label class="block mt-5 text-sm font-extrabold text-gray-800">Nouveau mot de passe</label>
-<input autocomplete="new-password" required type="password" name="password" placeholder="Nouveau mot de passe"
+<input autocomplete="new-password" type="password" name="password" placeholder="Laisser vide pour ne pas changer"
             class="w-full mt-2 rounded-2xl border-2 border-gray-300 bg-white px-5 py-4 text-lg font-bold text-gray-950 shadow-sm outline-none transition placeholder:text-gray-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-100 @error('password') border-red-500 bg-red-50 focus:border-red-600 focus:ring-red-100 @enderror">
                     <label class="block mt-5 text-sm font-extrabold text-gray-800">Confirmation du mot de passe</label>
-<input autocomplete="new-password" required type="password" name="password_confirmation" placeholder="Confirmer le mot de passe"
+<input autocomplete="new-password" type="password" name="password_confirmation" placeholder="Confirmer le mot de passe"
             class="w-full mt-2 rounded-2xl border-2 border-gray-300 bg-white px-5 py-4 text-lg font-bold text-gray-950 shadow-sm outline-none transition placeholder:text-gray-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-100 @error('password_confirmation') border-red-500 bg-red-50 focus:border-red-600 focus:ring-red-100 @enderror">
 <p class="mt-2 text-sm text-gray-500">
-    Utilisez au moins 8 caractères. Les deux mots de passe doivent être identiques.
+    Laissez ces champs vides pour conserver votre mot de passe actuel. Sinon, utilisez au moins 8 caractères (les deux doivent être identiques).
 </p>
                 </div>
             </div>

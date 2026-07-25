@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Listing;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Stripe\StripeClient;
@@ -26,7 +27,7 @@ use Stripe\StripeClient;
  */
 class AuditStripeConnect extends Command
 {
-    protected $signature = 'stripe:audit-connect {--sync : Met à jour les colonnes stripe_* locales depuis Stripe} {--account= : N\'auditer qu\'un stripe_account_id précis}';
+    protected $signature = 'stripe:audit-connect {--sync : Met à jour les colonnes stripe_* locales depuis Stripe} {--fix : Désactive requires_online_payment sur les annonces des vendeurs non opérationnels} {--account= : N\'auditer qu\'un stripe_account_id précis}';
 
     protected $description = 'Vérifie l\'état réel des comptes Stripe Connect des vendeurs CB actifs';
 
@@ -50,6 +51,7 @@ class AuditStripeConnect extends Command
 
         $rows = [];
         $broken = 0;
+        $fixedListings = 0;
 
         foreach ($sellers as $seller) {
             try {
@@ -90,9 +92,27 @@ class AuditStripeConnect extends Command
                     'stripe_details_submitted' => $liveDetails,
                 ])->save();
             }
+
+            // --fix : une annonce achetable dont les fonds ne pourront JAMAIS
+            // être reversés est pire que pas d'annonce. On coupe le paiement en
+            // ligne pour tout vendeur non réellement opérationnel (charges OU
+            // payouts manquant côté Stripe).
+            if ($this->option('fix') && !$liveOk) {
+                $disabled = Listing::where('user_id', $seller->id)
+                    ->where('requires_online_payment', true)
+                    ->update(['requires_online_payment' => false]);
+                $fixedListings += $disabled;
+                if ($disabled > 0) {
+                    $this->warn("  -> Vendeur #{$seller->id} : {$disabled} annonce(s) repassée(s) hors paiement en ligne.");
+                }
+            }
         }
 
         $this->table(['User', 'Account', 'charges/payouts (live)', 'Verdict'], $rows);
+
+        if ($this->option('fix')) {
+            $this->info("Annonces désactivées du paiement en ligne : {$fixedListings}.");
+        }
 
         if ($broken > 0) {
             $this->error("{$broken} compte(s) NON opérationnel(s) ou en erreur — l'étape 7 (versement vendeur) échouerait pour ceux-là.");

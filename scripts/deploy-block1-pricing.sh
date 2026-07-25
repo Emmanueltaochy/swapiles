@@ -59,7 +59,19 @@ else
     exit 1
 fi
 
-echo "==> 5/5  Migrations restantes du Block 1 (backfill seller_amount + customer id)"
+echo "==> 5/6  Migrations restantes du Block 1 (backfill seller_amount + customer id)"
 php artisan migrate --force
 
-echo "==> Terminé. Pense à recharger la config si besoin (php artisan config:clear)."
+# config/pricing.php lit env() au runtime : si la config est en cache, les
+# overrides PRICING_* de .env sont ignorés. On vide le cache pour que la
+# promesse « réglable sans redéploiement » tienne réellement en prod.
+echo "==> 6/6  Purge du cache de config (indispensable pour PRICING_* dynamiques)"
+php artisan config:clear
+
+echo ""
+echo "==> Migrations OK. Étapes MANUELLES restantes :"
+echo "    a) php artisan stripe:cancel-stale-intents --before=\"<horodatage du déploiement>\"        # dry-run"
+echo "       puis --apply pour annuler les PaymentIntents ouverts en ancienne grille."
+echo "    b) php artisan stripe:audit-connect --sync            # état réel des vendeurs + resync"
+echo "       php artisan stripe:audit-connect --fix             # coupe le paiement en ligne des vendeurs non reversables"
+echo "==> Terminé."

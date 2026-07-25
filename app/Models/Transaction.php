@@ -99,6 +99,29 @@ class Transaction extends Model
         return $this->commission;
     }
 
+    /**
+     * L'article a-t-il été expédié ? On se fie au numéro de suivi (décision
+     * produit : « expédié » = un suivi transporteur existe).
+     */
+    public function hasBeenShipped(): bool
+    {
+        return filled($this->tracking_number);
+    }
+
+    /**
+     * Montant du remboursement acheteur, en euros (décision produit) :
+     *   - jamais expédié (pas de suivi) -> remboursement INTÉGRAL, port compris ;
+     *   - déjà expédié -> prix + protection uniquement (le port est consommé).
+     */
+    public function refundAmountEuros(): float
+    {
+        if (!$this->hasBeenShipped()) {
+            return max(0.0, (float) $this->amount);
+        }
+
+        return max(0.0, (float) $this->amount - (float) $this->shipping_fee);
+    }
+
     protected static function booted(): void
     {
         static::created(function (Transaction $transaction) {

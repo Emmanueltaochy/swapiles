@@ -145,11 +145,15 @@ class TransactionsTable
                 try {
                     $stripe = new StripeClient(env('STRIPE_SECRET'));
 
-                    // Remboursement acheteur = prix + protection, intégralement.
-                    // = total − livraison (valable pour toute transaction : le
-                    // total inclut déjà prix + protection + livraison).
-                    $refundEuros = max(0, (float) $record->amount - (float) $record->shipping_fee);
+                    // Décision produit :
+                    //   - jamais expédié (pas de suivi) -> remboursement INTÉGRAL
+                    //     (prix + protection + port) ;
+                    //   - déjà expédié -> prix + protection uniquement.
+                    $refundEuros = $record->refundAmountEuros();
                     $refundCents = (int) round($refundEuros * 100);
+                    $refundScope = $record->hasBeenShipped()
+                        ? 'prix_plus_protection'
+                        : 'integral_port_compris';
 
                     $refund = $stripe->refunds->create([
                         'payment_intent' => $record->stripe_payment_intent_id,
@@ -157,7 +161,7 @@ class TransactionsTable
                         'metadata' => [
                             'transaction_id' => $record->id,
                             'reason' => 'remboursement_admin',
-                            'refund_scope' => 'prix_plus_protection',
+                            'refund_scope' => $refundScope,
                         ],
                     ]);
 

@@ -6,12 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Listing;
 use App\Models\Transaction;
 use App\Models\ListingOffer;
-use App\Models\Notification;
-use App\Jobs\SendSellerPaymentReceivedEmail;
-use App\Jobs\SendTransactionStatusEmails;
-use App\Notifications\TransactionPaidNotification;
-use App\Notifications\TransactionBuyerPaidNotification;
 use App\Support\AdminEvent;
+use App\Support\TransactionPayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Services\ColissimoRateService;
@@ -225,26 +221,14 @@ class CheckoutController extends Controller
             403
         );
 
-        $justPaid = false;
-
         try {
-            $wasPaid = $transaction->status === 'paid';
-            $justPaid = !$wasPaid;
+            // Transition « payé » unique et idempotente : si le webhook Stripe
+            // a déjà traité ce paiement, markPaidOnce renvoie false et ne
+            // recrée NI notification NI e-mail (fin du doublon de notification).
+            $justClaimed = TransactionPayment::markPaidOnce($transaction);
 
-            if ($transaction->status === 'pending') {
-                $transaction->update([
-                    'status' => 'paid',
-                    'paid_at' => $transaction->paid_at ?? now(),
-                ]);
-            }
-
-            if ($transaction->listing && $transaction->listing->status !== 'sold') {
-                $transaction->listing->update(['status' => 'sold']);
-            }
-
-            if (!$wasPaid) {
+            if ($justClaimed) {
                 $freshTransaction = $transaction->fresh(['listing', 'seller', 'buyer']);
-                $this->sendPaidNotifications($freshTransaction);
 
                 AdminEvent::notify(
                     'Nouvelle vente validée',
@@ -260,8 +244,14 @@ class CheckoutController extends Controller
             ->route('account.transactions.show', $transaction)
             ->with('status', 'Paiement confirmé. Votre achat est bien enregistré.');
 
-        // Événement de conversion Pixel/GA (une seule fois).
-        if ($justPaid) {
+        // Événement de conversion Pixel/GA : côté ACHETEUR, une seule fois par
+        // session, indépendamment de qui (page succès ou webhook) a marqué payé.
+        // Sinon la conversion serait perdue quand le webhook gagne la course.
+        $pixelKey = 'pixel_purchase_' . $transaction->id;
+        if (auth()->id() === $transaction->buyer_id
+            && $transaction->fresh()->status === 'paid'
+            && !session()->get($pixelKey, false)) {
+            session()->put($pixelKey, true);
             $redirect->with('pixel_event', [
                 'event' => 'Purchase',
                 'params' => [
@@ -275,38 +265,6 @@ class CheckoutController extends Controller
         }
 
         return $redirect;
-    }
-
-    private function sendPaidNotifications(Transaction $transaction): void
-    {
-        if ($transaction->seller) {
-            Notification::create([
-                'user_id' => $transaction->seller_id,
-                'type' => 'transaction_paid_seller',
-                'title' => 'Nouvelle vente 🎉',
-                'message' => 'Votre article "' . ($transaction->listing->title ?? 'Annonce') . '" a été acheté.',
-                'url' => route('account.transactions.show', $transaction, absolute: false),
-            ]);
-
-        }
-
-        if ($transaction->buyer) {
-            Notification::create([
-                'user_id' => $transaction->buyer_id,
-                'type' => 'transaction_paid_buyer',
-                'title' => 'Achat confirmé ✅',
-                'message' => 'Votre paiement a été validé pour "' . ($transaction->listing->title ?? 'Annonce') . '".',
-                'url' => route('account.transactions.show', $transaction, absolute: false),
-            ]);
-
-        }
-
-        // E-mails fiables (Mail::raw) à l'acheteur ET au vendeur.
-        try {
-            SendTransactionStatusEmails::dispatch($transaction->id, 'paid');
-        } catch (\Throwable $e) {
-            report($e);
-        }
     }
 
     public function cancel(Transaction $transaction)

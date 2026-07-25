@@ -56,7 +56,7 @@ class ReleasePendingPayouts extends Command
 
             try {
                 $transfer = $stripe->transfers->create([
-                    'amount' => $sellerAmount * 100,
+                    'amount' => (int) round($sellerAmount * 100),
                     'currency' => 'eur',
                     'destination' => $seller->stripe_account_id,
                     'metadata' => [

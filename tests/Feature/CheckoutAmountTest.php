@@ -31,12 +31,21 @@ class CheckoutAmountTest extends TestCase
 
             public array $lastMetadata = [];
 
-            public function create(int $amountCents, array $metadata, string $currency = 'eur'): object
+            public array $lastOptions = [];
+
+            public function create(int $amountCents, array $metadata, array $options = [], string $currency = 'eur'): object
             {
                 $this->lastAmount = $amountCents;
                 $this->lastMetadata = $metadata;
+                $this->lastOptions = $options;
 
                 return (object) ['id' => 'pi_test_'.uniqid(), 'client_secret' => 'cs_test_secret'];
+            }
+
+            // Item 9 : pas d'appel réseau Stripe en test (Customer simulé).
+            public function resolveCustomerId(\App\Models\User $buyer): ?string
+            {
+                return 'cus_test_'.$buyer->id;
             }
         };
 
@@ -127,6 +136,10 @@ class CheckoutAmountTest extends TestCase
             // 5) Métadonnées : pas de colissimo_delivery_type en main propre.
             $this->assertArrayNotHasKey('colissimo_delivery_type', $spy->lastMetadata);
             $this->assertSame('hand_delivery', $spy->lastMetadata['delivery_method']);
+
+            // 6) Item 9 : reçu e-mail à l'acheteur + Customer rattaché.
+            $this->assertSame($buyer->email, $spy->lastOptions['receipt_email'] ?? null, "receipt_email {$price}");
+            $this->assertSame('cus_test_'.$buyer->id, $spy->lastOptions['customer'] ?? null, "customer {$price}");
         }
     }
 }

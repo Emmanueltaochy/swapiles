@@ -188,9 +188,17 @@ class CheckoutController extends Controller
         }
 
         // Montant Stripe = total exact en centimes entiers (== total affiché).
-        $paymentIntent = app(StripePaymentIntentService::class)->create(
+        // Item 9 : Customer réutilisé + reçu e-mail à l'acheteur, carte + Link.
+        $buyer = Auth::user();
+        $piService = app(StripePaymentIntentService::class);
+
+        $paymentIntent = $piService->create(
             $pricing->totalCents(),
             $metadata,
+            [
+                'customer' => $piService->resolveCustomerId($buyer),
+                'receipt_email' => $buyer->email,
+            ],
         );
 
         $transaction->update([

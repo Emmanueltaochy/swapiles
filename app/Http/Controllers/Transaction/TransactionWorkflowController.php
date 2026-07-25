@@ -104,7 +104,7 @@ class TransactionWorkflowController extends Controller
             $stripe = new StripeClient(env('STRIPE_SECRET'));
 
             $transfer = $stripe->transfers->create([
-                'amount' => $sellerAmount * 100,
+                'amount' => (int) round($sellerAmount * 100),
                 'currency' => 'eur',
                 'destination' => $seller->stripe_account_id,
                 'metadata' => [

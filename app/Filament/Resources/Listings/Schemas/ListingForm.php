@@ -54,11 +54,33 @@ class ListingForm
                 TextInput::make('marque'),
                 TextInput::make('taille'),
                 TextInput::make('couleurs'),
-                TextInput::make('location_address'),
+                TextInput::make('location_address')
+                    ->label('Adresse exacte (privée)'),
+                TextInput::make('pickup_city')
+                    ->label('Ville (remise main propre)'),
+                TextInput::make('pickup_postal_code')
+                    ->label('Code postal (remise main propre)'),
+                TextInput::make('weight_kg')
+                    ->label('Poids du colis (kg)')
+                    ->helperText('Utilisé pour calculer les frais Colissimo. Ex. 0.5 pour 500 g.')
+                    ->numeric()
+                    ->minValue(0.01)
+                    ->maxValue(30)
+                    ->step(0.01)
+                    ->suffix('kg'),
                 Toggle::make('pickup_enabled')
-                    ->required(),
-                Toggle::make('shipping_enabled')
-                    ->required(),
+                    ->label('Remise en main propre'),
+                Toggle::make('allows_hand_delivery')
+                    ->label('Autorise la main propre'),
+                Toggle::make('allows_colissimo')
+                    ->label('Livraison Colissimo'),
+                Toggle::make('requires_online_payment')
+                    ->label('Paiement CB en ligne'),
+                Toggle::make('allows_offers')
+                    ->label('Accepte les offres'),
+                Toggle::make('allows_exchange')
+                    ->label('Accepte l’échange'),
+                Toggle::make('shipping_enabled'),
                 TextInput::make('shipping_price')
                     ->required()
                     ->numeric()

@@ -145,12 +145,30 @@ class TransactionsTable
                 try {
                     $stripe = new StripeClient(env('STRIPE_SECRET'));
 
+                    // Remboursement acheteur = prix + protection, intégralement.
+                    // = total − livraison (valable pour toute transaction : le
+                    // total inclut déjà prix + protection + livraison).
+                    $refundEuros = max(0, (float) $record->amount - (float) $record->shipping_fee);
+                    $refundCents = (int) round($refundEuros * 100);
+
                     $refund = $stripe->refunds->create([
                         'payment_intent' => $record->stripe_payment_intent_id,
+                        'amount' => $refundCents,
                         'metadata' => [
                             'transaction_id' => $record->id,
                             'reason' => 'remboursement_admin',
+                            'refund_scope' => 'prix_plus_protection',
                         ],
+                    ]);
+
+                    // Les frais Stripe de la transaction initiale ne sont PAS
+                    // restitués par Stripe : perte sèche à suivre comme coût variable.
+                    $stripeFeeLoss = round(($refundEuros * 0.015) + 0.25, 2);
+                    \Illuminate\Support\Facades\Log::warning('Remboursement : frais Stripe non restitués (coût variable)', [
+                        'transaction_id' => $record->id,
+                        'refund_eur' => $refundEuros,
+                        'estimated_stripe_fee_loss_eur' => $stripeFeeLoss,
+                        'stripe_refund_id' => $refund->id,
                     ]);
 
                     $record->update(['status' => 'refunded']);
@@ -165,7 +183,7 @@ class TransactionsTable
                             'type' => 'transaction_refunded',
                             'title' => 'Remboursement effectué 💶',
                             'message' => 'Votre achat "' . ($record->listing->title ?? 'Annonce')
-                                . '" a été remboursé (' . number_format((float) $record->amount, 2, ',', ' ') . ' €).',
+                                . '" a été remboursé (' . number_format($refundEuros, 2, ',', ' ') . ' €).',
                             'url' => route('account.transactions.show', $record, absolute: false),
                         ]);
                     }

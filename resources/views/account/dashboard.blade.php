@@ -160,7 +160,7 @@
                     <p class="mt-0.5 text-xs font-medium text-emerald-700">✅ Disponible</p>
                 </div>
             </div>
-            <p class="mt-3 text-xs text-gray-400">Montants nets, commission Swap'Îles déjà déduite.</p>
+            <p class="mt-3 text-xs text-gray-400">Le vendeur reçoit 100 % du prix affiché (aucune commission).</p>
         </section>
 
         {{-- 4. Raccourcis --}}

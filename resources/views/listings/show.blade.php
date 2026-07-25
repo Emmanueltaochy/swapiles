@@ -93,7 +93,7 @@
     $mainImage = $images->first();
 
     $protectionFee = ($listing->requires_online_payment ?? false)
-        ? max(0.99, round(($listing->price * 0.05) + 0.70, 2))
+        ? \App\Support\OrderPricing::fromEuros($listing->price)->protectionEuros()
         : 0;
 
     $protectedTotal = $listing->price + $protectionFee;

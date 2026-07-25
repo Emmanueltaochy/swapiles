@@ -90,7 +90,11 @@ class TransactionWorkflowController extends Controller
             return;
         }
 
-        $sellerAmount = $transaction->seller_amount > 0 ? $transaction->seller_amount : max(0, $transaction->amount - $transaction->commission);
+        // Vendeur = prix affiché (commission 0 %). On lit seller_amount ; le
+        // fallback retire protection + livraison, jamais seulement la commission.
+        $sellerAmount = $transaction->seller_amount > 0
+            ? (float) $transaction->seller_amount
+            : max(0, (float) $transaction->amount - (float) $transaction->buyer_protection_fee - (float) $transaction->shipping_fee);
 
         if ($sellerAmount <= 0) {
             return;

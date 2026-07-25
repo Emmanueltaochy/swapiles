@@ -13,7 +13,7 @@
         ['q' => 'Comment fonctionne la remise en main propre ?', 'a' => 'Sur une même île, vous pouvez convenir d\'un rendez-vous avec le vendeur pour récupérer l\'article et régler (en espèces ou selon accord). Simple, rapide et sans frais de port.'],
         ['q' => 'Comment fonctionne l\'échange ?', 'a' => 'Si le vendeur l\'autorise, vous pouvez proposer un de vos articles en échange (avec photo et description) directement depuis l\'annonce. Le vendeur accepte ou refuse votre proposition.'],
         ['q' => 'Comment suis-je payé en tant que vendeur ?', 'a' => 'Activez votre compte de paiement (Stripe) depuis votre profil pour recevoir vos ventes par carte directement sur votre compte bancaire, en toute sécurité.'],
-        ['q' => 'Quels sont les frais ?', 'a' => 'La publication d\'annonces est gratuite. Une commission s\'applique sur les ventes en ligne pour couvrir la sécurisation du paiement. Le détail est indiqué au moment de la vente.'],
+        ['q' => 'Quels sont les frais ?', 'a' => 'La publication d\'annonces est gratuite et le vendeur reçoit 100 % du prix affiché (aucune commission). Seul l\'acheteur règle une petite « protection acheteur » au moment du paiement en ligne, qui le rembourse si l\'article n\'est pas reçu ou non conforme. Le montant exact est indiqué avant de payer.'],
         ['q' => 'Comment contacter un vendeur ?', 'a' => 'Depuis n\'importe quelle annonce, cliquez sur « Envoyer un message » pour discuter directement avec le vendeur via la messagerie intégrée.'],
     ];
 @endphp

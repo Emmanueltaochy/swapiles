@@ -14,8 +14,9 @@ use App\Notifications\TransactionBuyerPaidNotification;
 use App\Support\AdminEvent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Stripe\StripeClient;
 use App\Services\ColissimoRateService;
+use App\Services\StripePaymentIntentService;
+use App\Support\OrderPricing;
 
 class CheckoutController extends Controller
 {
@@ -110,51 +111,15 @@ class CheckoutController extends Controller
 
         /*
          |--------------------------------------------------------------------------
-         | Protection acheteur
+         | Livraison
          |--------------------------------------------------------------------------
-         | Obligatoire sur TOUS les paiements CB :
-         | - achat direct
-         | - achat après offre acceptée
-         | - Colissimo
-         | - remise en main propre payée par CB
-         |
-         | Espèces / échange / don ne passent pas par ce checkout Stripe,
-         | donc pas de protection acheteur dans ces cas.
+         | 0 en remise en main propre. En Colissimo : tarif réel (aucun faux prix).
          */
-        $buyerProtectionFee = max(
-            0.99,
-            round(($itemAmount * 0.05) + 0.70, 2)
-        );
-
-        /*
-         |--------------------------------------------------------------------------
-         | Commission plateforme
-         |--------------------------------------------------------------------------
-         | Commission calculée sur le montant réel payé pour l'article.
-         */
-        /*
-         |--------------------------------------------------------------------------
-         | Commission vendeur Swap’Îles
-         |--------------------------------------------------------------------------
-         | 10% du prix réel de l’article, avec un minimum de 1 €.
-         | Important : on garde les centimes.
-         |
-         | Exemple :
-         | - 5 €  => 1 € de commission minimum
-         | - 15 € => 1,50 € de commission
-         | - 20 € => 2 € de commission
-         */
-        $platformCommission = max(
-            1,
-            round($itemAmount * 0.10, 2)
-        );
-
-        // V1 : frais à 0 pour éviter de bloquer. Calcul Colissimo API ensuite.
-        $shippingFee = 0;
+        $shippingEuros = 0.0;
 
         if ($deliveryMethod === 'colissimo') {
             try {
-                $shippingFee = app(ColissimoRateService::class)->calculateForListing($listing, $validated);
+                $shippingEuros = (float) app(ColissimoRateService::class)->calculateForListing($listing, $validated);
             } catch (\Throwable $e) {
                 report($e);
 
@@ -166,23 +131,30 @@ class CheckoutController extends Controller
             }
         }
 
-        $totalAmount = $itemAmount + $buyerProtectionFee + $shippingFee;
-        $sellerAmount = max(
-            0,
-            round($itemAmount - $platformCommission, 2)
-        );
+        /*
+         |--------------------------------------------------------------------------
+         | SOURCE DE VÉRITÉ UNIQUE DES MONTANTS (centimes)
+         |--------------------------------------------------------------------------
+         | protection = clamp(round(prix*10%, 2, HALF_UP), 0,50 €, 15,00 €)
+         | commission vendeur = 0  -> le vendeur reçoit EXACTEMENT le prix affiché
+         | total = prix + protection + livraison
+         |
+         | Ce même objet alimente l'affichage ET le montant du PaymentIntent :
+         | le montant débité est TOUJOURS égal au « Total à payer » affiché.
+         */
+        $pricing = OrderPricing::fromEuros($itemAmount, $shippingEuros);
 
         $transaction = Transaction::create([
             'listing_id' => $listing->id,
             'listing_offer_id' => $offer?->id,
             'seller_id' => $listing->user_id,
             'buyer_id' => Auth::id(),
-            'amount' => $totalAmount,
-            'commission' => $platformCommission,
-            'platform_commission' => $platformCommission,
-            'buyer_protection_fee' => $buyerProtectionFee,
-            'shipping_fee' => $shippingFee,
-            'seller_amount' => $sellerAmount,
+            'amount' => $pricing->totalEuros(),
+            'commission' => 0,
+            'platform_commission' => 0,
+            'buyer_protection_fee' => $pricing->protectionEuros(),
+            'shipping_fee' => $pricing->shippingEuros(),
+            'seller_amount' => $pricing->sellerEuros(),
             'currency' => 'EUR',
             'payment_method' => 'cb',
             'delivery_method' => $deliveryMethod,
@@ -200,22 +172,26 @@ class CheckoutController extends Controller
             'status' => 'pending',
         ]);
 
-        $stripe = new StripeClient(env('STRIPE_SECRET'));
+        $metadata = [
+            'transaction_id' => $transaction->id,
+            'listing_id' => $listing->id,
+            'listing_offer_id' => $offer?->id,
+            'seller_id' => $listing->user_id,
+            'buyer_id' => Auth::id(),
+            'delivery_method' => $deliveryMethod,
+        ];
 
-        $paymentIntent = $stripe->paymentIntents->create([
-            'amount' => $totalAmount * 100,
-            'currency' => 'eur',
-            'automatic_payment_methods' => ['enabled' => true],
-            'metadata' => [
-                'transaction_id' => $transaction->id,
-                'listing_id' => $listing->id,
-                'listing_offer_id' => $offer?->id,
-                'seller_id' => $listing->user_id,
-                'buyer_id' => Auth::id(),
-                'delivery_method' => $deliveryMethod,
-                'colissimo_delivery_type' => 'home',
-            ],
-        ]);
+        // On n'écrit colissimo_delivery_type QUE pour une expédition (sinon
+        // métadonnées contradictoires « main propre » + « à expédier »).
+        if ($deliveryMethod === 'colissimo') {
+            $metadata['colissimo_delivery_type'] = $validated['colissimo_delivery_type'] ?? 'home';
+        }
+
+        // Montant Stripe = total exact en centimes entiers (== total affiché).
+        $paymentIntent = app(StripePaymentIntentService::class)->create(
+            $pricing->totalCents(),
+            $metadata,
+        );
 
         $transaction->update([
             'stripe_payment_intent_id' => $paymentIntent->id,
@@ -225,12 +201,11 @@ class CheckoutController extends Controller
             'listing' => $listing,
             'transaction' => $transaction,
             'clientSecret' => $paymentIntent->client_secret,
-            'itemAmount' => $itemAmount,
-            'buyerProtectionFee' => $buyerProtectionFee,
-            'platformCommission' => $platformCommission,
-            'shippingFee' => $shippingFee,
-            'totalAmount' => $totalAmount,
-            'sellerAmount' => $sellerAmount,
+            'itemAmount' => $pricing->itemEuros(),
+            'buyerProtectionFee' => $pricing->protectionEuros(),
+            'shippingFee' => $pricing->shippingEuros(),
+            'totalAmount' => $pricing->totalEuros(),
+            'sellerAmount' => $pricing->sellerEuros(),
             'deliveryMethod' => $deliveryMethod,
         ]);
     }

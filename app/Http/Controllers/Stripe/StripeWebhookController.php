@@ -3,14 +3,12 @@
 namespace App\Http\Controllers\Stripe;
 
 use App\Http\Controllers\Controller;
-use App\Models\Notification;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Stripe\Webhook;
-use App\Notifications\TransactionPaidNotification;
-use App\Notifications\TransactionBuyerPaidNotification;
 use App\Support\AdminEvent;
+use App\Support\TransactionPayment;
 
 class StripeWebhookController extends Controller
 {
@@ -45,59 +43,16 @@ class StripeWebhookController extends Controller
                     $paymentIntent->id
                 )->first();
 
-                if ($transaction && $transaction->status !== 'paid') {
-
-                    $transaction->update([
-                        'status' => 'paid',
-                    ]);
-
-                    if ($transaction->listing) {
-                        $transaction->listing->update([
-                            'status' => 'sold',
-                        ]);
-                    }
+                // Transition unique et idempotente (partagée avec la page de
+                // succès) : crée notifications + e-mails une seule fois.
+                if ($transaction && TransactionPayment::markPaidOnce($transaction)) {
+                    $fresh = $transaction->fresh(['listing']);
 
                     AdminEvent::notify(
                         'Paiement Stripe validé',
-                        'Stripe a confirmé le paiement de ' . number_format((float) $transaction->amount, 2, ',', ' ') . ' € pour : ' . ($transaction->listing->title ?? 'Annonce'),
-                        route('account.transactions.show', $transaction)
+                        'Stripe a confirmé le paiement de ' . number_format((float) $fresh->amount, 2, ',', ' ') . ' € pour : ' . ($fresh->listing->title ?? 'Annonce'),
+                        route('account.transactions.show', $fresh)
                     );
-
-                    if ($transaction->seller) {
-
-                        Notification::create([
-                            'user_id' => $transaction->seller_id,
-                            'title' => 'Nouvelle vente 🎉',
-                            'message' => 'Votre article a été acheté.',
-                            'url' => route('account.transactions.show', $transaction, absolute: false),
-                        ]);
-
-                        try {
-                            $transaction->seller->notify(
-                                new TransactionPaidNotification($transaction)
-                            );
-                        } catch (\Throwable $e) {
-                            report($e);
-                        }
-                    }
-
-                    if ($transaction->buyer) {
-
-                        Notification::create([
-                            'user_id' => $transaction->buyer_id,
-                            'title' => 'Achat confirmé ✅',
-                            'message' => 'Votre paiement a été validé.',
-                            'url' => route('account.transactions.show', $transaction, absolute: false),
-                        ]);
-
-                        try {
-                            $transaction->buyer->notify(
-                                new TransactionBuyerPaidNotification($transaction)
-                            );
-                        } catch (\Throwable $e) {
-                            report($e);
-                        }
-                    }
                 }
 
                 break;
@@ -113,54 +68,15 @@ class StripeWebhookController extends Controller
 
                     $transaction = Transaction::find($transactionId);
 
-                    if ($transaction && $transaction->status !== 'paid') {
-
-                        $transaction->update([
-                            'status' => 'paid',
-                            'stripe_payment_intent_id' => $session->payment_intent ?? null,
-                        ]);
-
-                        if ($transaction->listing) {
-                            $transaction->listing->update([
-                                'status' => 'sold',
+                    if ($transaction && $transaction->status === 'pending') {
+                        // On rattache le PaymentIntent avant la transition.
+                        if (!empty($session->payment_intent) && empty($transaction->stripe_payment_intent_id)) {
+                            $transaction->update([
+                                'stripe_payment_intent_id' => $session->payment_intent,
                             ]);
                         }
 
-                        if ($transaction->seller) {
-
-                            Notification::create([
-                                'user_id' => $transaction->seller_id,
-                                'title' => 'Nouvelle vente 🎉',
-                                'message' => 'Votre article a été acheté.',
-                                'url' => route('account.transactions.show', $transaction, absolute: false),
-                            ]);
-
-                            try {
-                                $transaction->seller->notify(
-                                    new TransactionPaidNotification($transaction)
-                                );
-                            } catch (\Throwable $e) {
-                                report($e);
-                            }
-                        }
-
-                        if ($transaction->buyer) {
-
-                            Notification::create([
-                                'user_id' => $transaction->buyer_id,
-                                'title' => 'Achat confirmé ✅',
-                                'message' => 'Votre paiement a été validé.',
-                                'url' => route('account.transactions.show', $transaction, absolute: false),
-                            ]);
-
-                            try {
-                                $transaction->buyer->notify(
-                                    new TransactionBuyerPaidNotification($transaction)
-                                );
-                            } catch (\Throwable $e) {
-                                report($e);
-                            }
-                        }
+                        TransactionPayment::markPaidOnce($transaction);
                     }
                 }
 

@@ -233,13 +233,25 @@
                             </p>
 
                             @if($listing->requires_online_payment ?? false)
-                                <button type="button" class="prix-protege mt-3 block text-left"
+                                @php
+                                    $canHandDeliv = $listing->allows_hand_delivery ?? $listing->pickup_enabled ?? true;
+                                    $canColisDeliv = $listing->allows_colissimo ?? false;
+                                @endphp
+                                <button type="button" class="prix-protege mt-3 block w-full text-left"
                                         data-title="{{ e($listing->title) }}"
                                         data-price="{{ number_format($listing->price, 2, ',', ' ') }}"
                                         data-fee="{{ number_format($protectionFee, 2, ',', ' ') }}"
                                         data-total="{{ number_format($protectedTotal, 2, ',', ' ') }}">
-                                    <span class="block text-base font-bold text-teal-700">{{ number_format($protectedTotal, 2, ',', ' ') }} € protégé 🛡️</span>
-                                    <span class="mt-0.5 block text-xs text-gray-500">Protection acheteur incluse. Livraison calculée au paiement.</span>
+                                    <span class="block text-lg font-bold text-teal-700">{{ number_format($protectedTotal, 2, ',', ' ') }} € payés, protégés 🛡️</span>
+                                    <span class="mt-0.5 block text-xs text-gray-600">
+                                        {{ number_format($listing->price, 2, ',', ' ') }} € article + {{ number_format($protectionFee, 2, ',', ' ') }} € de protection acheteur
+                                    </span>
+                                    @if($canHandDeliv)
+                                        <span class="mt-1 block text-xs font-semibold text-emerald-700">🤝 Remise en main propre : livraison gratuite</span>
+                                    @endif
+                                    @if($canColisDeliv)
+                                        <span class="mt-0.5 block text-xs text-gray-500">📦 Colissimo : frais de port réels en plus (calculés au paiement)</span>
+                                    @endif
                                 </button>
                             @endif
                         </div>

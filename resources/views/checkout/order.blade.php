@@ -5,13 +5,26 @@
 @section('content')
 @php
     $itemAmount = $itemAmount ?? ($offer ? (int) $offer->amount : (int) $listing->price);
-    $canColissimo = ($listing->requires_online_payment ?? false) && ($listing->allows_colissimo ?? false);
+    // Colissimo n'est proposé que si le VENDEUR a une adresse d'expédition :
+    // une option qu'on ne peut pas honorer (pas d'origine d'envoi) est pire
+    // que pas d'option du tout.
+    $sellerHasAddress = filled($listing->user->address_line1 ?? null)
+        || filled($listing->user->postal_code ?? null);
+    $canColissimo = ($listing->requires_online_payment ?? false)
+        && ($listing->allows_colissimo ?? false)
+        && $sellerHasAddress;
     $canHandDelivery = ($listing->allows_hand_delivery ?? $listing->pickup_enabled ?? true);
+    // Main propre présélectionnée par défaut (gratuite ; l'expédition coûte
+    // souvent plus cher que l'article en intra-DOM).
     $defaultDelivery = old('delivery_method', $canHandDelivery ? 'hand_delivery' : ($canColissimo ? 'colissimo' : ''));
 @endphp
 
 <section class="bg-gray-50 min-h-screen py-8 sm:py-10">
     <div class="max-w-5xl mx-auto px-4 sm:px-6">
+
+        <a href="{{ route('listings.show', $listing) }}" class="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-gray-500 hover:text-gray-700">
+            ← Retour à l'annonce
+        </a>
 
         <h1 class="mb-6 text-2xl sm:text-3xl font-bold text-gray-900">Vérifier ma commande</h1>
 
@@ -74,8 +87,11 @@
                                 <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-4 transition has-[:checked]:border-teal-500 has-[:checked]:bg-teal-50/40">
                                     <input type="radio" name="delivery_method" value="hand_delivery" data-delivery
                                            class="mt-1 text-teal-600 focus:ring-teal-500" @checked($defaultDelivery === 'hand_delivery')>
-                                    <span>
-                                        <span class="block font-semibold text-gray-900">🤝 Remise en main propre</span>
+                                    <span class="min-w-0 flex-1">
+                                        <span class="flex items-center justify-between gap-2">
+                                            <span class="font-semibold text-gray-900">🤝 Remise en main propre</span>
+                                            <span class="shrink-0 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800">Gratuit</span>
+                                        </span>
                                         <span class="mt-1 block text-sm text-gray-500">
                                             Rendez-vous proposé :
                                             <span class="font-medium text-gray-700">{{ $listing->hand_delivery_location ?: $listing->location_address ?: 'à définir avec le vendeur' }}</span>
@@ -88,9 +104,12 @@
                                 <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-4 transition has-[:checked]:border-teal-500 has-[:checked]:bg-teal-50/40">
                                     <input type="radio" name="delivery_method" value="colissimo" data-delivery
                                            class="mt-1 text-teal-600 focus:ring-teal-500" @checked($defaultDelivery === 'colissimo')>
-                                    <span>
-                                        <span class="block font-semibold text-gray-900">📦 Livraison Colissimo</span>
-                                        <span class="mt-1 block text-sm text-gray-500">Livraison à domicile. En cas d'absence, dépôt en bureau de poste ou point relais proche.</span>
+                                    <span class="min-w-0 flex-1">
+                                        <span class="flex items-center justify-between gap-2">
+                                            <span class="font-semibold text-gray-900">📦 Livraison Colissimo</span>
+                                            <span class="shrink-0 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800">Frais en plus</span>
+                                        </span>
+                                        <span class="mt-1 block text-sm text-gray-500">Livraison à domicile. Le <span class="font-medium text-gray-700">tarif réel</span> (selon poids et destination) s'affiche avant le paiement — aucun montant caché.</span>
                                     </span>
                                 </label>
                             @endif

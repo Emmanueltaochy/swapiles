@@ -99,6 +99,23 @@ class Transaction extends Model
         return $this->commission;
     }
 
+    /** Vente sécurisée (argent passé par Stripe) — seule à créditer le wallet. */
+    public function getIsSecuredAttribute(): bool
+    {
+        return \App\Support\SellerWallet::isSecured($this);
+    }
+
+    /** Mode de paiement normalisé pour l'affichage (badge du journal). */
+    public function getPaymentModeAttribute(): string
+    {
+        return \App\Support\SellerWallet::mode($this);
+    }
+
+    public function getPaymentModeLabelAttribute(): string
+    {
+        return \App\Support\SellerWallet::modeLabel($this->payment_mode);
+    }
+
     /**
      * L'article a-t-il été expédié ? On se fie au numéro de suivi (décision
      * produit : « expédié » = un suivi transporteur existe).

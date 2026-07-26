@@ -45,6 +45,11 @@
             </div>
         </div>
 
+        {{-- Mention explicite : le solde ne concerne que les paiements par carte. --}}
+        <p class="mt-3 text-sm text-gray-500">
+            Concerne uniquement les paiements par carte. Les ventes en espèces n'y apparaissent pas.
+        </p>
+
         <div class="mt-4 flex items-start gap-3 rounded-2xl border border-teal-100 bg-teal-50 p-4">
             <span class="text-xl" aria-hidden="true">🛡️</span>
             <p class="text-sm text-teal-900">
@@ -85,14 +90,44 @@
             </div>
         @endif
 
-        <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden mt-8">
+        {{-- Récapitulatif du mois : l'écart ventes/sécurisé est volontairement visible. --}}
+        <div class="mt-8 rounded-3xl border border-gray-100 bg-white shadow-sm p-5">
+            <p class="text-sm text-gray-500">Ce mois-ci</p>
+            <p class="mt-1 text-lg text-gray-900">
+                <span class="font-extrabold">{{ number_format($monthlySales, 0, ',', ' ') }} € de ventes</span>,
+                dont <span class="font-extrabold text-teal-700">{{ number_format($monthlySecured, 0, ',', ' ') }} € sécurisés</span>
+            </p>
+            @if($monthlySales > $monthlySecured)
+                <p class="mt-1 text-sm text-gray-500">
+                    L'écart correspond aux ventes en espèces : encaisse en paiement sécurisé pour être payé avant la remise, sans avance ni impayé.
+                </p>
+            @endif
+        </div>
+
+        {{-- Journal : TOUTES les ventes, tous modes. Informatif, ce n'est pas un solde. --}}
+        <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden mt-6" data-wallet-journal>
             <div class="p-5 border-b border-gray-100">
-                <h2 class="text-xl font-extrabold text-gray-900">Historique des ventes</h2>
+                <h2 class="text-xl font-extrabold text-gray-900">Toutes mes ventes</h2>
+                <p class="text-sm text-gray-500 mt-1">Tous vos échanges, quel que soit le mode. Filtrez ci-dessous.</p>
+
+                <div class="mt-4 flex flex-wrap gap-2" data-wallet-filters>
+                    @foreach([
+                        'all' => 'Tout',
+                        'online' => 'En ligne',
+                        'cash' => 'Espèces',
+                        'gift' => 'Don',
+                        'exchange' => 'Échange',
+                    ] as $key => $label)
+                        <button type="button" data-filter="{{ $key }}"
+                            class="wallet-filter-btn text-xs font-bold px-3 py-1.5 rounded-full transition {{ $key === 'all' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">{{ $label }}</button>
+                    @endforeach
+                </div>
             </div>
 
             <div class="divide-y divide-gray-100">
                 @forelse($sales as $sale)
-                    <div class="p-4 flex gap-4">
+                    @php($mode = $sale->payment_mode)
+                    <div class="p-4 flex gap-4 wallet-sale-row" data-mode="{{ $mode }}">
                         <div class="w-16 h-16 rounded-2xl bg-gray-100 overflow-hidden shrink-0">
                             @if($sale->listing && $sale->listing->images->first())
                                 <img src="{{ $sale->listing->images->first()->url }}" class="w-full h-full object-cover">
@@ -102,11 +137,25 @@
                         </div>
 
                         <div class="flex-1 min-w-0">
-                            <p class="font-bold text-gray-900 truncate">{{ $sale->listing->title ?? 'Annonce supprimée' }}</p>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <p class="font-bold text-gray-900 truncate">{{ $sale->listing->title ?? 'Annonce supprimée' }}</p>
+                                @php($badge = [
+                                    'online' => 'bg-teal-100 text-teal-800',
+                                    'cash' => 'bg-amber-100 text-amber-800',
+                                    'gift' => 'bg-pink-100 text-pink-800',
+                                    'exchange' => 'bg-indigo-100 text-indigo-800',
+                                ][$mode] ?? 'bg-gray-100 text-gray-700')
+                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full {{ $badge }}">{{ $sale->payment_mode_label }}</span>
+                            </div>
                             <p class="text-sm text-gray-500">Acheteur : {{ $sale->buyer->name ?? 'Utilisateur' }}</p>
                             <p class="text-xs text-gray-400 mt-0.5">{{ $sale->created_at?->format('d/m/Y') }}</p>
                             <p class="text-sm font-extrabold text-gray-900 mt-1">
-                                {{ number_format(($sale->seller_amount > 0 ? $sale->seller_amount : max(0, $sale->amount - $sale->commission - $sale->buyer_protection_fee - $sale->shipping_fee)), 0, ',', ' ') }} € net vendeur
+                                {{ number_format(\App\Support\SellerWallet::net($sale), 0, ',', ' ') }} €
+                                @if($sale->is_secured)
+                                    <span class="text-teal-700">net vendeur</span>
+                                @else
+                                    <span class="text-gray-400 font-medium">hors plateforme</span>
+                                @endif
                             </p>
                         </div>
 
@@ -115,7 +164,7 @@
                                 <span class="text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-800">Virement envoyé</span>
                             @elseif($sale->wallet_status === 'processing')
                                 <span class="text-xs font-bold px-3 py-1 rounded-full bg-yellow-100 text-yellow-800">Virement en cours</span>
-                            @elseif($sale->status === 'paid')
+                            @elseif($sale->is_secured && $sale->status === 'paid')
                                 <span class="text-xs font-bold px-3 py-1 rounded-full bg-gray-100 text-gray-700">En attente réception</span>
                             @else
                                 <span class="text-xs font-bold px-3 py-1 rounded-full bg-gray-100 text-gray-700">{{ ['paid'=>'Payé','pending'=>'En attente','completed'=>'Terminée','cancelled'=>'Annulée','refunded'=>'Remboursée'][$sale->status] ?? $sale->status }}</span>
@@ -132,4 +181,34 @@
 
     </div>
 </section>
+
+<script>
+    (function () {
+        var journal = document.querySelector('[data-wallet-journal]');
+        if (!journal) return;
+
+        var buttons = journal.querySelectorAll('.wallet-filter-btn');
+        var rows = journal.querySelectorAll('.wallet-sale-row');
+
+        function apply(mode) {
+            rows.forEach(function (row) {
+                var show = (mode === 'all') || (row.getAttribute('data-mode') === mode);
+                row.style.display = show ? '' : 'none';
+            });
+            buttons.forEach(function (btn) {
+                var active = btn.getAttribute('data-filter') === mode;
+                btn.classList.toggle('bg-gray-900', active);
+                btn.classList.toggle('text-white', active);
+                btn.classList.toggle('bg-gray-100', !active);
+                btn.classList.toggle('text-gray-700', !active);
+            });
+        }
+
+        buttons.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                apply(btn.getAttribute('data-filter'));
+            });
+        });
+    })();
+</script>
 @endsection

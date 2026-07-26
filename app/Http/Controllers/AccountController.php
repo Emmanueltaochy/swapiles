@@ -47,20 +47,24 @@ class AccountController extends Controller
             ->filter(fn ($transaction) => $transaction->listing !== null)
             ->values();
 
+        // Montants d'argent = UNIQUEMENT les ventes sécurisées (paiement en
+        // ligne). Espèces/don/échange ne gonflent pas le solde (bug wallet).
+        $securedSales = \App\Support\SellerWallet::securedOnly($realSales);
+
         $pendingCheckouts = $sales->where('status', 'pending');
 
         $unfinishedOrdersCount = $pendingCheckouts->count();
 
-        $pendingSalesAmount = $realSales
+        $pendingSalesAmount = $securedSales
             ->where('status', 'paid')
             ->sum($netAmount);
 
-        $availableAmount = $realSales
+        $availableAmount = $securedSales
             ->where('status', 'completed')
             ->filter(fn ($transaction) => empty($transaction->transferred_at))
             ->sum($netAmount);
 
-        $completedSalesAmount = $realSales
+        $completedSalesAmount = $securedSales
             ->where('status', 'completed')
             ->sum($netAmount);
 

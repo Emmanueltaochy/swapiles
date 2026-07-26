@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Account;
 
 use App\Http\Controllers\Controller;
 use App\Models\Transaction;
+use App\Support\SellerWallet;
 
 class WalletController extends Controller
 {
@@ -11,6 +12,7 @@ class WalletController extends Controller
     {
         $user = auth()->user();
 
+        // Journal « Toutes mes ventes » : TOUTES les ventes (tous modes).
         $sales = Transaction::with(['listing.images', 'buyer'])
             ->where('seller_id', $user->id)
             ->whereIn('status', ['paid', 'completed'])
@@ -19,36 +21,16 @@ class WalletController extends Controller
             ->filter(fn ($transaction) => $transaction->listing !== null)
             ->values();
 
-        $net = function ($transaction) {
-            if ((float) $transaction->seller_amount > 0) {
-                return (float) $transaction->seller_amount;
-            }
+        // SOLDE : uniquement les ventes sécurisées (paiement en ligne Stripe).
+        // Les espèces / dons / échanges n'y entrent jamais (bug du solde fictif).
+        $balances = SellerWallet::balances($sales);
+        $pendingAmount = $balances['pending'];
+        $processingAmount = $balances['processing'];
+        $paidAmount = $balances['paid'];
 
-            return max(0,
-                (float) $transaction->amount
-                - (float) $transaction->commission
-                - (float) $transaction->buyer_protection_fee
-                - (float) $transaction->shipping_fee
-            );
-        };
-
-        $pendingAmount = $sales
-            ->filter(fn ($transaction) => $transaction->status === 'paid')
-            ->sum($net);
-
-        $processingAmount = $sales
-            ->filter(fn ($transaction) =>
-                $transaction->status === 'completed'
-                && empty($transaction->released_at)
-            )
-            ->sum($net);
-
-        $paidAmount = $sales
-            ->filter(fn ($transaction) =>
-                $transaction->status === 'completed'
-                && !empty($transaction->released_at)
-            )
-            ->sum($net);
+        // Récap du mois en cours : total de ventes (espèces incluses) vs sécurisé.
+        $now = now();
+        $monthly = SellerWallet::monthlyTotals($sales, (int) $now->year, (int) $now->month);
 
         $stripeReady =
             $user->stripe_account_id
@@ -92,6 +74,8 @@ class WalletController extends Controller
             'pendingAmount' => $pendingAmount,
             'processingAmount' => $processingAmount,
             'paidAmount' => $paidAmount,
+            'monthlySales' => $monthly['sales'],
+            'monthlySecured' => $monthly['secured'],
             'user' => $user,
             'stripeReady' => $stripeReady,
             'bankInfo' => $bankInfo,

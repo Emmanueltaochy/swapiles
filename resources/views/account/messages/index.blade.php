@@ -38,7 +38,7 @@
                             @endif
                         </div>
                         <p class="mt-0.5 truncate text-sm font-medium text-gray-600">{{ $conversation->listing?->title ?? 'Conversation directe' }}</p>
-                        <p class="mt-0.5 truncate text-sm text-gray-400">{{ $conversation->body }}</p>
+                        <p class="mt-0.5 truncate text-sm text-gray-400">{{ filled($conversation->body) ? $conversation->body : ($conversation->attachment_type === 'video' ? '📎 Vidéo' : '📎 Photo') }}</p>
                     </div>
                 </a>
             @empty

@@ -87,7 +87,22 @@
 
                     <div class="flex {{ $mine ? 'justify-end' : 'justify-start' }}">
                         <div class="max-w-[80%] rounded-2xl px-4 py-3 text-sm {{ $mine ? 'rounded-br-sm bg-teal-600 text-white' : 'rounded-bl-sm border border-gray-100 bg-white text-gray-800' }}">
-                            <p class="whitespace-pre-line">{{ $message->body }}</p>
+                            @if($message->hasAttachment())
+                                <div class="mb-2 overflow-hidden rounded-xl">
+                                    @if($message->isVideoAttachment())
+                                        <video controls preload="metadata" class="max-h-80 w-full rounded-xl bg-black">
+                                            <source src="{{ $message->attachmentUrl() }}" type="{{ $message->attachment_mime }}">
+                                        </video>
+                                    @else
+                                        <a href="{{ $message->attachmentUrl() }}" target="_blank" rel="noopener">
+                                            <img src="{{ $message->attachmentUrl() }}" alt="Pièce jointe" loading="lazy" class="max-h-80 w-full rounded-xl object-cover">
+                                        </a>
+                                    @endif
+                                </div>
+                            @endif
+                            @if(filled($message->body))
+                                <p class="whitespace-pre-line">{{ $message->body }}</p>
+                            @endif
 
                             @if($hasListing)
                                 @php
@@ -220,16 +235,52 @@
 
             <form method="POST"
                   action="{{ $hasListing ? route('account.messages.store', ['listing' => $listing, 'user' => $user]) : route('account.messages.store.general', $user) }}"
+                  enctype="multipart/form-data"
                   class="border-t border-gray-100 bg-white p-4">
                 @csrf
-                <div class="flex gap-3">
+                <div class="flex items-end gap-2">
+                    <label for="attachment" title="Ajouter une photo ou une vidéo" aria-label="Ajouter une photo ou une vidéo"
+                           class="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-xl border border-gray-200 text-xl transition hover:bg-gray-50">📎</label>
+                    <input id="attachment" name="attachment" type="file" accept="image/*,video/*" class="hidden">
+
                     <label for="body" class="sr-only">Message</label>
-                    <textarea id="body" name="body" rows="2" required placeholder="Écrire un message…"
-                              class="flex-1 resize-none rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"></textarea>
-                    <button class="shrink-0 rounded-xl bg-teal-600 px-5 font-semibold text-white transition hover:bg-teal-700">Envoyer</button>
+                    <textarea id="body" name="body" rows="2" placeholder="Écrire un message…"
+                              class="flex-1 resize-none rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">{{ old('body') }}</textarea>
+                    <button class="shrink-0 rounded-xl bg-teal-600 px-5 py-3 font-semibold text-white transition hover:bg-teal-700">Envoyer</button>
                 </div>
-                @error('body')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
+
+                <div id="attachment-preview" class="mt-2 hidden items-center gap-2 text-sm text-gray-600">
+                    <span aria-hidden="true">📎</span>
+                    <span id="attachment-name" class="max-w-[60%] truncate"></span>
+                    <button type="button" id="attachment-remove" class="font-semibold text-red-600 hover:text-red-700">Retirer</button>
+                </div>
+
+                <p class="mt-2 text-xs text-gray-400">Photo ou vidéo, 50 Mo max.</p>
+                @error('body')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                @error('attachment')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
             </form>
+
+            <script>
+                (function () {
+                    var input = document.getElementById('attachment');
+                    var preview = document.getElementById('attachment-preview');
+                    var nameEl = document.getElementById('attachment-name');
+                    var removeBtn = document.getElementById('attachment-remove');
+                    if (!input) return;
+                    input.addEventListener('change', function () {
+                        if (input.files && input.files.length) {
+                            nameEl.textContent = input.files[0].name;
+                            preview.classList.remove('hidden');
+                            preview.classList.add('flex');
+                        }
+                    });
+                    removeBtn && removeBtn.addEventListener('click', function () {
+                        input.value = '';
+                        preview.classList.add('hidden');
+                        preview.classList.remove('flex');
+                    });
+                })();
+            </script>
 
         </div>
     </div>

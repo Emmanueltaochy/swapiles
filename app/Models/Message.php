@@ -12,6 +12,9 @@ class Message extends Model
         'sender_id',
         'receiver_id',
         'body',
+        'attachment_path',
+        'attachment_type',
+        'attachment_mime',
         'read_at',
         'reminder_sent_at',
     ];
@@ -20,6 +23,28 @@ class Message extends Model
         'read_at' => 'datetime',
         'reminder_sent_at' => 'datetime',
     ];
+
+    public function hasAttachment(): bool
+    {
+        return filled($this->attachment_path);
+    }
+
+    public function isImageAttachment(): bool
+    {
+        return $this->attachment_type === 'image';
+    }
+
+    public function isVideoAttachment(): bool
+    {
+        return $this->attachment_type === 'video';
+    }
+
+    public function attachmentUrl(): ?string
+    {
+        return $this->attachment_path
+            ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->attachment_path)
+            : null;
+    }
 
     public function listing()
     {

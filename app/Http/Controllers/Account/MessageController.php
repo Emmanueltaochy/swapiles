@@ -135,16 +135,9 @@ class MessageController extends Controller
 
         abort_if($authId === $user->id, 403);
 
-        $data = $request->validate([
-            'body' => ['required', 'string', 'max:3000'],
-        ]);
+        $request->validate(self::messageRules(), self::messageMessages());
 
-        $message = Message::create([
-            'listing_id' => null,
-            'sender_id' => $authId,
-            'receiver_id' => $user->id,
-            'body' => $data['body'],
-        ]);
+        $message = $this->buildMessage($request, null, $user->id);
 
         $this->safeNotifyMessage($user, $message);
 
@@ -198,22 +191,65 @@ class MessageController extends Controller
 
         abort_unless($isSeller || $isBuyer, 403);
 
-        $data = $request->validate([
-            'body' => ['required', 'string', 'max:3000'],
-        ]);
+        $request->validate(self::messageRules(), self::messageMessages());
 
-        $message = Message::create([
-            'listing_id' => $listing->id,
-            'sender_id' => $authId,
-            'receiver_id' => $user->id,
-            'body' => $data['body'],
-        ]);
+        $message = $this->buildMessage($request, $listing->id, $user->id);
 
         $this->safeNotifyMessage($user, $message);
 
         return redirect()->route('account.messages.show', [
             'listing' => $listing,
             'user' => $user,
+        ]);
+    }
+
+    /**
+     * Règles : un message OU une pièce jointe (photo/vidéo), l'un des deux suffit.
+     */
+    private static function messageRules(): array
+    {
+        return [
+            'body' => ['nullable', 'required_without:attachment', 'string', 'max:3000'],
+            'attachment' => [
+                'nullable', 'required_without:body', 'file',
+                'mimetypes:image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,video/mp4,video/quicktime,video/webm,video/3gpp',
+                'max:51200', // 50 Mo
+            ],
+        ];
+    }
+
+    private static function messageMessages(): array
+    {
+        return [
+            'body.required_without' => 'Écris un message ou ajoute une photo/vidéo.',
+            'attachment.required_without' => 'Écris un message ou ajoute une photo/vidéo.',
+            'attachment.mimetypes' => 'Format non supporté : ajoute une photo (JPG, PNG, HEIC…) ou une vidéo (MP4, MOV…).',
+            'attachment.max' => 'Fichier trop lourd (50 Mo maximum).',
+        ];
+    }
+
+    /**
+     * Crée le message + stocke la pièce jointe éventuelle sur le disque public.
+     */
+    private function buildMessage(Request $request, ?int $listingId, int $receiverId): Message
+    {
+        $path = $type = $mime = null;
+
+        if ($request->hasFile('attachment')) {
+            $file = $request->file('attachment');
+            $mime = $file->getMimeType();
+            $type = str_starts_with((string) $mime, 'video/') ? 'video' : 'image';
+            $path = $file->store('messages', 'public');
+        }
+
+        return Message::create([
+            'listing_id' => $listingId,
+            'sender_id' => Auth::id(),
+            'receiver_id' => $receiverId,
+            'body' => $request->input('body'),
+            'attachment_path' => $path,
+            'attachment_type' => $type,
+            'attachment_mime' => $mime,
         ]);
     }
 }

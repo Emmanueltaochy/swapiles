@@ -39,11 +39,19 @@ class SendMessageReceivedEmail implements ShouldQueue
 
         $subject = 'Nouveau message sur Swap Îles';
 
+        $content = filled($message->body)
+            ? $message->body
+            : match ($message->attachment_type) {
+                'video' => '[Vidéo]',
+                'image' => '[Photo]',
+                default => '[Pièce jointe]',
+            };
+
         $body = "Bonjour,\n\n"
             . ($sender->name ?? 'Un membre') . " vous a envoyé un nouveau message sur Swap Îles.\n\n"
             . ($listing ? "Annonce : " . $listing->title . "\n\n" : "Conversation directe\n\n")
             . "Message :\n"
-            . $message->body . "\n\n"
+            . $content . "\n\n"
             . "Voir le message : " . $url . "\n\n"
             . "L'équipe Swap Îles\n"
             . "https://swapiles.com";

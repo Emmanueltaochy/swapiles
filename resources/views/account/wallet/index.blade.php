@@ -45,9 +45,11 @@
             </div>
         </div>
 
-        {{-- Mention explicite : le solde ne concerne que les paiements par carte. --}}
+        {{-- Mention explicite : le solde ne concerne que les ventes CB (carte). --}}
         <p class="mt-3 text-sm text-gray-500">
-            Concerne uniquement les paiements par carte. Les ventes en espèces n'y apparaissent pas.
+            💳 Ce solde ne concerne que les <span class="font-semibold text-gray-700">ventes par carte (CB)</span>.
+            Les ventes en <span class="font-semibold">espèces</span>, <span class="font-semibold">dons</span> et <span class="font-semibold">échanges</span>
+            apparaissent dans « Toutes mes ventes » ci-dessous, mais jamais dans le solde.
         </p>
 
         <div class="mt-4 flex items-start gap-3 rounded-2xl border border-teal-100 bg-teal-50 p-4">
@@ -113,7 +115,7 @@
                 <div class="mt-4 flex flex-wrap gap-2" data-wallet-filters>
                     @foreach([
                         'all' => 'Tout',
-                        'online' => 'En ligne',
+                        'online' => 'CB',
                         'cash' => 'Espèces',
                         'gift' => 'Don',
                         'exchange' => 'Échange',

@@ -44,10 +44,10 @@ class WalletPageTest extends TestCase
         $response = $this->actingAs($seller)->get(route('account.wallet.index'));
 
         $response->assertOk();
-        $response->assertSee("Les ventes en espèces n'y apparaissent pas", false);
+        $response->assertSee('ventes par carte (CB)', false);
         $response->assertSee('Ce mois-ci', false);
-        // Le journal montre les deux ventes (badges En ligne / Espèces).
+        // Le journal montre les deux ventes (badges CB / Espèces).
         $response->assertSee('Espèces', false);
-        $response->assertSee('En ligne', false);
+        $response->assertSee('CB', false);
     }
 }

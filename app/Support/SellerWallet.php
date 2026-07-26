@@ -51,7 +51,7 @@ class SellerWallet
     public static function modeLabel(string $mode): string
     {
         return match ($mode) {
-            'online' => 'En ligne',
+            'online' => 'CB',
             'cash' => 'Espèces',
             'gift' => 'Don',
             'exchange' => 'Échange',

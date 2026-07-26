@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\Transactions\Schemas;
 
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 class TransactionInfolist
@@ -11,6 +13,15 @@ class TransactionInfolist
     {
         return $schema
             ->components([
+                Section::make('Cheminement du produit')
+                    ->description('Achat → paiement → expédition / remise → réception → versement')
+                    ->schema([
+                        ViewEntry::make('cheminement')
+                            ->hiddenLabel()
+                            ->view('filament.infolists.transaction-timeline'),
+                    ])
+                    ->columnSpanFull(),
+
                 TextEntry::make('sharetribe_id')
                     ->placeholder('-'),
                 TextEntry::make('listing_id')

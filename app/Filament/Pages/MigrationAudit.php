@@ -65,6 +65,12 @@ class MigrationAudit extends Page
         $noPhoto = (clone $published)->whereDoesntHave('images')->count();
 
         return [
+            'config' => [
+                'APP_URL' => config('app.url'),
+                'MAIL_MAILER' => config('mail.default'),
+                'MAIL_HOST' => config('mail.mailers.' . config('mail.default') . '.host') ?? '—',
+                'MAIL_FROM' => config('mail.from.address'),
+            ],
             'rows' => [
                 ['label' => 'Membres', 'value' => $totalUsers, 'note' => ''],
                 ['label' => 'Avec adresse', 'value' => $withAddress, 'note' => $totalUsers ? round($withAddress / $totalUsers * 100) . ' %' : '—'],

@@ -38,14 +38,15 @@ class SendIbanReminderEmail implements ShouldQueue
 
         $url = route('account.wallet.index');
 
-        $subject = '💶 Il te manque juste ton IBAN pour être payé sur Swap’Îles';
+        $subject = 'Ton compte vendeur Swap’îles est presque prêt';
 
         $body = "Bonjour " . ($user->name ?: '') . ",\n\n"
-            . "Bonne nouvelle : ton compte vendeur est presque prêt, ton identité est validée ✅.\n"
+            . "Bonne nouvelle : ton compte vendeur est presque prêt, ton identité est validée.\n"
             . "Il ne manque plus que ton IBAN (ton compte bancaire) pour être payé automatiquement dès qu'un acheteur règle par carte.\n\n"
+            . "Et une info qui change tout : la commission vendeur est passée à 0 %. Tu reçois désormais 100 % du prix affiché sur ton annonce.\n\n"
             . "Ajoute ton IBAN en 2 minutes ici : " . $url . "\n\n"
-            . "Une fois fait, tes annonces passent en paiement sécurisé et tu es payé après chaque remise confirmée — zéro impayé, zéro avance.\n\n"
-            . "L'équipe Swap'Îles\nhttps://swapiles.com";
+            . "Avec le paiement sécurisé Swap'îles, tu es payé avant même de remettre l'article.\n\n"
+            . "L'équipe Swap'îles\nhttps://swapiles.com";
 
         Mail::raw($body, function ($mail) use ($user, $subject) {
             $mail->from('contact@swapiles.com', "Swap'Îles")

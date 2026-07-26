@@ -1,6 +1,25 @@
 <x-filament-panels::page>
     <div class="space-y-6">
         <div>
+            <h2 class="text-lg font-bold mb-2">Config prod (pour les DNS / délivrabilité)</h2>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <table class="w-full text-sm">
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                        @foreach($config as $k => $v)
+                            <tr>
+                                <td class="p-3 font-mono text-gray-500">{{ $k }}</td>
+                                <td class="p-3 font-mono font-semibold">{{ $v }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <p class="mt-2 text-sm text-gray-500">
+                APP_URL doit être <code>https://swapiles.com</code>. MAIL_MAILER / MAIL_HOST indiquent par quel fournisseur partent les e-mails (pour régler SPF/DKIM).
+            </p>
+        </div>
+
+        <div>
             <h2 class="text-lg font-bold mb-2">Membres & vendeurs</h2>
             <div class="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <table class="w-full text-sm">

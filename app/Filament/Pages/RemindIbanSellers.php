@@ -49,9 +49,10 @@ class RemindIbanSellers extends Page
                 ->color('warning')
                 ->requiresConfirmation()
                 ->modalHeading('Envoyer la relance IBAN ?')
-                ->modalDescription(fn () => 'Un e-mail sera envoyé à ' . self::targets()->count()
-                    . ' vendeur(s) « identité OK / IBAN manquant ». Action réelle : de vrais e-mails partent.')
-                ->modalSubmitActionLabel('Envoyer')
+                ->modalDescription(fn () => 'DKIM / SPF / DMARC validés en prod ? Sinon ces '
+                    . self::targets()->count()
+                    . ' e-mails partent en spam et la liste est grillée. De vrais e-mails partent maintenant.')
+                ->modalSubmitActionLabel('Oui, DNS OK — envoyer')
                 ->action(function () {
                     $count = 0;
                     foreach (self::targets() as $u) {

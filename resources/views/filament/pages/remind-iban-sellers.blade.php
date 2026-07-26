@@ -1,21 +1,32 @@
 <x-filament-panels::page>
     <div class="space-y-6">
-        <div class="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-4 text-sm">
-            <p class="font-semibold text-amber-900 dark:text-amber-200">Aperçu de l'e-mail qui sera envoyé</p>
-            <pre class="mt-2 whitespace-pre-wrap text-amber-900 dark:text-amber-100 text-xs leading-relaxed">Objet : 💶 Il te manque juste ton IBAN pour être payé sur Swap'Îles
+        <div class="rounded-xl border-2 border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-4 text-sm">
+            <p class="font-bold text-red-800 dark:text-red-200">⛔ Délivrabilité d'abord</p>
+            <p class="mt-1 text-red-800 dark:text-red-200">
+                N'envoie PAS cette campagne tant que <strong>SPF / DKIM / DMARC</strong> ne sont pas validés en prod.
+                Si DKIM est cassé, l'e-mail part en spam chez tes 15 vendeurs — et tu grilles ta seule liste de relance.
+                Vérifie les DNS, envoie-toi un test, puis seulement lance la campagne.
+            </p>
+        </div>
+
+        <div class="rounded-xl border border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700 p-4 text-sm">
+            <p class="font-semibold text-gray-900 dark:text-gray-100">Aperçu de l'e-mail</p>
+            <pre class="mt-2 whitespace-pre-wrap text-gray-800 dark:text-gray-200 text-xs leading-relaxed">Objet : Ton compte vendeur Swap'îles est presque prêt
 
 Bonjour [prénom],
 
-Bonne nouvelle : ton compte vendeur est presque prêt, ton identité est validée ✅.
+Bonne nouvelle : ton compte vendeur est presque prêt, ton identité est validée.
 Il ne manque plus que ton IBAN (ton compte bancaire) pour être payé automatiquement
 dès qu'un acheteur règle par carte.
 
+Et une info qui change tout : la commission vendeur est passée à 0 %. Tu reçois
+désormais 100 % du prix affiché sur ton annonce.
+
 Ajoute ton IBAN en 2 minutes ici : [lien vers ton portefeuille]
 
-Une fois fait, tes annonces passent en paiement sécurisé et tu es payé après
-chaque remise confirmée — zéro impayé, zéro avance.
+Avec le paiement sécurisé Swap'îles, tu es payé avant même de remettre l'article.
 
-L'équipe Swap'Îles</pre>
+L'équipe Swap'îles</pre>
         </div>
 
         <div>

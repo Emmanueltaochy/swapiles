@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class PasswordResetController extends Controller
@@ -21,13 +22,22 @@ class PasswordResetController extends Controller
             'email' => ['required', 'email'],
         ]);
 
-        Password::sendResetLink($request->only('email'));
+        $status = Password::sendResetLink($request->only('email'));
+
+        // Point 6 : mesurer l'entonnoir. On logue chaque étape sous le tag
+        // [pwd-reset] pour reconstituer demande -> clic -> succès.
+        Log::info('[pwd-reset] link_requested', [
+            'email' => $request->input('email'),
+            'status' => $status, // passwords.sent / passwords.user (email inconnu)
+        ]);
 
         return back()->with('status', 'Si un compte existe avec cet email, un lien de réinitialisation vient d’être envoyé.');
     }
 
     public function reset(string $token)
     {
+        Log::info('[pwd-reset] link_opened', ['email' => request('email')]);
+
         return view('auth.reset-password', ['token' => $token]);
     }
 
@@ -48,6 +58,11 @@ class PasswordResetController extends Controller
                 ])->save();
             }
         );
+
+        Log::info('[pwd-reset] update_attempt', [
+            'email' => $request->input('email'),
+            'status' => $status, // passwords.reset (succès) / passwords.token (lien invalide/expiré)
+        ]);
 
         return $status === Password::PASSWORD_RESET
             ? redirect()->route('login')->with('status', 'Mot de passe réinitialisé. Vous pouvez vous connecter.')

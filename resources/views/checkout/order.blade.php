@@ -29,8 +29,8 @@
         <h1 class="mb-6 text-2xl sm:text-3xl font-bold text-gray-900">Vérifier ma commande</h1>
 
         @if($errors->any())
-            <div class="mb-6 rounded-xl bg-red-50 p-4 text-sm text-red-700">
-                {{ $errors->first() }}
+            <div class="mb-6 rounded-xl bg-red-50 p-4 text-sm font-medium text-red-700">
+                Il manque des informations pour l'expédition. Corrige les champs en rouge ci-dessous.
             </div>
         @endif
 
@@ -119,28 +119,55 @@
                         @if($canColissimo)
                             <div id="colissimo-address-block" class="space-y-3 rounded-xl border border-gray-100 bg-gray-50 p-4 {{ $defaultDelivery === 'colissimo' ? '' : 'hidden' }}">
                                 <p class="font-semibold text-gray-900">Informations de livraison</p>
+                                <p class="text-xs text-gray-400">Les champs marqués d'un <span class="text-red-600">*</span> sont obligatoires.</p>
                                 <input type="hidden" name="colissimo_delivery_type" value="home">
 
-                                <input name="buyer_full_name" value="{{ old('buyer_full_name', auth()->user()->name) }}" placeholder="Nom complet *" autocomplete="name"
-                                       class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
-                                <input name="buyer_phone" value="{{ old('buyer_phone', auth()->user()->phone ?? '') }}" placeholder="Téléphone *" autocomplete="tel"
-                                       class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
-                                <input name="shipping_address_line1" value="{{ old('shipping_address_line1', auth()->user()->address_line1 ?? '') }}" placeholder="Adresse *" autocomplete="address-line1"
-                                       class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
-                                <input name="shipping_address_line2" value="{{ old('shipping_address_line2', auth()->user()->address_line2 ?? '') }}" placeholder="Complément d'adresse" autocomplete="address-line2"
-                                       class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
+                                <div data-field>
+                                    <label for="buyer_full_name" class="mb-1 block text-sm font-semibold text-gray-700">Nom complet <span class="text-red-600">*</span></label>
+                                    <input id="buyer_full_name" name="buyer_full_name" value="{{ old('buyer_full_name', auth()->user()->name) }}" autocomplete="name" @error('buyer_full_name') aria-invalid="true" @enderror
+                                           class="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-teal-100 border @error('buyer_full_name') border-red-500 ring-2 ring-red-100 @else border-gray-200 focus:border-teal-500 @enderror">
+                                    @error('buyer_full_name')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
+                                </div>
 
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <input name="shipping_postal_code" value="{{ old('shipping_postal_code', auth()->user()->postal_code ?? '') }}" placeholder="Code postal *" autocomplete="postal-code"
-                                           class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
-                                    <input name="shipping_city" value="{{ old('shipping_city', auth()->user()->city ?? '') }}" placeholder="Ville *" autocomplete="address-level2"
+                                <div data-field>
+                                    <label for="buyer_phone" class="mb-1 block text-sm font-semibold text-gray-700">Téléphone <span class="text-red-600">*</span></label>
+                                    <input id="buyer_phone" name="buyer_phone" value="{{ old('buyer_phone', auth()->user()->phone ?? '') }}" autocomplete="tel" inputmode="tel" @error('buyer_phone') aria-invalid="true" @enderror
+                                           class="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-teal-100 border @error('buyer_phone') border-red-500 ring-2 ring-red-100 @else border-gray-200 focus:border-teal-500 @enderror">
+                                    @error('buyer_phone')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
+                                </div>
+
+                                <div data-field>
+                                    <label for="shipping_address_line1" class="mb-1 block text-sm font-semibold text-gray-700">Adresse <span class="text-red-600">*</span></label>
+                                    <input id="shipping_address_line1" name="shipping_address_line1" value="{{ old('shipping_address_line1', auth()->user()->address_line1 ?? '') }}" autocomplete="address-line1" @error('shipping_address_line1') aria-invalid="true" @enderror
+                                           class="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-teal-100 border @error('shipping_address_line1') border-red-500 ring-2 ring-red-100 @else border-gray-200 focus:border-teal-500 @enderror">
+                                    @error('shipping_address_line1')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
+                                </div>
+
+                                <div data-field>
+                                    <label for="shipping_address_line2" class="mb-1 block text-sm font-semibold text-gray-700">Complément d'adresse</label>
+                                    <input id="shipping_address_line2" name="shipping_address_line2" value="{{ old('shipping_address_line2', auth()->user()->address_line2 ?? '') }}" autocomplete="address-line2"
                                            class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
                                 </div>
 
-                                <div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div data-field>
+                                        <label for="shipping_postal_code" class="mb-1 block text-sm font-semibold text-gray-700">Code postal <span class="text-red-600">*</span></label>
+                                        <input id="shipping_postal_code" name="shipping_postal_code" value="{{ old('shipping_postal_code', auth()->user()->postal_code ?? '') }}" autocomplete="postal-code" inputmode="numeric" @error('shipping_postal_code') aria-invalid="true" @enderror
+                                               class="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-teal-100 border @error('shipping_postal_code') border-red-500 ring-2 ring-red-100 @else border-gray-200 focus:border-teal-500 @enderror">
+                                        @error('shipping_postal_code')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
+                                    </div>
+                                    <div data-field>
+                                        <label for="shipping_city" class="mb-1 block text-sm font-semibold text-gray-700">Ville <span class="text-red-600">*</span></label>
+                                        <input id="shipping_city" name="shipping_city" value="{{ old('shipping_city', auth()->user()->city ?? '') }}" autocomplete="address-level2" @error('shipping_city') aria-invalid="true" @enderror
+                                               class="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-teal-100 border @error('shipping_city') border-red-500 ring-2 ring-red-100 @else border-gray-200 focus:border-teal-500 @enderror">
+                                        @error('shipping_city')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
+                                    </div>
+                                </div>
+
+                                <div data-field>
                                     <label for="shipping_territory" class="mb-1 block text-sm font-semibold text-gray-700">Territoire de livraison <span class="text-red-600">*</span></label>
-                                    <select id="shipping_territory" name="shipping_territory" required
-                                            class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
+                                    <select id="shipping_territory" name="shipping_territory" required @error('shipping_territory') aria-invalid="true" @enderror
+                                            class="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-teal-100 border @error('shipping_territory') border-red-500 ring-2 ring-red-100 @else border-gray-200 focus:border-teal-500 @enderror">
                                         <option value="reunion" @selected(old('shipping_territory', auth()->user()->territoire ?? 'reunion') === 'La Réunion' || old('shipping_territory', auth()->user()->territoire ?? 'reunion') === 'reunion')>La Réunion</option>
                                         <option value="guyane" @selected(old('shipping_territory', auth()->user()->territoire ?? '') === 'Guyane' || old('shipping_territory') === 'guyane')>Guyane</option>
                                         <option value="martinique" @selected(old('shipping_territory', auth()->user()->territoire ?? '') === 'Martinique' || old('shipping_territory') === 'martinique')>Martinique</option>
@@ -149,6 +176,7 @@
                                         <option value="metropole" @selected(old('shipping_territory') === 'metropole')>France métropolitaine</option>
                                         <option value="international" @selected(old('shipping_territory') === 'international')>International</option>
                                     </select>
+                                    @error('shipping_territory')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                                     <input type="hidden" name="shipping_country" value="France">
                                 </div>
                             </div>
@@ -172,16 +200,25 @@ document.addEventListener('DOMContentLoaded', function () {
     // Afficher le bloc adresse uniquement quand "Colissimo" est sélectionné
     const addressBlock = document.getElementById('colissimo-address-block');
     const radios = document.querySelectorAll('[data-delivery]');
-    if (!addressBlock || !radios.length) return;
 
-    function sync() {
-        const selected = document.querySelector('[data-delivery]:checked');
-        const isColissimo = selected && selected.value === 'colissimo';
-        addressBlock.classList.toggle('hidden', !isColissimo);
+    if (addressBlock && radios.length) {
+        const sync = function () {
+            const selected = document.querySelector('[data-delivery]:checked');
+            const isColissimo = selected && selected.value === 'colissimo';
+            addressBlock.classList.toggle('hidden', !isColissimo);
+        };
+        radios.forEach(r => r.addEventListener('change', sync));
+        sync();
     }
 
-    radios.forEach(r => r.addEventListener('change', sync));
-    sync();
+    // Défilement automatique vers le PREMIER champ en erreur (indispensable sur
+    // mobile où le champ fautif est souvent hors écran), puis focus.
+    const firstInvalid = document.querySelector('[aria-invalid="true"]');
+    if (firstInvalid) {
+        if (addressBlock) addressBlock.classList.remove('hidden');
+        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => firstInvalid.focus({ preventScroll: true }), 300);
+    }
 });
 </script>
 @endsection

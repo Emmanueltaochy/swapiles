@@ -11,18 +11,51 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    public function showLogin()
+    public function showLogin(Request $request)
     {
+        $this->rememberIntendedFrom($request);
+
         return view('auth.login');
     }
 
     public function showRegister(Request $request)
     {
+        $this->rememberIntendedFrom($request);
+
         $valid = ['La Réunion', 'Martinique', 'Guadeloupe', 'Guyane', 'Mayotte'];
         $cookie = $request->cookie('swapiles_territoire');
         $preselect = in_array($cookie, $valid, true) ? $cookie : 'La Réunion';
 
         return view('auth.register', ['territoirePreselect' => $preselect]);
+    }
+
+    /**
+     * Mémorise la page consultée avant l'auth pour y revenir après connexion /
+     * inscription (redirect()->intended()). Presque toujours déclenchée par une
+     * intention d'achat depuis une fiche annonce : on ne doit pas la perdre.
+     */
+    private function rememberIntendedFrom(Request $request): void
+    {
+        // Ne pas écraser une destination déjà mémorisée (ex. connexion -> inscription,
+        // ou intended posé par le middleware auth sur une route protégée).
+        if ($request->session()->has('url.intended')) {
+            return;
+        }
+
+        $previous = url()->previous();
+        if (blank($previous) || ! str_starts_with($previous, (string) config('app.url'))) {
+            return;
+        }
+
+        // Ne pas revenir sur une page d'auth (éviterait une boucle).
+        $path = (string) parse_url($previous, PHP_URL_PATH);
+        foreach (['/connexion', '/inscription', '/deconnexion', '/mot-de-passe', '/magic-link', '/admin'] as $authPath) {
+            if (str_starts_with($path, $authPath)) {
+                return;
+            }
+        }
+
+        $request->session()->put('url.intended', $previous);
     }
 
     public function login(Request $request)
@@ -98,7 +131,9 @@ class AuthController extends Controller
             report($e);
         }
 
-        return redirect()->route('account.dashboard')
+        // Retour sur la page consultée avant l'inscription (fiche annonce le
+        // plus souvent), sinon tableau de bord.
+        return redirect()->intended(route('account.dashboard'))
             ->with('status', "Bienvenue sur Swap'Îles ! Un e-mail de bienvenue vient de vous être envoyé.")
             ->with('pixel_event', ['event' => 'CompleteRegistration', 'params' => []])
             ->withCookie(cookie('swapiles_territoire', $data['territoire'], 60 * 24 * 365));

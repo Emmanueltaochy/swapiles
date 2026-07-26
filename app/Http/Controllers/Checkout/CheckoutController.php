@@ -19,7 +19,9 @@ class CheckoutController extends Controller
     public function start(Request $request, Listing $listing)
     {
         if (!Auth::check()) {
-            return redirect()->route('login')->with('status', 'Connectez-vous pour finaliser votre achat.');
+            // guest() mémorise l'URL courante (le tunnel) comme destination :
+            // après connexion, l'acheteur revient directement ici.
+            return redirect()->guest(route('login'))->with('status', 'Connectez-vous pour finaliser votre achat.');
         }
 
         // Article déjà vendu / indisponible : message clair plutôt qu'une erreur brute.
@@ -83,6 +85,14 @@ class CheckoutController extends Controller
                 'shipping_city' => ['required', 'string', 'max:120'],
                 'shipping_territory' => ['required', 'string', 'max:80'],
                 'shipping_country' => ['nullable', 'string', 'max:80'],
+            ], [
+                // Messages précis : l'acheteur doit savoir EXACTEMENT quoi corriger.
+                'buyer_full_name.required' => 'Le nom complet est obligatoire pour l’expédition.',
+                'buyer_phone.required' => 'Le numéro de téléphone est obligatoire pour l’expédition (le transporteur en a besoin).',
+                'shipping_address_line1.required_if' => 'L’adresse est obligatoire pour la livraison à domicile.',
+                'shipping_postal_code.required' => 'Le code postal est obligatoire pour l’expédition.',
+                'shipping_city.required' => 'La ville est obligatoire pour l’expédition.',
+                'shipping_territory.required' => 'Le territoire de livraison est obligatoire.',
             ]);
         } elseif ($deliveryMethod === 'hand_delivery') {
             abort_unless(($listing->allows_hand_delivery ?? $listing->pickup_enabled ?? true), 403);

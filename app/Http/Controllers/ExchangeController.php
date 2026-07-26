@@ -16,7 +16,7 @@ class ExchangeController extends Controller
     public function create(Listing $listing)
     {
         if (!Auth::check()) {
-            return redirect()->route('login')->with('status', "Connectez-vous pour proposer un échange.");
+            return redirect()->guest(route('login'))->with('status', "Connectez-vous pour proposer un échange.");
         }
 
         if (Auth::id() === $listing->user_id) {

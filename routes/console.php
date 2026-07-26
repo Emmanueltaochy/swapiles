@@ -35,3 +35,7 @@ Schedule::command('favorites:remind')->dailyAt('09:00')->withoutOverlapping();
 // Qualité / conversion : masque les annonces publiées sans aucune photo (elles
 // nuisent à la conversion sur la page recherche). Idempotent et réversible.
 Schedule::command('listings:hide-photoless')->dailyAt('06:30')->withoutOverlapping();
+
+// Relance vendeur : un message resté sans réponse depuis 24 h déclenche un
+// e-mail au destinataire (point 8). Une seule relance par message.
+Schedule::command('messages:remind-unanswered')->everySixHours()->withoutOverlapping();

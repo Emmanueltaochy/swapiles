@@ -188,9 +188,9 @@
         <div class="lg:col-span-2 rounded-3xl bg-gradient-to-br from-gray-950 via-teal-950 to-emerald-900 text-white p-6 sm:p-8 overflow-hidden relative">
             <div class="absolute -right-8 -top-8 text-9xl opacity-10">🛡️</div>
             <p class="text-sm font-bold uppercase tracking-wide text-emerald-200">Paiement sécurisé Swap’Îles</p>
-            <h2 class="text-2xl sm:text-3xl font-bold mt-2">Vendez plus loin que votre île.</h2>
+            <h2 class="text-2xl sm:text-3xl font-bold mt-2">Achète et vends en toute confiance.</h2>
             <p class="text-white/75 mt-3 max-w-2xl">
-                En activant le paiement en ligne, votre annonce peut devenir expédiable avec Colissimo et être visible par les acheteurs des autres îles.
+                Paie par carte, même en remise en main propre : le vendeur n'est payé qu'<span class="font-semibold text-white">après la remise confirmée</span>. Zéro avance pour l'acheteur, zéro impayé pour le vendeur — fini les faux rendez-vous. Et pour les vendeurs qui expédient, Colissimo reste disponible.
             </p>
 
 <div id="low-price-colissimo-warning" class="hidden mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
@@ -204,8 +204,8 @@
 
             <div class="mt-5 flex flex-wrap gap-3 text-sm font-bold">
                 <span class="bg-white/10 rounded-full px-4 py-2">💳 CB sécurisée</span>
-                <span class="bg-white/10 rounded-full px-4 py-2">📦 Colissimo disponible</span>
-                <span class="bg-white/10 rounded-full px-4 py-2">🌍 Visibilité inter-îles</span>
+                <span class="bg-white/10 rounded-full px-4 py-2">🤝 Remise en main propre protégée</span>
+                <span class="bg-white/10 rounded-full px-4 py-2">📦 Colissimo si le vendeur expédie</span>
             </div>
         </div>
 

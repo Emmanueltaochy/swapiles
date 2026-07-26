@@ -13,10 +13,12 @@ class Message extends Model
         'receiver_id',
         'body',
         'read_at',
+        'reminder_sent_at',
     ];
 
     protected $casts = [
         'read_at' => 'datetime',
+        'reminder_sent_at' => 'datetime',
     ];
 
     public function listing()

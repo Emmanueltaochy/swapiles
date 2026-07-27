@@ -425,6 +425,12 @@
                                             <button class="w-full rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white hover:bg-emerald-700">🎁 Don remis</button>
                                         </form>
                                     </div>
+
+                                    <form method="POST" action="{{ route('account.listings.destroy', $listing) }}"
+                                          onsubmit="return confirm('Supprimer définitivement cette annonce ? Cette action est irréversible.');">
+                                        @csrf @method('DELETE')
+                                        <button class="w-full rounded-xl border-2 border-red-200 px-5 py-3 font-semibold text-red-600 transition hover:bg-red-50">🗑️ Supprimer mon produit</button>
+                                    </form>
                                 @endif
                             @else
                                 <a href="{{ route('login') }}" class="block w-full rounded-xl border-2 border-teal-600 px-6 py-3.5 text-center font-semibold text-teal-700 transition hover:bg-teal-50">

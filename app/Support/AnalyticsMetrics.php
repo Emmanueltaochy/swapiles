@@ -148,7 +148,7 @@ class AnalyticsMetrics
         try {
             $rows = DB::table('analytics_events')
                 ->whereDate('created_at', Carbon::today())
-                ->selectRaw('HOUR(created_at) as h, COUNT(DISTINCT session_id) as c')
+                ->selectRaw('HOUR(created_at) as h, COUNT(DISTINCT COALESCE(visitor_id, session_id)) as c')
                 ->groupBy('h')
                 ->pluck('c', 'h');
 
@@ -170,11 +170,12 @@ class AnalyticsMetrics
         }
 
         try {
+            // Visiteur unique = identifiant STABLE (visitor_id), avec repli sur
+            // session_id pour les événements historiques sans visitor_id.
             return (int) DB::table('analytics_events')
                 ->whereDate('created_at', Carbon::today())
-                ->whereNotNull('session_id')
-                ->distinct()
-                ->count('session_id');
+                ->selectRaw('COUNT(DISTINCT COALESCE(visitor_id, session_id)) as agg')
+                ->value('agg');
         } catch (\Throwable $e) {
             report($e);
 
@@ -271,9 +272,13 @@ class AnalyticsMetrics
 
             $pageViews = (clone $base)->count();
 
-            // Sessions = session_id distincts
+            // Sessions = session_id distincts (une session ≈ une visite).
             $sessions = (clone $base)->whereNotNull('session_id')->distinct()->count('session_id');
-            $uniqueVisitors = $sessions;
+            // Visiteurs uniques = identifiant STABLE (visitor_id), repli session_id.
+            // Beaucoup plus bas que le nb de sessions -> fini le surcompte ×4-5.
+            $uniqueVisitors = (int) (clone $base)
+                ->selectRaw('COUNT(DISTINCT COALESCE(visitor_id, session_id)) as agg')
+                ->value('agg');
 
             $pagesPerSession = $sessions > 0 ? round($pageViews / $sessions, 1) : 0.0;
 
@@ -298,10 +303,14 @@ class AnalyticsMetrics
                 ->get()
                 ->count();
 
-            // Actifs glissants (indépendants de la période)
-            $dau = DB::table('analytics_events')->where('created_at', '>=', Carbon::now()->subDay())->distinct()->count('session_id');
-            $wau = DB::table('analytics_events')->where('created_at', '>=', Carbon::now()->subDays(7))->distinct()->count('session_id');
-            $mau = DB::table('analytics_events')->where('created_at', '>=', Carbon::now()->subDays(30))->distinct()->count('session_id');
+            // Actifs glissants (indépendants de la période) — visiteurs stables.
+            $visitorCount = fn (Carbon $since) => (int) DB::table('analytics_events')
+                ->where('created_at', '>=', $since)
+                ->selectRaw('COUNT(DISTINCT COALESCE(visitor_id, session_id)) as agg')
+                ->value('agg');
+            $dau = $visitorCount(Carbon::now()->subDay());
+            $wau = $visitorCount(Carbon::now()->subDays(7));
+            $mau = $visitorCount(Carbon::now()->subDays(30));
 
             // Activité par heure
             $hourRows = (clone $base)

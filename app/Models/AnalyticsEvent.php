@@ -12,6 +12,7 @@ class AnalyticsEvent extends Model
     protected $fillable = [
         'user_id',
         'session_id',
+        'visitor_id',
         'ip_address',
         'method',
         'path',

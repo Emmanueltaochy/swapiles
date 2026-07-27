@@ -5,13 +5,26 @@ namespace App\Http\Middleware;
 use App\Models\AnalyticsEvent;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class TrackAnalyticsPageView
 {
     public function handle(Request $request, Closure $next): Response
     {
+        // Identifiant visiteur STABLE (point 14) : cookie 1 an, réutilisé entre
+        // sessions -> « 1 personne = 1 identifiant » (aligné sur GA, fini le
+        // surcompte lié au churn de session_id). Défini côté handle() car
+        // terminate() s'exécute après l'envoi de la réponse.
+        $vid = $request->cookie('swp_vid');
+        if (! $vid || ! preg_match('/^[A-Za-z0-9]{20,64}$/', (string) $vid)) {
+            $vid = Str::random(32);
+            Cookie::queue(cookie('swp_vid', $vid, 60 * 24 * 365, '/', null, app()->isProduction(), true, false, 'lax'));
+        }
+        $request->attributes->set('swp_vid', $vid);
+
         return $next($request);
     }
 
@@ -62,6 +75,7 @@ class TrackAnalyticsPageView
             AnalyticsEvent::create([
                 'user_id' => optional($request->user())->id,
                 'session_id' => optional($request->session())->getId(),
+                'visitor_id' => $request->attributes->get('swp_vid'),
                 'ip_address' => $request->ip(),
 
                 'method' => $request->method(),

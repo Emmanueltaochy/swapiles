@@ -211,6 +211,21 @@ class CheckoutController extends Controller
             'stripe_payment_intent_id' => $paymentIntent->id,
         ]);
 
+        // Point 12 : tracer chaque création de PaymentIntent avec son contexte,
+        // pour reconstituer où les acheteurs abandonnent (tag [checkout-pi]).
+        \Illuminate\Support\Facades\Log::info('[checkout-pi] created', [
+            'transaction_id' => $transaction->id,
+            'payment_intent' => $paymentIntent->id,
+            'listing_id' => $listing->id,
+            'listing_title' => $listing->title,
+            'item_eur' => $pricing->itemEuros(),
+            'protection_eur' => $pricing->protectionEuros(),
+            'shipping_eur' => $pricing->shippingEuros(),
+            'total_eur' => $pricing->totalEuros(),
+            'delivery_method' => $deliveryMethod,
+            'buyer_id' => $buyer->id,
+        ]);
+
         return view('checkout.payment', [
             'listing' => $listing,
             'transaction' => $transaction,
@@ -270,6 +285,21 @@ class CheckoutController extends Controller
                     'content_name' => $transaction->listing->title ?? 'Article',
                     'content_ids' => [$transaction->listing_id],
                     'content_type' => 'product',
+                ],
+            ]);
+            // GA4 : événement e-commerce standard « purchase » (point 11),
+            // avec transaction_id pour la déduplication et la valeur.
+            $redirect->with('ga_event', [
+                'event' => 'purchase',
+                'params' => [
+                    'transaction_id' => (string) $transaction->id,
+                    'value' => round((float) $transaction->amount, 2),
+                    'currency' => 'EUR',
+                    'items' => [[
+                        'item_id' => (string) $transaction->listing_id,
+                        'item_name' => $transaction->listing->title ?? 'Article',
+                        'price' => round((float) $transaction->amount, 2),
+                    ]],
                 ],
             ]);
         }

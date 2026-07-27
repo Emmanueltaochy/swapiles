@@ -201,13 +201,31 @@ document.addEventListener('DOMContentLoaded', function () {
     const addressBlock = document.getElementById('colissimo-address-block');
     const radios = document.querySelectorAll('[data-delivery]');
 
+    // GA4 : entrée dans le tunnel (point 11).
+    window.SWP && window.SWP.ga4('begin_checkout', {
+        currency: 'EUR',
+        value: {{ (float) $itemAmount }},
+        items: [{ item_id: '{{ $listing->id }}', item_name: @json($listing->title), price: {{ (float) $itemAmount }} }]
+    });
+
     if (addressBlock && radios.length) {
         const sync = function () {
             const selected = document.querySelector('[data-delivery]:checked');
             const isColissimo = selected && selected.value === 'colissimo';
             addressBlock.classList.toggle('hidden', !isColissimo);
         };
-        radios.forEach(r => r.addEventListener('change', sync));
+        // GA4 : choix du mode de livraison (point 11).
+        const trackShipping = function () {
+            const selected = document.querySelector('[data-delivery]:checked');
+            if (selected && window.SWP) {
+                window.SWP.ga4('add_shipping_info', {
+                    currency: 'EUR',
+                    value: {{ (float) $itemAmount }},
+                    shipping_tier: selected.value === 'colissimo' ? 'Colissimo' : 'Main propre'
+                });
+            }
+        };
+        radios.forEach(r => r.addEventListener('change', function () { sync(); trackShipping(); }));
         sync();
     }
 

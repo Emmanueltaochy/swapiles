@@ -442,14 +442,21 @@
 
                     {{-- Partage sur les réseaux sociaux (promotion par la communauté) --}}
                     @php
-                        $shareUrl = route('listings.show', $listing);
+                        // UTM sur les liens partagés (point 15) : les liens via
+                        // WhatsApp/Instagram/etc. perdent le referrer -> on tague
+                        // la source pour attribuer le trafic dans GA4.
+                        $baseShareUrl = route('listings.show', $listing);
+                        $utmShare = fn (string $source) => $baseShareUrl
+                            . '?utm_source=' . $source . '&utm_medium=share&utm_campaign=annonce_' . $listing->id;
+                        $shareUrl = $utmShare('native');
+                        $instaShareUrl = $utmShare('instagram');
                         $shareText = 'Découvrez « ' . $listing->title . ' » sur Swap\'Îles 🌴';
-                        $waHref = 'https://wa.me/?text=' . rawurlencode($shareText . ' ' . $shareUrl);
-                        $fbHref = 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode($shareUrl);
-                        $xHref = 'https://twitter.com/intent/tweet?text=' . rawurlencode($shareText) . '&url=' . rawurlencode($shareUrl);
+                        $waHref = 'https://wa.me/?text=' . rawurlencode($shareText . ' ' . $utmShare('whatsapp'));
+                        $fbHref = 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode($utmShare('facebook'));
+                        $xHref = 'https://twitter.com/intent/tweet?text=' . rawurlencode($shareText) . '&url=' . rawurlencode($utmShare('twitter'));
                     @endphp
                     @php
-                        $smsHref = 'sms:?&body=' . rawurlencode($shareText . ' ' . $shareUrl);
+                        $smsHref = 'sms:?&body=' . rawurlencode($shareText . ' ' . $utmShare('sms'));
                     @endphp
                     <div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
                         <p class="mb-3 text-sm font-semibold text-gray-900">📣 Partager cette annonce</p>
@@ -469,7 +476,7 @@
                                 <span aria-hidden="true">🟢</span> WhatsApp
                             </a>
                             <button type="button"
-                                    data-share-url="{{ $shareUrl }}"
+                                    data-share-url="{{ $instaShareUrl }}"
                                     onclick="swpInstagram(this)"
                                     class="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition hover:opacity-90"
                                     style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);">
@@ -885,6 +892,15 @@ function swpInstagram(btn) {
         window.prompt('Copiez le lien pour Instagram :', url);
     }
 }
+</script>
+
+{{-- GA4 e-commerce : consultation d'une annonce (point 11) --}}
+<script>
+    window.SWP && window.SWP.ga4('view_item', {
+        currency: 'EUR',
+        value: {{ (float) $listing->price }},
+        items: [{ item_id: '{{ $listing->id }}', item_name: @json($listing->title), price: {{ (float) $listing->price }} }]
+    });
 </script>
 
 @endsection

@@ -88,13 +88,16 @@ html, body {
         $metaPixelId = env('META_PIXEL_ID', '2716674522082712');
         $googleTagId = env('GOOGLE_TAG_ID', 'G-KH96S3FP4X');
         $pixelEvent = session('pixel_event');
+        $gaEvent = session('ga_event');
     @endphp
     <script>
     window.SWP = {
         metaId: @json($metaPixelId),
         gaId: @json($googleTagId),
         pending: @json($pixelEvent),
+        pendingGa: @json($gaEvent),
         loaded: false,
+        queue: [],
         load: function () {
             if (this.loaded) return; this.loaded = true;
             if (this.metaId) {
@@ -109,13 +112,27 @@ html, body {
                 window.dataLayer = window.dataLayer || [];
                 window.gtag = function () { dataLayer.push(arguments); };
                 gtag('js', new Date());
+                // page_view (session_start) explicite AVANT tout autre événement.
                 gtag('config', this.gaId);
             }
             if (this.pending) { this.track(this.pending.event, this.pending.params || {}); }
+            if (this.pendingGa) { this.ga4(this.pendingGa.event, this.pendingGa.params || {}); }
+            // Rejoue les événements GA4 mis en file avant le consentement.
+            var q = this.queue; this.queue = [];
+            for (var i = 0; i < q.length; i++) { this.ga4(q[i][0], q[i][1]); }
         },
         track: function (event, params) {
             if (window.fbq) { fbq('track', event, params || {}); }
             if (window.gtag) { gtag('event', event, params || {}); }
+        },
+        // Événement GA4 uniquement (nommage e-commerce GA4). Mis en file si la
+        // balise n'est pas encore chargée (consentement pas encore donné).
+        ga4: function (event, params) {
+            if (window.gtag) { gtag('event', event, params || {}); }
+            else if (!this.loaded) { this.queue.push([event, params || {}]); }
+        },
+        meta: function (event, params) {
+            if (window.fbq) { fbq('track', event, params || {}); }
         }
     };
     (function () {

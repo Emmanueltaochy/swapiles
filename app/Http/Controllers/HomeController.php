@@ -370,6 +370,16 @@ class HomeController extends Controller
 
         $listings = $query->paginate(48)->withQueryString();
 
-        return view('search', compact('listings', 'selectedTerritoire', 'categoryTree', 'localCount'));
+        // Point 17 : journaliser une recherche textuelle SANS résultat (hors bots),
+        // pour révéler la demande hors catalogue. Le terme est aussi passé à la
+        // vue pour proposer une alerte e-mail.
+        $noResultTerm = \App\Support\SearchLogger::record(
+            (string) $request->input('q', ''),
+            $listings->total(),
+            optional($request->user())->id,
+            (string) $request->userAgent()
+        );
+
+        return view('search', compact('listings', 'selectedTerritoire', 'categoryTree', 'localCount', 'noResultTerm'));
     }
 }

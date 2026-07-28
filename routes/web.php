@@ -54,6 +54,11 @@ Route::get('/territoire/{territoire}', function (string $territoire) {
 })->name('territoire.switch');
 Route::get('/recherche', [HomeController::class, 'search'])->name('search');
 
+// Point 17b : alerte « préviens-moi » sur une recherche sans résultat (capture e-mail).
+Route::post('/recherche/alerte', [\App\Http\Controllers\SearchAlertController::class, 'store'])
+    ->middleware('throttle:10,1')
+    ->name('search.alert.store');
+
 // Suivi newsletter (ouvertures + clics) — accès public, sans authentification
 Route::get('/n/o/{token}', [\App\Http\Controllers\NewsletterTrackingController::class, 'open'])->name('newsletter.open');
 Route::get('/n/c/{token}', [\App\Http\Controllers\NewsletterTrackingController::class, 'click'])->name('newsletter.click');

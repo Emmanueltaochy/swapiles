@@ -271,11 +271,53 @@
                 </div>
             </a>
         @empty
-            <div class="col-span-full rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center">
+            <div class="col-span-full rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center">
                 <div class="text-5xl" aria-hidden="true">🔍</div>
                 <h3 class="mt-3 text-lg font-bold text-gray-900">Aucune annonce trouvée</h3>
                 <p class="mt-1 text-gray-500">Essaie un autre mot-clé ou enlève certains filtres.</p>
-                <a href="{{ route('search') }}" class="mt-5 inline-flex rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-700">Voir toutes les annonces</a>
+
+                {{-- Point 17b : « préviens-moi » quand le terme cherché est publié. --}}
+                @if(session('alert_saved'))
+                    <div class="mx-auto mt-6 max-w-md rounded-xl bg-teal-50 border border-teal-200 p-4 text-left">
+                        <p class="text-sm font-semibold text-teal-800">✅ C'est noté !</p>
+                        <p class="mt-1 text-sm text-teal-700">
+                            On te préviendra dès qu'une annonce « {{ session('alert_saved') }} » sera publiée
+                            @if($selectedTerritoire ?? false) à {{ $selectedTerritoire }} @endif.
+                        </p>
+                    </div>
+                @elseif(!empty($noResultTerm))
+                    <div class="mx-auto mt-6 max-w-md rounded-2xl bg-gray-50 border border-gray-200 p-5 text-left">
+                        <p class="text-sm font-semibold text-gray-900">
+                            🔔 Préviens-moi quand « {{ $noResultTerm }} » arrive
+                        </p>
+                        <p class="mt-1 text-xs text-gray-500">
+                            Laisse ton e-mail : on t'écrit dès qu'une annonce correspondante est publiée. Pas de spam.
+                        </p>
+                        <form method="POST" action="{{ route('search.alert.store') }}" class="mt-3">
+                            @csrf
+                            <input type="hidden" name="term" value="{{ $noResultTerm }}">
+                            <input type="hidden" name="territoire" value="{{ $selectedTerritoire ?? '' }}">
+                            <div class="flex flex-col gap-2 sm:flex-row">
+                                <input
+                                    type="email"
+                                    name="email"
+                                    required
+                                    value="{{ old('email', optional(auth()->user())->email) }}"
+                                    placeholder="ton@email.com"
+                                    class="w-full rounded-xl border @error('email') border-red-400 @else border-gray-300 @enderror px-4 py-2.5 text-sm focus:border-teal-500 focus:ring-teal-500"
+                                >
+                                <button type="submit" class="shrink-0 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-700">
+                                    Me prévenir
+                                </button>
+                            </div>
+                            @error('email')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </form>
+                    </div>
+                @endif
+
+                <a href="{{ route('search') }}" class="mt-6 inline-flex rounded-xl bg-white border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">Voir toutes les annonces</a>
             </div>
         @endforelse
     </div>

@@ -70,8 +70,21 @@ class Listing extends Model
      */
     public function isOnlinePayable(): bool
     {
-        return (bool) $this->requires_online_payment
-            && $this->user
+        if (! $this->requires_online_payment) {
+            return false;
+        }
+
+        // Point 19 — KYC différé : le paiement CB est un encaissement sur le
+        // compte plateforme (separate charges & transfers). Le vendeur n'a
+        // besoin d'un compte opérationnel qu'au virement, pas à la vente : une
+        // annonce en paiement en ligne est donc payable même sans KYC complet.
+        // Les fonds sont sécurisés sur la plateforme jusqu'à la remise, et
+        // l'acheteur est remboursé si le vendeur ne finalise jamais.
+        if (config('features.defer_kyc')) {
+            return true;
+        }
+
+        return $this->user
             && $this->user->stripe_account_id
             && $this->user->stripe_charges_enabled
             && $this->user->stripe_payouts_enabled;
@@ -80,6 +93,12 @@ class Listing extends Model
     /** Filtre : uniquement les annonces réellement payables par carte. */
     public function scopeOnlinePayable($query)
     {
+        // Point 19 — cf. isOnlinePayable() : en KYC différé, l'intention de
+        // paiement en ligne suffit (encaissement plateforme).
+        if (config('features.defer_kyc')) {
+            return $query->where('requires_online_payment', true);
+        }
+
         return $query->where('requires_online_payment', true)
             ->whereHas('user', fn ($q) => $q->whereNotNull('stripe_account_id')
                 ->where('stripe_charges_enabled', true)

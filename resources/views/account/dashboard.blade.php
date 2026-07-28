@@ -109,8 +109,13 @@
                         <div class="flex items-center gap-3 min-w-0">
                             <span class="text-2xl" aria-hidden="true">🏦</span>
                             <div class="min-w-0">
-                                <p class="font-semibold text-amber-900">Activez vos paiements</p>
-                                <p class="text-sm text-amber-700">Ajoutez votre IBAN pour recevoir l'argent de vos ventes.</p>
+                                @if($walletPending > 0)
+                                    <p class="font-semibold text-amber-900">💶 {{ number_format($walletPending, 2, ',', ' ') }} € t’attendent</p>
+                                    <p class="text-sm text-amber-700">Ajoute ton IBAN pour les recevoir — 2 min, sans pièce d’identité.</p>
+                                @else
+                                    <p class="font-semibold text-amber-900">Activez vos paiements</p>
+                                    <p class="text-sm text-amber-700">Ajoutez votre IBAN pour recevoir l'argent de vos ventes — 2 min, sans pièce d’identité.</p>
+                                @endif
                             </div>
                         </div>
                         <span class="shrink-0 text-sm font-semibold text-amber-800">Configurer →</span>

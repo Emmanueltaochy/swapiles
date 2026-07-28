@@ -46,6 +46,27 @@ class SendTransactionStatusEmails implements ShouldQueue
 
         $messages = $this->messagesFor($title, $amount, $net);
 
+        // Point 19 — à la vente, si le vendeur n'a pas encore de compte
+        // opérationnel, on greffe la sollicitation KYC (« ton argent t'attend,
+        // ajoute ton IBAN ») sur l'e-mail vendeur existant. Piloté par un flag
+        // activé par défaut (features.sale_kyc_email).
+        if (
+            $this->event === 'paid'
+            && !empty($messages['seller'])
+            && $t->seller
+            && !$t->seller->stripe_payouts_enabled
+            && config('features.sale_kyc_email')
+        ) {
+            try {
+                $walletUrl = route('account.wallet.index');
+            } catch (\Throwable $e) {
+                $walletUrl = 'https://swapiles.com';
+            }
+
+            $messages['seller'][1] .= "\n\n💶 {$net} € t'attendent. Pour les recevoir, ajoute ton IBAN — "
+                . "2 minutes, sans pièce d'identité à ce stade : {$walletUrl}";
+        }
+
         if (!empty($messages['buyer']) && $t->buyer?->email) {
             $this->send($t->buyer->email, $messages['buyer'][0], $messages['buyer'][1] . $this->footer($url));
         }

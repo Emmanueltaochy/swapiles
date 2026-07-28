@@ -24,11 +24,11 @@ class ListingManageController extends Controller
     {
         $data = $this->validateListing($request, requireImages: true);
 
-        $cbEnabled = $request->boolean('payment_cb') && $this->userCanReceiveOnlinePayments();
+        $cbEnabled = $request->boolean('payment_cb') && $this->sellerCanEnableOnlinePayment();
         $allowsColissimo = $cbEnabled && $request->boolean('allows_colissimo');
         $allowsHandDelivery = $request->boolean('allows_hand_delivery') || !$cbEnabled;
 
-        if ($request->boolean('payment_cb') && ! $this->userCanReceiveOnlinePayments()) {
+        if ($request->boolean('payment_cb') && ! $this->sellerCanEnableOnlinePayment()) {
             return back()
                 ->withErrors(['payment_cb' => 'Pour activer le paiement CB sécurisé, vous devez d’abord connecter votre compte bancaire.'])
                 ->withInput();
@@ -104,6 +104,10 @@ class ListingManageController extends Controller
 
         $this->storeImages($request, $listing);
 
+        // Point 19 — provisionne le compte Connect en arrière-plan si le vendeur
+        // active la CB sans encore avoir de compte (KYC différé à la vente).
+        $this->provisionConnectAccountIfNeeded($cbEnabled);
+
         $this->notifyFollowersNewListing($listing);
 
         // E-mail au vendeur : « partagez votre annonce sur vos réseaux ».
@@ -146,11 +150,11 @@ class ListingManageController extends Controller
                 ->withInput();
         }
 
-        $cbEnabled = $request->boolean('payment_cb') && $this->userCanReceiveOnlinePayments();
+        $cbEnabled = $request->boolean('payment_cb') && $this->sellerCanEnableOnlinePayment();
         $allowsColissimo = $cbEnabled && $request->boolean('allows_colissimo');
         $allowsHandDelivery = $request->boolean('allows_hand_delivery') || !$cbEnabled;
 
-        if ($request->boolean('payment_cb') && ! $this->userCanReceiveOnlinePayments()) {
+        if ($request->boolean('payment_cb') && ! $this->sellerCanEnableOnlinePayment()) {
             return back()
                 ->withErrors(['payment_cb' => 'Pour activer le paiement CB sécurisé, vous devez d’abord connecter votre compte bancaire.'])
                 ->withInput();
@@ -217,6 +221,10 @@ class ListingManageController extends Controller
         ]);
 
         $this->storeImages($request, $listing);
+
+        // Point 19 — provisionne le compte Connect si la CB vient d'être activée
+        // sans compte existant (KYC différé à la vente).
+        $this->provisionConnectAccountIfNeeded($cbEnabled);
 
         // L'annonce devient livrable inter-îles : on prévient les acheteurs
         // d'autres îles qui avaient signalé leur intérêt.
@@ -476,6 +484,45 @@ class ListingManageController extends Controller
             && $user->stripe_payouts_enabled
             && $user->stripe_details_submitted
         );
+    }
+
+    /**
+     * Point 19 — Un vendeur peut-il activer le paiement CB sur son annonce ?
+     * Avec le KYC différé (flag features.defer_kyc), OUI sans dossier Stripe
+     * complet : Swap'Îles encaisse sur le compte plateforme (separate charges &
+     * transfers) et le KYC n'est réellement requis qu'au virement, sollicité le
+     * jour de la vente. Sans le flag, on retombe sur l'ancien contrôle strict.
+     */
+    private function sellerCanEnableOnlinePayment(): bool
+    {
+        if (config('features.defer_kyc')) {
+            return (bool) Auth::user();
+        }
+
+        return $this->userCanReceiveOnlinePayments();
+    }
+
+    /**
+     * Point 19 — si la CB est activée en KYC différé et que le vendeur n'a pas
+     * encore de compte Connect, on le provisionne en tâche de fond (transfers
+     * demandé) pour qu'il soit prêt à recevoir le virement le jour de la vente.
+     */
+    private function provisionConnectAccountIfNeeded(bool $cbEnabled): void
+    {
+        if (! $cbEnabled || ! config('features.defer_kyc')) {
+            return;
+        }
+
+        $user = Auth::user();
+        if (! $user || $user->stripe_account_id) {
+            return;
+        }
+
+        try {
+            \App\Jobs\EnsureStripeConnectAccount::dispatch($user->id);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     /** Îles supplémentaires choisies (hors île principale), nettoyées. */

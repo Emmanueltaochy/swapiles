@@ -61,14 +61,24 @@
         </div>
 
         @if(!$stripeReady)
+            @php $moneyWaiting = ($pendingAmount + ($processingAmount ?? 0)); @endphp
             <div class="bg-yellow-50 border border-yellow-200 rounded-3xl p-5 mt-8">
-                <h2 class="text-xl font-extrabold text-yellow-900">Recevoir mes paiements</h2>
-                <p class="text-sm text-yellow-800 mt-1">
-                    Ajoutez votre IBAN et finalisez la vérification pour recevoir automatiquement vos ventes.
-                </p>
+                @if($moneyWaiting > 0)
+                    <h2 class="text-xl font-extrabold text-yellow-900">💶 {{ number_format($moneyWaiting, 2, ',', ' ') }} € t’attendent</h2>
+                    <p class="text-sm text-yellow-800 mt-1">
+                        Ta vente est payée et sécurisée. Ajoute ton IBAN pour recevoir ton argent —
+                        <span class="font-semibold">2 minutes, pas de pièce d’identité à ce stade</span>.
+                    </p>
+                @else
+                    <h2 class="text-xl font-extrabold text-yellow-900">Recevoir mes paiements</h2>
+                    <p class="text-sm text-yellow-800 mt-1">
+                        Ajoute ton IBAN pour être payé automatiquement dès qu’un acheteur règle par carte —
+                        <span class="font-semibold">2 minutes, pas de pièce d’identité à ce stade</span>.
+                    </p>
+                @endif
 
                 <a href="{{ route('stripe.connect.activate') }}" class="inline-flex mt-4 bg-yellow-500 hover:bg-yellow-600 text-white font-extrabold px-6 py-3 rounded-2xl transition">
-                    Activer mon portefeuille
+                    {{ $moneyWaiting > 0 ? 'Ajouter mon IBAN et être payé' : 'Activer mon portefeuille' }}
                 </a>
             </div>
         @else

@@ -60,16 +60,46 @@ class TransactionPayment
         return true;
     }
 
+    /** Montant net revenant au vendeur (prix affiché, commission 0 %). */
+    private static function sellerNet(Transaction $t): float
+    {
+        if ((float) $t->seller_amount > 0) {
+            return (float) $t->seller_amount;
+        }
+
+        return max(0, (float) $t->amount - (float) $t->commission
+            - (float) $t->buyer_protection_fee - (float) $t->shipping_fee);
+    }
+
     private static function createOnSiteNotifications(Transaction $t): void
     {
         if ($t->seller) {
-            Notification::create([
-                'user_id' => $t->seller_id,
-                'type' => 'transaction_paid_seller',
-                'title' => 'Nouvelle vente 🎉',
-                'message' => 'Votre article "' . ($t->listing->title ?? 'Annonce') . '" a été acheté.',
-                'url' => route('account.transactions.show', $t, absolute: false),
-            ]);
+            // Point 19 — si le vendeur n'a pas encore de compte opérationnel
+            // (KYC différé), on transforme la notification de vente en
+            // sollicitation « ton argent t'attend, ajoute ton IBAN ». La
+            // demande de KYC part ainsi dès la vente, pendant tout le délai de
+            // livraison, et non au dernier moment avant remboursement.
+            $sellerNotPayoutReady = ! $t->seller->stripe_payouts_enabled;
+
+            if ($sellerNotPayoutReady) {
+                $net = number_format(self::sellerNet($t), 2, ',', ' ');
+                Notification::create([
+                    'user_id' => $t->seller_id,
+                    'type' => 'transaction_paid_seller',
+                    'title' => 'Vente confirmée 🎉 — ajoute ton IBAN',
+                    'message' => 'Ta vente « ' . ($t->listing->title ?? 'Annonce') . ' » est payée. ' . $net
+                        . ' € t’attendent : ajoute ton IBAN (2 min, sans pièce d’identité) pour les recevoir.',
+                    'url' => route('account.wallet.index', absolute: false),
+                ]);
+            } else {
+                Notification::create([
+                    'user_id' => $t->seller_id,
+                    'type' => 'transaction_paid_seller',
+                    'title' => 'Nouvelle vente 🎉',
+                    'message' => 'Votre article "' . ($t->listing->title ?? 'Annonce') . '" a été acheté.',
+                    'url' => route('account.transactions.show', $t, absolute: false),
+                ]);
+            }
         }
 
         if ($t->buyer) {

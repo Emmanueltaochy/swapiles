@@ -111,13 +111,15 @@ class StripeConnectController extends Controller
 
     private function ensureStripeAccount($user, StripeClient $stripe): void
     {
+        $accounts = app(\App\Services\StripeConnectAccountService::class);
+
         if ($user->stripe_account_id) {
             // Compte déjà créé mais pas encore finalisé : on renseigne le profil
             // d'activité pour éviter que Stripe demande un « site web » au particulier.
             if (! $user->stripe_payouts_enabled) {
                 try {
                     $stripe->accounts->update($user->stripe_account_id, [
-                        'business_profile' => $this->sellerBusinessProfile($user),
+                        'business_profile' => $accounts->sellerBusinessProfile($user),
                     ]);
                 } catch (\Throwable $e) {
                     report($e);
@@ -127,52 +129,8 @@ class StripeConnectController extends Controller
             return;
         }
 
-        $params = [
-            'type' => 'express',
-            'country' => 'FR',
-            'email' => $user->email,
-            'business_type' => 'individual',
-            'business_profile' => $this->sellerBusinessProfile($user),
-            'capabilities' => [
-                'transfers' => ['requested' => true],
-            ],
-        ];
-
-        try {
-            $account = $stripe->accounts->create($params);
-        } catch (\Throwable $e) {
-            // Filet de sécurité : si le business_profile pose problème, on crée
-            // quand même le compte (sans lui) pour ne jamais bloquer le vendeur.
-            report($e);
-            unset($params['business_profile']);
-            $account = $stripe->accounts->create($params);
-        }
-
-        $user->update([
-            'stripe_account_id' => $account->id,
-        ]);
-    }
-
-    /**
-     * Profil d'activité pré-rempli côté plateforme : le vendeur est un
-     * particulier qui revend ses articles d'occasion sur Swap'Îles. En
-     * fournissant l'URL (sa page profil) et une description, Stripe ne
-     * demande plus au vendeur de renseigner un « site web d'entreprise ».
-     */
-    private function sellerBusinessProfile($user): array
-    {
-        // ⚠️ Stripe exige une URL ABSOLUE (https://…) pour business_profile[url].
-        // Une URL relative fait échouer la création du compte (nouveaux vendeurs).
-        $url = route('profiles.show', $user);
-        if (! \Illuminate\Support\Str::startsWith($url, ['http://', 'https://'])) {
-            $url = rtrim((string) env('APP_CANONICAL_URL', 'https://swapiles.com'), '/') . '/' . ltrim($url, '/');
-        }
-
-        return [
-            'mcc' => '5931', // Used Merchandise and Secondhand Stores
-            'url' => $url,
-            'product_description' => "Revente d'articles d'occasion entre particuliers sur la marketplace Swap'Îles.",
-        ];
+        // Création centralisée (Express, capability transfers) — cf. point 19.
+        $accounts->ensureAccount($user);
     }
 
     public function refresh()

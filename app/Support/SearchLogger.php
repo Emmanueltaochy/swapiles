@@ -16,7 +16,7 @@ class SearchLogger
      *
      * @return string|null  Le terme brut si journalisé (pour proposer une alerte), sinon null.
      */
-    public static function record(string $rawQuery, int $total, ?int $userId, ?string $userAgent): ?string
+    public static function record(string $rawQuery, int $total, ?int $userId, ?string $userAgent, ?string $visitorId = null): ?string
     {
         $raw = trim($rawQuery);
 
@@ -33,6 +33,7 @@ class SearchLogger
                 'term' => SearchNoResult::normalize($raw),
                 'raw_term' => mb_substr($raw, 0, 255),
                 'user_id' => $userId,
+                'visitor_id' => $visitorId,
                 'created_at' => now(),
             ]);
         } catch (\Throwable $e) {

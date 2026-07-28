@@ -8,7 +8,7 @@ class SearchNoResult extends Model
 {
     public $timestamps = false;
 
-    protected $fillable = ['term', 'raw_term', 'user_id', 'created_at'];
+    protected $fillable = ['term', 'raw_term', 'user_id', 'visitor_id', 'created_at'];
 
     protected $casts = ['created_at' => 'datetime'];
 

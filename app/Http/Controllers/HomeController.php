@@ -377,7 +377,8 @@ class HomeController extends Controller
             (string) $request->input('q', ''),
             $listings->total(),
             optional($request->user())->id,
-            (string) $request->userAgent()
+            (string) $request->userAgent(),
+            $request->attributes->get('swp_vid') ?? $request->cookie('swp_vid')
         );
 
         return view('search', compact('listings', 'selectedTerritoire', 'categoryTree', 'localCount', 'noResultTerm'));

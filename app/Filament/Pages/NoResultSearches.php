@@ -27,7 +27,7 @@ class NoResultSearches extends Page
 
         $rows = SearchNoResult::query()
             ->where('created_at', '>=', $since)
-            ->selectRaw('term, COUNT(*) as total, COUNT(DISTINCT user_id) as users, MAX(created_at) as last_seen')
+            ->selectRaw('term, COUNT(*) as total, COUNT(DISTINCT COALESCE(visitor_id, user_id)) as visitors, MAX(created_at) as last_seen')
             ->groupBy('term')
             ->orderByDesc('total')
             ->limit(200)

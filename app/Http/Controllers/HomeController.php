@@ -48,7 +48,7 @@ class HomeController extends Controller
         $territoireFilter = function ($q) use ($selectedTerritoire, $alsoColExists) {
             $q->where('territoire', $selectedTerritoire);
             if ($alsoColExists) {
-                $q->orWhereRaw('JSON_CONTAINS(also_territoires, ?)', ['"' . $selectedTerritoire . '"']);
+                $q->orWhere('also_territoires', 'like', '%"' . $selectedTerritoire . '"%');
             }
         };
 
@@ -166,8 +166,8 @@ class HomeController extends Controller
         $bindings = [$territoire];
 
         if ($alsoColExists) {
-            $sql .= 'OR JSON_CONTAINS(also_territoires, ?) ';
-            $bindings[] = '"' . $territoire . '"';
+            $sql .= 'OR also_territoires LIKE ? ';
+            $bindings[] = '%"' . $territoire . '"%';
         }
 
         $sql .= 'OR (requires_online_payment = 1 AND allows_colissimo = 1)) THEN 0 ELSE 1 END';
@@ -258,11 +258,6 @@ class HomeController extends Controller
             $query->where('listing_type', $request->listing_type);
         }
 
-        if ($request->boolean('inter_iles')) {
-            $query->onlinePayable()
-                  ->where('allows_colissimo', true);
-        }
-
         // Facette PAIEMENT (choix multiple, OR entre les options cochées).
         // On applique chaque condition via une sous-requête booléenne compilée
         // (whereIn sur des ids) pour éviter tout souci d'imbrication/bindings
@@ -301,11 +296,36 @@ class HomeController extends Controller
             $selectedTerritoire = $request->cookie('swapiles_territoire', 'La Réunion');
         }
 
-        // On NE filtre PLUS par territoire : les annonces des autres îles restent
-        // visibles (même non expédiables) pour que l'acheteur puisse signaler son
-        // intérêt et pousser le vendeur à activer Colissimo. Le territoire choisi
-        // sert uniquement à remonter en premier les annonces achetables (voir plus bas).
         $alsoColExists = \Illuminate\Support\Facades\Schema::hasColumn('listings', 'also_territoires');
+        $hasTerritoire = ($selectedTerritoire !== '' && $selectedTerritoire !== null);
+        $interIles = $request->boolean('inter_iles');
+        $wantsCash = in_array('cash', $payments, true);
+
+        // Filtre TERRITOIRE — règles strictes (aucune exception) :
+        //  • « Inter-îles » DÉCOCHÉ  → uniquement le territoire choisi (pas de
+        //    cross-île), quel que soit le mode de paiement.
+        //  • Mode « Espèces / main propre » → uniquement le territoire choisi :
+        //    une remise en main propre entre deux îles est physiquement impossible.
+        //  • Sinon (inter-îles coché, sans main propre) → territoire choisi OU
+        //    annonces expédiables depuis une autre île (Colissimo / also_territoires).
+        if ($hasTerritoire) {
+            $selLower = mb_strtolower($selectedTerritoire);
+
+            if (! $interIles || $wantsCash) {
+                $query->whereRaw('LOWER(TRIM(territoire)) = ?', [$selLower]);
+            } else {
+                $query->where(function ($q) use ($selLower, $selectedTerritoire, $alsoColExists) {
+                    $q->whereRaw('LOWER(TRIM(territoire)) = ?', [$selLower])
+                      ->orWhere(function ($q2) {
+                          $q2->where('requires_online_payment', true)
+                             ->where('allows_colissimo', true);
+                      });
+                    if ($alsoColExists) {
+                        $q->orWhere('also_territoires', 'like', '%"' . $selectedTerritoire . '"%');
+                    }
+                });
+            }
+        }
 
         if ($request->filled('etat')) {
             // On matche toutes les variantes du même état (« Très bon état »,
@@ -362,7 +382,7 @@ class HomeController extends Controller
                 ->where(function ($q) use ($selectedTerritoire, $alsoColExists) {
                     $q->where('territoire', $selectedTerritoire);
                     if ($alsoColExists) {
-                        $q->orWhereRaw('JSON_CONTAINS(also_territoires, ?)', ['"' . $selectedTerritoire . '"']);
+                        $q->orWhere('also_territoires', 'like', '%"' . $selectedTerritoire . '"%');
                     }
                 })
                 ->count();

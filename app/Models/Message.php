@@ -17,12 +17,22 @@ class Message extends Model
         'attachment_mime',
         'read_at',
         'reminder_sent_at',
+        'flagged_at',
+        'flag_kind',
+        'flag_reason',
     ];
 
     protected $casts = [
         'read_at' => 'datetime',
         'reminder_sent_at' => 'datetime',
+        'flagged_at' => 'datetime',
     ];
+
+    /** Messages signalés par la modération (paiement hors plateforme, etc.). */
+    public function scopeFlagged($query)
+    {
+        return $query->whereNotNull('flagged_at');
+    }
 
     public function hasAttachment(): bool
     {

@@ -137,9 +137,18 @@ class MessageController extends Controller
 
         $request->validate(self::messageRules(), self::messageMessages());
 
-        $message = $this->buildMessage($request, null, $user->id);
+        $screen = $this->screenMessage($request, null, $user->id);
+        if (isset($screen['stop'])) {
+            return $screen['stop'];
+        }
+
+        $message = $this->buildMessage($request, null, $user->id, $screen['flag'] ?? null);
 
         $this->safeNotifyMessage($user, $message);
+
+        if (($screen['flag']['kind'] ?? null) === 'payment_forced') {
+            $this->afterForcedPayment($message, $user);
+        }
 
         return redirect()->route('account.messages.show.general', [
             'user' => $user,
@@ -193,9 +202,18 @@ class MessageController extends Controller
 
         $request->validate(self::messageRules(), self::messageMessages());
 
-        $message = $this->buildMessage($request, $listing->id, $user->id);
+        $screen = $this->screenMessage($request, $listing->id, $user->id);
+        if (isset($screen['stop'])) {
+            return $screen['stop'];
+        }
+
+        $message = $this->buildMessage($request, $listing->id, $user->id, $screen['flag'] ?? null);
 
         $this->safeNotifyMessage($user, $message);
+
+        if (($screen['flag']['kind'] ?? null) === 'payment_forced') {
+            $this->afterForcedPayment($message, $user);
+        }
 
         return redirect()->route('account.messages.show', [
             'listing' => $listing,
@@ -231,7 +249,7 @@ class MessageController extends Controller
     /**
      * Crée le message + stocke la pièce jointe éventuelle sur le disque public.
      */
-    private function buildMessage(Request $request, ?int $listingId, int $receiverId): Message
+    private function buildMessage(Request $request, ?int $listingId, int $receiverId, ?array $flag = null): Message
     {
         $path = $type = $mime = null;
 
@@ -250,6 +268,106 @@ class MessageController extends Controller
             'attachment_path' => $path,
             'attachment_type' => $type,
             'attachment_mime' => $mime,
+            'flagged_at' => $flag ? now() : null,
+            'flag_kind' => $flag['kind'] ?? null,
+            'flag_reason' => $flag['reason'] ?? null,
         ]);
+    }
+
+    /*
+     |--------------------------------------------------------------------------
+     | Modération Partie 1 — détection par mots-clés (sans IA)
+     |--------------------------------------------------------------------------
+     */
+
+    /**
+     * Analyse le message AVANT création.
+     *  - Paiement hors plateforme → blocage à l'envoi (Option A : « Envoyer
+     *    quand même » ; Option B : non délivré) selon le flag de config.
+     *  - Numéro / contact hors plateforme sur les premiers messages → simple
+     *    signalement (le message part normalement).
+     *
+     * @return array{stop?:\Illuminate\Http\RedirectResponse, flag?:array}
+     */
+    private function screenMessage(Request $request, ?int $listingId, int $receiverId): array
+    {
+        $body = (string) $request->input('body', '');
+        $payments = \App\Support\MessageModeration::detectPayment($body);
+
+        if (! empty($payments) && (bool) config('features.moderation_keyword_block', true)) {
+            $reason = 'paiement hors plateforme : ' . implode(', ', $payments);
+
+            // Option B : le message n'est pas délivré du tout.
+            if (config('features.moderation_block_mode', 'A') === 'B') {
+                return ['stop' => back()->withInput()->withErrors([
+                    'body' => \App\Support\MessageModeration::PAYMENT_WARNING_TITLE
+                        . ". Utilise le paiement sécurisé Swap'Îles ou les espèces en main propre.",
+                ])];
+            }
+
+            // Option A : blocage à l'envoi tant que l'expéditeur n'a pas confirmé.
+            if (! $request->boolean('moderation_confirm')) {
+                return ['stop' => back()
+                    ->withInput()
+                    ->with('moderation_payment_warning', $payments)];
+            }
+
+            // Confirmé (« Envoyer quand même ») → message signalé.
+            return ['flag' => ['kind' => 'payment_forced', 'reason' => $reason]];
+        }
+
+        // Signalement discret d'un échange de numéro sur les premiers messages.
+        if ($this->isEarlyConversation($listingId, $receiverId)
+            && \App\Support\MessageModeration::detectPhone($body)) {
+            return ['flag' => ['kind' => 'phone', 'reason' => 'échange de numéro / contact hors plateforme (début de conversation)']];
+        }
+
+        return [];
+    }
+
+    /** La conversation compte-t-elle moins de 3 messages (donc « au début ») ? */
+    private function isEarlyConversation(?int $listingId, int $otherId): bool
+    {
+        $me = Auth::id();
+
+        $query = Message::query()->where(function ($q) use ($me, $otherId) {
+            $q->where(fn ($x) => $x->where('sender_id', $me)->where('receiver_id', $otherId))
+                ->orWhere(fn ($x) => $x->where('sender_id', $otherId)->where('receiver_id', $me));
+        });
+
+        $listingId ? $query->where('listing_id', $listingId) : $query->whereNull('listing_id');
+
+        return $query->count() < 3;
+    }
+
+    /**
+     * Après un envoi « quand même » d'un message avec paiement hors plateforme :
+     * on avertit le destinataire (bandeau + notification) et on signale à l'admin.
+     */
+    private function afterForcedPayment(Message $message, User $receiver): void
+    {
+        try {
+            $url = $message->listing_id
+                ? route('account.messages.show', ['listing' => $message->listing_id, 'user' => $message->sender_id], absolute: false)
+                : route('account.messages.show.general', ['user' => $message->sender_id], absolute: false);
+
+            \App\Models\Notification::create([
+                'user_id' => $receiver->id,
+                'type' => 'moderation_warning',
+                'title' => '⚠️ Paiement hors plateforme',
+                'message' => "Un message te propose un paiement hors Swap'Îles. Privilégie le paiement sécurisé ou les espèces en main propre — ne valide jamais un lien de paiement reçu par SMS.",
+                'url' => $url,
+            ]);
+
+            \App\Support\AdminEvent::notify(
+                'Paiement hors plateforme signalé',
+                'Un message contenant un mot-clé de paiement hors plateforme (' . ($message->flag_reason ?? '—')
+                    . ') a été envoyé malgré l\'avertissement. Expéditeur #' . $message->sender_id
+                    . ' → destinataire #' . $message->receiver_id . '.',
+                $url
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 }

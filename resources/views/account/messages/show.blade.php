@@ -233,11 +233,39 @@
                 @endforeach
             </div>
 
-            <form method="POST"
+            @php
+                $flaggedPayment = isset($messages) && $messages->contains(fn ($m) => ($m->flag_kind ?? null) === 'payment_forced');
+            @endphp
+            @if($flaggedPayment)
+                <div class="border-t border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    <p class="font-bold">⚠️ Paiement hors plateforme détecté dans cette conversation</p>
+                    <p class="mt-1">Ne validez jamais un lien de paiement reçu par SMS. Privilégiez le
+                        <span class="font-semibold">paiement sécurisé Swap'Îles</span> (fonds versés au vendeur après confirmation de réception)
+                        ou les <span class="font-semibold">espèces en main propre</span>.</p>
+                </div>
+            @endif
+
+            @if(session('moderation_payment_warning'))
+                <div class="border-t border-amber-300 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+                    <p class="text-base font-bold">⚠️ {{ \App\Support\MessageModeration::PAYMENT_WARNING_TITLE }}</p>
+                    @foreach(\App\Support\MessageModeration::paymentWarningLines() as $line)
+                        <p class="mt-1">{{ $line }}</p>
+                    @endforeach
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <button type="button" id="mod-edit"
+                                class="rounded-xl border border-amber-400 bg-white px-4 py-2 font-semibold text-amber-800 hover:bg-amber-100">Modifier mon message</button>
+                        <button type="button" id="mod-send-anyway"
+                                class="rounded-xl bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700">Envoyer quand même</button>
+                    </div>
+                </div>
+            @endif
+
+            <form method="POST" id="compose-form"
                   action="{{ $hasListing ? route('account.messages.store', ['listing' => $listing, 'user' => $user]) : route('account.messages.store.general', $user) }}"
                   enctype="multipart/form-data"
                   class="border-t border-gray-100 bg-white p-4">
                 @csrf
+                <input type="hidden" name="moderation_confirm" id="moderation_confirm" value="">
                 <div class="flex items-end gap-2">
                     <label for="attachment" title="Ajouter une photo ou une vidéo" aria-label="Ajouter une photo ou une vidéo"
                            class="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-xl border border-gray-200 text-xl transition hover:bg-gray-50">📎</label>
@@ -278,6 +306,23 @@
                         input.value = '';
                         preview.classList.add('hidden');
                         preview.classList.remove('flex');
+                    });
+
+                    // Modération : « Modifier » recentre le champ, « Envoyer quand même »
+                    // renvoie le formulaire avec la confirmation.
+                    var modEdit = document.getElementById('mod-edit');
+                    var modSend = document.getElementById('mod-send-anyway');
+                    var body = document.getElementById('body');
+                    modEdit && modEdit.addEventListener('click', function () {
+                        body && body.focus();
+                    });
+                    modSend && modSend.addEventListener('click', function () {
+                        var confirmField = document.getElementById('moderation_confirm');
+                        var form = document.getElementById('compose-form');
+                        if (confirmField && form) {
+                            confirmField.value = '1';
+                            form.submit();
+                        }
                     });
                 })();
             </script>

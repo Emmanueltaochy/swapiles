@@ -22,12 +22,22 @@ class MessagesTable
             ->defaultSort('created_at', 'desc')
             ->paginated([25, 50, 100, 200])
             ->defaultPaginationPageOption(50)
+            // Une LIGNE PAR CONVERSATION (mêmes participants + même annonce),
+            // représentée par son dernier message. Le fil complet reste
+            // accessible via l'action « Voir le fil ».
+            ->modifyQueryUsing(fn (Builder $query) => $query->whereIn('id', static::latestPerConversationIds()))
             ->columns([
                 TextColumn::make('created_at')
-                    ->label('Quand')
+                    ->label('Dernière activité')
                     ->dateTime('d/m/Y H:i')
                     ->description(fn (Message $record) => optional($record->created_at)->diffForHumans())
                     ->sortable(),
+
+                TextColumn::make('thread_count')
+                    ->label('Messages')
+                    ->badge()
+                    ->color('gray')
+                    ->getStateUsing(fn (Message $record) => static::threadCountFor($record)),
 
                 TextColumn::make('sender.name')
                     ->label('Expéditeur')
@@ -58,7 +68,7 @@ class MessagesTable
                         : null),
 
                 TextColumn::make('body')
-                    ->label('Message')
+                    ->label('Dernier message')
                     ->limit(60)
                     ->tooltip(fn (Message $record) => $record->body)
                     ->searchable()
@@ -142,6 +152,40 @@ class MessagesTable
                 DeleteAction::make()
                     ->label('Supprimer'),
             ]);
+    }
+
+    /**
+     * Sous-requête : l'id du dernier message de chaque conversation. Une
+     * conversation = paire de participants (peu importe le sens) + annonce.
+     * On regroupe sur (min(sender,receiver), max(sender,receiver), listing_id).
+     */
+    protected static function latestPerConversationIds(): Builder
+    {
+        // Clé de paire NON ORDONNÉE portable (MySQL + SQLite) : la somme et le
+        // produit des deux ids identifient de façon unique la paire {a, b},
+        // sans dépendre de LEAST/GREATEST (absents de SQLite).
+        return Message::query()
+            ->selectRaw('MAX(id) as id')
+            ->groupByRaw('(sender_id + receiver_id), (sender_id * receiver_id), COALESCE(listing_id, 0)');
+    }
+
+    /** Nombre de messages dans la conversation représentée par ce message. */
+    protected static function threadCountFor(Message $record): int
+    {
+        $a = $record->sender_id;
+        $b = $record->receiver_id;
+
+        return Message::query()
+            ->when(
+                $record->listing_id,
+                fn (Builder $q) => $q->where('listing_id', $record->listing_id),
+                fn (Builder $q) => $q->whereNull('listing_id'),
+            )
+            ->where(function (Builder $q) use ($a, $b) {
+                $q->where(fn (Builder $x) => $x->where('sender_id', $a)->where('receiver_id', $b))
+                    ->orWhere(fn (Builder $x) => $x->where('sender_id', $b)->where('receiver_id', $a));
+            })
+            ->count();
     }
 
     /** Récupère tous les messages de la même conversation (mêmes participants + même annonce). */

@@ -66,7 +66,7 @@ class AuthController extends Controller
         ]);
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
-            if (Auth::user()->is_banned) {
+            if (Auth::user()->is_banned || \App\Models\BlockedEmail::isBlocked(Auth::user()->email)) {
                 Auth::logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
@@ -89,7 +89,11 @@ class AuthController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email', function ($attribute, $value, $fail) {
+                if (\App\Models\BlockedEmail::isBlocked($value)) {
+                    $fail("Cette adresse e-mail n’est pas autorisée à s’inscrire.");
+                }
+            }],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'comment_connu' => ['nullable', 'string', 'max:255'],
             'comment_connu_autre' => ['nullable', 'string', 'max:255'],

@@ -52,6 +52,45 @@ class User extends Authenticatable implements FilamentUser
                 url('/admin/users/' . $user->id)
             );
         });
+
+        // Un membre banni supprimé garde son e-mail bloqué : impossible de se
+        // réinscrire avec la même adresse (la liste noire survit au compte).
+        static::deleting(function ($user) {
+            if ($user->is_banned) {
+                \App\Models\BlockedEmail::block($user->email, 'Compte banni puis supprimé');
+            }
+
+            // Les messages sont supprimés en cascade avec le compte : on prévient
+            // AVANT (tant qu'ils existent) chaque interlocuteur que le membre a
+            // quitté Swap'Îles, pour qu'il comprenne la disparition du fil.
+            static::notifyConversationPartnersOfDeletion($user);
+        });
+    }
+
+    /** Prévient les interlocuteurs qu'un membre supprimé a quitté Swap'Îles. */
+    protected static function notifyConversationPartnersOfDeletion(self $user): void
+    {
+        try {
+            $partnerIds = \App\Models\Message::query()
+                ->where(fn ($q) => $q->where('sender_id', $user->id)->orWhere('receiver_id', $user->id))
+                ->get(['sender_id', 'receiver_id'])
+                ->flatMap(fn ($m) => [$m->sender_id, $m->receiver_id])
+                ->reject(fn ($id) => $id === null || (int) $id === (int) $user->id)
+                ->unique()
+                ->values();
+
+            foreach ($partnerIds as $partnerId) {
+                \App\Models\Notification::create([
+                    'user_id' => $partnerId,
+                    'type' => 'user_deleted',
+                    'title' => 'Membre parti',
+                    'message' => 'Un membre avec qui tu échangeais a quitté Swap’Îles (compte supprimé). La conversation a été fermée.',
+                    'url' => null,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     use HasFactory, Notifiable;

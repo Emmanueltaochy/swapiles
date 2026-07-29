@@ -102,6 +102,7 @@ class UsersTable
                 ViewAction::make(),
                 EditAction::make(),
                 static::toggleBanAction(),
+                static::deleteAndBlockAction(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
@@ -122,10 +123,45 @@ class UsersTable
                 ? $record->name . ' pourra de nouveau se connecter.'
                 : $record->name . ' sera déconnecté et ne pourra plus accéder à son compte.')
             ->action(function (User $record) {
-                $record->update(['is_banned' => ! $record->is_banned]);
+                $nowBanned = ! $record->is_banned;
+                $record->update(['is_banned' => $nowBanned]);
+
+                // Bannir = bloquer aussi l'e-mail (persiste même après suppression).
+                // Réactiver = débloquer l'e-mail.
+                if ($nowBanned) {
+                    \App\Models\BlockedEmail::block($record->email, 'Membre banni', optional(auth()->user())->id);
+                } else {
+                    \App\Models\BlockedEmail::unblock($record->email);
+                }
 
                 FilamentNotification::make()
-                    ->title($record->is_banned ? 'Membre banni' : 'Membre réactivé')
+                    ->title($nowBanned ? 'Membre banni et e-mail bloqué' : 'Membre réactivé et e-mail débloqué')
+                    ->success()
+                    ->send();
+            });
+    }
+
+    /**
+     * Supprime le compte ET bloque définitivement son e-mail : impossible de se
+     * réinscrire avec la même adresse, même après suppression du compte.
+     */
+    protected static function deleteAndBlockAction(): Action
+    {
+        return Action::make('deleteAndBlock')
+            ->label('Supprimer + bloquer l’e-mail')
+            ->icon('heroicon-o-trash')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalHeading('Supprimer ce membre et bloquer son e-mail ?')
+            ->modalDescription(fn (User $record) => 'Le compte de ' . $record->name . ' sera supprimé et l’adresse '
+                . $record->email . ' ne pourra plus jamais servir à s’inscrire ou se connecter.')
+            ->modalSubmitActionLabel('Supprimer et bloquer')
+            ->action(function (User $record) {
+                \App\Models\BlockedEmail::block($record->email, 'Compte supprimé par un admin', optional(auth()->user())->id);
+                $record->delete();
+
+                FilamentNotification::make()
+                    ->title('Membre supprimé, e-mail bloqué')
                     ->success()
                     ->send();
             });

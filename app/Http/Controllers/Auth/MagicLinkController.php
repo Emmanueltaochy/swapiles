@@ -54,7 +54,16 @@ class MagicLinkController extends Controller
             'used_at' => now(),
         ]);
 
-        Auth::login($loginToken->user);
+        $user = $loginToken->user;
+
+        // Un membre banni / e-mail bloqué ne peut pas se connecter par lien magique.
+        if (! $user || $user->is_banned || \App\Models\BlockedEmail::isBlocked($user->email)) {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Votre compte a été suspendu. Contactez contact@swapiles.com.',
+            ]);
+        }
+
+        Auth::login($user);
         $request->session()->regenerate();
 
         return redirect()->route('account.dashboard');

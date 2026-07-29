@@ -76,6 +76,8 @@ class AuthController extends Controller
                 ])->onlyInput('email');
             }
 
+            \App\Models\UserSession::record(Auth::id(), $request, 'login');
+
             $request->session()->regenerate();
             return redirect()->intended(route('account.dashboard'));
         }
@@ -128,6 +130,8 @@ class AuthController extends Controller
         ]);
 
         Auth::login($user);
+
+        \App\Models\UserSession::record($user->id, $request, 'registration');
 
         try {
             SendWelcomeEmail::dispatch($user->id);

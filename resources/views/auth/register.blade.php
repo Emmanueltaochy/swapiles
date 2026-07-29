@@ -30,6 +30,8 @@
 
             <form method="POST" action="{{ route('register.store') }}" class="mt-6 space-y-4">
                 @csrf
+                <input type="hidden" name="device_fingerprint" value="">
+                @include('partials.device-fingerprint')
 
                 <div>
                     <label for="name" class="mb-1 block text-sm font-semibold text-gray-700">Nom</label>

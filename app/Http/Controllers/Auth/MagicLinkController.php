@@ -64,6 +64,7 @@ class MagicLinkController extends Controller
         }
 
         Auth::login($user);
+        \App\Models\UserSession::record($user->id, $request, 'login');
         $request->session()->regenerate();
 
         return redirect()->route('account.dashboard');

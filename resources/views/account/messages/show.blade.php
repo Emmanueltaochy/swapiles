@@ -251,6 +251,9 @@
                     @foreach(\App\Support\MessageModeration::paymentWarningLines() as $line)
                         <p class="mt-1">{{ $line }}</p>
                     @endforeach
+                    @if(session('moderation_had_attachment'))
+                        <p class="mt-2 font-semibold">📎 Ta photo/vidéo n'a pas été conservée — pense à la rajouter avant d'envoyer.</p>
+                    @endif
                     <div class="mt-3 flex flex-wrap gap-2">
                         <button type="button" id="mod-edit"
                                 class="rounded-xl border border-amber-400 bg-white px-4 py-2 font-semibold text-amber-800 hover:bg-amber-100">Modifier mon message</button>

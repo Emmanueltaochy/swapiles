@@ -29,12 +29,19 @@ class MessageModerationTest extends TestCase
         $this->assertNotEmpty(MessageModeration::detectPayment('W E R O stp'));
         $this->assertNotEmpty(MessageModeration::detectPayment('envoie sur payp4l'));
         $this->assertNotEmpty(MessageModeration::detectPayment('je te donne mon R.I.B'));
-        $this->assertNotEmpty(MessageModeration::detectPayment('voici mon ibán')); // accent
         $this->assertNotEmpty(MessageModeration::detectPayment('western   union ?'));
+
+        // Termes ambigus (aussi des prénoms) : détectés AVEC un indice de paiement.
+        $this->assertNotEmpty(MessageModeration::detectPayment('mon ibán : FR76 3000 4000 1234'));
+        $this->assertNotEmpty(MessageModeration::detectPayment('tu peux paye sur lydia ?'));
 
         // Pas de faux positif sur des mots contenant « rib » / « iban ».
         $this->assertEmpty(MessageModeration::detectPayment('je peux te l\'attribuer demain'));
         $this->assertEmpty(MessageModeration::detectPayment('rendez-vous à Saint-Denis'));
+
+        // Pas de faux positif sur les PRÉNOMS Lydia / Iban sans contexte de paiement.
+        $this->assertEmpty(MessageModeration::detectPayment('Bonjour Lydia, l\'article est dispo ?'));
+        $this->assertEmpty(MessageModeration::detectPayment('Merci Iban pour la vente 😊'));
     }
 
     public function test_detecte_un_numero_ou_contact(): void

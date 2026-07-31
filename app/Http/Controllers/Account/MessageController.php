@@ -309,7 +309,10 @@ class MessageController extends Controller
             if (! $request->boolean('moderation_confirm')) {
                 return ['stop' => back()
                     ->withInput()
-                    ->with('moderation_payment_warning', $payments)];
+                    ->with('moderation_payment_warning', $payments)
+                    // Le champ fichier ne peut pas être re-rempli par le navigateur :
+                    // on prévient qu'il faudra ré-attacher la pièce jointe.
+                    ->with('moderation_had_attachment', $request->hasFile('attachment'))];
             }
 
             // Confirmé (« Envoyer quand même ») → message signalé.

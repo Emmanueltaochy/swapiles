@@ -13,11 +13,19 @@ namespace App\Support;
  */
 class MessageModeration
 {
-    /** Mots-clés de paiement hors plateforme à détecter. */
-    private const PAYMENT_TERMS = [
-        'wero', 'paylib', 'lydia', 'paypal', 'revolut',
-        'western union', 'moneygram', 'virement', 'rib', 'iban',
+    /** Marques de paiement NON ambiguës → blocage direct. */
+    private const PAYMENT_TERMS_STRONG = [
+        'wero', 'paylib', 'paypal', 'revolut',
+        'western union', 'moneygram', 'virement', 'rib',
     ];
+
+    /**
+     * Termes de paiement qui sont AUSSI des prénoms/mots courants (« Lydia »,
+     * « Iban ») : on ne les bloque que si un indice de paiement est présent
+     * (chiffres d'un IBAN/montant, ou un verbe de paiement), pour ne pas
+     * accuser à tort un message comme « Bonjour Lydia ».
+     */
+    private const PAYMENT_TERMS_CONTEXTUAL = ['lydia', 'iban'];
 
     /**
      * Détecte les mots-clés de paiement hors plateforme dans un message.
@@ -33,13 +41,38 @@ class MessageModeration
         }
 
         $found = [];
-        foreach (self::PAYMENT_TERMS as $term) {
+        foreach (self::PAYMENT_TERMS_STRONG as $term) {
             if (preg_match('/' . self::termPattern($term) . '/u', $text)) {
                 $found[] = $term;
             }
         }
 
+        // Termes ambigus : uniquement si un autre signal de paiement est présent.
+        $contextual = [];
+        foreach (self::PAYMENT_TERMS_CONTEXTUAL as $term) {
+            if (preg_match('/' . self::termPattern($term) . '/u', $text)) {
+                $contextual[] = $term;
+            }
+        }
+        if (! empty($contextual) && (! empty($found) || self::hasPaymentContext($text))) {
+            $found = array_merge($found, $contextual);
+        }
+
         return array_values(array_unique($found));
+    }
+
+    /** Indice de paiement à proximité (numéro long, ou verbe de paiement). */
+    private static function hasPaymentContext(string $text): bool
+    {
+        // Un IBAN, un numéro de compte ou un montant comporte une suite de chiffres.
+        if (preg_match('/\d{4,}/u', $text)) {
+            return true;
+        }
+
+        return (bool) preg_match(
+            '/\b(envoi|envoie|envoye|paie|paye|payer|paiement|vire|virer|virement|compte|transfer|transfere|rembours|argent|banque|bancaire)\w*/u',
+            $text
+        );
     }
 
     /**
@@ -64,7 +97,9 @@ class MessageModeration
         if (preg_match('/\b(ton|votre|te|mon)\b[\s\W_]*(num(ero)?|no|tel|telephone|portable)\b/u', $text)) {
             return true;
         }
-        if (preg_match('/\b(num(ero)?|tel|telephone|portable|whatsapp)\b/u', $text) && preg_match('/\d/u', $text)) {
+        // « tel » seul est trop ambigu (« un tel article ») : on ne garde que
+        // les formes non ambiguës, exigées avec un chiffre.
+        if (preg_match('/\b(num(ero)?|telephone|portable|whatsapp)\b/u', $text) && preg_match('/\d/u', $text)) {
             return true;
         }
 
@@ -101,11 +136,11 @@ class MessageModeration
     {
         $text = mb_strtolower(trim($text));
 
+        // Translittère les accents en ASCII (« ibán » → « iban ») ; //IGNORE
+        // écarte le reste. On retire les éventuelles marques résiduelles (^, ~, `).
         $ascii = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
-        if ($ascii !== false) {
-            // iconv peut produire des marques (^, ~) : on les retire.
-            $text = preg_replace('/[^\p{L}\p{N}\s\W_]/u', '', $ascii) ?? $ascii;
-            $text = mb_strtolower($text);
+        if ($ascii !== false && $ascii !== '') {
+            $text = mb_strtolower(str_replace(['^', '~', '`'], '', $ascii));
         }
 
         return $text;

@@ -411,8 +411,19 @@
 
                                     <div class="grid grid-cols-1 gap-2">
                                         @if($listing->price > 0)
-                                            <form method="POST" action="{{ route('account.listings.cash-paid', $listing) }}">
+                                            @php $cashCandidates = $listing->cashBuyerCandidates(); @endphp
+                                            <form method="POST" action="{{ route('account.listings.cash-paid', $listing) }}" class="space-y-2">
                                                 @csrf @method('PATCH')
+                                                @if($cashCandidates->isNotEmpty())
+                                                    <label for="cash-buyer" class="block text-sm font-medium text-gray-700">Qui a acheté ? <span class="font-normal text-gray-400">(facultatif)</span></label>
+                                                    <select id="cash-buyer" name="buyer_id" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-teal-500 focus:ring-teal-500">
+                                                        <option value="">— Acheteur hors Swap'Îles / inconnu —</option>
+                                                        @foreach($cashCandidates as $cand)
+                                                            <option value="{{ $cand->id }}">{{ $cand->name }}@if($cand->territoire) — {{ $cand->territoire }}@endif</option>
+                                                        @endforeach
+                                                    </select>
+                                                    <p class="text-xs text-gray-400">Parmi les personnes qui ont mis l'annonce en favori ou t'ont écrit. Sert à garder une trace de la vente.</p>
+                                                @endif
                                                 <button class="w-full rounded-xl bg-gray-900 px-5 py-3 font-semibold text-white hover:bg-black">💵 Paiement espèces reçu</button>
                                             </form>
                                         @endif

@@ -285,14 +285,23 @@ class ListingManageController extends Controller
     }
 
 
-    public function markCashPaid(Listing $listing)
+    public function markCashPaid(Request $request, Listing $listing)
     {
         $this->authorizeOwner($listing);
+
+        // Point 18 — capter QUI a acheté (facultatif). On n'accepte que les
+        // acheteurs plausibles (favoris ou messagers de l'annonce) pour éviter
+        // qu'un vendeur rattache un membre au hasard.
+        $buyerId = null;
+        $chosen = $request->input('buyer_id');
+        if ($chosen && $listing->cashBuyerCandidates()->contains('id', (int) $chosen)) {
+            $buyerId = (int) $chosen;
+        }
 
         \App\Models\Transaction::create([
             'listing_id' => $listing->id,
             'seller_id' => $listing->user_id,
-            'buyer_id' => null,
+            'buyer_id' => $buyerId,
             'amount' => (float) $listing->price,
             'commission' => 0,
             'buyer_protection_fee' => 0,

@@ -125,4 +125,36 @@ class Listing extends Model
         return $this->belongsToMany(User::class, 'favorites')
             ->withTimestamps();
     }
+
+    /**
+     * Point 18 — acheteurs plausibles pour une vente en espèces : les personnes
+     * qui ont mis l'annonce en favori OU qui ont échangé des messages à son
+     * sujet, hors vendeur. Sert à capter QUI a acheté sur une vente cash.
+     *
+     * @return \Illuminate\Support\Collection<int, \App\Models\User>
+     */
+    public function cashBuyerCandidates()
+    {
+        $favIds = $this->favoritedBy()->get(['users.id'])->pluck('id');
+
+        $msgIds = Message::query()
+            ->where('listing_id', $this->id)
+            ->get(['sender_id', 'receiver_id'])
+            ->flatMap(fn ($m) => [$m->sender_id, $m->receiver_id]);
+
+        $ids = $favIds->concat($msgIds)
+            ->filter()
+            ->reject(fn ($id) => (int) $id === (int) $this->user_id)
+            ->unique()
+            ->values();
+
+        if ($ids->isEmpty()) {
+            return collect();
+        }
+
+        return User::query()
+            ->whereIn('id', $ids->all())
+            ->orderBy('name')
+            ->get();
+    }
 }

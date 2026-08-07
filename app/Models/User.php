@@ -162,6 +162,17 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->hasMany(Review::class, 'reviewed_id');
     }
+
+    /**
+     * Recalcule la note ⭐ du membre = moyenne des avis reçus (0 s'il n'y en a
+     * pas). Appelé après chaque nouvel avis. saveQuietly pour ne pas déclencher
+     * d'événements de modèle.
+     */
+    public function recomputeRating(): void
+    {
+        $avg = $this->reviewsReceived()->avg('rating');
+        $this->forceFill(['rating' => $avg ? round((float) $avg, 2) : 0])->saveQuietly();
+    }
     public function favoriteAlerts()
     {
         return $this->hasMany(\App\Models\FavoriteAlert::class);

@@ -203,6 +203,11 @@ Route::get('/mon-compte/transactions', [TransactionController::class, 'index'])-
 
 Route::get('/mon-compte/transactions/{transaction}', [TransactionDetailController::class, 'show'])->middleware('auth')->name('account.transactions.show');
 
+// Avis mutuels acheteur ↔ vendeur après une transaction terminée.
+Route::post('/mon-compte/transactions/{transaction}/avis', [\App\Http\Controllers\Account\ReviewController::class, 'store'])
+    ->middleware('auth')
+    ->name('account.reviews.store');
+
 
 Route::get('/recherche/live', function (\Illuminate\Http\Request $request) {
     $q = trim($request->get('q', ''));

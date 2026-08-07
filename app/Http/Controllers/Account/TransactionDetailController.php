@@ -17,6 +17,17 @@ class TransactionDetailController extends Controller
 
         $transaction->load(['listing.images', 'buyer', 'seller']);
 
-        return view('account.transactions.show', compact('transaction'));
+        // Avis mutuels : l'autre partie, mon avis éventuel, et l'avis reçu.
+        $me = Auth::id();
+        $otherParty = $transaction->seller_id === $me ? $transaction->buyer : $transaction->seller;
+        $myReview = \App\Models\Review::where('transaction_id', $transaction->id)
+            ->where('reviewer_id', $me)->first();
+        $reviewAboutMe = \App\Models\Review::where('transaction_id', $transaction->id)
+            ->where('reviewed_id', $me)->first();
+        $canReview = $transaction->status === 'completed' && $otherParty !== null;
+
+        return view('account.transactions.show', compact(
+            'transaction', 'otherParty', 'myReview', 'reviewAboutMe', 'canReview'
+        ));
     }
 }

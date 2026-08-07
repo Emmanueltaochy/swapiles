@@ -155,6 +155,54 @@
                     </form>
                 @endif
             </div>
+
+            {{-- Avis mutuels acheteur ↔ vendeur (transaction terminée) --}}
+            @if(($canReview ?? false) || ($myReview ?? null))
+                @php $otherName = $otherParty->name ?? 'l\'autre membre'; @endphp
+                <div class="mt-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                    <h2 class="text-lg font-extrabold text-gray-900">⭐ Avis</h2>
+
+                    @if($myReview ?? null)
+                        <div class="mt-2 rounded-xl bg-teal-50 p-4 text-sm text-teal-900">
+                            <p class="font-semibold">Tu as noté {{ $otherName }} : {{ str_repeat('⭐', (int) $myReview->rating) }} ({{ $myReview->rating }}/5)</p>
+                            @if($myReview->comment)
+                                <p class="mt-1 italic">« {{ $myReview->comment }} »</p>
+                            @endif
+                        </div>
+                    @elseif($canReview ?? false)
+                        <p class="mt-1 text-sm text-gray-500">Note {{ $otherName }} sur cette transaction (visible sur son profil).</p>
+                        <form method="POST" action="{{ route('account.reviews.store', $transaction) }}" class="mt-3 space-y-3">
+                            @csrf
+                            <div>
+                                <label for="rating" class="block text-sm font-medium text-gray-700">Note</label>
+                                <select id="rating" name="rating" required class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-teal-500 focus:ring-teal-500">
+                                    <option value="5">⭐⭐⭐⭐⭐ — Parfait</option>
+                                    <option value="4">⭐⭐⭐⭐ — Très bien</option>
+                                    <option value="3">⭐⭐⭐ — Correct</option>
+                                    <option value="2">⭐⭐ — Décevant</option>
+                                    <option value="1">⭐ — Mauvais</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="comment" class="block text-sm font-medium text-gray-700">Commentaire <span class="font-normal text-gray-400">(facultatif)</span></label>
+                                <textarea id="comment" name="comment" rows="3" maxlength="1000" placeholder="Comment s'est passée la transaction ?"
+                                          class="mt-1 w-full resize-none rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-teal-500 focus:ring-teal-500">{{ old('comment') }}</textarea>
+                            </div>
+                            @error('rating')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+                            <button class="rounded-2xl bg-teal-600 px-5 py-3 font-extrabold text-white hover:bg-teal-700">Envoyer mon avis</button>
+                        </form>
+                    @endif
+
+                    @if($reviewAboutMe ?? null)
+                        <div class="mt-3 rounded-xl bg-gray-50 p-4 text-sm text-gray-700">
+                            <p class="font-semibold">{{ $otherName }} t'a noté : {{ str_repeat('⭐', (int) $reviewAboutMe->rating) }} ({{ $reviewAboutMe->rating }}/5)</p>
+                            @if($reviewAboutMe->comment)
+                                <p class="mt-1 italic">« {{ $reviewAboutMe->comment }} »</p>
+                            @endif
+                        </div>
+                    @endif
+                </div>
+            @endif
         </div>
     </div>
 </section>

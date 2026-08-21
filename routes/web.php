@@ -159,6 +159,9 @@ Route::middleware('auth')->group(function () {
 
     Route::patch('/transactions/{transaction}/recue', [TransactionWorkflowController::class, 'received'])
         ->name('transactions.received');
+
+    Route::patch('/transactions/{transaction}/depose-relais', [TransactionWorkflowController::class, 'relayDeposited'])
+        ->name('transactions.relay-deposited');
 });
 
 

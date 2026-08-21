@@ -23,4 +23,18 @@ return [
     | Le seul revenu plateforme est la protection acheteur.
     */
     'seller_commission_rate' => (float) env('PRICING_SELLER_COMMISSION_RATE', 0.0),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Point relais (commerçant partenaire)
+    |--------------------------------------------------------------------------
+    | Frais ajoutés au total quand l'acheteur choisit un point relais.
+    |   relay_fee          = surcoût payé par l'acheteur (ex. 3,00 €)
+    |   relay_merchant_fee = part reversée au commerçant (ex. 1,00 €)
+    |   part plateforme    = relay_fee - relay_merchant_fee (ex. 2,00 €)
+    | Le commerçant ne manipule jamais l'argent : tout transite par la CB.
+    | Configurable via .env sans redéploiement (config non cachée en prod).
+    */
+    'relay_fee' => (float) env('PRICING_RELAY_FEE', 3.00),
+    'relay_merchant_fee' => (float) env('PRICING_RELAY_MERCHANT_FEE', 1.00),
 ];

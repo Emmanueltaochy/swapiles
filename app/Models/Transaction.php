@@ -42,6 +42,13 @@ class Transaction extends Model
         'shipping_city',
         'shipping_country',
         'hand_delivery_location',
+        'relay_point_id',
+        'relay_fee',
+        'relay_merchant_fee',
+        'relay_status',
+        'relay_pickup_code',
+        'relay_deposited_at',
+        'relay_collected_at',
         'status',
         'shipping_status',
         'wallet_status',
@@ -67,7 +74,14 @@ class Transaction extends Model
         'received_at' => 'datetime',
         'released_at' => 'datetime',
         'auto_review_flagged_at' => 'datetime',
+        'relay_deposited_at' => 'datetime',
+        'relay_collected_at' => 'datetime',
     ];
+
+    public function relayPoint()
+    {
+        return $this->belongsTo(RelayPoint::class);
+    }
 
     public function listing()
     {

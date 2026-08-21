@@ -61,11 +61,18 @@ class CheckoutController extends Controller
             }
         }
 
+        // Points relais actifs du territoire de l'annonce (pilote La Réunion).
+        // Proposés seulement si la fonctionnalité est active ET qu'il en existe.
+        $relayPoints = config('features.relay_points')
+            ? \App\Models\RelayPoint::activeForTerritoire($listing->territoire)
+            : collect();
+
         if ($request->isMethod('GET')) {
             return view('checkout.order', [
                 'listing' => $listing,
                 'offer' => $offer,
                 'itemAmount' => $offer ? (int) $offer->amount : (int) $listing->price,
+                'relayPoints' => $relayPoints,
             ]);
         }
 
@@ -94,11 +101,34 @@ class CheckoutController extends Controller
                 'shipping_city.required' => 'La ville est obligatoire pour l’expédition.',
                 'shipping_territory.required' => 'Le territoire de livraison est obligatoire.',
             ]);
+        } elseif ($deliveryMethod === 'relay') {
+            abort_unless((bool) config('features.relay_points'), 403);
+
+            $validated = $request->validate([
+                'delivery_method' => ['required', 'in:colissimo,hand_delivery,relay'],
+                'relay_point_id' => ['required', 'integer'],
+            ], [
+                'relay_point_id.required' => 'Choisis un point relais pour retirer ton colis.',
+            ]);
+
+            // Le point relais doit être ACTIF et sur le territoire de l'annonce
+            // (on ne fait pas transiter un colis vers une autre île).
+            $relayPoint = \App\Models\RelayPoint::query()
+                ->active()
+                ->where('id', $validated['relay_point_id'])
+                ->where('territoire', $listing->territoire)
+                ->first();
+
+            if (! $relayPoint) {
+                return back()->withInput()->withErrors([
+                    'relay_point_id' => "Ce point relais n'est pas disponible pour cette annonce.",
+                ]);
+            }
         } elseif ($deliveryMethod === 'hand_delivery') {
             abort_unless(($listing->allows_hand_delivery ?? $listing->pickup_enabled ?? true), 403);
 
             $validated = $request->validate([
-                'delivery_method' => ['required', 'in:colissimo,hand_delivery'],
+                'delivery_method' => ['required', 'in:colissimo,hand_delivery,relay'],
             ]);
         } else {
             abort(422, 'Choisissez un mode de remise.');
@@ -148,7 +178,24 @@ class CheckoutController extends Controller
          | Ce même objet alimente l'affichage ET le montant du PaymentIntent :
          | le montant débité est TOUJOURS égal au « Total à payer » affiché.
          */
-        $pricing = OrderPricing::fromEuros($itemAmount, $shippingEuros);
+        /*
+         |--------------------------------------------------------------------------
+         | Frais de point relais
+         |--------------------------------------------------------------------------
+         | Surcoût fixe payé par l'acheteur, ajouté au total. Réparti en aval :
+         | part commerçant (relay_merchant_fee) + part plateforme (le reste).
+         | Le vendeur n'est jamais impacté (il touche le prix article).
+         */
+        $relayFeeEuros = 0.0;
+        $relayMerchantFeeEuros = 0.0;
+
+        if ($deliveryMethod === 'relay') {
+            $relayFeeEuros = max(0.0, (float) config('pricing.relay_fee', 3.00));
+            // La part commerçant ne peut pas dépasser le total des frais relais.
+            $relayMerchantFeeEuros = min($relayFeeEuros, max(0.0, (float) config('pricing.relay_merchant_fee', 1.00)));
+        }
+
+        $pricing = OrderPricing::fromEuros($itemAmount, $shippingEuros, $relayFeeEuros);
 
         $transaction = Transaction::create([
             'listing_id' => $listing->id,
@@ -174,6 +221,11 @@ class CheckoutController extends Controller
             'hand_delivery_location' => $deliveryMethod === 'hand_delivery'
                 ? ($listing->hand_delivery_location ?: $listing->location_address)
                 : null,
+            'relay_point_id' => $deliveryMethod === 'relay' ? $relayPoint->id : null,
+            'relay_fee' => $pricing->relayFeeEuros(),
+            'relay_merchant_fee' => $relayMerchantFeeEuros,
+            'relay_status' => $deliveryMethod === 'relay' ? 'awaiting_deposit' : null,
+            'relay_pickup_code' => $deliveryMethod === 'relay' ? $this->generatePickupCode() : null,
             'shipping_status' => 'pending',
             'status' => 'pending',
         ]);
@@ -191,6 +243,10 @@ class CheckoutController extends Controller
         // métadonnées contradictoires « main propre » + « à expédier »).
         if ($deliveryMethod === 'colissimo') {
             $metadata['colissimo_delivery_type'] = $validated['colissimo_delivery_type'] ?? 'home';
+        }
+
+        if ($deliveryMethod === 'relay') {
+            $metadata['relay_point_id'] = $relayPoint->id;
         }
 
         // Montant Stripe = total exact en centimes entiers (== total affiché).
@@ -233,10 +289,27 @@ class CheckoutController extends Controller
             'itemAmount' => $pricing->itemEuros(),
             'buyerProtectionFee' => $pricing->protectionEuros(),
             'shippingFee' => $pricing->shippingEuros(),
+            'relayFee' => $pricing->relayFeeEuros(),
             'totalAmount' => $pricing->totalEuros(),
             'sellerAmount' => $pricing->sellerEuros(),
             'deliveryMethod' => $deliveryMethod,
         ]);
+    }
+
+    /**
+     * Code de retrait à présenter au commerçant (lisible, sans caractères
+     * ambigus : ni O/0, ni I/1). Il n'a pas besoin d'être secret côté crypto :
+     * il ne fait qu'apparier acheteur ↔ colis au comptoir.
+     */
+    private function generatePickupCode(): string
+    {
+        $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        $code = '';
+        for ($i = 0; $i < 6; $i++) {
+            $code .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+        }
+
+        return $code;
     }
 
     public function success(Transaction $transaction)

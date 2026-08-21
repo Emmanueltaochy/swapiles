@@ -98,6 +98,15 @@
                             @endif
                         </div>
                     @endif
+                @elseif($transaction->delivery_method === 'relay')
+                    <p class="text-sm text-gray-600">🏪 Point relais</p>
+                    @if($transaction->relayPoint)
+                        <p class="mt-2 text-sm font-bold text-gray-900">{{ $transaction->relayPoint->name }}</p>
+                        <p class="text-sm text-gray-600">{{ $transaction->relayPoint->fullAddress() }}</p>
+                        @if($transaction->relayPoint->opening_hours)
+                            <p class="mt-1 text-xs text-gray-500">Horaires : {{ $transaction->relayPoint->opening_hours }}</p>
+                        @endif
+                    @endif
                 @else
                     <p class="text-sm text-gray-600">
                         🤝 Remise en main propre
@@ -107,6 +116,44 @@
                     </p>
                 @endif
             </div>
+
+            {{-- Point relais : suivi dépôt / retrait + code --}}
+            @if($transaction->delivery_method === 'relay')
+                @php
+                    $relayStatus = $transaction->relay_status;
+                    $isBuyer = auth()->id() === $transaction->buyer_id;
+                    $isSeller = auth()->id() === $transaction->seller_id;
+                @endphp
+                <div class="mt-6 rounded-3xl border border-teal-100 bg-teal-50/40 p-5">
+                    <div class="flex items-center justify-between gap-2">
+                        <h2 class="font-extrabold text-gray-900">🏪 Suivi point relais</h2>
+                        <span class="shrink-0 rounded-full px-3 py-1 text-xs font-bold
+                            {{ $relayStatus === 'collected' ? 'bg-emerald-100 text-emerald-800' : ($relayStatus === 'deposited' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800') }}">
+                            {{ $relayStatus === 'collected' ? 'Retiré ✅' : ($relayStatus === 'deposited' ? 'En attente de retrait' : 'En attente de dépôt') }}
+                        </span>
+                    </div>
+
+                    {{-- Code de retrait : visible par l'acheteur (à présenter au commerçant) --}}
+                    @if($isBuyer && $relayStatus !== 'collected' && $transaction->relay_pickup_code)
+                        <div class="mt-4 rounded-2xl bg-white border border-teal-200 p-4 text-center">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Ton code de retrait</p>
+                            <p class="mt-1 text-3xl font-extrabold tracking-[0.3em] text-teal-700">{{ $transaction->relay_pickup_code }}</p>
+                            <p class="mt-2 text-xs text-gray-500">
+                                {{ $relayStatus === 'deposited'
+                                    ? 'Ton colis est arrivé ! Présente ce code au commerçant pour le retirer, puis confirme la réception ci-dessous.'
+                                    : 'Le vendeur doit d’abord déposer le colis. Tu seras prévenu dès qu’il sera disponible.' }}
+                            </p>
+                        </div>
+                    @endif
+
+                    {{-- Côté vendeur : rappel + confirmation de dépôt --}}
+                    @if($isSeller && $relayStatus === 'awaiting_deposit')
+                        <p class="mt-3 text-sm text-gray-600">Dépose le colis au point relais indiqué, puis confirme ci-dessous pour prévenir l’acheteur.</p>
+                    @elseif($isSeller && $relayStatus === 'deposited')
+                        <p class="mt-3 text-sm text-gray-600">Colis déposé. En attente du retrait par l’acheteur. Le paiement te sera versé une fois le retrait confirmé.</p>
+                    @endif
+                </div>
+            @endif
 
             <div class="mt-6 flex flex-wrap gap-3">
                 @if(auth()->id() === $transaction->seller_id && $transaction->status === 'paid' && $transaction->delivery_method === 'colissimo')
@@ -145,12 +192,30 @@
                     </form>
                 @endif
 
-                @if(auth()->id() === $transaction->buyer_id && $transaction->status === 'paid' && in_array($transaction->shipping_status, ['pending','shipped']))
+                @if(auth()->id() === $transaction->seller_id && $transaction->status === 'paid' && $transaction->delivery_method === 'relay' && $transaction->relay_status === 'awaiting_deposit')
+                    <form method="POST" action="{{ route('transactions.relay-deposited', $transaction) }}">
+                        @csrf
+                        @method('PATCH')
+                        <button class="bg-teal-700 hover:bg-teal-800 text-white font-extrabold rounded-2xl px-5 py-3">
+                            🏪 J'ai déposé le colis au relais
+                        </button>
+                    </form>
+                @endif
+
+                @php
+                    // Point relais : l'acheteur ne peut confirmer le retrait
+                    // qu'une fois le colis DÉPOSÉ par le vendeur.
+                    $buyerCanConfirm = auth()->id() === $transaction->buyer_id
+                        && $transaction->status === 'paid'
+                        && in_array($transaction->shipping_status, ['pending','shipped'])
+                        && ($transaction->delivery_method !== 'relay' || $transaction->relay_status === 'deposited');
+                @endphp
+                @if($buyerCanConfirm)
                     <form method="POST" action="{{ route('transactions.received', $transaction) }}">
                         @csrf
                         @method('PATCH')
                         <button class="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl px-5 py-3">
-                            Confirmer réception
+                            {{ $transaction->delivery_method === 'relay' ? 'Confirmer le retrait' : 'Confirmer réception' }}
                         </button>
                     </form>
                 @endif

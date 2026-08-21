@@ -52,18 +52,52 @@ class TransactionWorkflowController extends Controller
         return back()->with('status', 'Article marqué comme expédié.');
     }
 
+    /**
+     * Point relais : le vendeur confirme avoir déposé le colis chez le
+     * commerçant. L'acheteur est alors invité à venir le retirer avec son code.
+     */
+    public function relayDeposited(Transaction $transaction)
+    {
+        abort_unless($transaction->seller_id === Auth::id(), 403);
+        abort_unless($transaction->delivery_method === 'relay', 403);
+        abort_unless(in_array($transaction->status, ['paid', 'pending']), 403);
+
+        $transaction->update([
+            'relay_status' => 'deposited',
+            'relay_deposited_at' => now(),
+            'shipping_status' => 'shipped',
+            'shipped_at' => $transaction->shipped_at ?: now(),
+        ]);
+
+        try {
+            SendTransactionStatusEmails::dispatch($transaction->id, 'shipped');
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return back()->with('status', 'Dépôt confirmé. L’acheteur peut venir retirer son colis au point relais.');
+    }
+
     public function received(Transaction $transaction)
     {
         abort_unless($transaction->buyer_id === Auth::id(), 403);
 
-        $transaction->update([
+        $update = [
             'shipping_status' => 'received',
             'received_at' => now(),
             'delivered_at' => now(),
             'status' => 'completed',
             'completed_at' => now(),
             'wallet_status' => 'processing',
-        ]);
+        ];
+
+        // Point relais : la confirmation de réception vaut retrait au comptoir.
+        if ($transaction->delivery_method === 'relay') {
+            $update['relay_status'] = 'collected';
+            $update['relay_collected_at'] = now();
+        }
+
+        $transaction->update($update);
 
         try {
             SendTransactionStatusEmails::dispatch($transaction->id, 'received');

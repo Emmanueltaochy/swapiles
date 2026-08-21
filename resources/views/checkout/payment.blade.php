@@ -42,15 +42,22 @@
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-500">
-                                    {{ ($deliveryMethod ?? null) === 'hand_delivery' ? 'Remise en main propre' : 'Livraison' }}
                                     @php
+                                        $deliveryLabel = match ($deliveryMethod ?? null) {
+                                            'hand_delivery' => 'Remise en main propre',
+                                            'relay' => 'Point relais 🏪',
+                                            default => 'Livraison',
+                                        };
                                         $backParams = ['listing' => $listing];
                                         if ($transaction->listing_offer_id ?? null) { $backParams['offer'] = $transaction->listing_offer_id; }
                                     @endphp
+                                    {{ $deliveryLabel }}
                                     <a href="{{ route('checkout.show', $backParams) }}" class="ml-1 font-semibold text-teal-600 hover:text-teal-700">Modifier</a>
                                 </span>
                                 @if(($deliveryMethod ?? null) === 'hand_delivery')
                                     <span class="font-bold text-emerald-700">Gratuit</span>
+                                @elseif(($deliveryMethod ?? null) === 'relay')
+                                    <span class="font-semibold text-gray-900">{{ number_format($relayFee ?? 0, 2, ',', ' ') }} €</span>
                                 @else
                                     <span class="font-semibold text-gray-900">{{ number_format($shippingFee ?? 0, 2, ',', ' ') }} €</span>
                                 @endif

@@ -23,22 +23,28 @@ class OrderPricing
         public readonly int $itemCents,
         public readonly int $protectionCents,
         public readonly int $shippingCents,
+        public readonly int $relayFeeCents = 0,
     ) {
     }
 
     /** Construit depuis des montants en CENTIMES. */
-    public static function make(int $itemCents, int $shippingCents = 0): self
+    public static function make(int $itemCents, int $shippingCents = 0, int $relayFeeCents = 0): self
     {
         $itemCents = max(0, $itemCents);
         $shippingCents = max(0, $shippingCents);
+        $relayFeeCents = max(0, $relayFeeCents);
 
-        return new self($itemCents, self::protectionFor($itemCents), $shippingCents);
+        return new self($itemCents, self::protectionFor($itemCents), $shippingCents, $relayFeeCents);
     }
 
     /** Construit depuis des montants en EUROS (float). */
-    public static function fromEuros(float $itemEuros, float $shippingEuros = 0.0): self
+    public static function fromEuros(float $itemEuros, float $shippingEuros = 0.0, float $relayFeeEuros = 0.0): self
     {
-        return self::make(self::eurosToCents($itemEuros), self::eurosToCents($shippingEuros));
+        return self::make(
+            self::eurosToCents($itemEuros),
+            self::eurosToCents($shippingEuros),
+            self::eurosToCents($relayFeeEuros),
+        );
     }
 
     /**
@@ -76,9 +82,15 @@ class OrderPricing
         return $this->shippingCents;
     }
 
+    /** Frais de point relais (commerçant + plateforme), ajoutés au total. */
+    public function relayFeeCents(): int
+    {
+        return $this->relayFeeCents;
+    }
+
     public function totalCents(): int
     {
-        return $this->itemCents + $this->protectionCents + $this->shippingCents;
+        return $this->itemCents + $this->protectionCents + $this->shippingCents + $this->relayFeeCents;
     }
 
     /** Commission vendeur = 0 -> le vendeur touche exactement le prix de l'article. */
@@ -113,6 +125,11 @@ class OrderPricing
     public function shippingEuros(): float
     {
         return $this->shippingCents / 100;
+    }
+
+    public function relayFeeEuros(): float
+    {
+        return $this->relayFeeCents / 100;
     }
 
     public function totalEuros(): float

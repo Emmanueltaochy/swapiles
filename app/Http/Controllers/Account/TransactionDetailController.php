@@ -15,7 +15,7 @@ class TransactionDetailController extends Controller
             403
         );
 
-        $transaction->load(['listing.images', 'buyer', 'seller']);
+        $transaction->load(['listing.images', 'buyer', 'seller', 'relayPoint']);
 
         // Avis mutuels : l'autre partie, mon avis éventuel, et l'avis reçu.
         $me = Auth::id();

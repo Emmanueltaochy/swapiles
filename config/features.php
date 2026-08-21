@@ -46,4 +46,15 @@ return [
      |  'B' : le message n'est pas délivré du tout (plus strict, déconseillé).
      */
     'moderation_block_mode' => strtoupper((string) env('MODERATION_BLOCK_MODE', 'A')) === 'B' ? 'B' : 'A',
+
+    /*
+     | Point relais (commerçant partenaire) — pilote La Réunion.
+     | ON  : si des points relais actifs existent sur le territoire de l'annonce,
+     |       l'acheteur peut choisir « Point relais » au paiement CB (+ frais
+     |       relais). Le vendeur dépose, l'acheteur retire avec son code.
+     | OFF : l'option point relais n'apparaît jamais dans le tunnel.
+     | Réservé à la CB : l'argent est bloqué avant le dépôt, le commerçant ne
+     | touche jamais d'espèces.
+     */
+    'relay_points' => filter_var(env('FEATURE_RELAY_POINTS', true), FILTER_VALIDATE_BOOLEAN),
 ];

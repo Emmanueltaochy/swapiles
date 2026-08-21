@@ -113,7 +113,40 @@
                                     </span>
                                 </label>
                             @endif
+
+                            @if($relayPoints->isNotEmpty())
+                                @php $relayFee = (float) config('pricing.relay_fee', 3.00); @endphp
+                                <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-4 transition has-[:checked]:border-teal-500 has-[:checked]:bg-teal-50/40">
+                                    <input type="radio" name="delivery_method" value="relay" data-delivery data-relay
+                                           class="mt-1 text-teal-600 focus:ring-teal-500" @checked($defaultDelivery === 'relay')>
+                                    <span class="min-w-0 flex-1">
+                                        <span class="flex items-center justify-between gap-2">
+                                            <span class="font-semibold text-gray-900">🏪 Point relais</span>
+                                            <span class="shrink-0 rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-bold text-teal-800">+{{ number_format($relayFee, 2, ',', ' ') }} €</span>
+                                        </span>
+                                        <span class="mt-1 block text-sm text-gray-500">Retire ton colis chez un commerçant partenaire, quand tu veux, dans un lieu neutre. Paiement sécurisé jusqu'au retrait.</span>
+                                    </span>
+                                </label>
+                            @endif
                         </div>
+
+                        {{-- Choix du point relais (affiché seulement si Point relais) --}}
+                        @if($relayPoints->isNotEmpty())
+                            <div id="relay-select-block" class="space-y-2 rounded-xl border border-gray-100 bg-gray-50 p-4 {{ $defaultDelivery === 'relay' ? '' : 'hidden' }}">
+                                <label for="relay_point_id" class="block text-sm font-semibold text-gray-700">Point relais <span class="text-red-600">*</span></label>
+                                <select id="relay_point_id" name="relay_point_id"
+                                        class="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-teal-100 border @error('relay_point_id') border-red-500 ring-2 ring-red-100 @else border-gray-200 focus:border-teal-500 @enderror">
+                                    <option value="">— Choisir un point relais —</option>
+                                    @foreach($relayPoints as $rp)
+                                        <option value="{{ $rp->id }}" @selected((string) old('relay_point_id') === (string) $rp->id)>
+                                            {{ $rp->name }}@if($rp->city) — {{ $rp->city }}@endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('relay_point_id')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
+                                <p class="text-xs text-gray-400">Tu recevras un code de retrait à présenter au commerçant.</p>
+                            </div>
+                        @endif
 
                         {{-- Adresse (affichée seulement si Colissimo) --}}
                         @if($canColissimo)
@@ -197,8 +230,10 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Afficher le bloc adresse uniquement quand "Colissimo" est sélectionné
+    // Afficher le bloc adresse uniquement quand "Colissimo" est sélectionné,
+    // et le sélecteur de point relais uniquement quand "Point relais" l'est.
     const addressBlock = document.getElementById('colissimo-address-block');
+    const relayBlock = document.getElementById('relay-select-block');
     const radios = document.querySelectorAll('[data-delivery]');
 
     // GA4 : entrée dans le tunnel (point 11).
@@ -208,20 +243,23 @@ document.addEventListener('DOMContentLoaded', function () {
         items: [{ item_id: '{{ $listing->id }}', item_name: @json($listing->title), price: {{ (float) $itemAmount }} }]
     });
 
-    if (addressBlock && radios.length) {
+    if (radios.length) {
         const sync = function () {
             const selected = document.querySelector('[data-delivery]:checked');
-            const isColissimo = selected && selected.value === 'colissimo';
-            addressBlock.classList.toggle('hidden', !isColissimo);
+            const value = selected ? selected.value : null;
+            if (addressBlock) addressBlock.classList.toggle('hidden', value !== 'colissimo');
+            if (relayBlock) relayBlock.classList.toggle('hidden', value !== 'relay');
         };
         // GA4 : choix du mode de livraison (point 11).
         const trackShipping = function () {
             const selected = document.querySelector('[data-delivery]:checked');
             if (selected && window.SWP) {
+                const tier = selected.value === 'colissimo' ? 'Colissimo'
+                    : (selected.value === 'relay' ? 'Point relais' : 'Main propre');
                 window.SWP.ga4('add_shipping_info', {
                     currency: 'EUR',
                     value: {{ (float) $itemAmount }},
-                    shipping_tier: selected.value === 'colissimo' ? 'Colissimo' : 'Main propre'
+                    shipping_tier: tier
                 });
             }
         };

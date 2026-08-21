@@ -73,6 +73,7 @@ Route::get('/cgu', [\App\Http\Controllers\LegalController::class, 'cgu'])->name(
 Route::get('/cgv', [\App\Http\Controllers\LegalController::class, 'cgv'])->name('legal.cgv');
 Route::get('/confidentialite', [\App\Http\Controllers\LegalController::class, 'confidentialite'])->name('legal.privacy');
 Route::get('/faq', [\App\Http\Controllers\LegalController::class, 'faq'])->name('faq');
+Route::get('/devenir-point-relais', [\App\Http\Controllers\RelayPartnerController::class, 'show'])->name('relay.partner');
 
 Route::get('/annonce/{listing}', [ListingController::class, 'show'])->name('listings.show');
 
@@ -309,6 +310,9 @@ Route::get('/sitemap.xml', function () {
     foreach (['legal.mentions', 'legal.cgu', 'legal.cgv', 'legal.privacy', 'faq'] as $legalRoute) {
         $urls->push(['loc' => route($legalRoute), 'priority' => '0.4', 'changefreq' => 'monthly']);
     }
+
+    // Page vitrine « Devenir point relais partenaire »
+    $urls->push(['loc' => route('relay.partner'), 'priority' => '0.6', 'changefreq' => 'monthly']);
 
     // Pages de destination par territoire + catégorie (fort levier SEO)
     $territoiresMap = [

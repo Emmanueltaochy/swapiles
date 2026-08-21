@@ -15,7 +15,7 @@ class SendTransactionStatusEmails implements ShouldQueue
     public int $timeout = 60;
 
     /**
-     * @param  string  $event  paid | shipped | received | released
+     * @param  string  $event  paid | shipped | received | released | relay_deposited
      */
     public function __construct(
         public int $transactionId,
@@ -25,18 +25,13 @@ class SendTransactionStatusEmails implements ShouldQueue
 
     public function handle(): void
     {
-        $t = Transaction::with(['buyer', 'seller', 'listing'])->find($this->transactionId);
+        $t = Transaction::with(['buyer', 'seller', 'listing', 'relayPoint.manager'])->find($this->transactionId);
 
         if (!$t) {
             return;
         }
 
-        $title = $t->listing?->title ?? 'votre article';
-        $amount = number_format((float) $t->amount, 2, ',', ' ');
-        $netRaw = (float) $t->seller_amount > 0
-            ? (float) $t->seller_amount
-            : max(0, (float) $t->amount - (float) $t->commission - (float) $t->buyer_protection_fee - (float) $t->shipping_fee);
-        $net = number_format($netRaw, 2, ',', ' ');
+        $net = number_format($this->netSellerAmount($t), 2, ',', ' ');
 
         try {
             $url = route('account.transactions.show', $t);
@@ -44,7 +39,7 @@ class SendTransactionStatusEmails implements ShouldQueue
             $url = 'https://swapiles.com';
         }
 
-        $messages = $this->messagesFor($title, $amount, $net);
+        $messages = self::messagesForTransaction($t, $this->event);
 
         // Point 19 — à la vente, si le vendeur n'a pas encore de compte
         // opérationnel, on greffe la sollicitation KYC (« ton argent t'attend,
@@ -74,11 +69,48 @@ class SendTransactionStatusEmails implements ShouldQueue
         if (!empty($messages['seller']) && $t->seller?->email) {
             $this->send($t->seller->email, $messages['seller'][0], $messages['seller'][1] . $this->footer($url));
         }
+
+        // Point relais : e-mail au commerçant gérant (sans lien transaction,
+        // il gère depuis son espace relais).
+        if (!empty($messages['merchant']) && $t->relayPoint?->manager?->email) {
+            $relayUrl = $this->relayDashboardUrl();
+            $this->send($t->relayPoint->manager->email, $messages['merchant'][0], $messages['merchant'][1] . "\n\nMon espace relais : {$relayUrl}\n\nL'équipe Swap'Îles");
+        }
     }
 
-    private function messagesFor(string $title, string $amount, string $net): array
+    /** Montant net vendeur (prix affiché ; commission 0 %). */
+    private function netSellerAmount(Transaction $t): float
     {
-        return match ($this->event) {
+        return (float) $t->seller_amount > 0
+            ? (float) $t->seller_amount
+            : max(0, (float) $t->amount - (float) $t->commission - (float) $t->buyer_protection_fee - (float) $t->shipping_fee);
+    }
+
+    /**
+     * Construit les messages (sujet + corps) par destinataire pour un événement.
+     * Public et statique pour être testable sans envoi réel.
+     *
+     * @return array{buyer?: array{0:string,1:string}, seller?: array{0:string,1:string}, merchant?: array{0:string,1:string}}
+     */
+    public static function messagesForTransaction(Transaction $t, string $event): array
+    {
+        $title = $t->listing?->title ?? 'votre article';
+        $amount = number_format((float) $t->amount, 2, ',', ' ');
+        $netRaw = (float) $t->seller_amount > 0
+            ? (float) $t->seller_amount
+            : max(0, (float) $t->amount - (float) $t->commission - (float) $t->buyer_protection_fee - (float) $t->shipping_fee);
+        $net = number_format($netRaw, 2, ',', ' ');
+
+        if ($t->delivery_method === 'relay') {
+            return self::relayMessages($t, $event, $title, $amount, $net);
+        }
+
+        return self::standardMessages($event, $title, $amount, $net);
+    }
+
+    private static function standardMessages(string $event, string $title, string $amount, string $net): array
+    {
+        return match ($event) {
             'paid' => [
                 'buyer' => [
                     "✅ Paiement confirmé — {$title}",
@@ -117,6 +149,71 @@ class SendTransactionStatusEmails implements ShouldQueue
             ],
             default => [],
         };
+    }
+
+    /** Messages spécifiques au point relais (retrait chez un commerçant). */
+    private static function relayMessages(Transaction $t, string $event, string $title, string $amount, string $net): array
+    {
+        $name = $t->relayPoint?->name ?? 'ton point relais';
+        $addr = $t->relayPoint?->fullAddress();
+        $where = $addr ? "{$name} ({$addr})" : $name;
+        $hours = $t->relayPoint?->opening_hours ? "\nHoraires : {$t->relayPoint->opening_hours}" : '';
+        $code = (string) $t->relay_pickup_code;
+        $buyerName = $t->buyer?->name ?? 'un acheteur';
+        $sellerName = $t->seller?->name ?? 'un vendeur';
+
+        return match ($event) {
+            'paid' => [
+                'buyer' => [
+                    "✅ Paiement confirmé — {$title}",
+                    "Bonjour,\n\nTon paiement de {$amount} € pour « {$title} » est confirmé et sécurisé. Dès que le vendeur dépose ton colis au point relais {$where}, tu recevras ton code de retrait par e-mail.",
+                ],
+                'seller' => [
+                    "🎉 Tu as vendu {$title} !",
+                    "Bonjour,\n\n« {$title} » vient d'être payé ({$amount} €). Dépose le colis au point relais {$where}.{$hours}\n\nL'acheteur viendra le retirer avec son code. Ton paiement de {$net} € te sera versé une fois le retrait confirmé.",
+                ],
+                'merchant' => [
+                    "📦 Un colis Swap'Îles va arriver — {$title}",
+                    "Bonjour,\n\nUn colis va être déposé chez toi par {$sellerName} (pour {$buyerName}). Quand il arrive, confirme sa réception dans ton espace relais ; tu remettras ensuite le colis à l'acheteur contre son code de retrait.",
+                ],
+            ],
+            'relay_deposited' => [
+                'buyer' => [
+                    "🏪 Ton colis t'attend au point relais — {$title}",
+                    "Bonjour,\n\nBonne nouvelle : ton colis « {$title} » est disponible au point relais {$where}.{$hours}\n\n🔑 Ton code de retrait : {$code}\n\nPrésente ce code au commerçant pour récupérer ton colis. Pense ensuite à confirmer le retrait depuis tes transactions.",
+                ],
+                'seller' => [
+                    "📦 Dépôt enregistré — {$title}",
+                    "Bonjour,\n\nTon colis « {$title} » est bien déposé au point relais. L'acheteur vient d'être prévenu qu'il peut venir le retirer.",
+                ],
+            ],
+            'received' => [
+                'buyer' => [
+                    "✅ Colis retiré — {$title}",
+                    "Bonjour,\n\nTu as bien retiré « {$title} » au point relais. Merci de ta confiance et à bientôt sur Swap'Îles !",
+                ],
+                'seller' => [
+                    "💶 Colis retiré — {$title}",
+                    "Bonjour,\n\nL'acheteur a retiré « {$title} » au point relais. Ton paiement va être versé sur ton compte bancaire.",
+                ],
+            ],
+            'released' => [
+                'seller' => [
+                    "💶 Paiement envoyé — {$title}",
+                    "Bonjour,\n\nTon paiement de {$net} € pour la vente de « {$title} » a été envoyé vers ton compte bancaire (délai habituel : 1 à 3 jours ouvrés).",
+                ],
+            ],
+            default => [],
+        };
+    }
+
+    private function relayDashboardUrl(): string
+    {
+        try {
+            return route('account.relay.dashboard');
+        } catch (\Throwable $e) {
+            return 'https://swapiles.com';
+        }
     }
 
     private function footer(string $url): string

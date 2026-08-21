@@ -69,7 +69,7 @@ class TransactionWorkflowController extends Controller
         ]);
 
         try {
-            SendTransactionStatusEmails::dispatch($transaction->id, 'shipped');
+            SendTransactionStatusEmails::dispatch($transaction->id, 'relay_deposited');
         } catch (\Throwable $e) {
             report($e);
         }

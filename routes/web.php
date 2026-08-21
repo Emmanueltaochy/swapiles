@@ -74,6 +74,8 @@ Route::get('/cgv', [\App\Http\Controllers\LegalController::class, 'cgv'])->name(
 Route::get('/confidentialite', [\App\Http\Controllers\LegalController::class, 'confidentialite'])->name('legal.privacy');
 Route::get('/faq', [\App\Http\Controllers\LegalController::class, 'faq'])->name('faq');
 Route::get('/devenir-point-relais', [\App\Http\Controllers\RelayPartnerController::class, 'show'])->name('relay.partner');
+Route::post('/devenir-point-relais', [\App\Http\Controllers\RelayPartnerController::class, 'submit'])
+    ->middleware('throttle:6,1')->name('relay.partner.contact');
 
 Route::get('/annonce/{listing}', [ListingController::class, 'show'])->name('listings.show');
 

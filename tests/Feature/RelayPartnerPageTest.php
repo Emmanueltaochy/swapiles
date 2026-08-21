@@ -7,6 +7,7 @@ use App\Models\RelayPoint;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 /**
@@ -59,5 +60,35 @@ class RelayPartnerPageTest extends TestCase
         $this->get(route('relay.partner'))
             ->assertOk()
             ->assertSee('colis remis par nos partenaires', false);
+    }
+
+    public function test_le_formulaire_de_contact_aboutit(): void
+    {
+        Mail::fake();
+
+        $this->post(route('relay.partner.contact'), [
+            'business' => 'Tao Bijoux',
+            'name' => 'Jean',
+            'city' => 'Saint-Paul',
+            'phone' => '0692000000',
+            'email' => 'jean@ex.com',
+            'hours' => 'Lun-Sam 9h-18h',
+            'message' => 'Je veux devenir relais',
+        ])->assertRedirect()->assertSessionHas('relay_contact_status')->assertSessionHasNoErrors();
+    }
+
+    public function test_le_formulaire_valide_les_champs_obligatoires(): void
+    {
+        $this->post(route('relay.partner.contact'), ['business' => 'X'])
+            ->assertSessionHasErrors(['name', 'city', 'phone', 'email']);
+    }
+
+    public function test_le_honeypot_bloque_les_bots(): void
+    {
+        // Champ piège rempli -> traité comme un bot : message de succès, pas d'erreur.
+        $this->post(route('relay.partner.contact'), [
+            'business' => 'Spam', 'name' => 'Bot', 'city' => 'X', 'phone' => '0', 'email' => 'b@ex.com',
+            'website' => 'http://spam.example',
+        ])->assertRedirect()->assertSessionHas('relay_contact_status')->assertSessionHasNoErrors();
     }
 }

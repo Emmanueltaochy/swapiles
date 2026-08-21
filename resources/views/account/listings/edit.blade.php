@@ -401,6 +401,15 @@ document.addEventListener('DOMContentLoaded', function () {
         if (weightBox) {
             weightBox.style.display = coli?.checked ? 'block' : 'none';
         }
+
+        // Point relais : réservé au CB sécurisé. Masqué (et décoché) sans CB.
+        const relayBox = document.getElementById('relay_box');
+        if (relayBox) {
+            relayBox.style.display = cb?.checked ? 'block' : 'none';
+            if (!cb?.checked) {
+                relayBox.querySelectorAll('input[type=checkbox]').forEach(c => { c.checked = false; });
+            }
+        }
     }
 
     l1?.addEventListener('change', () => fillLevel2(''));

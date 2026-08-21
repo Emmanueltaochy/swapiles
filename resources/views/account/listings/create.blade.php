@@ -554,6 +554,15 @@ document.addEventListener('DOMContentLoaded', function () {
             weightBox.style.display = coli?.checked ? 'block' : 'none';
         }
 
+        // Point relais : réservé au CB sécurisé. Masqué (et décoché) sans CB.
+        const relayBox = document.getElementById('relay_box');
+        if (relayBox) {
+            relayBox.style.display = cb?.checked ? 'block' : 'none';
+            if (!cb?.checked) {
+                relayBox.querySelectorAll('input[type=checkbox]').forEach(c => { c.checked = false; });
+            }
+        }
+
         // Le poids n'est requis (et bloquant) que si Colissimo est coché.
         if (weight) {
             weight.required = !!coli?.checked;

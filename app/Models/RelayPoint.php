@@ -18,6 +18,8 @@ class RelayPoint extends Model
         'address',
         'postal_code',
         'city',
+        'latitude',
+        'longitude',
         'contact_name',
         'contact_phone',
         'opening_hours',
@@ -27,7 +29,23 @@ class RelayPoint extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'latitude' => 'float',
+        'longitude' => 'float',
     ];
+
+    /**
+     * Coordonnées [lat, lng] du point relais pour la carte : coordonnées
+     * saisies si présentes, sinon centre de la commune (DomTomGeo). Null si
+     * on ne sait pas placer le pin.
+     */
+    public function coordinates(): ?array
+    {
+        if ($this->latitude !== null && $this->longitude !== null) {
+            return [(float) $this->latitude, (float) $this->longitude];
+        }
+
+        return \App\Support\DomTomGeo::coords($this->territoire, $this->city, $this->postal_code);
+    }
 
     public function transactions()
     {

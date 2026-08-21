@@ -106,6 +106,30 @@ class RelayPointSelectionTest extends TestCase
         $this->assertSame([$a->id], $ids);
     }
 
+    public function test_coordonnees_explicites_prioritaires(): void
+    {
+        $rp = RelayPoint::create([
+            'name' => 'Tao Bijoux', 'territoire' => 'La Réunion', 'city' => 'Saint-Paul',
+            'latitude' => -21.0100000, 'longitude' => 55.2700000, 'is_active' => true,
+        ]);
+
+        $this->assertSame([-21.01, 55.27], $rp->coordinates());
+    }
+
+    public function test_coordonnees_repli_sur_le_centre_commune(): void
+    {
+        $rp = RelayPoint::create([
+            'name' => 'Sans coord', 'territoire' => 'La Réunion', 'city' => 'Saint-Denis',
+            'is_active' => true,
+        ]);
+
+        $c = $rp->coordinates();
+        $this->assertNotNull($c);
+        // Centre de Saint-Denis (DomTomGeo) ~ [-20.8789, 55.4481].
+        $this->assertEqualsWithDelta(-20.8789, $c[0], 0.01);
+        $this->assertEqualsWithDelta(55.4481, $c[1], 0.01);
+    }
+
     public function test_checkout_refuse_un_relais_hors_perimetre(): void
     {
         $seller = $this->seller();

@@ -1,7 +1,7 @@
 {{-- Points relais acceptés pour cette annonce (surcharge le défaut du compte).
      Réservé aux annonces CB. Vide = on utilise les relais par défaut du vendeur. --}}
 @if(($relayPoints ?? collect())->isNotEmpty())
-    <div id="relay_box" class="rounded-xl border border-teal-100 bg-teal-50/50 p-4">
+    <div id="relay_box" class="rounded-xl border border-teal-100 bg-teal-50/50 p-4" style="display:none;">
         <p class="font-semibold text-teal-950">🏪 Points relais acceptés <span class="font-normal text-teal-700">(facultatif)</span></p>
         <p class="mt-1 mb-3 text-sm text-teal-800">
             Coche les commerçants où tu acceptes de déposer ce colis. L'acheteur choisira le plus proche de chez lui.

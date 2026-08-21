@@ -65,6 +65,13 @@ class RelayPointResource extends Resource
             TextInput::make('city')
                 ->label('Ville')
                 ->maxLength(120),
+            TextInput::make('latitude')
+                ->label('Latitude (facultatif)')
+                ->numeric()
+                ->helperText('Copie depuis Google Maps (clic droit sur la boutique → coordonnées). Vide = centre de la commune.'),
+            TextInput::make('longitude')
+                ->label('Longitude (facultatif)')
+                ->numeric(),
             TextInput::make('contact_name')
                 ->label('Contact (facultatif)')
                 ->maxLength(120),

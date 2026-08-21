@@ -132,8 +132,27 @@
 
                         {{-- Choix du point relais (affiché seulement si Point relais) --}}
                         @if($relayPoints->isNotEmpty())
+                            @php
+                                $relayGeo = $relayPoints->map(function ($rp) {
+                                    $c = $rp->coordinates();
+                                    return $c ? [
+                                        'id' => $rp->id,
+                                        'name' => $rp->name,
+                                        'address' => $rp->fullAddress(),
+                                        'lat' => $c[0],
+                                        'lng' => $c[1],
+                                    ] : null;
+                                })->filter()->values();
+                            @endphp
                             <div id="relay-select-block" class="space-y-2 rounded-xl border border-gray-100 bg-gray-50 p-4 {{ $defaultDelivery === 'relay' ? '' : 'hidden' }}">
                                 <label for="relay_point_id" class="block text-sm font-semibold text-gray-700">Point relais <span class="text-red-600">*</span></label>
+                                <p class="text-xs text-gray-500">Choisis le point relais le plus proche de chez toi — clique un repère sur la carte ou utilise la liste.</p>
+
+                                @if($relayGeo->isNotEmpty())
+                                    <div id="relay-map" class="h-56 w-full overflow-hidden rounded-xl border border-gray-200 bg-gray-100"
+                                         data-points='@json($relayGeo)'></div>
+                                @endif
+
                                 <select id="relay_point_id" name="relay_point_id"
                                         class="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-teal-100 border @error('relay_point_id') border-red-500 ring-2 ring-red-100 @else border-gray-200 focus:border-teal-500 @enderror">
                                     <option value="">— Choisir un point relais —</option>
@@ -146,6 +165,74 @@
                                 @error('relay_point_id')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                                 <p class="text-xs text-gray-400">Tu recevras un code de retrait à présenter au commerçant.</p>
                             </div>
+
+                            @if($relayGeo->isNotEmpty())
+                                <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+                                      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+                                <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+                                        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+                                <script>
+                                    (function () {
+                                        var el = document.getElementById('relay-map');
+                                        var select = document.getElementById('relay_point_id');
+                                        if (!el || el._leaflet_id || typeof L === 'undefined') return;
+
+                                        var points;
+                                        try { points = JSON.parse(el.dataset.points); } catch (e) { return; }
+                                        if (!points || !points.length) return;
+
+                                        var map = L.map(el, { scrollWheelZoom: false });
+                                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                            maxZoom: 18, attribution: '© OpenStreetMap'
+                                        }).addTo(map);
+
+                                        var markers = {}, bounds = [];
+                                        points.forEach(function (p) {
+                                            var m = L.marker([p.lat, p.lng]).addTo(map);
+                                            var html = '<strong>' + p.name + '</strong>'
+                                                + (p.address ? '<br>' + p.address : '')
+                                                + '<br><button type="button" data-relay="' + p.id
+                                                + '" class="relay-pick" style="margin-top:6px;padding:4px 10px;background:#0d9488;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Choisir ce relais</button>';
+                                            m.bindPopup(html);
+                                            markers[p.id] = m;
+                                            bounds.push([p.lat, p.lng]);
+                                        });
+
+                                        if (bounds.length === 1) { map.setView(bounds[0], 14); }
+                                        else { map.fitBounds(bounds, { padding: [30, 30] }); }
+
+                                        function selectRelay(id) {
+                                            if (select) { select.value = String(id); select.dispatchEvent(new Event('change')); }
+                                            if (markers[id]) { markers[id].openPopup(); }
+                                        }
+
+                                        // Clic sur le bouton « Choisir » dans le popup.
+                                        map.on('popupopen', function (e) {
+                                            var btn = e.popup.getElement().querySelector('.relay-pick');
+                                            if (btn) btn.addEventListener('click', function () { selectRelay(btn.dataset.relay); });
+                                        });
+
+                                        // Sélection depuis la liste -> ouvre le repère correspondant.
+                                        if (select) {
+                                            select.addEventListener('change', function () {
+                                                var m = markers[select.value];
+                                                if (m) { map.panTo(m.getLatLng()); m.openPopup(); }
+                                            });
+                                            if (select.value && markers[select.value]) { markers[select.value].openPopup(); }
+                                        }
+
+                                        // Recalcule la taille quand le bloc devient visible.
+                                        var relayBlock = document.getElementById('relay-select-block');
+                                        if (relayBlock) {
+                                            new MutationObserver(function () {
+                                                if (!relayBlock.classList.contains('hidden')) {
+                                                    setTimeout(function () { map.invalidateSize(); }, 50);
+                                                }
+                                            }).observe(relayBlock, { attributes: true, attributeFilter: ['class'] });
+                                        }
+                                    })();
+                                </script>
+                            @endif
                         @endif
 
                         {{-- Adresse (affichée seulement si Colissimo) --}}

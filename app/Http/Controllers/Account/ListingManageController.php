@@ -41,6 +41,14 @@ class ListingManageController extends Controller
             return;
         }
 
+        // Le point relais est réservé au paiement CB sécurisé (le colis n'est
+        // protégé qu'ainsi). Sans CB, aucun relais accepté n'est enregistré.
+        if (! $listing->requires_online_payment) {
+            $listing->relayPoints()->sync([]);
+
+            return;
+        }
+
         $ids = collect($request->input('relay_point_ids', []))
             ->map(fn ($id) => (int) $id)
             ->filter()

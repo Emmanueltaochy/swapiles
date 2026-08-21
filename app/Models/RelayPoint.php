@@ -13,6 +13,7 @@ class RelayPoint extends Model
 {
     protected $fillable = [
         'name',
+        'manager_user_id',
         'territoire',
         'address',
         'postal_code',
@@ -31,6 +32,31 @@ class RelayPoint extends Model
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    /** Le commerçant qui gère ce point relais (accès à l'espace relais). */
+    public function manager()
+    {
+        return $this->belongsTo(User::class, 'manager_user_id');
+    }
+
+    /**
+     * Solde gagné par le commerçant sur ce point : 1 € (relay_merchant_fee) par
+     * colis effectivement REMIS à l'acheteur (relay_status = collected).
+     */
+    public function earnedBalance(): float
+    {
+        return (float) $this->transactions()
+            ->where('relay_status', 'collected')
+            ->sum('relay_merchant_fee');
+    }
+
+    /** Nombre de colis remis (comptabilisés dans le solde). */
+    public function collectedCount(): int
+    {
+        return (int) $this->transactions()
+            ->where('relay_status', 'collected')
+            ->count();
     }
 
     public function scopeActive(Builder $query): Builder

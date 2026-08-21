@@ -278,6 +278,9 @@ document.addEventListener('DOMContentLoaded', function () {
                             <a href="{{ route('account.dashboard') }}" class="block px-4 py-2 hover:bg-gray-50">Tableau de bord</a>
                             <a href="{{ route('account.transactions.index') }}" class="block px-4 py-2 hover:bg-gray-50">Transactions</a>
                             <a href="/mon-wallet" class="block px-4 py-2 hover:bg-gray-50">Wallet</a>
+                            @if(auth()->user()->managesAnyRelay())
+                                <a href="{{ route('account.relay.dashboard') }}" class="block px-4 py-2 hover:bg-gray-50">🏪 Mon espace relais</a>
+                            @endif
                             <form method="POST" action="{{ route('logout') }}" class="border-t border-gray-100">
                                 @csrf
                                 <button class="block w-full px-4 py-2 text-left text-red-600 hover:bg-gray-50">Déconnexion</button>

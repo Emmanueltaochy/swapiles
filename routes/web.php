@@ -162,6 +162,14 @@ Route::middleware('auth')->group(function () {
 
     Route::patch('/transactions/{transaction}/depose-relais', [TransactionWorkflowController::class, 'relayDeposited'])
         ->name('transactions.relay-deposited');
+
+    // Espace commerçant (gérant de point relais).
+    Route::get('/mon-relais', [\App\Http\Controllers\Account\RelayDashboardController::class, 'index'])
+        ->name('account.relay.dashboard');
+    Route::patch('/mon-relais/{transaction}/receptionner', [\App\Http\Controllers\Account\RelayDashboardController::class, 'confirmDeposit'])
+        ->name('account.relay.deposit');
+    Route::patch('/mon-relais/{transaction}/remettre', [\App\Http\Controllers\Account\RelayDashboardController::class, 'confirmPickup'])
+        ->name('account.relay.pickup');
 });
 
 

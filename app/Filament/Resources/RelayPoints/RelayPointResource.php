@@ -44,6 +44,12 @@ class RelayPointResource extends Resource
                 ->label('Nom du commerçant / point relais')
                 ->required()
                 ->maxLength(191),
+            Select::make('manager_user_id')
+                ->label('Compte gérant (commerçant)')
+                ->relationship('manager', 'email')
+                ->searchable()
+                ->preload()
+                ->helperText('Le compte qui accède à l’espace relais (réception, remise, solde). Le commerçant doit d’abord créer un compte Swap’Îles.'),
             Select::make('territoire')
                 ->label('Territoire')
                 ->options(array_combine(DomTomGeo::territoires(), DomTomGeo::territoires()))
@@ -95,6 +101,10 @@ class RelayPointResource extends Resource
                     ->sortable(),
                 TextColumn::make('city')
                     ->label('Ville')
+                    ->default('—')
+                    ->searchable(),
+                TextColumn::make('manager.email')
+                    ->label('Gérant')
                     ->default('—')
                     ->searchable(),
                 TextColumn::make('contact_phone')

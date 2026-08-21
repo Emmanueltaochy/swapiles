@@ -133,6 +133,18 @@ class User extends Authenticatable implements FilamentUser
         return $this->belongsToMany(RelayPoint::class, 'relay_point_user');
     }
 
+    /** Points relais que cet utilisateur GÈRE en tant que commerçant. */
+    public function managedRelayPoints()
+    {
+        return $this->hasMany(RelayPoint::class, 'manager_user_id');
+    }
+
+    /** Cet utilisateur gère-t-il au moins un point relais ? */
+    public function managesAnyRelay(): bool
+    {
+        return $this->managedRelayPoints()->exists();
+    }
+
     public function favorites()
     {
         return $this->belongsToMany(Listing::class, 'favorites')

@@ -7,6 +7,7 @@ use App\Jobs\SendSellerPublishedListingEmail;
 use App\Jobs\SendListingPublishedShareEmail;
 use App\Models\Listing;
 use App\Models\ListingImage;
+use App\Models\RelayPoint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -17,7 +18,42 @@ class ListingManageController extends Controller
 {
     public function create()
     {
-        return view('account.listings.create');
+        $user = Auth::user();
+
+        return view('account.listings.create', [
+            'relayPoints' => config('features.relay_points')
+                ? RelayPoint::activeForTerritoire($user->territoire)
+                : collect(),
+            // Nouvelle annonce : on pré-coche les relais par défaut du vendeur.
+            'selectedRelayIds' => config('features.relay_points')
+                ? $user->acceptedRelayPoints()->pluck('relay_points.id')->all()
+                : [],
+        ]);
+    }
+
+    /**
+     * Synchronise la surcharge « points relais acceptés » d'une annonce.
+     * On ne garde que des relais actifs situés sur l'île de l'annonce.
+     */
+    private function syncListingRelayPoints(Request $request, Listing $listing): void
+    {
+        if (! config('features.relay_points')) {
+            return;
+        }
+
+        $ids = collect($request->input('relay_point_ids', []))
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->all();
+
+        $valid = RelayPoint::query()
+            ->active()
+            ->where('territoire', $listing->territoire)
+            ->whereIn('id', $ids ?: [0])
+            ->pluck('id')
+            ->all();
+
+        $listing->relayPoints()->sync($valid);
     }
 
     public function store(Request $request)
@@ -104,6 +140,8 @@ class ListingManageController extends Controller
 
         $this->storeImages($request, $listing);
 
+        $this->syncListingRelayPoints($request, $listing);
+
         // Point 19 — provisionne le compte Connect en arrière-plan si le vendeur
         // active la CB sans encore avoir de compte (KYC différé à la vente).
         $this->provisionConnectAccountIfNeeded($cbEnabled);
@@ -130,7 +168,15 @@ class ListingManageController extends Controller
     {
         $this->authorizeOwner($listing);
 
-        return view('account.listings.edit', compact('listing'));
+        return view('account.listings.edit', [
+            'listing' => $listing,
+            'relayPoints' => config('features.relay_points')
+                ? RelayPoint::activeForTerritoire($listing->territoire)
+                : collect(),
+            'selectedRelayIds' => config('features.relay_points')
+                ? $listing->relayPoints()->pluck('relay_points.id')->all()
+                : [],
+        ]);
     }
 
     public function update(Request $request, Listing $listing)
@@ -221,6 +267,8 @@ class ListingManageController extends Controller
         ]);
 
         $this->storeImages($request, $listing);
+
+        $this->syncListingRelayPoints($request, $listing->refresh());
 
         // Point 19 — provisionne le compte Connect si la CB vient d'être activée
         // sans compte existant (KYC différé à la vente).

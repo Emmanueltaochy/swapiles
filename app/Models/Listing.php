@@ -157,4 +157,44 @@ class Listing extends Model
             ->orderBy('name')
             ->get();
     }
+
+    /** Surcharge « points relais acceptés » propre à cette annonce. */
+    public function relayPoints()
+    {
+        return $this->belongsToMany(RelayPoint::class, 'listing_relay_point');
+    }
+
+    /**
+     * Périmètre de points relais réellement proposé à l'acheteur, par ordre de
+     * priorité :
+     *   1. la surcharge de l'annonce (si le vendeur en a coché) ;
+     *   2. sinon les relais par défaut du vendeur ;
+     *   3. sinon tous les relais actifs de l'île de l'annonce.
+     * Toujours filtré aux relais ACTIFS du territoire de l'annonce.
+     */
+    public function effectiveRelayPoints()
+    {
+        if (! config('features.relay_points')) {
+            return collect();
+        }
+
+        $territoire = $this->territoire;
+
+        $filter = fn ($points) => $points
+            ->where('is_active', true)
+            ->where('territoire', $territoire)
+            ->values();
+
+        $listingChoice = $filter($this->relayPoints()->get());
+        if ($listingChoice->isNotEmpty()) {
+            return $listingChoice;
+        }
+
+        $sellerChoice = $filter(optional($this->user)->acceptedRelayPoints()->get() ?? collect());
+        if ($sellerChoice->isNotEmpty()) {
+            return $sellerChoice;
+        }
+
+        return RelayPoint::activeForTerritoire($territoire);
+    }
 }

@@ -127,6 +127,12 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(Listing::class);
     }
 
+    /** Points relais que le vendeur accepte par défaut pour ses dépôts. */
+    public function acceptedRelayPoints()
+    {
+        return $this->belongsToMany(RelayPoint::class, 'relay_point_user');
+    }
+
     public function favorites()
     {
         return $this->belongsToMany(Listing::class, 'favorites')

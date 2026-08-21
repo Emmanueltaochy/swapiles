@@ -312,6 +312,8 @@
 
                         @error('allows_colissimo')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
 
+                        @include('account.listings._relay_points')
+
                         <div id="weight_box">
                             <label for="weight_g" class="{{ $lbl }}">Poids du colis (en grammes) <span class="text-red-500">*</span></label>
                             <input id="weight_g" type="number" step="10" min="1" max="30000" name="weight_g" value="{{ old('weight_g', isset($listing) && $listing->weight_kg ? (int) round($listing->weight_kg * 1000) : '') }}" placeholder="Ex : 250" class="{{ $inp }}">

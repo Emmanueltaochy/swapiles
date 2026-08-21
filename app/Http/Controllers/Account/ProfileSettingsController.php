@@ -12,8 +12,14 @@ class ProfileSettingsController extends Controller
 {
     public function edit()
     {
+        $user = Auth::user();
+
         return view('account.profile.edit', [
-            'user' => Auth::user(),
+            'user' => $user,
+            'relayPoints' => config('features.relay_points')
+                ? \App\Models\RelayPoint::activeForTerritoire($user->territoire)
+                : collect(),
+            'selectedRelayIds' => $user->acceptedRelayPoints()->pluck('relay_points.id')->all(),
         ]);
     }
 
@@ -57,6 +63,24 @@ class ProfileSettingsController extends Controller
         }
 
         $user->forceFill($data)->save();
+
+        // Points relais acceptés par défaut : on ne garde que des relais actifs
+        // situés sur l'île du vendeur (pas de dépôt sur une autre île).
+        if (config('features.relay_points')) {
+            $ids = collect($request->input('relay_point_ids', []))
+                ->map(fn ($id) => (int) $id)
+                ->filter()
+                ->all();
+
+            $valid = \App\Models\RelayPoint::query()
+                ->active()
+                ->where('territoire', $user->territoire)
+                ->whereIn('id', $ids ?: [0])
+                ->pluck('id')
+                ->all();
+
+            $user->acceptedRelayPoints()->sync($valid);
+        }
 
         $status = 'Profil mis à jour.';
         if ($territoireFromPostal && ($request->input('territoire') !== $territoireFromPostal)) {

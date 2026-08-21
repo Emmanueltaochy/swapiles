@@ -107,6 +107,31 @@
                 </div>
             </div>
 
+            @if($relayPoints->isNotEmpty())
+                <div class="pt-5 border-t border-gray-100">
+                    <h2 class="font-extrabold text-gray-900 mb-1">🏪 Mes points relais de dépôt</h2>
+                    <p class="text-sm text-gray-500 mb-3">
+                        Coche les commerçants où tu acceptes de déposer tes colis. L'acheteur choisira, parmi eux, le plus proche de chez lui.
+                        Si tu n'en coches aucun, tous les points relais de ton île seront proposés.
+                    </p>
+                    <div class="space-y-2">
+                        @foreach($relayPoints as $rp)
+                            <label class="flex items-start gap-3 rounded-2xl border border-gray-200 p-3 cursor-pointer has-[:checked]:border-teal-500 has-[:checked]:bg-teal-50/40">
+                                <input type="checkbox" name="relay_point_ids[]" value="{{ $rp->id }}"
+                                       class="mt-1 rounded text-teal-600 focus:ring-teal-500"
+                                       @checked(in_array($rp->id, old('relay_point_ids', $selectedRelayIds)))>
+                                <span class="min-w-0">
+                                    <span class="block font-semibold text-gray-900">{{ $rp->name }}</span>
+                                    @if($rp->fullAddress())
+                                        <span class="block text-sm text-gray-500">{{ $rp->fullAddress() }}</span>
+                                    @endif
+                                </span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
             <button class="w-full bg-teal-700 hover:bg-teal-800 text-white font-extrabold rounded-2xl px-6 py-4 transition">
                 Enregistrer
             </button>

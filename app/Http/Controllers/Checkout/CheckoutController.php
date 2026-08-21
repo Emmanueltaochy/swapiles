@@ -61,11 +61,9 @@ class CheckoutController extends Controller
             }
         }
 
-        // Points relais actifs du territoire de l'annonce (pilote La Réunion).
-        // Proposés seulement si la fonctionnalité est active ET qu'il en existe.
-        $relayPoints = config('features.relay_points')
-            ? \App\Models\RelayPoint::activeForTerritoire($listing->territoire)
-            : collect();
+        // Périmètre de points relais proposé pour cette annonce : surcharge
+        // annonce > défaut vendeur > tous les relais actifs de l'île.
+        $relayPoints = $listing->effectiveRelayPoints();
 
         if ($request->isMethod('GET')) {
             return view('checkout.order', [
@@ -111,13 +109,9 @@ class CheckoutController extends Controller
                 'relay_point_id.required' => 'Choisis un point relais pour retirer ton colis.',
             ]);
 
-            // Le point relais doit être ACTIF et sur le territoire de l'annonce
-            // (on ne fait pas transiter un colis vers une autre île).
-            $relayPoint = \App\Models\RelayPoint::query()
-                ->active()
-                ->where('id', $validated['relay_point_id'])
-                ->where('territoire', $listing->territoire)
-                ->first();
+            // Le point relais choisi doit faire partie du périmètre proposé pour
+            // cette annonce (surcharge annonce > défaut vendeur > île entière).
+            $relayPoint = $relayPoints->firstWhere('id', (int) $validated['relay_point_id']);
 
             if (! $relayPoint) {
                 return back()->withInput()->withErrors([

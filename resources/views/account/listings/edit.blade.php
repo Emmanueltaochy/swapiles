@@ -211,6 +211,8 @@
         </span>
     </label>
 
+    @include('account.listings._relay_points')
+
     <div id="weight_box">
         <label class="block text-sm font-bold text-gray-700 mb-2">Poids du colis (en grammes)</label>
         <input id="weight_g" type="number" step="10" min="1" max="30000" name="weight_g" value="{{ old('weight_g', isset($listing) && $listing->weight_kg ? (int) round($listing->weight_kg * 1000) : '') }}" placeholder="Ex : 250" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">

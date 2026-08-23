@@ -165,6 +165,29 @@ class Listing extends Model
     }
 
     /**
+     * Points relais EXPLICITEMENT retenus pour cette annonce (surcharge annonce
+     * si renseignée, sinon défaut du vendeur). N'inclut PAS le repli « tous les
+     * relais de l'île » : renvoie une collection vide si rien n'a été coché.
+     * Utile pour l'admin (voir les produits rattachés à un point de vente).
+     */
+    public function selectedRelayPoints()
+    {
+        $territoire = $this->territoire;
+
+        $filter = fn ($points) => $points
+            ->where('is_active', true)
+            ->where('territoire', $territoire)
+            ->values();
+
+        $listingChoice = $filter($this->relayPoints()->get());
+        if ($listingChoice->isNotEmpty()) {
+            return $listingChoice;
+        }
+
+        return $filter(optional($this->user)->acceptedRelayPoints()->get() ?? collect());
+    }
+
+    /**
      * Périmètre de points relais réellement proposé à l'acheteur, par ordre de
      * priorité :
      *   1. la surcharge de l'annonce (si le vendeur en a coché) ;

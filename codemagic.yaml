@@ -134,11 +134,15 @@ workflows:
           npx cap add android || true
           npx @capacitor/assets generate --android --assetPath resources || true
           npx cap sync android
-      - name: Injecter la signature release dans build.gradle
+      - name: Injecter signature + versionCode unique dans build.gradle
         script: |
           cd mobile
+          # versionCode unique et croissant (numéro de build Codemagic, sinon timestamp)
+          export VC="${PROJECT_BUILD_NUMBER:-$(date +%s)}"
+          echo "versionCode = $VC"
           python3 - <<'PY'
-          import pathlib
+          import os, re, pathlib
+          vc = os.environ["VC"]
           p = pathlib.Path('android/app/build.gradle')
           g = p.read_text()
           if 'signingConfigs' not in g:
@@ -158,10 +162,10 @@ workflows:
                   'release {\n            signingConfig signingConfigs.release\n            minifyEnabled',
                   1,
               )
-              p.write_text(g)
-              print("build.gradle signé")
-          else:
-              print("signingConfigs déjà présent")
+          # versionCode unique
+          g = re.sub(r'versionCode\s+\d+', 'versionCode ' + vc, g, count=1)
+          p.write_text(g)
+          print("build.gradle patché, versionCode =", vc)
           PY
       - name: Build AAB release
         script: |

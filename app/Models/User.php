@@ -207,6 +207,53 @@ class User extends Authenticatable implements FilamentUser
             ->withTimestamps();
     }
 
+    /** Membres que CET utilisateur a bloqués. */
+    public function blockedUsers()
+    {
+        return $this->belongsToMany(User::class, 'user_blocks', 'blocker_id', 'blocked_id')
+            ->withTimestamps();
+    }
+
+    /** Membres qui ont bloqué CET utilisateur. */
+    public function blockedByUsers()
+    {
+        return $this->belongsToMany(User::class, 'user_blocks', 'blocked_id', 'blocker_id')
+            ->withTimestamps();
+    }
+
+    /** Cet utilisateur a-t-il bloqué le membre donné ? */
+    public function hasBlocked(int|User $user): bool
+    {
+        $id = $user instanceof User ? $user->id : $user;
+
+        return $this->blockedUsers()->where('users.id', $id)->exists();
+    }
+
+    /** Cet utilisateur est-il bloqué par le membre donné ? */
+    public function isBlockedBy(int|User $user): bool
+    {
+        $id = $user instanceof User ? $user->id : $user;
+
+        return $this->blockedByUsers()->where('users.id', $id)->exists();
+    }
+
+    /**
+     * Un échange (message) est-il possible entre cet utilisateur et l'autre ?
+     * Impossible si l'un des deux a bloqué l'autre.
+     */
+    public function canInteractWith(int|User $user): bool
+    {
+        $id = $user instanceof User ? $user->id : $user;
+
+        return ! $this->hasBlocked($id) && ! $this->isBlockedBy($id);
+    }
+
+    /** Signalements émis par cet utilisateur. */
+    public function reportsMade()
+    {
+        return $this->hasMany(Report::class, 'reporter_id');
+    }
+
     /**
      * Critères de complétion du profil (pour la barre de progression + le badge).
      *

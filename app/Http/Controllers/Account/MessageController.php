@@ -135,6 +135,10 @@ class MessageController extends Controller
 
         abort_if($authId === $user->id, 403);
 
+        if ($blocked = $this->blockGuard($user)) {
+            return $blocked;
+        }
+
         $request->validate(self::messageRules(), self::messageMessages());
 
         $screen = $this->screenMessage($request, null, $user->id);
@@ -164,6 +168,25 @@ class MessageController extends Controller
             'listing' => $listing,
             'user' => $listing->user,
         ]);
+    }
+
+    /**
+     * Empêche l'envoi d'un message si l'un des deux membres a bloqué l'autre.
+     * Renvoie une redirection à retourner tel quel, ou null si l'échange est permis.
+     */
+    private function blockGuard(User $other): ?\Illuminate\Http\RedirectResponse
+    {
+        $me = Auth::user();
+
+        if ($me->hasBlocked($other)) {
+            return back()->with('error', 'Vous avez bloqué ce membre. Débloquez-le depuis son profil pour lui écrire.');
+        }
+
+        if ($me->isBlockedBy($other)) {
+            return back()->with('error', "Vous ne pouvez plus échanger avec ce membre.");
+        }
+
+        return null;
     }
 
     private function safeNotifyMessage(User $user, Message $message): void
@@ -199,6 +222,10 @@ class MessageController extends Controller
         $isBuyer = $listing->user_id === $user->id;
 
         abort_unless($isSeller || $isBuyer, 403);
+
+        if ($blocked = $this->blockGuard($user)) {
+            return $blocked;
+        }
 
         $request->validate(self::messageRules(), self::messageMessages());
 

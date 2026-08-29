@@ -156,6 +156,17 @@
             </div>
         @endif
 
+        @if(session('report_sent'))
+            <div class="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-medium text-emerald-800">
+                ✅ Merci, votre signalement a bien été transmis à notre équipe.
+            </div>
+        @endif
+        @if(session('error'))
+            <div class="mb-6 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm font-medium text-red-700">
+                {{ session('error') }}
+            </div>
+        @endif
+
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
 
             {{-- GALERIE (gauche desktop / 1er mobile) --}}
@@ -546,6 +557,19 @@
                             </div>
                         </a>
                     @endif
+
+                    {{-- Signaler l'annonce (contenu généré par les utilisateurs) --}}
+                    @auth
+                        @if($listing->user && auth()->id() !== $listing->user_id)
+                            <div class="mt-3 flex justify-end">
+                                @include('partials.report', [
+                                    'action' => route('reports.listing', $listing),
+                                    'label' => 'cette annonce',
+                                    'align' => 'right',
+                                ])
+                            </div>
+                        @endif
+                    @endauth
 
                 </div>
             </aside>

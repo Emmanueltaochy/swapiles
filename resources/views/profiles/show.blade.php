@@ -87,25 +87,62 @@
             </div>
 
             {{-- Actions --}}
-            <div class="flex gap-2 sm:shrink-0">
+            @php $iBlockedThem = auth()->check() && auth()->id() !== $user->id && auth()->user()->hasBlocked($user); @endphp
+            <div class="flex flex-wrap gap-2 sm:shrink-0">
                 @if(auth()->check() && auth()->id() !== $user->id)
-                    <a href="{{ route('account.messages.show.general', $user) }}" class="flex-1 sm:flex-none rounded-xl bg-teal-600 px-5 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-teal-700">💬 Message</a>
+                    @unless($iBlockedThem)
+                        <a href="{{ route('account.messages.show.general', $user) }}" class="flex-1 sm:flex-none rounded-xl bg-teal-600 px-5 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-teal-700">💬 Message</a>
+                    @endunless
                 @elseif(!auth()->check())
                     <a href="{{ route('login') }}" class="flex-1 sm:flex-none rounded-xl bg-teal-600 px-5 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-teal-700">💬 Message</a>
                 @endif
 
                 @auth
                     @if(auth()->id() !== $user->id)
-                        <button type="button" id="follow-seller-btn" data-url="{{ route('account.seller-follow.toggle', $user) }}"
-                                class="flex-1 sm:flex-none rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
-                            {{ auth()->user()->followedSellers()->where('seller_id', $user->id)->exists() ? '✓ Suivi' : '♡ Suivre' }}
-                        </button>
+                        @unless($iBlockedThem)
+                            <button type="button" id="follow-seller-btn" data-url="{{ route('account.seller-follow.toggle', $user) }}"
+                                    class="flex-1 sm:flex-none rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
+                                {{ auth()->user()->followedSellers()->where('seller_id', $user->id)->exists() ? '✓ Suivi' : '♡ Suivre' }}
+                            </button>
+                        @endunless
+
+                        @include('partials.report', [
+                            'action' => route('reports.user', $user),
+                            'label' => 'ce membre',
+                            'align' => 'right',
+                        ])
+
+                        <form method="POST" action="{{ route('users.block.toggle', $user) }}">
+                            @csrf
+                            <button class="rounded-xl border {{ $iBlockedThem ? 'border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100' : 'border-gray-200 text-gray-600 hover:bg-gray-50' }} px-4 py-2.5 text-sm font-semibold transition">
+                                {{ $iBlockedThem ? '✓ Débloquer' : '🚫 Bloquer' }}
+                            </button>
+                        </form>
                     @endif
                 @else
                     <a href="{{ route('login') }}" class="flex-1 sm:flex-none rounded-xl border border-gray-200 px-5 py-2.5 text-center text-sm font-semibold text-gray-700 transition hover:bg-gray-50">♡ Suivre</a>
                 @endauth
             </div>
         </div>
+
+        @if(session('block_status'))
+            @php $bs = session('block_status'); @endphp
+            <div class="mt-4 rounded-xl border px-4 py-3 text-sm {{ $bs['blocked'] ? 'border-gray-200 bg-gray-50 text-gray-700' : 'border-teal-100 bg-teal-50 text-teal-800' }}">
+                {{ $bs['blocked']
+                    ? '🚫 ' . $bs['name'] . ' a été bloqué. Vous ne recevrez plus ses messages.'
+                    : '✓ ' . $bs['name'] . ' a été débloqué.' }}
+            </div>
+        @endif
+        @if(session('report_sent'))
+            <div class="mt-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                ✅ Merci, votre signalement a bien été transmis à notre équipe.
+            </div>
+        @endif
+        @if(session('error'))
+            <div class="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {{ session('error') }}
+            </div>
+        @endif
 
         {{-- Stats --}}
         <div class="mt-6 grid grid-cols-4 gap-2 sm:gap-3">

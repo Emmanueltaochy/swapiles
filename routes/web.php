@@ -129,6 +129,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/favoris/{listing}/toggle', [FavoriteController::class, 'toggle'])->name('account.favorites.toggle');
     Route::get('/favoris/{listing}/toggle', [FavoriteController::class, 'toggle'])->name('account.favorites.toggle.get');
 
+    // Sécurité contenu utilisateur : signalement + blocage (exigence stores).
+    Route::post('/annonce/{listing}/signaler', [\App\Http\Controllers\ReportController::class, 'listing'])->name('reports.listing');
+    Route::post('/membre/{user}/signaler', [\App\Http\Controllers\ReportController::class, 'user'])->name('reports.user');
+    Route::post('/membre/{user}/bloquer', [\App\Http\Controllers\BlockController::class, 'toggle'])->name('users.block.toggle');
+
     Route::post('/deconnexion', [AuthController::class, 'logout'])->name('logout');
 
     Route::post('/email/renvoyer-confirmation', [AuthController::class, 'resendVerification'])

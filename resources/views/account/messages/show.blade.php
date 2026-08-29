@@ -59,6 +59,12 @@
 
         <div class="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
 
+            @php
+                $iBlockedThem = auth()->user()->hasBlocked($user);
+                $theyBlockedMe = auth()->user()->isBlockedBy($user);
+                $conversationBlocked = $iBlockedThem || $theyBlockedMe;
+            @endphp
+
             <div class="flex items-center gap-4 border-b border-gray-100 p-4">
                 @if($hasListing)
                     <a href="{{ route('listings.show', $listing) }}" class="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-gray-100">
@@ -79,7 +85,27 @@
                         <p class="text-sm text-gray-500">Conversation directe</p>
                     </div>
                 @endif
+
+                {{-- Sécurité : signaler / bloquer ce membre --}}
+                <div class="flex shrink-0 items-center gap-2">
+                    @include('partials.report', [
+                        'action' => route('reports.user', $user),
+                        'label' => 'ce membre',
+                        'align' => 'right',
+                    ])
+                    <form method="POST" action="{{ route('users.block.toggle', $user) }}">
+                        @csrf
+                        <button class="rounded-xl border {{ $iBlockedThem ? 'border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100' : 'border-gray-200 text-gray-600 hover:bg-gray-50' }} px-3 py-2.5 text-sm font-semibold transition"
+                                title="{{ $iBlockedThem ? 'Débloquer ce membre' : 'Bloquer ce membre' }}">
+                            {{ $iBlockedThem ? '✓ Débloquer' : '🚫 Bloquer' }}
+                        </button>
+                    </form>
+                </div>
             </div>
+
+            @if(session('error'))
+                <div class="border-b border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{{ session('error') }}</div>
+            @endif
 
             <div class="min-h-[420px] space-y-4 bg-gray-50 p-4 sm:p-6">
                 @forelse($messages as $message)
@@ -263,6 +289,15 @@
                 </div>
             @endif
 
+            @if($conversationBlocked)
+                <div class="border-t border-gray-100 bg-gray-50 p-4 text-center text-sm text-gray-600">
+                    @if($iBlockedThem)
+                        🚫 Vous avez bloqué ce membre. Débloquez-le pour reprendre la conversation.
+                    @else
+                        Vous ne pouvez plus échanger de messages avec ce membre.
+                    @endif
+                </div>
+            @else
             <form method="POST" id="compose-form"
                   action="{{ $hasListing ? route('account.messages.store', ['listing' => $listing, 'user' => $user]) : route('account.messages.store.general', $user) }}"
                   enctype="multipart/form-data"
@@ -290,6 +325,7 @@
                 @error('body')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 @error('attachment')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
             </form>
+            @endif
 
             <script>
                 (function () {

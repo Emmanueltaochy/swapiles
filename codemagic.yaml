@@ -95,19 +95,18 @@ workflows:
         submit_to_testflight: true
 
   # ---------------------------------------------------------------------------
-  # ANDROID — RELEASE signé → Google Play (À LANCER une fois les comptes prêts)
-  # Prérequis Codemagic (UI) : keystore réf. swapiles_keystore + groupe
-  # google_play (GCLOUD_SERVICE_ACCOUNT_CREDENTIALS). Ne pas lancer avant.
+  # ANDROID — AAB SIGNÉ (upload manuel sur Play)
+  # Prérequis Codemagic (UI) : keystore réf. swapiles_keystore (généré dans
+  # Codemagic). Produit un .aab signé à télécharger, puis à uploader à la main
+  # dans le Play Console (test interne). Pas besoin de compte de service.
   # ---------------------------------------------------------------------------
   android-release:
-    name: Swap'Îles Android (release → Play)
+    name: Swap'Îles Android (AAB signé)
     instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
       android_signing:
         - swapiles_keystore
-      groups:
-        - google_play
       vars:
         PACKAGE_NAME: "com.swapiles.app"
       node: 20
@@ -157,8 +156,6 @@ workflows:
           ./gradlew bundleRelease
     artifacts:
       - mobile/android/app/build/outputs/**/*.aab
-    publishing:
-      google_play:
-        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
-        track: internal
-        submit_as_draft: false
+    # Pas de publication auto pour l'instant : tu télécharges l'AAB et tu
+    # l'uploades toi-même dans le Play Console (test interne). L'automatisation
+    # (publishing: google_play) s'ajoutera avec le compte de service Play.

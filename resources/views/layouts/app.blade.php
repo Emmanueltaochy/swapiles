@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="google-site-verification" content="jl2dzZ3jQ5JfJg-QrS6qftgcitH7oS6oVXopqLDSW4U">
     <title>@yield('title', "Swap'Îles")</title>
     @vite(['resources/css/app.css','resources/js/app.js'])
@@ -26,6 +26,16 @@ html, body {
         max-width: 100vw;
         overflow-x: hidden;
     }
+}
+/* Zones de sécurité (encoches / barres système) : en mode edge-to-edge sur
+   Android 15 et iPhone, le contenu passe sous les barres. On décale l'entête
+   sous la barre d'état et on remonte le menu du bas au-dessus des 3 boutons
+   de navigation / de l'indicateur d'accueil. Sans effet sur le web (insets = 0). */
+.swp-safe-top {
+    padding-top: env(safe-area-inset-top);
+}
+.swp-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
 }
 </style>
     <meta name="description" content="@yield('meta_description', 'Swap’Îles, la marketplace seconde main des îles : achetez, vendez, échangez et donnez près de chez vous à La Réunion, en Martinique, Guadeloupe, Guyane et Mayotte.')">
@@ -218,7 +228,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 <body class="bg-gray-50 text-gray-900 antialiased overflow-x-hidden">
-    <header class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100">
+    <header class="swp-safe-top sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100">
     <div class="max-w-7xl mx-auto px-4 py-3">
         <div class="flex items-center gap-3">
             <a href="{{ route('home') }}" class="shrink-0 flex items-center">
@@ -320,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function () {
         @yield('content')
     </main>
 
-    <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-t border-gray-200">
+    <nav class="swp-safe-bottom lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-t border-gray-200">
         <div class="grid grid-cols-5 h-[74px] text-[11px] font-bold">
             <a href="{{ route('home') }}" class="flex flex-col items-center justify-center gap-1 {{ request()->routeIs('home') ? 'text-teal-700' : 'text-gray-500' }}">
                 <span class="text-xl">🏠</span><span>Accueil</span>

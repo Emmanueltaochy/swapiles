@@ -137,6 +137,14 @@
             </button>
         </form>
 
+        {{-- Suppression de compte (RGPD) --}}
+        <div class="mt-6 rounded-2xl border border-gray-100 bg-white p-5 text-center shadow-sm">
+            <p class="text-sm text-gray-500">Vous souhaitez quitter Swap'Îles ?</p>
+            <a href="{{ route('account.deletion.info') }}" class="mt-1 inline-block text-sm font-semibold text-red-600 hover:text-red-700">
+                Supprimer mon compte
+            </a>
+        </div>
+
     </div>
 </section>
 @endsection

@@ -398,6 +398,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <a href="{{ route('legal.cgv') }}" class="block text-gray-500 hover:text-teal-700">CGV</a>
                 <a href="{{ route('legal.privacy') }}" class="block text-gray-500 hover:text-teal-700">Confidentialité</a>
                 <a href="{{ route('legal.mentions') }}" class="block text-gray-500 hover:text-teal-700">Mentions légales</a>
+                <a href="{{ route('account.deletion.info') }}" class="block text-gray-500 hover:text-teal-700">Supprimer mon compte</a>
                 <a href="mailto:contact@swapiles.com" class="block text-gray-500 hover:text-teal-700">Contact</a>
             </div>
         </div>

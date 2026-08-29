@@ -255,6 +255,50 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * Suppression du compte à la demande de l'utilisateur (exigence RGPD +
+     * stores).
+     *
+     *  - Sans historique financier : suppression pure et simple (les annonces
+     *    et messages disparaissent en cascade).
+     *  - Avec des transactions (achat/vente) : on ne peut pas effacer les
+     *    enregistrements comptables (obligation légale de conservation). On
+     *    ANONYMISE alors le compte — toutes les données personnelles sont
+     *    effacées, l'adresse e-mail est libérée, les annonces sont retirées de
+     *    la vente — tout en gardant les lignes de transaction sans identité.
+     *
+     * @return string 'deleted' ou 'anonymized'
+     */
+    public function deleteOrAnonymize(): string
+    {
+        $hasFinancialHistory = $this->sales()->exists() || $this->purchases()->exists();
+
+        if (! $hasFinancialHistory) {
+            $this->delete();
+
+            return 'deleted';
+        }
+
+        // Retire ses annonces de la vente (masquées).
+        $this->listings()->update(['status' => 'draft']);
+
+        // Efface toutes les données personnelles, libère l'e-mail réel.
+        $this->forceFill([
+            'name' => 'Compte supprimé',
+            'email' => 'deleted-' . $this->id . '@swapiles.invalid',
+            'phone' => null,
+            'avatar' => null,
+            'address_line1' => null,
+            'address_line2' => null,
+            'postal_code' => null,
+            'city' => null,
+            'password' => bcrypt(\Illuminate\Support\Str::random(40)),
+            'is_banned' => true,
+        ])->saveQuietly();
+
+        return 'anonymized';
+    }
+
+    /**
      * Critères de complétion du profil (pour la barre de progression + le badge).
      *
      * @return array<int,array{key:string,label:string,hint:string,done:bool}>

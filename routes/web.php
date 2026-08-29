@@ -134,6 +134,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/membre/{user}/signaler', [\App\Http\Controllers\ReportController::class, 'user'])->name('reports.user');
     Route::post('/membre/{user}/bloquer', [\App\Http\Controllers\BlockController::class, 'toggle'])->name('users.block.toggle');
 
+    // Suppression de compte (RGPD + stores) : action réservée à l'utilisateur connecté.
+    Route::delete('/mon-compte/supprimer', [\App\Http\Controllers\AccountDeletionController::class, 'destroy'])->name('account.delete');
+
     Route::post('/deconnexion', [AuthController::class, 'logout'])->name('logout');
 
     Route::post('/email/renvoyer-confirmation', [AuthController::class, 'resendVerification'])
@@ -146,6 +149,9 @@ Route::middleware('guest')->group(function () {
     Route::post('/magic-link', [MagicLinkController::class, 'send'])->name('magic.login.send');
     Route::get('/magic-link/{token}', [MagicLinkController::class, 'verify'])->name('magic.login.verify');
 });
+
+// Page publique de suppression de compte (URL déclarée sur les stores).
+Route::get('/suppression-compte', [\App\Http\Controllers\AccountDeletionController::class, 'show'])->name('account.deletion.info');
 
 Route::get('/profil/{user}', [ProfileController::class, 'show'])->name('profiles.show');
 

@@ -73,6 +73,7 @@ Route::get('/cgu', [\App\Http\Controllers\LegalController::class, 'cgu'])->name(
 Route::get('/cgv', [\App\Http\Controllers\LegalController::class, 'cgv'])->name('legal.cgv');
 Route::get('/confidentialite', [\App\Http\Controllers\LegalController::class, 'confidentialite'])->name('legal.privacy');
 Route::get('/faq', [\App\Http\Controllers\LegalController::class, 'faq'])->name('faq');
+Route::get('/meilleurs-dressings', [\App\Http\Controllers\LeaderboardController::class, 'index'])->name('dressings.top');
 Route::get('/devenir-point-relais', [\App\Http\Controllers\RelayPartnerController::class, 'show'])->name('relay.partner');
 Route::post('/devenir-point-relais', [\App\Http\Controllers\RelayPartnerController::class, 'submit'])
     ->middleware('throttle:6,1')->name('relay.partner.contact');
@@ -315,6 +316,9 @@ Route::get('/sitemap.xml', function () {
 
     // Page vitrine « Devenir point relais partenaire »
     $urls->push(['loc' => route('relay.partner'), 'priority' => '0.6', 'changefreq' => 'monthly']);
+
+    // Classement « Meilleurs dressings »
+    $urls->push(['loc' => route('dressings.top'), 'priority' => '0.6', 'changefreq' => 'weekly']);
 
     // Pages de destination par territoire + catégorie (fort levier SEO)
     $territoiresMap = [

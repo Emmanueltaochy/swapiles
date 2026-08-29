@@ -366,6 +366,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <a href="{{ route('home') }}#comment-ca-marche" class="block text-gray-500 hover:text-teal-700">Comment ça marche</a>
                 <a href="{{ route('search') }}" class="block text-gray-500 hover:text-teal-700">Catégories</a>
                 <a href="{{ route('faq') }}" class="block text-gray-500 hover:text-teal-700">FAQ</a>
+                <a href="{{ route('dressings.top') }}" class="block text-gray-500 hover:text-teal-700">🏆 Meilleurs dressings</a>
                 <a href="{{ route('relay.partner') }}" class="block text-gray-500 hover:text-teal-700">🏪 Devenir point relais</a>
             </div>
 

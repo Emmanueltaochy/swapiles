@@ -1,0 +1,11 @@
+# Dépendances
+node_modules/
+
+# Projets natifs générés localement par `npx cap add ...`
+# (régénérables ; on ne les versionne pas. Codemagic les génère au build.)
+/android/
+/ios/
+
+# Build / divers
+.DS_Store
+*.log

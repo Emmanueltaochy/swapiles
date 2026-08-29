@@ -31,9 +31,10 @@ workflows:
     scripts:
       - name: Utiliser JDK 21 (requis par Capacitor 7)
         script: |
+          echo "JDK disponibles :"; /usr/libexec/java_home -V 2>&1 || true
           export JAVA_HOME=$(/usr/libexec/java_home -v 21)
           echo "JAVA_HOME=$JAVA_HOME" >> $CM_ENV
-          java -version
+          "$JAVA_HOME/bin/java" -version
       - name: Installer les dépendances
         script: |
           cd mobile
@@ -46,8 +47,9 @@ workflows:
           npx cap sync android
       - name: Build APK debug (non signé)
         script: |
+          export JAVA_HOME=$(/usr/libexec/java_home -v 21)
           cd mobile/android
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug -Dorg.gradle.java.home="$JAVA_HOME"
     artifacts:
       - mobile/android/app/build/outputs/**/*.apk
 
@@ -118,9 +120,10 @@ workflows:
     scripts:
       - name: Utiliser JDK 21 (requis par Capacitor 7)
         script: |
+          echo "JDK disponibles :"; /usr/libexec/java_home -V 2>&1 || true
           export JAVA_HOME=$(/usr/libexec/java_home -v 21)
           echo "JAVA_HOME=$JAVA_HOME" >> $CM_ENV
-          java -version
+          "$JAVA_HOME/bin/java" -version
       - name: Installer les dépendances
         script: |
           cd mobile
@@ -162,8 +165,10 @@ workflows:
           PY
       - name: Build AAB release
         script: |
+          export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+          "$JAVA_HOME/bin/java" -version
           cd mobile/android
-          ./gradlew bundleRelease
+          ./gradlew bundleRelease -Dorg.gradle.java.home="$JAVA_HOME"
     artifacts:
       - mobile/android/app/build/outputs/**/*.aab
     # Pas de publication auto pour l'instant : tu télécharges l'AAB et tu

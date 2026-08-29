@@ -29,6 +29,11 @@ workflows:
         PACKAGE_NAME: "com.swapiles.app"
       node: 20
     scripts:
+      - name: Utiliser JDK 21 (requis par Capacitor 7)
+        script: |
+          export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+          echo "JAVA_HOME=$JAVA_HOME" >> $CM_ENV
+          java -version
       - name: Installer les dépendances
         script: |
           cd mobile
@@ -111,6 +116,11 @@ workflows:
         PACKAGE_NAME: "com.swapiles.app"
       node: 20
     scripts:
+      - name: Utiliser JDK 21 (requis par Capacitor 7)
+        script: |
+          export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+          echo "JAVA_HOME=$JAVA_HOME" >> $CM_ENV
+          java -version
       - name: Installer les dépendances
         script: |
           cd mobile

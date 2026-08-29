@@ -15,17 +15,16 @@
 workflows:
 
   # ---------------------------------------------------------------------------
-  # ANDROID → Google Play (piste interne)
+  # ANDROID — MODE VALIDATION (APK debug, NON signé)
+  # Ne nécessite ni keystore ni compte Play : sert à vérifier que tout le
+  # pipeline compile. On passe en release signé + publication Play une fois les
+  # comptes prêts (voir workflow "android-release" plus bas, à activer).
   # ---------------------------------------------------------------------------
   android:
-    name: Swap'Îles Android
+    name: Swap'Îles Android (validation)
     instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
-      android_signing:
-        - swapiles_keystore          # keystore uploadé dans Codemagic (UI)
-      groups:
-        - google_play                # contient GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
       vars:
         PACKAGE_NAME: "com.swapiles.app"
       node: 20
@@ -40,47 +39,12 @@ workflows:
           npx cap add android || true
           npx @capacitor/assets generate --android --assetPath resources || true
           npx cap sync android
-      - name: Injecter la signature release dans build.gradle
-        script: |
-          cd mobile
-          python3 - <<'PY'
-          import pathlib
-          p = pathlib.Path('android/app/build.gradle')
-          g = p.read_text()
-          if 'signingConfigs' not in g:
-              block = (
-                  '    signingConfigs {\n'
-                  '        release {\n'
-                  '            storeFile file(System.getenv("CM_KEYSTORE_PATH"))\n'
-                  '            storePassword System.getenv("CM_KEYSTORE_PASSWORD")\n'
-                  '            keyAlias System.getenv("CM_KEY_ALIAS")\n'
-                  '            keyPassword System.getenv("CM_KEY_PASSWORD")\n'
-                  '        }\n'
-                  '    }\n'
-              )
-              g = g.replace('android {\n', 'android {\n' + block, 1)
-              # Rattache la signature au buildType release de Capacitor.
-              g = g.replace(
-                  'release {\n            minifyEnabled',
-                  'release {\n            signingConfig signingConfigs.release\n            minifyEnabled',
-                  1,
-              )
-              p.write_text(g)
-              print("build.gradle signé")
-          else:
-              print("signingConfigs déjà présent")
-          PY
-      - name: Build AAB release
+      - name: Build APK debug (non signé)
         script: |
           cd mobile/android
-          ./gradlew bundleRelease
+          ./gradlew assembleDebug
     artifacts:
-      - mobile/android/app/build/outputs/**/*.aab
-    publishing:
-      google_play:
-        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
-        track: internal          # piste interne d'abord ; passe en "production" plus tard
-        submit_as_draft: false
+      - mobile/android/app/build/outputs/**/*.apk
 
   # ---------------------------------------------------------------------------
   # iOS → TestFlight (App Store Connect)
@@ -129,3 +93,72 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
+
+  # ---------------------------------------------------------------------------
+  # ANDROID — RELEASE signé → Google Play (À LANCER une fois les comptes prêts)
+  # Prérequis Codemagic (UI) : keystore réf. swapiles_keystore + groupe
+  # google_play (GCLOUD_SERVICE_ACCOUNT_CREDENTIALS). Ne pas lancer avant.
+  # ---------------------------------------------------------------------------
+  android-release:
+    name: Swap'Îles Android (release → Play)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      android_signing:
+        - swapiles_keystore
+      groups:
+        - google_play
+      vars:
+        PACKAGE_NAME: "com.swapiles.app"
+      node: 20
+    scripts:
+      - name: Installer les dépendances
+        script: |
+          cd mobile
+          npm install
+      - name: Générer le projet Android + icônes
+        script: |
+          cd mobile
+          npx cap add android || true
+          npx @capacitor/assets generate --android --assetPath resources || true
+          npx cap sync android
+      - name: Injecter la signature release dans build.gradle
+        script: |
+          cd mobile
+          python3 - <<'PY'
+          import pathlib
+          p = pathlib.Path('android/app/build.gradle')
+          g = p.read_text()
+          if 'signingConfigs' not in g:
+              block = (
+                  '    signingConfigs {\n'
+                  '        release {\n'
+                  '            storeFile file(System.getenv("CM_KEYSTORE_PATH"))\n'
+                  '            storePassword System.getenv("CM_KEYSTORE_PASSWORD")\n'
+                  '            keyAlias System.getenv("CM_KEY_ALIAS")\n'
+                  '            keyPassword System.getenv("CM_KEY_PASSWORD")\n'
+                  '        }\n'
+                  '    }\n'
+              )
+              g = g.replace('android {\n', 'android {\n' + block, 1)
+              g = g.replace(
+                  'release {\n            minifyEnabled',
+                  'release {\n            signingConfig signingConfigs.release\n            minifyEnabled',
+                  1,
+              )
+              p.write_text(g)
+              print("build.gradle signé")
+          else:
+              print("signingConfigs déjà présent")
+          PY
+      - name: Build AAB release
+        script: |
+          cd mobile/android
+          ./gradlew bundleRelease
+    artifacts:
+      - mobile/android/app/build/outputs/**/*.aab
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: false

@@ -56,6 +56,28 @@
     </section>
 @endif
 
+{{-- Carte de répartition des utilisateurs (preuve de demande locale) --}}
+<section class="bg-white">
+    <div class="max-w-5xl mx-auto px-4 py-14 sm:py-16 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
+        <div>
+            <span class="inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700">📍 La Réunion</span>
+            <h2 class="mt-3 text-2xl sm:text-3xl font-extrabold text-gray-900">Une demande déjà là, près de chez vous</h2>
+            <p class="mt-4 text-gray-600">
+                Voici la répartition des membres Swap'Îles à La Réunion. Chaque point, c'est un acheteur ou un vendeur
+                actif — de vrais clients potentiels autour de votre commerce.
+            </p>
+            <p class="mt-3 text-gray-600">
+                En devenant point relais, vous captez cette <strong>demande locale</strong> : ces membres viendront
+                déposer et retirer leurs colis chez vous, et en profiteront pour découvrir votre boutique.
+            </p>
+        </div>
+        <div class="flex justify-center">
+            <img src="{{ asset('images/relay-users-map.png') }}" alt="Répartition des utilisateurs Swap'Îles à La Réunion"
+                 class="w-full max-w-sm rounded-3xl border border-gray-100 shadow-sm" loading="lazy">
+        </div>
+    </div>
+</section>
+
 {{-- Avantages --}}
 <section class="bg-gray-50">
     <div class="max-w-5xl mx-auto px-4 py-14 sm:py-16">

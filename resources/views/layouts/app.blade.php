@@ -250,6 +250,9 @@ document.addEventListener('DOMContentLoaded', function () {
             </a>
 
             <nav class="hidden lg:flex items-center gap-4 text-sm font-bold">
+                <a href="{{ route('dressings.top') }}" class="hover:text-teal-700 {{ request()->routeIs('dressings.top') ? 'text-teal-700' : 'text-gray-700' }}" title="Meilleurs dressings">
+                    🏆 Classement
+                </a>
                 @auth
                     <a href="{{ route('account.notifications.index') }}" class="relative text-xl hover:text-teal-700" aria-label="Notifications" title="Notifications">
                         🔔

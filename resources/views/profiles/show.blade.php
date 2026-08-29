@@ -67,6 +67,13 @@
                         $isOwnProfile = auth()->check() && auth()->id() === $user->id;
                     @endphp
                     <div class="mt-3 flex flex-wrap gap-2 text-xs font-medium">
+                        @if(($dressingRank ?? null))
+                            <a href="{{ route('dressings.top') }}"
+                               class="rounded-full bg-gradient-to-r from-teal-500 to-emerald-500 px-2.5 py-1 font-bold text-white shadow-sm hover:opacity-90"
+                               title="Classement des meilleurs dressings">
+                                🏆 Top {{ $dressingRank }} des dressings
+                            </a>
+                        @endif
                         @if($profileComplete)
                             <span class="rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-2.5 py-1 font-bold text-white shadow-sm">🏆 Profil complet</span>
                         @endif

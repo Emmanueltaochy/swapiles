@@ -96,4 +96,22 @@ class DressingLeaderboardTest extends TestCase
     {
         $this->get(route('dressings.top'))->assertOk()->assertSee('meilleurs dressings', false);
     }
+
+    public function test_le_badge_top_apparait_sur_le_profil_d_un_classe(): void
+    {
+        config()->set('leaderboard.top', 10);
+
+        $seller = $this->seller('top@ex.com');
+        $l = $this->listing($seller, 500); // 500 vues -> score 500 -> classé #1
+        $fan = $this->seller('fan@ex.com');
+        DB::table('favorites')->insert([
+            'user_id' => $fan->id, 'listing_id' => $l->id, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $this->assertSame(1, DressingLeaderboard::rankOf($seller->id));
+
+        $this->get(route('profiles.show', $seller))
+            ->assertOk()
+            ->assertSee('Top 1 des dressings', false);
+    }
 }

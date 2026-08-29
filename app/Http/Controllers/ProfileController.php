@@ -49,6 +49,13 @@ class ProfileController extends Controller
             ->latest()
             ->first();
 
+        // Rang au classement des dressings : n'affiche le badge que si le
+        // vendeur est dans le Top (jouer sur l'ego / la preuve sociale).
+        $dressingRank = \App\Support\DressingLeaderboard::rankOf($user->id);
+        if ($dressingRank && $dressingRank > (int) config('leaderboard.top', 10)) {
+            $dressingRank = null;
+        }
+
         return view('profiles.show', compact(
             'user',
             'listings',
@@ -59,7 +66,8 @@ class ProfileController extends Controller
             'soldListingsCount',
             'publishedListingsCount',
             'totalViewsCount',
-            'totalFavoritesCount'
+            'totalFavoritesCount',
+            'dressingRank'
         ));
     }
 }

@@ -74,6 +74,46 @@ class DressingLeaderboardTest extends TestCase
         $this->assertSame(2, DressingLeaderboard::rankOf($b->id));
     }
 
+    public function test_la_qualite_prime_sur_la_portee_avec_les_poids_par_defaut(): void
+    {
+        // Poids par défaut « qualité » : favori 25, vente 50, avis 15, vue 0,3.
+        config()->set('leaderboard.points', [
+            'view' => 0.3, 'favorite' => 25, 'message' => 8, 'sale' => 50, 'review' => 15,
+        ]);
+
+        // « Marie » : moins de vues mais complète (favoris + ventes).
+        $marie = $this->seller('marie@ex.com');
+        $lm = $this->listing($marie, 671);
+        $buyer = $this->seller('buyer@ex.com');
+        for ($i = 0; $i < 16; $i++) {
+            $f = $this->seller("fanM{$i}@ex.com");
+            DB::table('favorites')->insert(['user_id' => $f->id, 'listing_id' => $lm->id, 'created_at' => now(), 'updated_at' => now()]);
+        }
+        for ($i = 0; $i < 4; $i++) {
+            $l = $this->listing($marie, 0);
+            Transaction::create([
+                'listing_id' => $l->id, 'seller_id' => $marie->id, 'buyer_id' => $buyer->id,
+                'amount' => 20, 'seller_amount' => 20, 'commission' => 0, 'buyer_protection_fee' => 0,
+                'shipping_fee' => 0, 'currency' => 'EUR', 'payment_method' => 'cb',
+                'delivery_method' => 'hand_delivery', 'status' => 'completed', 'shipping_status' => 'received',
+            ]);
+        }
+
+        // « Vide Dressing » : énormément de vues, presque aucun favori, 0 vente.
+        $vide = $this->seller('vide@ex.com');
+        $lv = $this->listing($vide, 2252);
+        for ($i = 0; $i < 2; $i++) {
+            $f = $this->seller("fanV{$i}@ex.com");
+            DB::table('favorites')->insert(['user_id' => $f->id, 'listing_id' => $lv->id, 'created_at' => now(), 'updated_at' => now()]);
+        }
+
+        $ranked = DressingLeaderboard::ranked();
+
+        $this->assertSame($marie->id, $ranked->first()->user_id, 'Le dressing complet (favoris + ventes) passe devant le gros catalogue qui n\'a que des vues.');
+        $this->assertSame(1, DressingLeaderboard::rankOf($marie->id));
+        $this->assertSame(2, DressingLeaderboard::rankOf($vide->id));
+    }
+
     public function test_un_vendeur_sans_engagement_n_apparait_pas(): void
     {
         $muet = $this->seller('muet@ex.com');

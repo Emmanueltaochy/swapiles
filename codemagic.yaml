@@ -1,0 +1,131 @@
+# Codemagic — build de l'app mobile Swap'Îles (Capacitor, dossier /mobile).
+# L'app charge le site en direct (https://swapiles.com) : ce workflow ne fait
+# que produire les binaires iOS/Android et les publier.
+#
+# ⚙️  À CONFIGURER une fois dans l'interface Codemagic (Teams > Integrations /
+#     Code signing / Environment variables) :
+#   - iOS  : intégration « App Store Connect » (clé API) → signature automatique.
+#   - Android : keystore uploadé sous la référence  swapiles_keystore
+#               + groupe de variables  google_play  contenant
+#               GCLOUD_SERVICE_ACCOUNT_CREDENTIALS (compte de service Play).
+#
+# Le premier build mobile demande souvent 1–2 ajustements : lance-le, et
+# colle-moi l'erreur éventuelle, on corrige ensemble.
+
+workflows:
+
+  # ---------------------------------------------------------------------------
+  # ANDROID → Google Play (piste interne)
+  # ---------------------------------------------------------------------------
+  android:
+    name: Swap'Îles Android
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      android_signing:
+        - swapiles_keystore          # keystore uploadé dans Codemagic (UI)
+      groups:
+        - google_play                # contient GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+      vars:
+        PACKAGE_NAME: "com.swapiles.app"
+      node: 20
+    scripts:
+      - name: Installer les dépendances
+        script: |
+          cd mobile
+          npm install
+      - name: Générer le projet Android + icônes
+        script: |
+          cd mobile
+          npx cap add android || true
+          npx @capacitor/assets generate --android --assetPath resources || true
+          npx cap sync android
+      - name: Injecter la signature release dans build.gradle
+        script: |
+          cd mobile
+          python3 - <<'PY'
+          import pathlib
+          p = pathlib.Path('android/app/build.gradle')
+          g = p.read_text()
+          if 'signingConfigs' not in g:
+              block = (
+                  '    signingConfigs {\n'
+                  '        release {\n'
+                  '            storeFile file(System.getenv("CM_KEYSTORE_PATH"))\n'
+                  '            storePassword System.getenv("CM_KEYSTORE_PASSWORD")\n'
+                  '            keyAlias System.getenv("CM_KEY_ALIAS")\n'
+                  '            keyPassword System.getenv("CM_KEY_PASSWORD")\n'
+                  '        }\n'
+                  '    }\n'
+              )
+              g = g.replace('android {\n', 'android {\n' + block, 1)
+              # Rattache la signature au buildType release de Capacitor.
+              g = g.replace(
+                  'release {\n            minifyEnabled',
+                  'release {\n            signingConfig signingConfigs.release\n            minifyEnabled',
+                  1,
+              )
+              p.write_text(g)
+              print("build.gradle signé")
+          else:
+              print("signingConfigs déjà présent")
+          PY
+      - name: Build AAB release
+        script: |
+          cd mobile/android
+          ./gradlew bundleRelease
+    artifacts:
+      - mobile/android/app/build/outputs/**/*.aab
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal          # piste interne d'abord ; passe en "production" plus tard
+        submit_as_draft: false
+
+  # ---------------------------------------------------------------------------
+  # iOS → TestFlight (App Store Connect)
+  # ---------------------------------------------------------------------------
+  ios:
+    name: Swap'Îles iOS
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: codemagic          # nom de ta clé API dans Codemagic (UI)
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.swapiles.app
+      vars:
+        BUNDLE_ID: "com.swapiles.app"
+      node: 20
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Installer les dépendances
+        script: |
+          cd mobile
+          npm install
+      - name: Générer le projet iOS + icônes
+        script: |
+          cd mobile
+          npx cap add ios || true
+          npx @capacitor/assets generate --ios --assetPath resources || true
+          npx cap sync ios
+      - name: Installer les pods
+        script: |
+          cd mobile/ios/App
+          pod install
+      - name: Appliquer la signature
+        script: |
+          xcode-project use-profiles
+      - name: Build IPA
+        script: |
+          cd mobile/ios/App
+          xcode-project build-ipa --workspace App.xcworkspace --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

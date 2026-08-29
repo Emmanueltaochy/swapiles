@@ -580,6 +580,9 @@ document.addEventListener('DOMContentLoaded', function () {
 })();
 </script>
 
+{{-- Préchargement des pages au survol / touch (navigation quasi instantanée). --}}
+<script src="{{ asset('js/instantpage.js') }}" type="module"></script>
+
 </body>
 </html>
 

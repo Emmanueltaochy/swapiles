@@ -44,8 +44,8 @@
             <div class="flex gap-2">
                 <label for="q" class="sr-only">Rechercher</label>
                 <input id="q" type="text" name="q" value="{{ request('q') }}" placeholder="Rechercher un article, une marque…"
-                       class="flex-1 rounded-full border-0 bg-gray-100 px-5 py-3 text-sm outline-none focus:ring-2 focus:ring-teal-500">
-                <button class="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-700">Rechercher</button>
+                       class="min-w-0 flex-1 rounded-full border-0 bg-gray-100 px-5 py-3 text-sm outline-none focus:ring-2 focus:ring-teal-500">
+                <button class="shrink-0 rounded-full bg-teal-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-700">Rechercher</button>
             </div>
 
             {{-- Filtres principaux --}}

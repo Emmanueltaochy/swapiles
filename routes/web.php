@@ -153,6 +153,9 @@ Route::middleware('guest')->group(function () {
 // Page publique de suppression de compte (URL déclarée sur les stores).
 Route::get('/suppression-compte', [\App\Http\Controllers\AccountDeletionController::class, 'show'])->name('account.deletion.info');
 
+// Enregistrement du jeton d'appareil pour les notifications push (app mobile).
+Route::post('/push/register', [\App\Http\Controllers\PushController::class, 'register'])->name('push.register');
+
 Route::get('/profil/{user}', [ProfileController::class, 'show'])->name('profiles.show');
 
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle'])->name('stripe.webhook');
@@ -441,5 +444,3 @@ Route::patch('/mes-annonces/{listing}/echange-effectue', [\App\Http\Controllers\
 Route::patch('/mes-annonces/{listing}/don-remis', [\App\Http\Controllers\Account\ListingManageController::class, 'markGiven'])
     ->middleware('auth')
     ->name('account.listings.given');
-
-

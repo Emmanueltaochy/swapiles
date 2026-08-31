@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="google-site-verification" content="jl2dzZ3jQ5JfJg-QrS6qftgcitH7oS6oVXopqLDSW4U">
     <title>@yield('title', "Swap'Îles")</title>
     @vite(['resources/css/app.css','resources/js/app.js'])
@@ -593,8 +594,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 {{-- Préchargement des pages au survol / touch (navigation quasi instantanée). --}}
 <script src="{{ asset('js/instantpage.js') }}" type="module"></script>
+<script src="{{ asset('js/push.js') }}"></script>
 
 </body>
 </html>
-
-

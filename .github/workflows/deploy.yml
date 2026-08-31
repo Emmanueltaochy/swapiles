@@ -24,11 +24,23 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           command_timeout: 20m
+          # Compte de service Firebase (notifications push), encodé en base64.
+          # Facultatif : si le secret n'existe pas, l'étape ci-dessous est ignorée.
+          envs: FCM_SA_B64
           script: |
             set -e
             cd "${{ secrets.VPS_PATH }}"
             echo "==> Récupération du code depuis GitHub"
             git fetch origin main
             git reset --hard origin/main
+            # Installer le compte de service Firebase (push) si le secret est fourni.
+            if [ -n "${FCM_SA_B64:-}" ]; then
+              echo "==> Installation du compte de service Firebase (push)"
+              mkdir -p storage/app/firebase
+              echo "$FCM_SA_B64" | base64 -d > storage/app/firebase/service-account.json
+              chmod 600 storage/app/firebase/service-account.json
+            fi
             chmod +x scripts/deploy.sh
             ./scripts/deploy.sh
+        env:
+          FCM_SA_B64: ${{ secrets.FCM_SERVICE_ACCOUNT_B64 }}

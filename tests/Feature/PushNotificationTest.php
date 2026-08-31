@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Jobs\SendPushBroadcast;
 use App\Models\DeviceToken;
+use App\Models\Notification;
 use App\Models\User;
 use App\Support\FcmService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class PushNotificationTest extends TestCase
@@ -79,5 +81,44 @@ class PushNotificationTest extends TestCase
         $result = app(FcmService::class)->sendToToken('tok', 'T', 'B', null);
 
         $this->assertSame('skipped', $result);
+    }
+
+    public function test_une_notification_interne_declenche_un_push(): void
+    {
+        Queue::fake();
+        config(['push.fcm.project_id' => 'test-project']); // rend le push « configuré »
+
+        $user = $this->user('notif@ex.com');
+
+        Notification::create([
+            'user_id' => $user->id,
+            'type' => 'message_received',
+            'title' => 'Nouveau message 💬',
+            'message' => 'Marie vous a écrit.',
+            'url' => '/messages',
+        ]);
+
+        Queue::assertPushed(SendPushBroadcast::class, function (SendPushBroadcast $job) use ($user) {
+            return $job->userId === $user->id
+                && $job->title === 'Nouveau message 💬'
+                && $job->url === '/messages';
+        });
+    }
+
+    public function test_pas_de_push_quand_le_service_n_est_pas_configure(): void
+    {
+        Queue::fake();
+
+        $user = $this->user('notif2@ex.com');
+
+        Notification::create([
+            'user_id' => $user->id,
+            'type' => 'message_received',
+            'title' => 'Nouveau message',
+            'message' => 'Coucou',
+            'url' => '/messages',
+        ]);
+
+        Queue::assertNotPushed(SendPushBroadcast::class);
     }
 }

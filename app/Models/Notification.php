@@ -16,6 +16,34 @@ class Notification extends Model
     ];
 
     /**
+     * Chaque notification interne (message, favori, échange, transaction…)
+     * déclenche AUSSI une notification push sur les appareils du membre.
+     * Un seul point d'accroche couvre tous les événements de l'app.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (self $notification) {
+            if (! $notification->user_id) {
+                return;
+            }
+
+            // On ne met en file un envoi que si le push est réellement configuré.
+            if (! \App\Support\FcmService::configured()) {
+                return;
+            }
+
+            $url = $notification->clickUrl();
+
+            \App\Jobs\SendPushBroadcast::dispatch(
+                title: $notification->title ?: "Swap'Îles",
+                body: (string) $notification->message,
+                url: $url === '#' ? null : $url,
+                userId: $notification->user_id,
+            );
+        });
+    }
+
+    /**
      * Lien de clic normalisé : toujours relatif au domaine courant.
      *
      * Certaines notifications historiques ont été enregistrées avec une URL

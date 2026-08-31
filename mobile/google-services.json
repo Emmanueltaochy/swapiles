@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "171441278151",
+    "project_id": "swap-iles",
+    "storage_bucket": "swap-iles.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:171441278151:android:5ca5921a7a26b52c8b42e2",
+        "android_client_info": {
+          "package_name": "com.swapiles.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAA_wNzZmM5hk6-steaMOdqKxiVbK1XWb8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

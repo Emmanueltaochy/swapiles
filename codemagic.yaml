@@ -45,6 +45,31 @@ workflows:
           npx cap add android || true
           npx @capacitor/assets generate --android --assetPath resources || true
           npx cap sync android
+      - name: Configurer Firebase (notifications push)
+        script: |
+          cd mobile
+          # Le projet Android est régénéré à chaque build : on (re)pose la config
+          # Firebase et on branche le plug-in google-services.
+          if [ -f google-services.json ]; then
+            cp google-services.json android/app/google-services.json
+            python3 - <<'PY'
+          import re, pathlib
+          # build.gradle projet : classpath du plug-in google-services
+          p = pathlib.Path('android/build.gradle'); g = p.read_text()
+          if 'com.google.gms:google-services' not in g:
+              g = re.sub(r"(classpath 'com\.android\.tools\.build:gradle[^\n]*\n)",
+                         r"\1        classpath 'com.google.gms:google-services:4.4.2'\n", g, count=1)
+              p.write_text(g)
+          # build.gradle app : appliquer le plug-in
+          p = pathlib.Path('android/app/build.gradle'); a = p.read_text()
+          if 'com.google.gms.google-services' not in a:
+              a = a.rstrip() + "\napply plugin: 'com.google.gms.google-services'\n"
+              p.write_text(a)
+          print('Firebase branché (google-services)')
+          PY
+          else
+            echo "google-services.json absent : build sans push (normal si non configuré)"
+          fi
       - name: Build APK debug (non signé)
         script: |
           export JAVA_HOME=$(/usr/libexec/java_home -v 21)
@@ -134,6 +159,27 @@ workflows:
           npx cap add android || true
           npx @capacitor/assets generate --android --assetPath resources || true
           npx cap sync android
+      - name: Configurer Firebase (notifications push)
+        script: |
+          cd mobile
+          if [ -f google-services.json ]; then
+            cp google-services.json android/app/google-services.json
+            python3 - <<'PY'
+          import re, pathlib
+          p = pathlib.Path('android/build.gradle'); g = p.read_text()
+          if 'com.google.gms:google-services' not in g:
+              g = re.sub(r"(classpath 'com\.android\.tools\.build:gradle[^\n]*\n)",
+                         r"\1        classpath 'com.google.gms:google-services:4.4.2'\n", g, count=1)
+              p.write_text(g)
+          p = pathlib.Path('android/app/build.gradle'); a = p.read_text()
+          if 'com.google.gms.google-services' not in a:
+              a = a.rstrip() + "\napply plugin: 'com.google.gms.google-services'\n"
+              p.write_text(a)
+          print('Firebase branché (google-services)')
+          PY
+          else
+            echo "google-services.json absent : build sans push"
+          fi
       - name: Injecter signature + versionCode unique dans build.gradle
         script: |
           cd mobile

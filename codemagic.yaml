@@ -93,9 +93,13 @@ workflows:
     integrations:
       app_store_connect: codemagic          # nom de ta clé API dans Codemagic (UI)
     environment:
-      # Pas de bloc ios_signing : il exigeait un profil DÉJÀ existant et échouait
-      # avant les scripts. La signature est créée à la volée dans les scripts
-      # (fetch-signing-files --create), via la clé API App Store Connect.
+      # Signature AUTOMATIQUE Codemagic : crée/récupère lui-même le certificat
+      # de distribution et le profil App Store via la clé API App Store Connect.
+      # (Le 1er essai avait échoué car l'App ID venait d'être créé chez Apple :
+      # délai de propagation de quelques minutes.)
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.swapiles.app
       vars:
         BUNDLE_ID: "com.swapiles.app"
       node: 20
@@ -116,42 +120,14 @@ workflows:
         script: |
           cd mobile/ios/App
           pod install
-      - name: Signature (certificat + profil App Store créés automatiquement)
+      - name: Appliquer la signature (profils fournis par Codemagic)
         script: |
-          keychain initialize
-          # Crée si besoin le certificat de distribution + le profil App Store
-          # pour com.swapiles.app, et les télécharge sur la machine de build.
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create
-          keychain add-certificates
-          # Récupère le NOM exact du profil téléchargé pour le passer à Xcode.
-          PROFILE=$(ls "$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision | head -1)
-          echo "Profil : $PROFILE"
-          security cms -D -i "$PROFILE" > /tmp/profile.plist
-          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" /tmp/profile.plist)
-          echo "Nom du profil : $PROFILE_NAME"
-          echo "PROFILE_NAME=$PROFILE_NAME" >> $CM_ENV
-          # Options d'export (signature MANUELLE, profil explicite).
-          PLIST="$HOME/export_options.plist"; rm -f "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :method string app-store" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :signingStyle string manual" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :teamID string Z68H8V9222" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :signingCertificate string 'Apple Distribution'" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:$BUNDLE_ID string '$PROFILE_NAME'" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool true" "$PLIST"
-          plutil -lint "$PLIST" && cat "$PLIST"
+          cd mobile/ios/App
+          xcode-project use-profiles
       - name: Build IPA
         script: |
           cd mobile/ios/App
-          # Le profil et le certificat sont imposés explicitement au projet :
-          # plus aucune dépendance à la détection automatique.
-          xcode-project build-ipa \
-            --workspace App.xcworkspace \
-            --scheme App \
-            --export-options-plist "$HOME/export_options.plist" \
-            --archive-xcargs "DEVELOPMENT_TEAM=Z68H8V9222 PROVISIONING_PROFILE_SPECIFIER=\"$PROFILE_NAME\" CODE_SIGN_IDENTITY=\"Apple Distribution\""
+          xcode-project build-ipa --workspace App.xcworkspace --scheme App
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log

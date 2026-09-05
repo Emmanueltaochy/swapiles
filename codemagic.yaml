@@ -116,8 +116,16 @@ workflows:
         script: |
           cd mobile/ios/App
           pod install
-      - name: Appliquer la signature
+      - name: Créer + appliquer la signature (certificat + profil auto)
         script: |
+          # Crée automatiquement le certificat de distribution et le profil
+          # App Store pour com.swapiles.app (via la clé API App Store Connect),
+          # les ajoute au trousseau, puis les applique au projet Xcode.
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
           xcode-project use-profiles
       - name: Build IPA
         script: |

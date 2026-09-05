@@ -116,24 +116,25 @@ workflows:
         script: |
           cd mobile/ios/App
           pod install
-      - name: Créer + appliquer la signature (certificat + profil auto)
+      - name: Préparer la clé de signature (App Store Connect)
         script: |
-          # Crée automatiquement le certificat de distribution et le profil
-          # App Store pour com.swapiles.app (via la clé API App Store Connect),
-          # les ajoute au trousseau, puis les applique au projet Xcode.
+          # On écrit la clé API dans un fichier pour que Xcode gère lui-même
+          # la signature (création/téléchargement du certificat et du profil).
           keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create
-          keychain add-certificates
-          # use-profiles doit tourner DANS le dossier du projet iOS pour
-          # configurer la signature du bon .xcodeproj (généré par Capacitor).
-          cd mobile/ios/App
-          xcode-project use-profiles
-      - name: Build IPA
+          mkdir -p "$HOME/private_keys"
+          printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$HOME/private_keys/AuthKey.p8"
+      - name: Build IPA (signature automatique Xcode)
         script: |
           cd mobile/ios/App
-          xcode-project build-ipa --workspace App.xcworkspace --scheme App
+          AUTH="-allowProvisioningUpdates \
+            -authenticationKeyPath $HOME/private_keys/AuthKey.p8 \
+            -authenticationKeyID $APP_STORE_CONNECT_KEY_IDENTIFIER \
+            -authenticationKeyIssuerID $APP_STORE_CONNECT_ISSUER_ID"
+          xcode-project build-ipa \
+            --workspace App.xcworkspace \
+            --scheme App \
+            --archive-xcargs "$AUTH DEVELOPMENT_TEAM=Z68H8V9222 CODE_SIGN_STYLE=Automatic" \
+            --export-xcargs "$AUTH"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log

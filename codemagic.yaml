@@ -116,27 +116,42 @@ workflows:
         script: |
           cd mobile/ios/App
           pod install
-      - name: Signature manuelle (certificat + profil créés auto) + diagnostics
+      - name: Signature (certificat + profil App Store créés automatiquement)
         script: |
           keychain initialize
-          # Crée (si besoin) le certificat de distribution + le profil App Store
-          # pour com.swapiles.app, puis les installe.
+          # Crée si besoin le certificat de distribution + le profil App Store
+          # pour com.swapiles.app, et les télécharge sur la machine de build.
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
-            --create \
-            --verbose
+            --create
           keychain add-certificates
-          echo "=== Profils téléchargés ==="
-          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/" 2>/dev/null || true
-          echo "=== Identités de signature dans le trousseau ==="
-          security find-identity -v -p codesigning 2>/dev/null || true
-          echo "=== Application des profils au projet ==="
-          cd mobile/ios/App
-          xcode-project use-profiles --verbose
+          # Récupère le NOM exact du profil téléchargé pour le passer à Xcode.
+          PROFILE=$(ls "$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision | head -1)
+          echo "Profil : $PROFILE"
+          security cms -D -i "$PROFILE" > /tmp/profile.plist
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" /tmp/profile.plist)
+          echo "Nom du profil : $PROFILE_NAME"
+          echo "PROFILE_NAME=$PROFILE_NAME" >> $CM_ENV
+          # Options d'export (signature MANUELLE, profil explicite).
+          PLIST="$HOME/export_options.plist"; rm -f "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :method string app-store" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :signingStyle string manual" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :teamID string Z68H8V9222" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :signingCertificate string 'Apple Distribution'" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:$BUNDLE_ID string '$PROFILE_NAME'" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool true" "$PLIST"
+          plutil -lint "$PLIST" && cat "$PLIST"
       - name: Build IPA
         script: |
           cd mobile/ios/App
-          xcode-project build-ipa --workspace App.xcworkspace --scheme App
+          # Le profil et le certificat sont imposés explicitement au projet :
+          # plus aucune dépendance à la détection automatique.
+          xcode-project build-ipa \
+            --workspace App.xcworkspace \
+            --scheme App \
+            --export-options-plist "$HOME/export_options.plist" \
+            --archive-xcargs "DEVELOPMENT_TEAM=Z68H8V9222 PROVISIONING_PROFILE_SPECIFIER=\"$PROFILE_NAME\" CODE_SIGN_IDENTITY=\"Apple Distribution\""
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log

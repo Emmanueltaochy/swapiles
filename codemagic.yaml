@@ -122,19 +122,16 @@ workflows:
           keychain initialize
           mkdir -p "$HOME/private_keys"
           printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$HOME/private_keys/AuthKey.p8"
-          # Options d'export (signature automatique App Store).
-          cat > "$HOME/export_options.plist" <<'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key><string>app-store-connect</string>
-            <key>signingStyle</key><string>automatic</string>
-            <key>teamID</key><string>Z68H8V9222</string>
-            <key>uploadSymbols</key><true/>
-          </dict>
-          </plist>
-          PLIST
+          # Options d'export (signature automatique App Store), générées via
+          # PlistBuddy pour garantir un plist binaire/XML valide.
+          PLIST="$HOME/export_options.plist"
+          rm -f "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :method string app-store" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :signingStyle string automatic" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :teamID string Z68H8V9222" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool true" "$PLIST"
+          echo "--- export_options.plist ---"; cat "$PLIST"
+          plutil -lint "$PLIST"
       - name: Build IPA (signature automatique Xcode)
         script: |
           cd mobile/ios/App

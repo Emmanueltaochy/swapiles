@@ -529,12 +529,14 @@ class ListingManageController extends Controller
             'weight_g' => ['nullable', 'numeric', 'min:1', 'max:30000'],
             // Photo obligatoire à la publication (bien meilleure conversion).
             'images' => $requireImages ? ['required', 'array', 'min:1'] : ['nullable', 'array'],
-            'images.*' => ['nullable', 'image', 'max:5120'],
+            // 20 Mo : large marge pour les photos de smartphone (elles sont
+            // ensuite redimensionnées/compressées automatiquement, cf. storeImages).
+            'images.*' => ['nullable', 'image', 'max:20480'],
         ], [
             'images.required' => 'Ajoutez au moins une photo à votre annonce : les annonces avec photo se vendent bien mieux.',
             'images.min' => 'Ajoutez au moins une photo à votre annonce.',
-            'images.*.image' => 'Chaque fichier ajouté doit être une image (JPG, PNG…).',
-            'images.*.max' => 'Chaque photo doit faire moins de 5 Mo.',
+            'images.*.image' => "Format de photo non pris en charge. Sur iPhone, réglez Réglages › Appareil photo › Formats sur « Le plus compatible » (JPEG), puis reprenez la photo — ou envoyez une capture d'écran.",
+            'images.*.max' => 'Chaque photo doit faire moins de 20 Mo.',
         ]);
     }
 
@@ -622,20 +624,137 @@ class ListingManageController extends Controller
         }
 
         $currentCount = $listing->images()->count();
+        $order = 0;
 
-        foreach ($request->file('images') as $index => $image) {
-            if (!$image) {
+        foreach ($request->file('images') as $image) {
+            if (!$image || !$image->isValid()) {
                 continue;
             }
 
-            $path = $image->store('listings/' . $listing->id, 'public');
+            $path = $this->storeOneImage($image, 'listings/' . $listing->id);
+            if (!$path) {
+                continue;
+            }
 
             ListingImage::create([
                 'listing_id' => $listing->id,
                 'url' => Storage::url($path),
-                'order' => $currentCount + $index,
+                'order' => $currentCount + $order,
             ]);
+
+            $order++;
         }
+    }
+
+    /**
+     * Enregistre UNE image d'annonce. Quand c'est possible (GD), la photo est
+     * réorientée (EXIF), redimensionnée (max 1600 px) et ré-encodée en JPEG
+     * qualité 82 : les grosses photos de smartphone passent toujours et pèsent
+     * beaucoup moins lourd. En cas d'échec (format exotique, image démesurée),
+     * on retombe sur un stockage brut du fichier d'origine.
+     *
+     * @return string|null chemin relatif sur le disque public, ou null si échec
+     */
+    private function storeOneImage(\Illuminate\Http\UploadedFile $image, string $dir): ?string
+    {
+        try {
+            $realPath = $image->getRealPath();
+            $info = $realPath ? @getimagesize($realPath) : false;
+
+            // On ne décode via GD que des images raisonnables (< 40 Mpx) pour
+            // éviter de saturer la mémoire ; sinon stockage brut.
+            if ($info && ($info[0] * $info[1]) <= 40_000_000) {
+                $data = @file_get_contents($realPath);
+                $src = $data ? @imagecreatefromstring($data) : false;
+
+                if ($src !== false) {
+                    $src = $this->applyExifOrientation($src, $realPath, (string) ($info['mime'] ?? ''));
+                    $src = $this->downscaleImage($src, 1600);
+
+                    ob_start();
+                    imagejpeg($src, null, 82);
+                    $encoded = ob_get_clean();
+                    imagedestroy($src);
+
+                    if ($encoded !== false && $encoded !== '') {
+                        $filename = rtrim($dir, '/') . '/' . \Illuminate\Support\Str::random(40) . '.jpg';
+                        Storage::disk('public')->put($filename, $encoded);
+
+                        return $filename;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        // Repli : stockage brut du fichier d'origine (format non géré par GD, etc.).
+        try {
+            $path = $image->store($dir, 'public');
+
+            return $path ?: null;
+        } catch (\Throwable $e) {
+            report($e);
+
+            return null;
+        }
+    }
+
+    /** Applique l'orientation EXIF (photos de smartphone) à une ressource GD. */
+    private function applyExifOrientation(\GdImage $src, string $realPath, string $mime): \GdImage
+    {
+        if ($mime !== 'image/jpeg' || ! function_exists('exif_read_data')) {
+            return $src;
+        }
+
+        try {
+            $exif = @exif_read_data($realPath);
+            $orientation = $exif['Orientation'] ?? 0;
+
+            $rotate = match ((int) $orientation) {
+                3 => 180,
+                6 => -90,
+                8 => 90,
+                default => 0,
+            };
+
+            if ($rotate !== 0) {
+                $rotated = imagerotate($src, $rotate, 0);
+                if ($rotated !== false) {
+                    imagedestroy($src);
+
+                    return $rotated;
+                }
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return $src;
+    }
+
+    /** Redimensionne une ressource GD pour que son plus grand côté <= $max px. */
+    private function downscaleImage(\GdImage $src, int $max): \GdImage
+    {
+        $w = imagesx($src);
+        $h = imagesy($src);
+
+        if ($w <= $max && $h <= $max) {
+            return $src;
+        }
+
+        $ratio = min($max / $w, $max / $h);
+        $nw = max(1, (int) round($w * $ratio));
+        $nh = max(1, (int) round($h * $ratio));
+
+        $dst = imagecreatetruecolor($nw, $nh);
+        // Fond blanc (au cas où une source à canal alpha serait aplatie en JPEG).
+        $white = imagecolorallocate($dst, 255, 255, 255);
+        imagefilledrectangle($dst, 0, 0, $nw, $nh, $white);
+        imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
+        imagedestroy($src);
+
+        return $dst;
     }
 
     private function notifyFollowersNewListing(\App\Models\Listing $listing): void

@@ -116,35 +116,27 @@ workflows:
         script: |
           cd mobile/ios/App
           pod install
-      - name: Préparer la signature (clé API + options d'export)
+      - name: Signature manuelle (certificat + profil créés auto) + diagnostics
         script: |
-          # Clé API pour que Xcode gère lui-même la signature.
           keychain initialize
-          mkdir -p "$HOME/private_keys"
-          printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$HOME/private_keys/AuthKey.p8"
-          # Options d'export (signature automatique App Store), générées via
-          # PlistBuddy pour garantir un plist binaire/XML valide.
-          PLIST="$HOME/export_options.plist"
-          rm -f "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :method string app-store" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :signingStyle string automatic" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :teamID string Z68H8V9222" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool true" "$PLIST"
-          echo "--- export_options.plist ---"; cat "$PLIST"
-          plutil -lint "$PLIST"
-      - name: Build IPA (signature automatique Xcode)
+          # Crée (si besoin) le certificat de distribution + le profil App Store
+          # pour com.swapiles.app, puis les installe.
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create \
+            --verbose
+          keychain add-certificates
+          echo "=== Profils téléchargés ==="
+          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/" 2>/dev/null || true
+          echo "=== Identités de signature dans le trousseau ==="
+          security find-identity -v -p codesigning 2>/dev/null || true
+          echo "=== Application des profils au projet ==="
+          cd mobile/ios/App
+          xcode-project use-profiles --verbose
+      - name: Build IPA
         script: |
           cd mobile/ios/App
-          AUTH="-allowProvisioningUpdates \
-            -authenticationKeyPath $HOME/private_keys/AuthKey.p8 \
-            -authenticationKeyID $APP_STORE_CONNECT_KEY_IDENTIFIER \
-            -authenticationKeyIssuerID $APP_STORE_CONNECT_ISSUER_ID"
-          xcode-project build-ipa \
-            --workspace App.xcworkspace \
-            --scheme App \
-            --export-options-plist "$HOME/export_options.plist" \
-            --archive-xcargs "$AUTH DEVELOPMENT_TEAM=Z68H8V9222 CODE_SIGN_STYLE=Automatic" \
-            --export-xcargs "$AUTH"
+          xcode-project build-ipa --workspace App.xcworkspace --scheme App
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log

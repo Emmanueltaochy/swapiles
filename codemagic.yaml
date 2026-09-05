@@ -116,13 +116,25 @@ workflows:
         script: |
           cd mobile/ios/App
           pod install
-      - name: Préparer la clé de signature (App Store Connect)
+      - name: Préparer la signature (clé API + options d'export)
         script: |
-          # On écrit la clé API dans un fichier pour que Xcode gère lui-même
-          # la signature (création/téléchargement du certificat et du profil).
+          # Clé API pour que Xcode gère lui-même la signature.
           keychain initialize
           mkdir -p "$HOME/private_keys"
           printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$HOME/private_keys/AuthKey.p8"
+          # Options d'export (signature automatique App Store).
+          cat > "$HOME/export_options.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>teamID</key><string>Z68H8V9222</string>
+            <key>uploadSymbols</key><true/>
+          </dict>
+          </plist>
+          PLIST
       - name: Build IPA (signature automatique Xcode)
         script: |
           cd mobile/ios/App
@@ -133,6 +145,7 @@ workflows:
           xcode-project build-ipa \
             --workspace App.xcworkspace \
             --scheme App \
+            --export-options-plist "$HOME/export_options.plist" \
             --archive-xcargs "$AUTH DEVELOPMENT_TEAM=Z68H8V9222 CODE_SIGN_STYLE=Automatic" \
             --export-xcargs "$AUTH"
     artifacts:

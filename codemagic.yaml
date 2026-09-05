@@ -93,9 +93,9 @@ workflows:
     integrations:
       app_store_connect: codemagic          # nom de ta clé API dans Codemagic (UI)
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.swapiles.app
+      # Pas de bloc ios_signing : il exigeait un profil DÉJÀ existant et échouait
+      # avant les scripts. La signature est créée à la volée dans les scripts
+      # (fetch-signing-files --create), via la clé API App Store Connect.
       vars:
         BUNDLE_ID: "com.swapiles.app"
       node: 20

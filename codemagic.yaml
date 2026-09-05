@@ -126,6 +126,9 @@ workflows:
             --type IOS_APP_STORE \
             --create
           keychain add-certificates
+          # use-profiles doit tourner DANS le dossier du projet iOS pour
+          # configurer la signature du bon .xcodeproj (généré par Capacitor).
+          cd mobile/ios/App
           xcode-project use-profiles
       - name: Build IPA
         script: |

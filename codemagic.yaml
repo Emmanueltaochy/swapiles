@@ -70,6 +70,11 @@ workflows:
           else
             echo "google-services.json absent : build sans push (normal si non configuré)"
           fi
+      - name: Cibler l'API 36 (exigence Google Play)
+        script: |
+          cd mobile
+          yes | sdkmanager "platforms;android-36" >/dev/null 2>&1 || true
+          python3 scripts/target-sdk-36.py
       - name: Build APK debug (non signé)
         script: |
           export JAVA_HOME=$(/usr/libexec/java_home -v 21)
@@ -180,6 +185,11 @@ workflows:
           else
             echo "google-services.json absent : build sans push"
           fi
+      - name: Cibler l'API 36 (exigence Google Play)
+        script: |
+          cd mobile
+          yes | sdkmanager "platforms;android-36" >/dev/null 2>&1 || true
+          python3 scripts/target-sdk-36.py
       - name: Injecter signature + versionCode unique dans build.gradle
         script: |
           cd mobile

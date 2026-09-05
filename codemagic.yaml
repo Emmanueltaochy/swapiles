@@ -115,6 +115,10 @@ workflows:
           npx cap add ios || true
           npx @capacitor/assets generate --ios --assetPath resources || true
           npx cap sync ios
+      - name: Fond de l'écran de lancement (évite le carré sur fond noir)
+        script: |
+          cd mobile
+          python3 scripts/ios-splash-background.py
       - name: Installer les pods
         script: |
           cd mobile/ios/App

@@ -17,6 +17,15 @@
     return;
   }
 
+  // La page est chargée : on masque l'écran de démarrage (handoff propre, pas
+  // d'écran blanc entre le splash et l'affichage du site).
+  try {
+    var Splash = cap.Plugins && cap.Plugins.SplashScreen;
+    if (Splash && typeof Splash.hide === 'function') {
+      Splash.hide();
+    }
+  } catch (e) { /* sans gravité */ }
+
   var Push = cap.Plugins && cap.Plugins.PushNotifications;
   if (!Push) {
     return;

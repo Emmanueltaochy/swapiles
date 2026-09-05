@@ -6,16 +6,20 @@
     "url": "https://swapiles.com",
     "cleartext": false,
     "androidScheme": "https",
-    "iosScheme": "https"
+    "iosScheme": "https",
+    "errorPath": "error.html"
   },
   "ios": {
     "contentInset": "always"
   },
   "plugins": {
     "SplashScreen": {
-      "launchShowDuration": 1200,
+      "launchShowDuration": 3000,
+      "launchAutoHide": true,
       "backgroundColor": "#0f766e",
-      "showSpinner": false
+      "showSpinner": true,
+      "spinnerColor": "#ffffff",
+      "androidSpinnerStyle": "large"
     },
     "PushNotifications": {
       "presentationOptions": ["badge", "sound", "alert"]

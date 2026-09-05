@@ -93,13 +93,12 @@ workflows:
     integrations:
       app_store_connect: codemagic          # nom de ta clé API dans Codemagic (UI)
     environment:
-      # Signature AUTOMATIQUE Codemagic : crée/récupère lui-même le certificat
-      # de distribution et le profil App Store via la clé API App Store Connect.
-      # (Le 1er essai avait échoué car l'App ID venait d'être créé chez Apple :
-      # délai de propagation de quelques minutes.)
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.swapiles.app
+      # Le groupe ios_credentials (Codemagic UI > App settings > Environment
+      # variables) contient CERTIFICATE_PRIVATE_KEY : la clé privée avec laquelle
+      # Codemagic crée le certificat de distribution Apple. Sans elle, aucun
+      # certificat ni profil ne peut être créé.
+      groups:
+        - ios_credentials
       vars:
         BUNDLE_ID: "com.swapiles.app"
       node: 20
@@ -120,8 +119,18 @@ workflows:
         script: |
           cd mobile/ios/App
           pod install
-      - name: Appliquer la signature (profils fournis par Codemagic)
+      - name: Signature (certificat + profil App Store créés automatiquement)
         script: |
+          set -e
+          keychain initialize
+          # Crée le certificat de distribution (avec CERTIFICATE_PRIVATE_KEY) et
+          # le profil App Store pour le bundle, puis les installe et les applique.
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          echo "=== Profils téléchargés ==="
+          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/"
           cd mobile/ios/App
           xcode-project use-profiles
       - name: Build IPA

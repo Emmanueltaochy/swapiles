@@ -595,6 +595,8 @@ document.addEventListener('DOMContentLoaded', function () {
 {{-- Préchargement des pages au survol / touch (navigation quasi instantanée). --}}
 <script src="{{ asset('js/instantpage.js') }}" type="module"></script>
 <script src="{{ asset('js/push.js') }}"></script>
+<script src="{{ asset('js/report.js') }}"></script>
+<script src="{{ asset('js/share.js') }}"></script>
 
 </body>
 </html>

@@ -216,7 +216,11 @@ class ListingManageController extends Controller
             'listing_published'
         );
 
-        return redirect()->route('listings.show', $listing)->with('status', 'Votre annonce a bien été publiée.');
+        // « just_published » déclenche la fenêtre de partage sur la fiche : le
+        // meilleur moment pour partager, c'est tout de suite après la publication.
+        return redirect()->route('listings.show', $listing)
+            ->with('status', 'Votre annonce a bien été publiée.')
+            ->with('just_published', true);
     }
 
     public function edit(Listing $listing)

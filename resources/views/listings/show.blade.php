@@ -464,67 +464,17 @@
 
                     {{-- Partage sur les réseaux sociaux (promotion par la communauté) --}}
                     @php
-                        // UTM sur les liens partagés (point 15) : les liens via
-                        // WhatsApp/Instagram/etc. perdent le referrer -> on tague
-                        // la source pour attribuer le trafic dans GA4.
-                        $baseShareUrl = route('listings.show', $listing);
-                        $utmShare = fn (string $source) => $baseShareUrl
-                            . '?utm_source=' . $source . '&utm_medium=share&utm_campaign=annonce_' . $listing->id;
-                        $shareUrl = $utmShare('native');
-                        $instaShareUrl = $utmShare('instagram');
+                        $shareBase = route('listings.show', $listing);
                         $shareText = 'Découvrez « ' . $listing->title . ' » sur Swap\'Îles 🌴';
-                        $waHref = 'https://wa.me/?text=' . rawurlencode($shareText . ' ' . $utmShare('whatsapp'));
-                        $fbHref = 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode($utmShare('facebook'));
-                        $xHref = 'https://twitter.com/intent/tweet?text=' . rawurlencode($shareText) . '&url=' . rawurlencode($utmShare('twitter'));
-                    @endphp
-                    @php
-                        $smsHref = 'sms:?&body=' . rawurlencode($shareText . ' ' . $utmShare('sms'));
+                        $shareCampaign = 'annonce_' . $listing->id;
                     @endphp
                     <div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
                         <p class="mb-3 text-sm font-semibold text-gray-900">📣 Partager cette annonce</p>
-
-                        {{-- Bouton de partage natif (ouvre Instagram, Messages, etc. sur mobile) --}}
-                        <button type="button"
-                                data-share-url="{{ $shareUrl }}"
-                                data-share-text="{{ $shareText }}"
-                                onclick="swpShareListing(this)"
-                                class="mb-3 flex w-full items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-teal-700">
-                            <span aria-hidden="true">📲</span> Partager
-                        </button>
-
-                        <div class="flex flex-wrap gap-2">
-                            <a href="{{ $waHref }}" target="_blank" rel="noopener noreferrer"
-                               class="inline-flex items-center gap-1.5 rounded-xl bg-[#25D366] px-3.5 py-2 text-sm font-semibold text-white transition hover:opacity-90">
-                                <span aria-hidden="true">🟢</span> WhatsApp
-                            </a>
-                            <button type="button"
-                                    data-share-url="{{ $instaShareUrl }}"
-                                    onclick="swpInstagram(this)"
-                                    class="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-                                    style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);">
-                                <span aria-hidden="true">📸</span> Instagram
-                            </button>
-                            <a href="{{ $fbHref }}" target="_blank" rel="noopener noreferrer"
-                               class="inline-flex items-center gap-1.5 rounded-xl bg-[#1877F2] px-3.5 py-2 text-sm font-semibold text-white transition hover:opacity-90">
-                                <span aria-hidden="true">📘</span> Facebook
-                            </a>
-                            <a href="{{ $smsHref }}"
-                               class="inline-flex items-center gap-1.5 rounded-xl bg-[#34C759] px-3.5 py-2 text-sm font-semibold text-white transition hover:opacity-90">
-                                <span aria-hidden="true">💬</span> Message
-                            </a>
-                            <a href="{{ $xHref }}" target="_blank" rel="noopener noreferrer"
-                               class="inline-flex items-center gap-1.5 rounded-xl bg-gray-900 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-black">
-                                <span aria-hidden="true">✖️</span> X
-                            </a>
-                            <button type="button"
-                                    data-share-url="{{ $shareUrl }}"
-                                    data-share-text="{{ $shareText }}"
-                                    onclick="swpShareListing(this)"
-                                    class="js-share-copy inline-flex items-center gap-1.5 rounded-xl border-2 border-gray-200 px-3.5 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
-                                <span aria-hidden="true">🔗</span> Copier le lien
-                            </button>
-                        </div>
-                        <p class="mt-2 text-xs text-gray-400">Instagram : le lien est copié, collez-le dans votre story ou votre bio 📸</p>
+                        @include('partials.share-buttons', [
+                            'shareBase' => $shareBase,
+                            'shareText' => $shareText,
+                            'campaign' => $shareCampaign,
+                        ])
                     </div>
 
                     {{-- Protection acheteur --}}
@@ -888,46 +838,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-<script>
-// Partage d'annonce : menu natif du téléphone si dispo, sinon copie du lien.
-function swpShareListing(btn) {
-    var url = btn.getAttribute('data-share-url');
-    var text = btn.getAttribute('data-share-text') || '';
-
-    if (navigator.share) {
-        navigator.share({ title: "Swap'Îles", text: text, url: url }).catch(function () {});
-        return;
-    }
-
-    var done = function () {
-        var original = btn.innerHTML;
-        btn.innerHTML = '<span aria-hidden="true">✅</span> Lien copié';
-        setTimeout(function () { btn.innerHTML = original; }, 1800);
-    };
-
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(done).catch(function () { window.prompt('Copiez le lien :', url); });
-    } else {
-        window.prompt('Copiez le lien :', url);
-    }
-}
-
-// Instagram n'a pas de partage web : on copie le lien et on ouvre l'app/site.
-function swpInstagram(btn) {
-    var url = btn.getAttribute('data-share-url');
-    var open = function () { window.open('https://www.instagram.com/', '_blank'); };
-
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(function () {
-            var original = btn.innerHTML;
-            btn.innerHTML = '<span aria-hidden="true">✅</span> Lien copié !';
-            setTimeout(function () { btn.innerHTML = original; open(); }, 1000);
-        }).catch(open);
-    } else {
-        window.prompt('Copiez le lien pour Instagram :', url);
-    }
-}
-</script>
 
 {{-- GA4 e-commerce : consultation d'une annonce (point 11) --}}
 <script>
@@ -937,5 +847,67 @@ function swpInstagram(btn) {
         items: [{ item_id: '{{ $listing->id }}', item_name: @json($listing->title), price: {{ (float) $listing->price }} }]
     });
 </script>
+
+{{-- Fenêtre « Annonce publiée » : proposée juste après le dépôt, pour lancer le
+     partage tant que le vendeur est encore devant son écran. --}}
+@if(session('just_published'))
+    <div id="modal-publiee" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
+         role="dialog" aria-modal="true" aria-labelledby="modal-publiee-titre">
+        <div class="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div class="flex items-start justify-between px-5 pt-5">
+                <div class="grid h-12 w-12 place-items-center rounded-full bg-emerald-50 text-2xl" aria-hidden="true">🎉</div>
+                <button type="button" data-fermer-publiee aria-label="Fermer"
+                        class="grid h-8 w-8 place-items-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600">✕</button>
+            </div>
+
+            <div class="px-5 pb-5 pt-3">
+                <p id="modal-publiee-titre" class="text-lg font-bold text-gray-900">Annonce publiée !</p>
+                <p class="mt-1 text-sm text-gray-500">
+                    Partagez-la sur vos réseaux pour maximiser vos chances de vente.
+                </p>
+
+                <div class="mt-4">
+                    @include('partials.share-buttons', [
+                        'shareBase' => route('listings.show', $listing),
+                        'shareText' => 'Découvrez « ' . $listing->title . ' » sur Swap\'Îles 🌴',
+                        'campaign' => 'publication_' . $listing->id,
+                    ])
+                </div>
+
+                <button type="button" data-fermer-publiee
+                        class="mt-3 w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-500 transition hover:bg-gray-50">
+                    Plus tard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            var modal = document.getElementById('modal-publiee');
+            if (!modal) return;
+
+            function fermer() {
+                modal.remove();
+                document.body.style.overflow = '';
+            }
+
+            document.body.style.overflow = 'hidden';
+
+            modal.querySelectorAll('[data-fermer-publiee]').forEach(function (b) {
+                b.addEventListener('click', fermer);
+            });
+
+            // Clic sur le fond, en dehors de la carte.
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) fermer();
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') fermer();
+            });
+        })();
+    </script>
+@endif
 
 @endsection

@@ -11,6 +11,7 @@ class Listing extends Model
 
     protected $fillable = [
         'sharetribe_id',
+        'submission_token',
         'user_id',
         'title',
         'description',

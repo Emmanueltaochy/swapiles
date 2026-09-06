@@ -51,7 +51,12 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('account.listings.store') }}" enctype="multipart/form-data" class="space-y-5">
+        <form method="POST" action="{{ route('account.listings.store') }}" enctype="multipart/form-data" class="space-y-5" id="form-annonce">
+            {{-- Anti-doublon : identifie cet envoi de formulaire. Un deuxième envoi
+                 du même formulaire (double tap, actualisation pendant l'envoi des
+                 photos) renvoie sur l'annonce déjà publiée au lieu d'en créer une
+                 seconde. --}}
+            <input type="hidden" name="submission_token" value="{{ old('submission_token', (string) \Illuminate\Support\Str::uuid()) }}">
             @csrf
 
             {{-- Étape 1 : Photos --}}
@@ -339,7 +344,7 @@
                 </div>
             </div>
 
-            <button class="w-full rounded-xl bg-teal-600 px-6 py-4 font-semibold text-white shadow-sm transition hover:bg-teal-700 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
+            <button id="btn-publier" class="w-full rounded-xl bg-teal-600 px-6 py-4 font-semibold text-white shadow-sm transition hover:bg-teal-700 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70">
                 Publier mon annonce
             </button>
         </form>
@@ -707,6 +712,33 @@ document.addEventListener('DOMContentLoaded', function () {
         files.splice(Number(btn.dataset.i), 1);
         sync();
         render();
+    });
+})();
+
+/**
+ * Anti-doublon (2e barrière, côté navigateur).
+ * L'envoi des photos peut prendre plusieurs secondes sur une connexion mobile :
+ * sans ça, un deuxième appui sur « Publier » créait une deuxième annonce.
+ * Le serveur bloque déjà le doublon (jeton d'envoi), ceci évite juste l'attente
+ * sans retour visuel qui poussait à ré-appuyer.
+ */
+(function () {
+    const form = document.getElementById('form-annonce');
+    const btn = document.getElementById('btn-publier');
+    if (!form || !btn) return;
+
+    form.addEventListener('submit', function (e) {
+        // Une validation précédente a bloqué l'envoi : on laisse le bouton actif.
+        if (e.defaultPrevented) return;
+
+        if (form.dataset.envoiEnCours === '1') {
+            e.preventDefault();
+            return;
+        }
+
+        form.dataset.envoiEnCours = '1';
+        btn.disabled = true;
+        btn.textContent = 'Publication en cours…';
     });
 })();
 </script>

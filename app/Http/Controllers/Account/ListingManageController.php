@@ -64,8 +64,42 @@ class ListingManageController extends Controller
         $listing->relayPoints()->sync($valid);
     }
 
+    /**
+     * Jeton porté par le formulaire de dépôt : identifie UN envoi de formulaire.
+     * Absent (formulaire mis en cache avant cette correction) : on en fabrique un,
+     * la protection s'applique alors seulement aux envois simultanés.
+     */
+    private function submissionToken(Request $request): string
+    {
+        $token = (string) $request->input('submission_token', '');
+        $token = preg_replace('/[^A-Za-z0-9\-]/', '', $token);
+
+        return $token !== '' ? mb_substr($token, 0, 64) : (string) \Illuminate\Support\Str::uuid();
+    }
+
+    /** Annonce déjà créée par cet envoi de formulaire, s'il y en a une. */
+    private function listingForSubmissionToken(string $token): ?Listing
+    {
+        if ($token === '' || ! \Illuminate\Support\Facades\Schema::hasColumn('listings', 'submission_token')) {
+            return null;
+        }
+
+        return Listing::where('submission_token', $token)
+            ->where('user_id', Auth::id())
+            ->first();
+    }
+
     public function store(Request $request)
     {
+        // Anti-doublon : si ce formulaire a déjà créé une annonce (double tap sur
+        // mobile, actualisation pendant l'envoi des photos, retour arrière), on
+        // renvoie sur l'annonce existante au lieu d'en créer une deuxième.
+        $submissionToken = $this->submissionToken($request);
+        if ($dejaPublie = $this->listingForSubmissionToken($submissionToken)) {
+            return redirect()->route('listings.show', $dejaPublie)
+                ->with('status', 'Cette annonce est déjà publiée.');
+        }
+
         $data = $this->validateListing($request, requireImages: true);
 
         $cbEnabled = $request->boolean('payment_cb') && $this->sellerCanEnableOnlinePayment();
@@ -114,37 +148,49 @@ class ListingManageController extends Controller
                 ->withInput();
         }
 
-        $listing = Listing::create([
-            'user_id' => Auth::id(),
-            'title' => $data['title'],
-            'description' => $data['description'],
-            'price' => $data['listing_type'] === 'don' ? 0 : (int) ($data['price'] ?? 0),
-            'currency' => 'EUR',
-            'listing_type' => $data['listing_type'],
-            'allows_offers' => $request->boolean('payment_negociable') || $data['listing_type'] === 'negoce-prix',
-            'allows_exchange' => $request->boolean('payment_exchange') || $data['listing_type'] === 'echange-produits',
-            'status' => 'published',
-            'territoire' => $data['territoire'],
-            'also_territoires' => $alsoTerritoires ?: null,
-            'category_level1' => $data['category_level1'],
-            'category_level2' => $data['category_level2'] ?? null,
-            'category_level3' => $data['category_level3'] ?? null,
-            'etat' => $data['etat'] ?? null,
-            'marque' => $data['marque'] ?? null,
-            'taille' => $data['taille'] ?? null,
-            'location_address' => $data['location_address'] ?? null,
-            'pickup_city' => $data['pickup_city'] ?? null,
-            'pickup_postal_code' => $data['pickup_postal_code'] ?? null,
-            'hand_delivery_location' => $data['pickup_city'] ?? $data['hand_delivery_location'] ?? null,
-            'pickup_enabled' => $allowsHandDelivery,
-            'shipping_enabled' => $allowsColissimo,
-            'allows_hand_delivery' => $allowsHandDelivery,
-            'allows_colissimo' => $allowsColissimo,
-            'requires_online_payment' => $cbEnabled,
-            'shipping_price' => 0,
-            'weight_kg' => $allowsColissimo && filled($data['weight_g'] ?? null) ? round(((float) $data['weight_g']) / 1000, 3) : null,
-            'views_count' => 0,
-        ]);
+        try {
+            $listing = Listing::create([
+                'submission_token' => $submissionToken,
+                'user_id' => Auth::id(),
+                'title' => $data['title'],
+                'description' => $data['description'],
+                'price' => $data['listing_type'] === 'don' ? 0 : (int) ($data['price'] ?? 0),
+                'currency' => 'EUR',
+                'listing_type' => $data['listing_type'],
+                'allows_offers' => $request->boolean('payment_negociable') || $data['listing_type'] === 'negoce-prix',
+                'allows_exchange' => $request->boolean('payment_exchange') || $data['listing_type'] === 'echange-produits',
+                'status' => 'published',
+                'territoire' => $data['territoire'],
+                'also_territoires' => $alsoTerritoires ?: null,
+                'category_level1' => $data['category_level1'],
+                'category_level2' => $data['category_level2'] ?? null,
+                'category_level3' => $data['category_level3'] ?? null,
+                'etat' => $data['etat'] ?? null,
+                'marque' => $data['marque'] ?? null,
+                'taille' => $data['taille'] ?? null,
+                'location_address' => $data['location_address'] ?? null,
+                'pickup_city' => $data['pickup_city'] ?? null,
+                'pickup_postal_code' => $data['pickup_postal_code'] ?? null,
+                'hand_delivery_location' => $data['pickup_city'] ?? $data['hand_delivery_location'] ?? null,
+                'pickup_enabled' => $allowsHandDelivery,
+                'shipping_enabled' => $allowsColissimo,
+                'allows_hand_delivery' => $allowsHandDelivery,
+                'allows_colissimo' => $allowsColissimo,
+                'requires_online_payment' => $cbEnabled,
+                'shipping_price' => 0,
+                'weight_kg' => $allowsColissimo && filled($data['weight_g'] ?? null) ? round(((float) $data['weight_g']) / 1000, 3) : null,
+                'views_count' => 0,
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Deux envois partis en même temps : la contrainte d'unicité sur le
+            // jeton a bloqué le second. On renvoie sur l'annonce déjà créée.
+            if ($dejaPublie = $this->listingForSubmissionToken($submissionToken)) {
+                return redirect()->route('listings.show', $dejaPublie)
+                    ->with('status', 'Cette annonce est déjà publiée.');
+            }
+
+            throw $e;
+        }
 
         $this->storeImages($request, $listing);
 

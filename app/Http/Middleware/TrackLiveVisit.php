@@ -26,7 +26,7 @@ class TrackLiveVisit
                 return $response;
             }
 
-            $territoire = $request->cookie('swapiles_territoire') ?: 'La Réunion';
+            $territoire = \App\Support\TerritoireContext::resolve($request);
 
             $coords = [
                 'La Réunion' => [-21.1151, 55.5364],

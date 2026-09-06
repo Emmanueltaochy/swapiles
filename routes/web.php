@@ -38,19 +38,13 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
 Route::get('/territoire/{territoire}', function (string $territoire) {
-    $territoires = [
-        'reunion' => 'La Réunion',
-        'guyane' => 'Guyane',
-        'martinique' => 'Martinique',
-        'guadeloupe' => 'Guadeloupe',
-        'mayotte' => 'Mayotte',
-    ];
+    $territoires = \App\Support\TerritoireContext::CLES;
 
     abort_unless(isset($territoires[$territoire]), 404);
 
     return redirect()
         ->route('home')
-        ->withCookie(cookie('swapiles_territoire', $territoires[$territoire], 60 * 24 * 365));
+        ->withCookie(\App\Support\TerritoireContext::cookie($territoires[$territoire]));
 })->name('territoire.switch');
 Route::get('/recherche', [HomeController::class, 'search'])->name('search');
 

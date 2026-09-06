@@ -67,6 +67,9 @@ class MagicLinkController extends Controller
         \App\Models\UserSession::record($user->id, $request, 'login');
         $request->session()->regenerate();
 
+        // Même règle qu'à la connexion classique : l'île suit le compte.
+        \App\Support\TerritoireContext::rememberForUser($user);
+
         return redirect()->route('account.dashboard');
     }
 }

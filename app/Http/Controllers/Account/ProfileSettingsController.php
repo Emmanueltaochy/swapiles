@@ -64,6 +64,10 @@ class ProfileSettingsController extends Controller
 
         $user->forceFill($data)->save();
 
+        // L'île du profil vient de changer : on recale le sélecteur d'île pour
+        // que la navigation ne reste pas sur l'ancienne.
+        \App\Support\TerritoireContext::rememberForUser($user);
+
         // Points relais acceptés par défaut : on ne garde que des relais actifs
         // situés sur l'île du vendeur (pas de dépôt sur une autre île).
         if (config('features.relay_points')) {

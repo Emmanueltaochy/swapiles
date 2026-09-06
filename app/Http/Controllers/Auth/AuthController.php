@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendWelcomeEmail;
 use App\Models\User;
+use App\Support\TerritoireContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -22,11 +23,9 @@ class AuthController extends Controller
     {
         $this->rememberIntendedFrom($request);
 
-        $valid = ['La Réunion', 'Martinique', 'Guadeloupe', 'Guyane', 'Mayotte'];
-        $cookie = $request->cookie('swapiles_territoire');
-        $preselect = in_array($cookie, $valid, true) ? $cookie : 'La Réunion';
-
-        return view('auth.register', ['territoirePreselect' => $preselect]);
+        return view('auth.register', [
+            'territoirePreselect' => TerritoireContext::resolve($request),
+        ]);
     }
 
     /**
@@ -100,6 +99,11 @@ class AuthController extends Controller
             $request->session()->regenerate();
             $this->forgetAdminIntendedForNonAdmin($request);
 
+            // Le sélecteur d'île suit le compte qui vient de se connecter : sans
+            // ça, l'île choisie par un autre compte sur le même appareil restait
+            // active (membre réunionnais basculé sur une autre île).
+            TerritoireContext::rememberForUser(Auth::user());
+
             return redirect()->intended(route('account.dashboard'));
         }
 
@@ -165,7 +169,7 @@ class AuthController extends Controller
         return redirect()->intended(route('account.dashboard'))
             ->with('status', "Bienvenue sur Swap'Îles ! Un e-mail de bienvenue vient de vous être envoyé.")
             ->with('pixel_event', ['event' => 'CompleteRegistration', 'params' => []])
-            ->withCookie(cookie('swapiles_territoire', $data['territoire'], 60 * 24 * 365));
+            ->withCookie(TerritoireContext::cookie($data['territoire']));
     }
 
     public function verifyEmail(Request $request, $id, $hash)

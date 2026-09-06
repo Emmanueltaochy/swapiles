@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Listing;
+use App\Support\TerritoireContext;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
@@ -17,25 +18,10 @@ class HomeController extends Controller
 
     public function index(Request $request)
     {
-        $validLabels = array_column($this->territoires, 'label');
-
-        // Priorité : le choix explicite (cookie, mis à jour à chaque changement
-        // de territoire) > l'île du profil par défaut > La Réunion.
-        // L'inscription enregistre déjà le cookie = île du profil, donc le défaut
-        // reste l'île du membre, tout en laissant le changement de territoire agir.
-        $cookieTerritoire = $request->cookie('swapiles_territoire');
-        $authTerritoire = $request->user()?->territoire;
-
-        if ($cookieTerritoire && in_array($cookieTerritoire, $validLabels, true)) {
-            $selectedTerritoire = $cookieTerritoire;
-            $hasSelectedTerritoire = true;
-        } elseif ($authTerritoire && in_array($authTerritoire, $validLabels, true)) {
-            $selectedTerritoire = $authTerritoire;
-            $hasSelectedTerritoire = true;
-        } else {
-            $selectedTerritoire = 'La Réunion';
-            $hasSelectedTerritoire = false;
-        }
+        // Une seule règle pour tout le site (accueil, recherche, compteur de
+        // visites) : voir App\Support\TerritoireContext.
+        $selectedTerritoire = TerritoireContext::resolve($request);
+        $hasSelectedTerritoire = TerritoireContext::isKnown($request);
 
         $selectedKey = collect($this->territoires)
             ->search(fn ($item) => $item['label'] === $selectedTerritoire);
@@ -293,7 +279,7 @@ class HomeController extends Controller
         if ($request->has('territoire')) {
             $selectedTerritoire = trim((string) $request->territoire); // '' = tous
         } else {
-            $selectedTerritoire = $request->cookie('swapiles_territoire', 'La Réunion');
+            $selectedTerritoire = TerritoireContext::resolve($request);
         }
 
         $alsoColExists = \Illuminate\Support\Facades\Schema::hasColumn('listings', 'also_territoires');

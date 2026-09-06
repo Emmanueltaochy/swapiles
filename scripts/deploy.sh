@@ -97,9 +97,11 @@ fi
 # ---------------------------------------------------------------------------
 php artisan listings:hide-photoless 2>/dev/null || true
 
-# Aligner le territoire des membres sur leur code postal DOM-TOM (corrige les
-# profils « La Réunion » par défaut alors que l'adresse est ailleurs). Idempotent.
-php artisan users:sync-territoire-from-postal 2>/dev/null || true
+# NOTE : « users:sync-territoire-from-postal » n'est PLUS lancé à chaque
+# déploiement. Il réécrivait l'île des membres d'après le code postal enregistré
+# (qui peut être une adresse de livraison ailleurs), ce qui faisait basculer des
+# comptes sur une autre île sans qu'ils comprennent pourquoi. C'est un outil de
+# réparation ponctuel : à lancer à la main, avec --dry-run d'abord.
 
 # Activer le paiement CB sur les annonces des vendeurs déjà en IBAN OK (compte
 # Stripe opérationnel) mais dont l'annonce ne proposait pas encore la carte.

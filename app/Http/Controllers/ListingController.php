@@ -35,8 +35,11 @@ class ListingController extends Controller
 
     /**
      * E-mail au vendeur « quelqu'un vient de regarder votre annonce ».
-     * On ne prévient jamais le vendeur pour ses propres vues et on limite
-     * à un e-mail par visiteur et par annonce toutes les 24 h (anti-spam).
+     *
+     * Le COMPTEUR de vues, lui, enregistre toujours chaque visite : seul
+     * l'envoi de l'e-mail est limité. On ne prévient jamais le vendeur de ses
+     * propres vues, et l'envoi est plafonné (voir config/mail_limits.php) —
+     * l'e-mail rappelle de toute façon le total des vues de l'annonce.
      */
     private function notifySellerOfView(Request $request, Listing $listing): void
     {

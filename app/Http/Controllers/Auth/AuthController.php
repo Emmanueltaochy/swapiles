@@ -58,6 +58,25 @@ class AuthController extends Controller
         $request->session()->put('url.intended', $previous);
     }
 
+    /**
+     * Empêche un membre non administrateur d'être renvoyé vers /admin après
+     * connexion (il y recevrait un accès refusé). On oublie alors la
+     * destination mémorisée pour retomber sur son tableau de bord.
+     */
+    private function forgetAdminIntendedForNonAdmin(Request $request): void
+    {
+        $intended = (string) $request->session()->get('url.intended', '');
+        if ($intended === '') {
+            return;
+        }
+
+        $path = (string) parse_url($intended, PHP_URL_PATH);
+
+        if (str_starts_with($path, '/admin') && ! optional(Auth::user())->isAdmin()) {
+            $request->session()->forget('url.intended');
+        }
+    }
+
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -79,6 +98,8 @@ class AuthController extends Controller
             \App\Models\UserSession::record(Auth::id(), $request, 'login');
 
             $request->session()->regenerate();
+            $this->forgetAdminIntendedForNonAdmin($request);
+
             return redirect()->intended(route('account.dashboard'));
         }
 

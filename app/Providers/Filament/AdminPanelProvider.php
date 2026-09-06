@@ -2,7 +2,7 @@
 
 namespace App\Providers\Filament;
 
-use Filament\Http\Middleware\Authenticate;
+use App\Http\Middleware\FilamentAdminAuthenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use App\Http\Middleware\EnsureAdminEmail;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -55,7 +55,9 @@ class AdminPanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
             ])
             ->authMiddleware([
-                Authenticate::class,
+                // Notre authentification : un membre non administrateur est
+                // redirigé vers le site au lieu de recevoir un 403 sans issue.
+                FilamentAdminAuthenticate::class,
                 EnsureAdminEmail::class,
             ]);
     }

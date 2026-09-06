@@ -51,7 +51,8 @@ class StripeWebhookController extends Controller
                     AdminEvent::notify(
                         'Paiement Stripe validé',
                         'Stripe a confirmé le paiement de ' . number_format((float) $fresh->amount, 2, ',', ' ') . ' € pour : ' . ($fresh->listing->title ?? 'Annonce'),
-                        route('account.transactions.show', $fresh)
+                        route('account.transactions.show', $fresh),
+                        'stripe_payment'
                     );
                 }
 

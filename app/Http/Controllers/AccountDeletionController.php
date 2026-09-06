@@ -59,6 +59,7 @@ class AccountDeletionController extends Controller
                         ? 'Compte ANONYMISÉ (transactions conservées pour la comptabilité).'
                         : 'Compte SUPPRIMÉ intégralement.'),
                 null,
+                'account_deleted'
             );
         } catch (\Throwable $e) {
             report($e);

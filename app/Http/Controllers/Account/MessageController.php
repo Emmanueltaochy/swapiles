@@ -394,7 +394,8 @@ class MessageController extends Controller
                 'Un message contenant un mot-clé de paiement hors plateforme (' . ($message->flag_reason ?? '—')
                     . ') a été envoyé malgré l\'avertissement. Expéditeur #' . $message->sender_id
                     . ' → destinataire #' . $message->receiver_id . '.',
-                $url
+                $url,
+                'offplatform_payment'
             );
         } catch (\Throwable $e) {
             report($e);

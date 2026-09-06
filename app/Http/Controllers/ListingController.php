@@ -45,16 +45,27 @@ class ListingController extends Controller
                 return;
             }
 
-            $viewerKey = Auth::check()
-                ? 'u' . Auth::id()
-                : 'ip' . sha1($request->ip() . '|' . (string) $request->userAgent());
-
-            $throttleKey = 'listing_view_email:' . $listing->id . ':' . $viewerKey;
+            // Un e-mail par annonce et par fenêtre — plus par VISITEUR :
+            // le compte par visiteur multipliait les envois et saturait à lui
+            // seul le quota quotidien de la boîte d'envoi.
+            $heures = (int) config('mail_limits.listing_view.par_annonce_par_heures', 24);
 
             // Cache::add ne renvoie true qu'une seule fois par fenêtre : sert de verrou.
-            if (Cache::add($throttleKey, 1, now()->addHours(24))) {
-                SendListingViewedEmail::dispatch($listing->id);
+            if (! Cache::add('listing_view_email:' . $listing->id, 1, now()->addHours($heures))) {
+                return;
             }
+
+            // Plafond par vendeur : une boutique de 30 annonces ne doit pas
+            // générer 30 e-mails dans la même journée.
+            $maxParJour = (int) config('mail_limits.listing_view.par_vendeur_par_jour', 3);
+            $compteurKey = 'listing_view_email_seller:' . $listing->user_id . ':' . now()->toDateString();
+
+            Cache::add($compteurKey, 0, now()->addDay());
+            if (Cache::increment($compteurKey) > $maxParJour) {
+                return;
+            }
+
+            SendListingViewedEmail::dispatch($listing->id);
         } catch (\Throwable $e) {
             report($e);
         }

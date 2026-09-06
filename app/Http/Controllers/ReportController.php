@@ -92,6 +92,7 @@ class ReportController extends Controller
                     . ($data['details'] ? '. Détail : ' . $data['details'] : '')
                     . '. Signalé par ' . (Auth::user()->name ?? 'un membre') . '.',
                 url('/admin/reports'),
+                'report_submitted'
             );
         } catch (\Throwable $e) {
             report($e);

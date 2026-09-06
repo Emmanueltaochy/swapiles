@@ -82,7 +82,8 @@ class FavoriteController extends Controller
                 AdminEvent::notify(
                     'Annonce ajoutée en favori',
                     ($user->name ?? 'Un membre') . ' a ajouté en favori : ' . $listing->title,
-                    route('listings.show', $listing)
+                    route('listings.show', $listing),
+                    'favorite_added'
                 );
             }
         }

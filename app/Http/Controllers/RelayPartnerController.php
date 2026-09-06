@@ -88,7 +88,9 @@ class RelayPartnerController extends Controller
         try {
             AdminEvent::notify(
                 'Nouvelle demande point relais',
-                $data['business'] . ' à ' . $data['city'] . ' — ' . $data['name'] . ' (' . $data['phone'] . ')'
+                $data['business'] . ' à ' . $data['city'] . ' — ' . $data['name'] . ' (' . $data['phone'] . ')',
+                null,
+                'relay_request'
             );
         } catch (\Throwable $e) {
             report($e);

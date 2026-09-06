@@ -117,7 +117,8 @@ class AutoResolveTransactions extends Command
                     . self::REFUND_REVIEW_DAYS_AFTER_PAYMENT . ' jours après le paiement. '
                     . 'Vendeur : ' . ($transaction->seller->name ?? '-') . ' | Acheteur : ' . ($transaction->buyer->name ?? '-')
                     . '. À rembourser si confirmé.',
-                route('account.transactions.show', $transaction)
+                route('account.transactions.show', $transaction),
+                'refund_review'
             );
         }
     }

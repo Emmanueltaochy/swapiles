@@ -212,7 +212,8 @@ class ListingManageController extends Controller
         AdminEvent::notify(
             'Nouvelle annonce publiée',
             'Une nouvelle annonce vient d’être publiée : ' . $listing->title . ' par ' . (auth()->user()->name ?? 'Utilisateur'),
-            route('listings.show', $listing)
+            route('listings.show', $listing),
+            'listing_published'
         );
 
         return redirect()->route('listings.show', $listing)->with('status', 'Votre annonce a bien été publiée.');

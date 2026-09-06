@@ -49,7 +49,8 @@ class User extends Authenticatable implements FilamentUser
             AdminEvent::notify(
                 'Nouvel utilisateur inscrit',
                 ($user->name ?? 'Utilisateur') . ' vient de créer un compte avec l’email ' . ($user->email ?? '-'),
-                url('/admin/users/' . $user->id)
+                url('/admin/users/' . $user->id),
+                'user_registered'
             );
         });
 

@@ -24,9 +24,11 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           command_timeout: 20m
-          # Compte de service Firebase (notifications push), encodé en base64.
-          # Facultatif : si le secret n'existe pas, l'étape ci-dessous est ignorée.
-          envs: FCM_SA_B64
+          # Secrets transmis au serveur. Tous facultatifs : si le secret n'existe
+          # pas dans GitHub, l'étape correspondante est simplement ignorée.
+          #   FCM_SA_B64   : compte de service Firebase (notifications push), base64
+          #   MAIL_*       : identifiants SMTP du fournisseur d'e-mails
+          envs: FCM_SA_B64,MAIL_HOST,MAIL_PORT,MAIL_USERNAME,MAIL_PASSWORD,MAIL_SCHEME,MAIL_FROM_ADDRESS,MAIL_FROM_NAME
           script: |
             set -e
             cd "${{ secrets.VPS_PATH }}"
@@ -40,7 +42,30 @@ jobs:
               echo "$FCM_SA_B64" | base64 -d > storage/app/firebase/service-account.json
               chmod 600 storage/app/firebase/service-account.json
             fi
+            chmod +x scripts/set-env.sh
+            # Fournisseur d'e-mails : renseigné depuis les secrets GitHub, ce qui
+            # permet d'en changer sans aucun accès SSH. La boîte de l'hébergeur
+            # est plafonnée à 1 000 envois par jour et finit en indésirable ;
+            # un service d'envoi dédié (Brevo, Resend, Mailgun…) règle les deux.
+            if [ -n "${MAIL_HOST:-}" ]; then
+              echo "==> Configuration du fournisseur d'e-mails ($MAIL_HOST)"
+              ./scripts/set-env.sh MAIL_MAILER smtp
+              ./scripts/set-env.sh MAIL_HOST "$MAIL_HOST"
+              [ -n "${MAIL_PORT:-}" ] && ./scripts/set-env.sh MAIL_PORT "$MAIL_PORT"
+              [ -n "${MAIL_USERNAME:-}" ] && ./scripts/set-env.sh MAIL_USERNAME "$MAIL_USERNAME"
+              [ -n "${MAIL_PASSWORD:-}" ] && ./scripts/set-env.sh MAIL_PASSWORD "$MAIL_PASSWORD"
+              [ -n "${MAIL_SCHEME:-}" ] && ./scripts/set-env.sh MAIL_SCHEME "$MAIL_SCHEME"
+              [ -n "${MAIL_FROM_ADDRESS:-}" ] && ./scripts/set-env.sh MAIL_FROM_ADDRESS "$MAIL_FROM_ADDRESS"
+              [ -n "${MAIL_FROM_NAME:-}" ] && ./scripts/set-env.sh MAIL_FROM_NAME "$MAIL_FROM_NAME"
+            fi
             chmod +x scripts/deploy.sh
             ./scripts/deploy.sh
         env:
           FCM_SA_B64: ${{ secrets.FCM_SERVICE_ACCOUNT_B64 }}
+          MAIL_HOST: ${{ secrets.MAIL_HOST }}
+          MAIL_PORT: ${{ secrets.MAIL_PORT }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          MAIL_SCHEME: ${{ secrets.MAIL_SCHEME }}
+          MAIL_FROM_ADDRESS: ${{ secrets.MAIL_FROM_ADDRESS }}
+          MAIL_FROM_NAME: ${{ secrets.MAIL_FROM_NAME }}

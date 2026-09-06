@@ -325,7 +325,8 @@ class CheckoutController extends Controller
                 AdminEvent::notify(
                     'Nouvelle vente validée',
                     'Vente de ' . number_format((float) $freshTransaction->amount, 2, ',', ' ') . ' € : ' . ($freshTransaction->listing->title ?? 'Annonce') . ' | vendeur : ' . ($freshTransaction->seller->name ?? '-') . ' | acheteur : ' . ($freshTransaction->buyer->name ?? '-'),
-                    route('account.transactions.show', $freshTransaction)
+                    route('account.transactions.show', $freshTransaction),
+                    'sale_completed'
                 );
             }
         } catch (\Throwable $e) {

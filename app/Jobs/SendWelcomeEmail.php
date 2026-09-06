@@ -34,10 +34,15 @@ class SendWelcomeEmail implements ShouldQueue
             ['id' => $user->id, 'hash' => sha1($user->email)]
         );
 
+        // URL brutes pour la version texte, échappées pour la version HTML :
+        // e() transforme « & » en « &amp; », ce qui casserait le lien signé en texte.
+        $searchUrlBrut = route('search');
+        $depositUrlBrut = url('/deposer-une-annonce');
+
         $name = e($user->name ?: 'et bienvenue');
-        $verifyUrl = e($verifyUrl);
-        $searchUrl = e(route('search'));
-        $depositUrl = e(url('/deposer-une-annonce'));
+        $verifyUrlHtml = e($verifyUrl);
+        $searchUrl = e($searchUrlBrut);
+        $depositUrl = e($depositUrlBrut);
 
         $html = <<<HTML
 <!DOCTYPE html>
@@ -57,7 +62,7 @@ class SendWelcomeEmail implements ShouldQueue
       </p>
 
       <div style="text-align:center;margin:26px 0;">
-        <a href="{$verifyUrl}" style="display:inline-block;background:#0f766e;color:#fff;text-decoration:none;font-weight:800;padding:14px 26px;border-radius:14px;">
+        <a href="{$verifyUrlHtml}" style="display:inline-block;background:#0f766e;color:#fff;text-decoration:none;font-weight:800;padding:14px 26px;border-radius:14px;">
           Confirmer mon adresse e-mail
         </a>
       </div>
@@ -84,10 +89,30 @@ class SendWelcomeEmail implements ShouldQueue
 </html>
 HTML;
 
-        Mail::html($html, function ($message) use ($user) {
+        // Version texte obligatoire à côté du HTML : un e-mail HTML seul part
+        // très facilement en indésirable (c'est ce qui privait les nouveaux
+        // membres de leur lien de confirmation).
+        $texte = <<<TXT
+Bienvenue sur Swap'Îles !
+
+Votre compte est créé. Vous pouvez dès maintenant acheter, vendre, échanger
+et donner entre les îles.
+
+Confirmez votre adresse e-mail :
+{$verifyUrl}
+
+Explorer les annonces : {$searchUrlBrut}
+Déposer une annonce : {$depositUrlBrut}
+
+L'équipe Swap'Îles
+https://swapiles.com
+TXT;
+
+        Mail::html($html, function ($message) use ($user, $texte) {
             $message->from('contact@swapiles.com', "Swap'Îles")
                 ->to($user->email)
-                ->subject("Bienvenue sur Swap'Îles 🌴");
+                ->subject("Bienvenue sur Swap'Îles")
+                ->text($texte);
         });
     }
 }

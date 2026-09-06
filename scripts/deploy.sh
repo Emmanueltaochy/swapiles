@@ -97,6 +97,12 @@ fi
 # ---------------------------------------------------------------------------
 php artisan listings:hide-photoless 2>/dev/null || true
 
+# Valider d'office l'e-mail des membres inscrits AVANT la correction de l'envoi
+# du lien de confirmation : ils n'ont jamais pu confirmer, ce n'est pas de leur
+# fait. Date de coupure figee dans la commande : sans effet sur les nouvelles
+# inscriptions, donc sans risque a chaque deploiement.
+php artisan users:verify-legacy-emails 2>/dev/null || true
+
 # NOTE : « users:sync-territoire-from-postal » n'est PLUS lancé à chaque
 # déploiement. Il réécrivait l'île des membres d'après le code postal enregistré
 # (qui peut être une adresse de livraison ailleurs), ce qui faisait basculer des

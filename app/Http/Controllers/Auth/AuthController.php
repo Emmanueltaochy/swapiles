@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendEmailVerification;
 use App\Jobs\SendWelcomeEmail;
 use App\Models\User;
 use App\Support\TerritoireContext;
@@ -159,6 +160,10 @@ class AuthController extends Controller
         \App\Models\UserSession::record($user->id, $request, 'registration');
 
         try {
+            // Deux e-mails distincts, volontairement : la confirmation d'adresse
+            // part seule (texte + HTML, un seul lien) pour arriver à coup sûr,
+            // l'e-mail de bienvenue reste l'e-mail d'accueil.
+            SendEmailVerification::dispatch($user->id);
             SendWelcomeEmail::dispatch($user->id);
         } catch (\Throwable $e) {
             report($e);
@@ -199,13 +204,13 @@ class AuthController extends Controller
 
         if ($user && is_null($user->email_verified_at)) {
             try {
-                SendWelcomeEmail::dispatch($user->id);
+                SendEmailVerification::dispatch($user->id);
             } catch (\Throwable $e) {
                 report($e);
             }
         }
 
-        return back()->with('status', 'E-mail de confirmation renvoyé.');
+        return back()->with('status', 'E-mail de confirmation renvoyé. Pensez à regarder dans vos indésirables.');
     }
 
     public function logout(Request $request)

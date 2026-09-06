@@ -36,6 +36,15 @@ class AdminPanelProvider extends PanelProvider
                 'Marketplace',
                 'Communauté',
             ])
+            // Même correctif que sur le site : sur iPhone/iPad, WebKit zoome la
+            // page dès qu'on touche un champ dont la police fait moins de 16 px,
+            // et la page reste ensuite zoomée. Filament utilise du 14 px.
+            ->renderHook(
+                \Filament\View\PanelsRenderHook::HEAD_END,
+                fn (): string => '<style>@media (pointer: coarse){'
+                    . "input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),"
+                    . 'select,textarea{font-size:16px !important;}}</style>'
+            )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')

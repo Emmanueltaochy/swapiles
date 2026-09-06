@@ -41,3 +41,28 @@
     }
 }
 
+/* ---------------------------------------------------------------------------
+   ZOOM AUTOMATIQUE SUR LES CHAMPS (iPhone / iPad)
+   ---------------------------------------------------------------------------
+   Sur iOS, WebKit ZOOME automatiquement la page dès qu'on touche un champ dont
+   la police fait MOINS de 16 px. Dans l'application (WKWebView), la page reste
+   ensuite zoomée : impossible de revenir en arrière autrement qu'en fermant
+   l'app. C'est exactement le bug constaté sur le formulaire de dépôt.
+
+   Nos champs utilisent les classes Tailwind text-sm (14 px) et text-xs (12 px),
+   donc sous le seuil. On force 16 px sur les champs des appareils tactiles :
+   c'est LE correctif officiel, il supprime le zoom à la source tout en laissant
+   le zoom manuel (pincement) disponible pour l'accessibilité.
+
+   Le !important est nécessaire : une classe utilitaire (.text-sm) l'emporte sur
+   un sélecteur d'élément. Ne pas retirer sans revérifier sur un vrai iPhone.
+   Les cases à cocher, boutons radio et curseurs n'affichent pas de texte : ils
+   sont exclus pour ne pas changer leur taille.
+--------------------------------------------------------------------------- */
+@media (pointer: coarse) {
+    input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+}

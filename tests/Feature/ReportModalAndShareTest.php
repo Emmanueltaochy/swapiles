@@ -181,6 +181,22 @@ class ReportModalAndShareTest extends TestCase
             ->assertSee('Souhaitez-vous aussi bloquer', false);
     }
 
+    public function test_la_carte_reste_derriere_la_fenetre_de_signalement(): void
+    {
+        // Leaflet applique des z-index eleves a ses couches : sans conteneur
+        // qui les enferme, la carte passait par-dessus la fenetre.
+        $css = file_get_contents(resource_path('css/app.css'));
+
+        $this->assertMatchesRegularExpression(
+            '/\.leaflet-container\s*\{[^}]*z-index:\s*0/s',
+            $css,
+            'La regle qui enferme les cartes Leaflet a disparu de resources/css/app.css.'
+        );
+
+        $modal = file_get_contents(resource_path('views/partials/report.blade.php'));
+        $this->assertStringContainsString('z-[10000]', $modal);
+    }
+
     public function test_la_fiche_annonce_propose_les_boutons_de_partage(): void
     {
         $annonce = $this->annonce($this->membre('Vendeur'));

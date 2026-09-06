@@ -20,7 +20,7 @@
     </button>
 
     <div id="{{ $uid }}" data-report-modal hidden
-         class="fixed inset-0 z-[100] items-center justify-center bg-black/60 p-4"
+         class="fixed inset-0 z-[10000] items-center justify-center bg-black/60 p-4"
          role="dialog" aria-modal="true" aria-labelledby="{{ $uid }}-titre">
 
         <div class="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl" data-report-card>

@@ -66,3 +66,32 @@
         font-size: 16px !important;
     }
 }
+
+
+/* ---------------------------------------------------------------------------
+   CARTES LEAFLET : rester DERRIÈRE les fenêtres et la barre de navigation
+   ---------------------------------------------------------------------------
+   Leaflet applique des z-index élevés à ses propres couches (400 pour les
+   tuiles, 800 pour les contrôles, 1000 pour les coins). Sans conteneur qui
+   les enferme, ces valeurs se comparent au reste de la page : la carte
+   passait par-dessus la fenêtre de signalement et par-dessus la barre du bas.
+
+   .leaflet-container est déjà en position: relative — lui donner un z-index
+   crée un contexte d'empilement, et TOUT ce que Leaflet dessine reste
+   désormais à l'intérieur. Correctif global : vaut pour la fiche annonce, le
+   paiement et le choix des points relais.
+--------------------------------------------------------------------------- */
+.leaflet-container {
+    position: relative;
+    z-index: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   NIVEAUX D'EMPILEMENT du site (référence, pour éviter les surprises)
+   ---------------------------------------------------------------------------
+     0      cartes Leaflet (enfermées, voir ci-dessus)
+     50     barre de navigation du bas (mobile)
+     95     bandeau cookies
+     9999   résultats de la recherche du bandeau
+     10000  fenêtres modales (signalement, annonce publiée)
+--------------------------------------------------------------------------- */

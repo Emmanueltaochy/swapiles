@@ -851,7 +851,7 @@ document.addEventListener('DOMContentLoaded', function () {
 {{-- Fenêtre « Annonce publiée » : proposée juste après le dépôt, pour lancer le
      partage tant que le vendeur est encore devant son écran. --}}
 @if(session('just_published'))
-    <div id="modal-publiee" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
+    <div id="modal-publiee" class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 p-4"
          role="dialog" aria-modal="true" aria-labelledby="modal-publiee-titre">
         <div class="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
             <div class="flex items-start justify-between px-5 pt-5">

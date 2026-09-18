@@ -26,9 +26,11 @@ jobs:
           command_timeout: 20m
           # Secrets transmis au serveur. Tous facultatifs : si le secret n'existe
           # pas dans GitHub, l'étape correspondante est simplement ignorée.
-          #   FCM_SA_B64   : compte de service Firebase (notifications push), base64
+          #   FCM_SA_B64   : compte de service Firebase (push Android), base64
+          #   APNS_KEY_B64 : cle d'authentification Apple .p8 (push iPhone), base64
+          #   APNS_KEY_ID / APNS_TEAM_ID : identifiants de cette cle
           #   MAIL_*       : identifiants SMTP du fournisseur d'e-mails
-          envs: FCM_SA_B64,MAIL_HOST,MAIL_PORT,MAIL_USERNAME,MAIL_PASSWORD,MAIL_SCHEME,MAIL_FROM_ADDRESS,MAIL_FROM_NAME
+          envs: FCM_SA_B64,APNS_KEY_B64,APNS_KEY_ID,APNS_TEAM_ID,MAIL_HOST,MAIL_PORT,MAIL_USERNAME,MAIL_PASSWORD,MAIL_SCHEME,MAIL_FROM_ADDRESS,MAIL_FROM_NAME
           script: |
             set -e
             cd "${{ secrets.VPS_PATH }}"
@@ -42,7 +44,22 @@ jobs:
               echo "$FCM_SA_B64" | base64 -d > storage/app/firebase/service-account.json
               chmod 600 storage/app/firebase/service-account.json
             fi
+            # Cle Apple (.p8) pour les notifications iPhone. L'app iOS n'embarque
+            # pas Firebase : son jeton est un jeton Apple, servi directement par
+            # Apple. Sans cette cle, les iPhone ne recoivent rien.
+            if [ -n "${APNS_KEY_B64:-}" ]; then
+              echo "==> Installation de la cle Apple (notifications iPhone)"
+              mkdir -p storage/app/apple
+              echo "$APNS_KEY_B64" | base64 -d > storage/app/apple/apns-key.p8
+              chmod 600 storage/app/apple/apns-key.p8
+            fi
             chmod +x scripts/set-env.sh
+            if [ -n "${APNS_KEY_ID:-}" ]; then
+              ./scripts/set-env.sh APNS_KEY_ID "$APNS_KEY_ID"
+            fi
+            if [ -n "${APNS_TEAM_ID:-}" ]; then
+              ./scripts/set-env.sh APNS_TEAM_ID "$APNS_TEAM_ID"
+            fi
             # Fournisseur d'e-mails : renseigné depuis les secrets GitHub, ce qui
             # permet d'en changer sans aucun accès SSH. La boîte de l'hébergeur
             # est plafonnée à 1 000 envois par jour et finit en indésirable ;
@@ -62,6 +79,9 @@ jobs:
             ./scripts/deploy.sh
         env:
           FCM_SA_B64: ${{ secrets.FCM_SERVICE_ACCOUNT_B64 }}
+          APNS_KEY_B64: ${{ secrets.APNS_KEY_B64 }}
+          APNS_KEY_ID: ${{ secrets.APNS_KEY_ID }}
+          APNS_TEAM_ID: ${{ secrets.APNS_TEAM_ID }}
           MAIL_HOST: ${{ secrets.MAIL_HOST }}
           MAIL_PORT: ${{ secrets.MAIL_PORT }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}

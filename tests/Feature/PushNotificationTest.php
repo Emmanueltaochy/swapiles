@@ -69,10 +69,13 @@ class PushNotificationTest extends TestCase
     public function test_non_configure_par_defaut(): void
     {
         $this->assertFalse(FcmService::configured());
+        $this->assertFalse(\App\Support\ApnsService::configured());
 
         DeviceToken::create(['token' => 'x', 'platform' => 'android']);
-        (new SendPushBroadcast('Titre', 'Corps'))->handle(app(FcmService::class));
+        (new SendPushBroadcast('Titre', 'Corps'))
+            ->handle(app(FcmService::class), app(\App\Support\ApnsService::class));
 
+        // Rien n'est configuré : on ne supprime surtout pas les jetons.
         $this->assertDatabaseHas('device_tokens', ['token' => 'x']);
     }
 

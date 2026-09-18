@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Jobs\SendPushBroadcast;
 use App\Models\DeviceToken;
+use App\Support\ApnsService;
 use App\Support\FcmService;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification as FilamentNotification;
@@ -29,6 +30,46 @@ class PushBroadcast extends Page
         $this->form->fill([
             'title' => "Swap'Îles",
         ]);
+    }
+
+    /**
+     * État du push, visible dans l'admin : sans accès au serveur, c'est le seul
+     * moyen de voir pourquoi une notification ne part pas.
+     */
+    public function getViewData(): array
+    {
+        $appareils = DeviceToken::query()->get(['id', 'platform', 'token', 'last_seen_at']);
+
+        $ios = $appareils->filter(fn (DeviceToken $d) => SendPushBroadcast::estIos($d));
+
+        return [
+            'total' => $appareils->count(),
+            'iosCount' => $ios->count(),
+            'androidCount' => $appareils->count() - $ios->count(),
+            'fcmPret' => FcmService::configured(),
+            'apnsPret' => ApnsService::configured(),
+            'http2' => ApnsService::http2Available(),
+            'apnsManquant' => $this->apnsManquant(),
+        ];
+    }
+
+    /** Ce qu'il manque encore pour servir les iPhone. */
+    private function apnsManquant(): array
+    {
+        $manque = [];
+
+        $chemin = config('push.apns.key_path');
+        if (! $chemin || ! is_file($chemin)) {
+            $manque[] = 'la cle APNs (.p8) sur le serveur';
+        }
+        if (blank(config('push.apns.key_id'))) {
+            $manque[] = "l'identifiant de la cle (APNS_KEY_ID)";
+        }
+        if (blank(config('push.apns.team_id'))) {
+            $manque[] = "l'identifiant d'equipe Apple (APNS_TEAM_ID)";
+        }
+
+        return $manque;
     }
 
     public function form(Schema $schema): Schema
@@ -60,10 +101,10 @@ class PushBroadcast extends Page
     {
         $state = $this->form->getState();
 
-        if (! FcmService::configured()) {
+        if (! FcmService::configured() && ! ApnsService::configured()) {
             FilamentNotification::make()
                 ->title('Notifications push non configurées')
-                ->body('Le compte de service Firebase n’est pas encore installé sur le serveur. Envoi impossible pour le moment.')
+                ->body('Ni Apple (iPhone) ni Firebase (Android) ne sont configurés sur le serveur. Voir l’état ci-dessus.')
                 ->danger()
                 ->send();
 

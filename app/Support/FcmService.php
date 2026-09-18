@@ -79,15 +79,24 @@ class FcmService
                     'title' => $title,
                     'body' => $body,
                 ],
-                'data' => array_filter([
-                    'url' => $url,
-                ]),
                 'android' => [
                     'priority' => 'high',
                     'notification' => ['default_sound' => true],
                 ],
             ],
         ];
+
+        // « data » n'est ajouté QUE s'il contient quelque chose, et ses valeurs
+        // doivent être des chaînes.
+        //
+        // Sans cette précaution, une notification sans lien produisait un
+        // tableau vide, que PHP convertit en « [] » — une LISTE en JSON, pas un
+        // objet. Google répondait alors « Cannot bind a list to map for field
+        // 'data' » et n'envoyait rien. C'est ce qui bloquait tous les envois
+        // Android sans lien, y compris le bouton de test.
+        if (filled($url)) {
+            $message['message']['data'] = ['url' => (string) $url];
+        }
 
         try {
             $response = Http::withToken($accessToken)

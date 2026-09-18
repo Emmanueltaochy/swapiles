@@ -219,6 +219,57 @@ class PushRoutingTest extends TestCase
         Http::assertSent(fn ($r) => str_contains($r->url(), 'api.sandbox.push.apple.com'));
     }
 
+    public function test_une_notification_sans_lien_n_envoie_pas_de_champ_data_vide(): void
+    {
+        // Bug corrigé : un « data » vide devenait « [] » en JSON — une liste, pas
+        // un objet — et Google refusait tout l'envoi avec
+        // « Cannot bind a list to map for field 'data' ».
+        $this->configurerFcm();
+        Http::fake([
+            'oauth2.googleapis.com/*' => Http::response(['access_token' => 'jeton-test'], 200),
+            '*' => Http::response(['name' => 'ok'], 200),
+        ]);
+
+        (new FcmService)->sendToToken('fMEQ:APA91bTest', 'Titre', 'Message', null);
+
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), 'fcm.googleapis.com')) {
+                return false;
+            }
+
+            $this->assertArrayNotHasKey('data', $request->data()['message']);
+            $this->assertStringNotContainsString('"data":[]', $request->body());
+
+            return true;
+        });
+    }
+
+    public function test_une_notification_avec_lien_envoie_un_data_en_objet(): void
+    {
+        $this->configurerFcm();
+        Http::fake([
+            'oauth2.googleapis.com/*' => Http::response(['access_token' => 'jeton-test'], 200),
+            '*' => Http::response(['name' => 'ok'], 200),
+        ]);
+
+        (new FcmService)->sendToToken('fMEQ:APA91bTest', 'Titre', 'Message', 'https://swapiles.com/annonce/2435');
+
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), 'fcm.googleapis.com')) {
+                return false;
+            }
+
+            $this->assertSame(
+                ['url' => 'https://swapiles.com/annonce/2435'],
+                $request->data()['message']['data']
+            );
+            // Objet JSON, pas liste.
+            $this->assertStringContainsString('"data":{"url":', $request->body());
+
+            return true;
+        });
+    }
+
     public function test_le_resultat_et_l_erreur_sont_conserves_sur_l_appareil(): void
     {
         $this->configurerFcm();

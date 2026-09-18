@@ -15,6 +15,13 @@ use Illuminate\Support\Facades\Log;
  */
 class FcmService
 {
+    /**
+     * Dernier message d'erreur renvoyé par Google.
+     * Remonté tel quel dans l'administration : sans accès au serveur, c'est le
+     * seul moyen de savoir POURQUOI une notification n'est pas partie.
+     */
+    public ?string $lastError = null;
+
     /** Le push est-il configuré (fichier de compte de service présent et valide) ? */
     public static function configured(): bool
     {
@@ -47,12 +54,19 @@ class FcmService
      */
     public function sendToToken(string $token, string $title, string $body, ?string $url = null): string
     {
+        $this->lastError = null;
+
         if (! self::configured()) {
+            $this->lastError = "Le compte de service Firebase n'est pas installé sur le serveur.";
+
             return 'skipped';
         }
 
         $accessToken = $this->accessToken();
         if (! $accessToken) {
+            $this->lastError = 'Google a refusé le compte de service (jeton d’accès impossible à obtenir). '
+                . 'Vérifiez que le fichier est complet et que le compte a le rôle Firebase.';
+
             return 'error';
         }
 
@@ -84,6 +98,9 @@ class FcmService
                 return 'ok';
             }
 
+            $message = (string) ($response->json('error.message') ?: $response->body());
+            $this->lastError = 'Google (' . $response->status() . ') : ' . mb_substr($message, 0, 400);
+
             // Jeton non enregistré / invalide : à supprimer côté base.
             if (in_array($response->status(), [400, 403, 404], true)) {
                 $errorStatus = $response->json('error.status');
@@ -97,6 +114,7 @@ class FcmService
             return 'error';
         } catch (\Throwable $e) {
             report($e);
+            $this->lastError = 'Connexion à Google impossible : ' . mb_substr($e->getMessage(), 0, 300);
 
             return 'error';
         }

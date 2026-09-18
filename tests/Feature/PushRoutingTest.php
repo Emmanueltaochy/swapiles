@@ -219,6 +219,51 @@ class PushRoutingTest extends TestCase
         Http::assertSent(fn ($r) => str_contains($r->url(), 'api.sandbox.push.apple.com'));
     }
 
+    public function test_le_resultat_et_l_erreur_sont_conserves_sur_l_appareil(): void
+    {
+        $this->configurerFcm();
+        Http::fake([
+            'oauth2.googleapis.com/*' => Http::response(['access_token' => 'jeton-test'], 200),
+            '*' => Http::response([
+                'error' => ['status' => 'PERMISSION_DENIED', 'message' => 'Cloud Messaging API has not been used'],
+            ], 403),
+        ]);
+
+        $appareil = $this->jeton('fMEQ:APA91bTest', 'android');
+
+        (new SendPushBroadcast('Titre', 'Message'))->handle(new FcmService, new ApnsService);
+
+        $appareil->refresh();
+        $this->assertSame('error', $appareil->last_result);
+        $this->assertStringContainsString('Cloud Messaging API has not been used', (string) $appareil->last_error);
+        $this->assertNotNull($appareil->last_sent_at);
+    }
+
+    public function test_une_erreur_de_permission_ne_supprime_pas_le_jeton(): void
+    {
+        $this->configurerFcm();
+        Http::fake([
+            'oauth2.googleapis.com/*' => Http::response(['access_token' => 'jeton-test'], 200),
+            '*' => Http::response(['error' => ['status' => 'PERMISSION_DENIED', 'message' => 'refus']], 403),
+        ]);
+
+        $this->jeton('fMEQ:APA91bTest', 'android');
+
+        (new SendPushBroadcast('Titre', 'Message'))->handle(new FcmService, new ApnsService);
+
+        // Un refus de permission vient de la configuration, pas de l'appareil.
+        $this->assertSame(1, DeviceToken::count());
+    }
+
+    public function test_sans_compte_de_service_l_erreur_est_explicite(): void
+    {
+        config(['push.fcm.project_id' => null, 'push.fcm.credentials_path' => '/inexistant.json']);
+
+        $fcm = new FcmService;
+        $this->assertSame('skipped', $fcm->sendToToken('tok', 'T', 'B'));
+        $this->assertStringContainsString('compte de service Firebase', (string) $fcm->lastError);
+    }
+
     public function test_la_notification_porte_le_titre_le_message_et_le_lien(): void
     {
         $this->configurerApns();

@@ -23,6 +23,9 @@ use Illuminate\Support\Facades\Log;
  */
 class ApnsService
 {
+    /** Dernier message d'erreur renvoyé par Apple, remonté dans l'administration. */
+    public ?string $lastError = null;
+
     private const PROD_HOST = 'https://api.push.apple.com';
     private const SANDBOX_HOST = 'https://api.sandbox.push.apple.com';
 
@@ -59,12 +62,24 @@ class ApnsService
      */
     public function sendToToken(string $token, string $title, string $body, ?string $url = null): string
     {
+        $this->lastError = null;
+
         if (! self::configured()) {
+            $this->lastError = "La clé d'authentification Apple (.p8) n'est pas installée sur le serveur.";
+
             return 'skipped';
+        }
+
+        if (! self::http2Available()) {
+            $this->lastError = "Ce serveur ne sait pas parler HTTP/2, qu'Apple exige.";
+
+            return 'error';
         }
 
         $jwt = $this->authToken();
         if (! $jwt) {
+            $this->lastError = "Impossible de signer le jeton d'authentification Apple (clé .p8 illisible ?).";
+
             return 'error';
         }
 
@@ -120,6 +135,7 @@ class ApnsService
             }
 
             $reason = (string) $response->json('reason');
+            $this->lastError = 'Apple (' . $response->status() . ') : ' . ($reason ?: $response->body());
 
             // 410 Unregistered : l'app a été désinstallée, le jeton est mort.
             if ($response->status() === 410 || $reason === 'Unregistered') {
@@ -146,6 +162,7 @@ class ApnsService
             return 'error';
         } catch (\Throwable $e) {
             report($e);
+            $this->lastError = 'Connexion à Apple impossible : ' . mb_substr($e->getMessage(), 0, 300);
 
             return 'error';
         }

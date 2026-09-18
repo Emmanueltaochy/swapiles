@@ -12,11 +12,21 @@ class DeviceToken extends Model
 {
     protected $fillable = [
         'user_id', 'token', 'platform', 'last_seen_at',
+        'last_result', 'last_error', 'last_sent_at',
     ];
 
     protected $casts = [
         'last_seen_at' => 'datetime',
+        'last_sent_at' => 'datetime',
     ];
+
+    /** Version courte du jeton, pour l'afficher sans tout dévoiler. */
+    public function tokenApercu(): string
+    {
+        $t = (string) $this->token;
+
+        return mb_strlen($t) > 16 ? mb_substr($t, 0, 8) . '…' . mb_substr($t, -6) : $t;
+    }
 
     public function user(): BelongsTo
     {

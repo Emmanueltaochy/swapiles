@@ -25,6 +25,9 @@ class PushBroadcast extends Page
 
     public ?array $data = [];
 
+    /** Résultat du dernier test d'envoi, affiché tel quel dans la page. */
+    public array $diagnostic = [];
+
     public function mount(): void
     {
         $this->form->fill([
@@ -38,11 +41,14 @@ class PushBroadcast extends Page
      */
     public function getViewData(): array
     {
-        $appareils = DeviceToken::query()->get(['id', 'platform', 'token', 'last_seen_at']);
+        $appareils = DeviceToken::query()
+            ->orderByDesc('id')
+            ->get(['id', 'user_id', 'platform', 'token', 'last_seen_at', 'last_result', 'last_error', 'last_sent_at']);
 
         $ios = $appareils->filter(fn (DeviceToken $d) => SendPushBroadcast::estIos($d));
 
         return [
+            'appareils' => $appareils,
             'total' => $appareils->count(),
             'iosCount' => $ios->count(),
             'androidCount' => $appareils->count() - $ios->count(),
@@ -95,6 +101,59 @@ class PushBroadcast extends Page
                     ->placeholder('https://swapiles.com/annonces')
                     ->helperText("Page ouverte quand l'utilisateur tape sur la notification."),
             ]);
+    }
+
+    /**
+     * Envoi de test IMMÉDIAT (hors file d'attente) vers les appareils
+     * enregistrés, avec le résultat exact renvoyé par Apple ou Google.
+     *
+     * L'envoi normal passe par la file d'attente : en cas d'échec, rien n'est
+     * visible depuis l'administration. Ce bouton existe pour voir la réponse
+     * du service telle quelle.
+     */
+    public function testerEnvoi(): void
+    {
+        $appareils = DeviceToken::query()->orderByDesc('id')->limit(10)->get();
+
+        if ($appareils->isEmpty()) {
+            FilamentNotification::make()
+                ->title('Aucun appareil enregistré')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $fcm = app(FcmService::class);
+        $apns = app(ApnsService::class);
+
+        $this->diagnostic = $appareils->map(function (DeviceToken $device) use ($fcm, $apns) {
+            $resultat = SendPushBroadcast::envoyerVers(
+                $device,
+                "Swap'Îles",
+                'Test de notification 🔔',
+                null,
+                $fcm,
+                $apns,
+            );
+
+            return [
+                'plateforme' => SendPushBroadcast::estIos($device) ? 'iPhone / iPad' : 'Android',
+                'jeton' => $device->tokenApercu(),
+                'statut' => $resultat['status'],
+                'erreur' => $resultat['error'],
+            ];
+        })->all();
+
+        $reussis = collect($this->diagnostic)->where('statut', 'ok')->count();
+
+        FilamentNotification::make()
+            ->title($reussis . ' / ' . count($this->diagnostic) . ' envoi(s) accepté(s)')
+            ->body($reussis === count($this->diagnostic)
+                ? 'Le service a accepté la notification. Elle doit arriver sur l’appareil.'
+                : 'Voir le détail ci-dessous : le message d’erreur du service y est repris mot pour mot.')
+            ->status($reussis === count($this->diagnostic) ? 'success' : 'warning')
+            ->send();
     }
 
     public function send(): void

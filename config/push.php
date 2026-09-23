@@ -43,6 +43,26 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Durée de vie des jetons d'appareil
+    |--------------------------------------------------------------------------
+    |
+    | Un jeton n'identifie PAS un appareil de façon stable : il change à la
+    | réinstallation de l'app, à l'effacement des données, à une restauration
+    | de sauvegarde, ou simplement lors d'un renouvellement par le service.
+    | Chaque nouveau jeton crée une ligne : le nombre de lignes dépasse donc
+    | toujours le nombre d'installations réelles.
+    |
+    | - active_days    : au-delà, l'appareil n'est plus considéré comme actif
+    |                    (l'app renvoie son jeton à chaque lancement).
+    | - retention_days : au-delà, le jeton est supprimé (ménage hebdomadaire).
+    |
+    */
+
+    'active_days' => (int) env('PUSH_ACTIVE_DAYS', 30),
+    'retention_days' => (int) env('PUSH_RETENTION_DAYS', 90),
+
     'apns' => [
         'key_path' => env('APNS_KEY_PATH', storage_path('app/apple/apns-key.p8')),
         'key_id' => env('APNS_KEY_ID'),

@@ -47,9 +47,18 @@ class PushBroadcast extends Page
 
         $ios = $appareils->filter(fn (DeviceToken $d) => SendPushBroadcast::estIos($d));
 
+        // Un jeton n'est pas un appareil : il change a chaque reinstallation.
+        // L'app renvoie le sien a chaque lancement, donc « vu recemment »
+        // correspond a une installation reellement vivante.
+        $seuil = now()->subDays((int) config('push.active_days', 30));
+        $actifs = $appareils->filter(fn (DeviceToken $d) => $d->last_seen_at && $d->last_seen_at->gte($seuil));
+
         return [
             'appareils' => $appareils,
             'total' => $appareils->count(),
+            'actifs' => $actifs->count(),
+            'obsoletes' => $appareils->count() - $actifs->count(),
+            'joursActivite' => (int) config('push.active_days', 30),
             'iosCount' => $ios->count(),
             'androidCount' => $appareils->count() - $ios->count(),
             'fcmPret' => FcmService::configured(),

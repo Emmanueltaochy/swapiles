@@ -20,6 +20,28 @@ class DeviceToken extends Model
         'last_sent_at' => 'datetime',
     ];
 
+    /**
+     * Appareils encore actifs : l'app renvoie son jeton à chaque lancement,
+     * donc un jeton revu récemment correspond à une installation vivante.
+     */
+    public function scopeActifs($query, ?int $jours = null)
+    {
+        $jours ??= (int) config('push.active_days', 30);
+
+        return $query->where('last_seen_at', '>=', now()->subDays($jours));
+    }
+
+    /** Jetons plus revus depuis longtemps : réinstallations, désinstallations. */
+    public function scopeObsoletes($query, ?int $jours = null)
+    {
+        $jours ??= (int) config('push.active_days', 30);
+
+        return $query->where(function ($q) use ($jours) {
+            $q->whereNull('last_seen_at')
+                ->orWhere('last_seen_at', '<', now()->subDays($jours));
+        });
+    }
+
     /** Version courte du jeton, pour l'afficher sans tout dévoiler. */
     public function tokenApercu(): string
     {

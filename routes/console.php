@@ -39,3 +39,8 @@ Schedule::command('listings:hide-photoless')->dailyAt('06:30')->withoutOverlappi
 // Relance vendeur : un message resté sans réponse depuis 24 h déclenche un
 // e-mail au destinataire (point 8). Une seule relance par message.
 Schedule::command('messages:remind-unanswered')->everySixHours()->withoutOverlapping();
+
+// Ménage des jetons d'appareil (notifications push). Un jeton change à chaque
+// réinstallation : sans ménage, le nombre d'appareils affiché n'a plus rien à
+// voir avec le nombre d'installations réelles.
+Schedule::command('push:cleanup-tokens')->weeklyOn(1, '04:00')->withoutOverlapping();

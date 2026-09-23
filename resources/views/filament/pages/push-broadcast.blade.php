@@ -10,9 +10,17 @@
 
         {{-- Appareils enregistrés --}}
         <div class="flex flex-wrap gap-3">
+            <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3">
+                <p class="text-2xl font-extrabold text-emerald-900">{{ number_format($actifs, 0, ',', ' ') }}</p>
+                <p class="text-xs text-emerald-700">installations actives ({{ $joursActivite }} j)</p>
+            </div>
+            <div class="rounded-2xl border border-gray-200 bg-white px-5 py-3 dark:border-gray-700 dark:bg-transparent">
+                <p class="text-2xl font-extrabold text-gray-900 dark:text-gray-100">{{ number_format($obsoletes, 0, ',', ' ') }}</p>
+                <p class="text-xs text-gray-500">jetons obsolètes</p>
+            </div>
             <div class="rounded-2xl border border-gray-200 bg-white px-5 py-3 dark:border-gray-700 dark:bg-transparent">
                 <p class="text-2xl font-extrabold text-gray-900 dark:text-gray-100">{{ number_format($total, 0, ',', ' ') }}</p>
-                <p class="text-xs text-gray-500">appareils enregistrés</p>
+                <p class="text-xs text-gray-500">jetons enregistrés</p>
             </div>
             <div class="rounded-2xl border border-gray-200 bg-white px-5 py-3 dark:border-gray-700 dark:bg-transparent">
                 <p class="text-2xl font-extrabold text-gray-900 dark:text-gray-100">{{ $iosCount }}</p>
@@ -23,6 +31,17 @@
                 <p class="text-xs text-gray-500">Android</p>
             </div>
         </div>
+
+        <p class="rounded-2xl bg-gray-50 px-5 py-3 text-xs text-gray-500 dark:bg-gray-800/40">
+            <strong>Pourquoi ce chiffre diffère de Google Play / App Store ?</strong>
+            Un jeton n’identifie pas un appareil de façon durable : il change à chaque réinstallation
+            de l’app, à l’effacement des données, à une restauration de sauvegarde, ou lors d’un
+            renouvellement par le service. Un même téléphone peut donc compter plusieurs fois.
+            Les consoles, elles, comptent les <em>installations</em>. Le chiffre comparable est
+            « installations actives » ci-dessus. Les jetons obsolètes sont supprimés automatiquement
+            chaque semaine. Les appareils de test TestFlight comptent aussi ici, alors qu’ils
+            n’apparaissent pas dans les installations de l’App Store.
+        </p>
 
         {{-- État des deux services d'envoi : c'est ici qu'on voit ce qui bloque --}}
         <div class="space-y-3">

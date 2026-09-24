@@ -123,15 +123,41 @@ workflows:
         script: |
           cd mobile/ios/App
           pod install
-      - name: Déclarer l'exemption de chiffrement (évite la question à chaque build)
+      - name: Déclarer l'exemption de chiffrement et les accès photo
         script: |
+          PLIST=mobile/ios/App/App/Info.plist
+
           # L'app n'utilise que le HTTPS fourni par iOS : elle est exemptée des
           # règles d'exportation. On le déclare dans Info.plist pour ne plus avoir
           # à répondre au questionnaire à chaque envoi sur App Store Connect.
-          PLIST=mobile/ios/App/App/Info.plist
           /usr/libexec/PlistBuddy -c "Delete :ITSAppUsesNonExemptEncryption" "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$PLIST"
+
+          # AUTORISATIONS PHOTO — indispensables, leur absence FAIT PLANTER l'app.
+          #
+          # Le dépôt d'annonce utilise un champ fichier standard. Sur iOS, le
+          # menu propose « Prendre une photo » et « Photothèque ». iOS arrête
+          # IMMÉDIATEMENT toute app qui accède à l'appareil photo ou aux photos
+          # sans avoir déclaré le motif dans Info.plist. C'est la cause du
+          # plantage relevé par Apple (refus 2.1(a), « tap on take photo »).
+          #
+          # Ces clés ne sont pas fournies par le modèle Capacitor : sans plug-in
+          # natif photo, il faut les poser nous-mêmes. Les libellés sont écrits
+          # SANS apostrophe : PlistBuddy analyse lui-même la chaîne reçue et
+          # l'échappement des apostrophes ne lui survit pas.
+          /usr/libexec/PlistBuddy -c "Delete :NSCameraUsageDescription" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string Swap Iles utilise votre appareil photo pour vous permettre de photographier les articles que vous mettez en vente." "$PLIST"
+
+          /usr/libexec/PlistBuddy -c "Delete :NSPhotoLibraryUsageDescription" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string Swap Iles accede a vos photos pour vous permettre de choisir les images de vos annonces." "$PLIST"
+
+          /usr/libexec/PlistBuddy -c "Delete :NSPhotoLibraryAddUsageDescription" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryAddUsageDescription string Swap Iles enregistre une image dans vos photos lorsque vous le demandez." "$PLIST"
+
+          echo "=== Autorisations déclarées ==="
           /usr/libexec/PlistBuddy -c "Print :ITSAppUsesNonExemptEncryption" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Print :NSCameraUsageDescription" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Print :NSPhotoLibraryUsageDescription" "$PLIST"
       - name: Signature (certificat + profil App Store créés automatiquement)
         script: |
           set -e

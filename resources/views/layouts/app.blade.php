@@ -147,6 +147,29 @@ html, body {
         }
     };
     (function () {
+        // DANS L'APPLICATION MOBILE : aucun traceur publicitaire.
+        //
+        // Le pixel Meta relie les données à des fins publicitaires : sur iOS,
+        // Apple exige alors le consentement via son propre écran système
+        // (App Tracking Transparency), et INTERDIT de le demander avec une
+        // fenêtre maison — notre bandeau cookies en était une. C'est le motif
+        // du refus 5.1.2(i).
+        //
+        // On ne suit donc personne depuis l'application : pas de pixel, pas de
+        // mesure d'audience, et pas de bandeau. Le site web, lui, ne change pas.
+        var cap = window.Capacitor;
+        if (cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform()) {
+            window.SWP.metaId = null;
+            window.SWP.gaId = null;
+            window.SWP.load = function () {};
+            window.SWP.track = function () {};
+            window.SWP.ga4 = function () {};
+            window.SWP.meta = function () {};
+            document.documentElement.setAttribute('data-sans-traceurs', '1');
+
+            return;
+        }
+
         var m = document.cookie.match(/(?:^|; )swapiles_cookie_consent=([^;]+)/);
         if (m && decodeURIComponent(m[1]) === 'accepted') { window.SWP.load(); }
     })();
@@ -523,6 +546,16 @@ document.addEventListener('DOMContentLoaded', function () {
 (function () {
     var banner = document.getElementById('cookie-banner');
     if (!banner) return;
+
+    // Dans l'application mobile, aucun traceur n'est chargé : il n'y a donc
+    // rien à consentir, et Apple interdit une fenêtre maison demandant
+    // l'autorisation de suivi (refus 5.1.2(i)). On retire le bandeau.
+    if (document.documentElement.getAttribute('data-sans-traceurs') === '1') {
+        banner.remove();
+
+        return;
+    }
+
     var has = document.cookie.match(/(?:^|; )swapiles_cookie_consent=/);
     if (!has) { banner.classList.remove('hidden'); }
 

@@ -101,6 +101,9 @@ workflows:
         - ios_credentials
       vars:
         BUNDLE_ID: "com.swapiles.app"
+        # Version affichée sur l'App Store. Le numéro de build, lui, est repris
+        # du compteur Codemagic à chaque lancement (voir l'étape Info.plist).
+        MARKETING_VERSION: "1.0"
       node: 20
       xcode: latest
       cocoapods: default
@@ -123,7 +126,7 @@ workflows:
         script: |
           cd mobile/ios/App
           pod install
-      - name: Déclarer l'exemption de chiffrement et les accès photo
+      - name: Déclarations Info.plist (chiffrement, accès photo, numéro de build)
         script: |
           PLIST=mobile/ios/App/App/Info.plist
 
@@ -154,10 +157,23 @@ workflows:
           /usr/libexec/PlistBuddy -c "Delete :NSPhotoLibraryAddUsageDescription" "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryAddUsageDescription string Swap Iles enregistre une image dans vos photos lorsque vous le demandez." "$PLIST"
 
-          echo "=== Autorisations déclarées ==="
+          # NUMÉRO DE BUILD UNIQUE ET CROISSANT.
+          #
+          # Le projet iOS est régénéré à chaque build (npx cap add ios) : sans
+          # cette étape il repart à 1 à chaque fois, et App Store Connect refuse
+          # tout envoi dont le numéro a déjà servi. On reprend le compteur de
+          # builds Codemagic, qui ne fait qu'augmenter.
+          BN="${PROJECT_BUILD_NUMBER:-$(date +%s)}"
+          /usr/libexec/PlistBuddy -c "Delete :CFBundleVersion" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BN" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Delete :CFBundleShortVersionString" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string ${MARKETING_VERSION:-1.0}" "$PLIST"
+
+          echo "=== Déclarations posées ==="
           /usr/libexec/PlistBuddy -c "Print :ITSAppUsesNonExemptEncryption" "$PLIST"
           /usr/libexec/PlistBuddy -c "Print :NSCameraUsageDescription" "$PLIST"
           /usr/libexec/PlistBuddy -c "Print :NSPhotoLibraryUsageDescription" "$PLIST"
+          echo "Version : $(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST") (build $(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST"))"
       - name: Signature (certificat + profil App Store créés automatiquement)
         script: |
           set -e

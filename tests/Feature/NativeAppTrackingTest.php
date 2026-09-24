@@ -55,6 +55,21 @@ class NativeAppTrackingTest extends TestCase
         $reponse->assertSee('swapiles_cookie_consent', false);
     }
 
+    public function test_le_numero_de_build_ios_est_unique_et_croissant(): void
+    {
+        // Le projet iOS est regenere a chaque build : sans cette etape il repart
+        // a 1, et App Store Connect refuse tout envoi dont le numero a deja servi.
+        $codemagic = file_get_contents(base_path('codemagic.yaml'));
+
+        $this->assertStringContainsString('PROJECT_BUILD_NUMBER', $codemagic);
+        $this->assertMatchesRegularExpression(
+            '/Add :CFBundleVersion string \$BN/',
+            $codemagic,
+            'Le numero de build iOS doit etre repris du compteur Codemagic.'
+        );
+        $this->assertStringContainsString('CFBundleShortVersionString', $codemagic);
+    }
+
     public function test_les_autorisations_photo_ios_sont_declarees(): void
     {
         // Leur absence fait planter l'app dès qu'on touche « Prendre une photo »

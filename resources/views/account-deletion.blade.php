@@ -59,6 +59,22 @@
         @endif
 
         @auth
+            {{-- Alternative proposée AVANT la suppression : beaucoup de départs
+                 viennent du volume de sollicitations, pas du service lui-même.
+                 Couper les notifications règle le problème sans perdre le compte. --}}
+            <div class="mt-6 rounded-2xl border border-teal-100 bg-teal-50 p-6">
+                <h2 class="text-lg font-bold text-teal-900">Avant de partir 🔔</h2>
+                <p class="mt-2 text-sm text-teal-800">
+                    Si vous receviez trop de notifications ou d’e-mails, vous pouvez
+                    choisir précisément ce que vous souhaitez recevoir — et garder
+                    votre compte, vos annonces et votre historique.
+                </p>
+                <a href="{{ route('account.profile.edit') }}#notifications"
+                   class="mt-3 inline-block rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700">
+                    Régler mes notifications
+                </a>
+            </div>
+
             <div class="mt-6 rounded-2xl border border-red-100 bg-white p-6 shadow-sm">
                 <h2 class="text-lg font-bold text-red-700">Supprimer définitivement mon compte</h2>
                 <p class="mt-2 text-sm text-gray-600">
@@ -70,6 +86,30 @@
                       onsubmit="return confirm('Confirmer la suppression définitive de votre compte ?');">
                     @csrf
                     @method('DELETE')
+
+                    <div>
+                        <label for="reason" class="block text-sm font-semibold text-gray-700">
+                            Pourquoi partez-vous ? <span class="font-normal text-gray-400">(facultatif)</span>
+                        </label>
+                        <select id="reason" name="reason"
+                                class="mt-1 w-full rounded-xl border border-gray-200 px-4 py-2.5 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100">
+                            <option value="">Je préfère ne pas répondre</option>
+                            @foreach(\App\Models\AccountDeletionReason::MOTIFS as $cle => $libelle)
+                                <option value="{{ $cle }}">{{ $libelle }}</option>
+                            @endforeach
+                        </select>
+                        <p class="mt-1 text-xs text-gray-400">
+                            Votre réponse est anonyme : elle n’est reliée ni à votre nom,
+                            ni à votre adresse e-mail. Elle nous aide à corriger ce qui ne va pas.
+                        </p>
+                    </div>
+
+                    <div>
+                        <label for="reason_details" class="sr-only">Précision</label>
+                        <textarea id="reason_details" name="reason_details" rows="2" maxlength="500"
+                                  placeholder="Une précision à nous laisser ? (facultatif)"
+                                  class="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"></textarea>
+                    </div>
 
                     <div>
                         <label for="confirmation" class="block text-sm font-semibold text-gray-700">Tapez SUPPRIMER</label>

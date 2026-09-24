@@ -137,6 +137,58 @@
             </button>
         </form>
 
+        {{-- Réglages de notification : le membre doit pouvoir couper ce qu'il ne
+             veut plus recevoir. Sans ça, le seul moyen d'arrêter d'être sollicité
+             était de supprimer son compte. --}}
+        <div id="notifications" class="mt-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <h2 class="text-lg font-bold text-gray-900">🔔 Mes notifications</h2>
+            <p class="mt-1 text-sm text-gray-500">
+                Choisissez ce que vous souhaitez recevoir. Les messages liés à vos
+                ventes et à vos achats vous sont toujours envoyés.
+            </p>
+
+            <form method="POST" action="{{ route('account.profile.update') }}" class="mt-4">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="name" value="{{ auth()->user()->name }}">
+                <input type="hidden" name="notification_prefs_submitted" value="1">
+
+                @php $prefs = auth()->user()->notification_prefs ?? []; @endphp
+
+                <div class="overflow-hidden rounded-xl border border-gray-100">
+                    <div class="flex items-center justify-between bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-500">
+                        <span>Type de notification</span>
+                        <span class="flex gap-4"><span class="w-14 text-center">Mobile</span><span class="w-14 text-center">E-mail</span></span>
+                    </div>
+
+                    @foreach(\App\Support\NotificationPreferences::CATEGORIES as $cle => $categorie)
+                        <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3">
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-gray-900">{{ $categorie['label'] }}</p>
+                                <p class="text-xs text-gray-500">{{ $categorie['description'] }}</p>
+                            </div>
+                            <div class="flex shrink-0 gap-4">
+                                <label class="flex w-14 justify-center">
+                                    <input type="checkbox" name="notification_prefs[{{ $cle }}][push]" value="1"
+                                           @checked($prefs[$cle]['push'] ?? true)
+                                           class="h-5 w-5 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
+                                </label>
+                                <label class="flex w-14 justify-center">
+                                    <input type="checkbox" name="notification_prefs[{{ $cle }}][email]" value="1"
+                                           @checked($prefs[$cle]['email'] ?? true)
+                                           class="h-5 w-5 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
+                                </label>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <button class="mt-4 w-full rounded-xl bg-teal-600 px-6 py-3 font-semibold text-white transition hover:bg-teal-700">
+                    Enregistrer mes préférences
+                </button>
+            </form>
+        </div>
+
         {{-- Suppression de compte (RGPD) --}}
         <div class="mt-6 rounded-2xl border border-gray-100 bg-white p-5 text-center shadow-sm">
             <p class="text-sm text-gray-500">Vous souhaitez quitter Swap'Îles ?</p>

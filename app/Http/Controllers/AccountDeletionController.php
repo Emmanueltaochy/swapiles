@@ -22,6 +22,31 @@ class AccountDeletionController extends Controller
         return view('account-deletion');
     }
 
+    /**
+     * Enregistre le motif de départ, sans aucune donnée personnelle : ni
+     * identifiant, ni nom, ni e-mail. Uniquement le motif, la date, l'ancienneté
+     * du compte et le fait qu'il y ait eu des ventes.
+     */
+    private function consignerMotif(Request $request, $user): void
+    {
+        if (blank($request->input('reason'))) {
+            return;
+        }
+
+        try {
+            \App\Models\AccountDeletionReason::create([
+                'reason' => (string) $request->input('reason'),
+                'details' => $request->input('reason_details') ?: null,
+                'days_since_signup' => $user->created_at ? (int) $user->created_at->diffInDays(now()) : null,
+                'had_sales' => $user->sales()->exists() || $user->purchases()->exists(),
+                'created_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            // Un motif non enregistré ne doit jamais empêcher une suppression.
+            report($e);
+        }
+    }
+
     /** Suppression effective (utilisateur connecté, confirmée par mot de passe). */
     public function destroy(Request $request): RedirectResponse
     {
@@ -30,6 +55,8 @@ class AccountDeletionController extends Controller
         $request->validate([
             'confirmation' => ['required', 'in:SUPPRIMER'],
             'password' => ['required', 'string'],
+            'reason' => ['nullable', 'string', 'in:' . implode(',', array_keys(\App\Models\AccountDeletionReason::MOTIFS))],
+            'reason_details' => ['nullable', 'string', 'max:500'],
         ], [
             'confirmation.required' => 'Tapez SUPPRIMER pour confirmer.',
             'confirmation.in' => 'Tapez exactement SUPPRIMER (en majuscules) pour confirmer.',
@@ -44,6 +71,10 @@ class AccountDeletionController extends Controller
 
         $name = $user->name;
         $id = $user->id;
+
+        // Motif du départ, conservé de façon ANONYME (aucun lien vers le membre).
+        // Sans ça, on ne savait pas pourquoi les membres partaient.
+        $this->consignerMotif($request, $user);
 
         $outcome = $user->deleteOrAnonymize();
 

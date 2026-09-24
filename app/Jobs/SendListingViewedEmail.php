@@ -42,6 +42,12 @@ class SendListingViewedEmail implements ShouldQueue
             . "L'équipe Swap Îles\n"
             . "https://swapiles.com";
 
+        // Reglages du membre : il peut avoir coupe cette categorie d'e-mail.
+        if (method_exists($seller, 'accepteNotification')
+            && ! $seller->accepteNotification('listing_needs_photo', 'email')) {
+            return;
+        }
+
         Mail::raw($body, function ($mail) use ($seller, $subject) {
             $mail->from('contact@swapiles.com', 'Swap Îles')
                 ->to($seller->email)

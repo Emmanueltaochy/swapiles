@@ -38,6 +38,12 @@ class SendSellerPublishedListingEmail implements ShouldQueue
             . "Voir l’annonce : " . $url . "\n\n"
             . "L’équipe Swap Îles";
 
+        // Reglages du membre : il peut avoir coupe cette categorie d'e-mail.
+        if (method_exists($recipient, 'accepteNotification')
+            && ! $recipient->accepteNotification('seller_published_listing', 'email')) {
+            return;
+        }
+
         Mail::raw($body, function ($mail) use ($recipient) {
             $mail->from('contact@swapiles.com', 'Swap Îles')
                 ->to($recipient->email)

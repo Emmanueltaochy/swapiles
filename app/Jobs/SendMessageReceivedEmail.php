@@ -56,6 +56,12 @@ class SendMessageReceivedEmail implements ShouldQueue
             . "L'équipe Swap Îles\n"
             . "https://swapiles.com";
 
+        // Reglages du membre : il peut avoir coupe cette categorie d'e-mail.
+        if (method_exists($recipient, 'accepteNotification')
+            && ! $recipient->accepteNotification('message_received', 'email')) {
+            return;
+        }
+
         Mail::raw($body, function ($mail) use ($recipient, $subject) {
             $mail->from('contact@swapiles.com', 'Swap Îles')
                 ->to($recipient->email)

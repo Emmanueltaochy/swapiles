@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Notification extends Model
 {
@@ -20,6 +21,11 @@ class Notification extends Model
      * déclenche AUSSI une notification push sur les appareils du membre.
      * Un seul point d'accroche couvre tous les événements de l'app.
      */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
     protected static function booted(): void
     {
         static::created(function (self $notification) {
@@ -28,7 +34,15 @@ class Notification extends Model
             }
 
             // On ne met en file un envoi que si le push est réellement configuré.
-            if (! \App\Support\FcmService::configured()) {
+            if (! \App\Support\FcmService::configured() && ! \App\Support\ApnsService::configured()) {
+                return;
+            }
+
+            // Réglages du membre : il peut avoir coupé cette catégorie.
+            // Sans ce garde-fou, le seul moyen d'arrêter les notifications
+            // était de supprimer son compte.
+            $destinataire = $notification->user;
+            if ($destinataire && ! $destinataire->accepteNotification($notification->type, 'push')) {
                 return;
             }
 

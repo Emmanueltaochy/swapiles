@@ -38,7 +38,18 @@ class ProfileSettingsController extends Controller
             'country_code' => ['nullable', 'string', 'size:2'],
             'avatar' => ['nullable', 'image', 'max:5120'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'notification_prefs' => ['nullable', 'array'],
         ]);
+
+        // Réglages de notification : cases à cocher, donc une case décochée
+        // n'est pas envoyée — on normalise pour ne rien laisser au hasard.
+        if ($request->has('notification_prefs_submitted')) {
+            $data['notification_prefs'] = \App\Support\NotificationPreferences::nettoyer(
+                $request->input('notification_prefs')
+            );
+        } else {
+            unset($data['notification_prefs']);
+        }
 
         if ($request->hasFile('avatar')) {
             $path = $request->file('avatar')->store('avatars', 'public');

@@ -97,7 +97,7 @@ class User extends Authenticatable implements FilamentUser
     use HasFactory, Notifiable;
 
     protected $fillable = [
-        'name', 'email', 'password', 'email_verified_at',
+        'name', 'email', 'password', 'email_verified_at', 'notification_prefs',
         'sharetribe_id', 'phone', 'avatar',
         'stripe_account_id', 'territoire',
         'stripe_charges_enabled', 'stripe_payouts_enabled',
@@ -113,6 +113,7 @@ class User extends Authenticatable implements FilamentUser
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'notification_prefs' => 'array',
         'is_pro' => 'boolean',
         'is_banned' => 'boolean',
         'rating' => 'decimal:2',
@@ -269,6 +270,32 @@ class User extends Authenticatable implements FilamentUser
      *
      * @return string 'deleted' ou 'anonymized'
      */
+    /**
+     * Ce membre accepte-t-il ce type de notification sur ce canal ?
+     *
+     * Par defaut TOUT est accepte : un membre qui n'a jamais touche a ses
+     * reglages continue de recevoir ce qu'il recevait avant. Les notifications
+     * liees a une vente ou a la securite du compte passent toujours.
+     *
+     * @param  string  $canal  'push' ou 'email'
+     */
+    public function accepteNotification(?string $type, string $canal): bool
+    {
+        $categorie = \App\Support\NotificationPreferences::categorieDuType($type);
+
+        if ($categorie === null) {
+            return true;
+        }
+
+        $prefs = $this->notification_prefs;
+
+        if (! is_array($prefs) || ! array_key_exists($categorie, $prefs)) {
+            return true;
+        }
+
+        return (bool) ($prefs[$categorie][$canal] ?? true);
+    }
+
     public function deleteOrAnonymize(): string
     {
         $hasFinancialHistory = $this->sales()->exists() || $this->purchases()->exists();

@@ -60,6 +60,34 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Garde-fous d'envoi des notifications push
+    |--------------------------------------------------------------------------
+    |
+    | silence  : plage horaire, dans le fuseau du MEMBRE, pendant laquelle on
+    |            ne fait pas sonner le téléphone. La notification est différée
+    |            au réveil, jamais supprimée. Indispensable ici : 8 heures
+    |            séparent La Réunion des Antilles.
+    | plafonds : nombre maximum de notifications sonores par membre et par jour.
+    |            « social » = un humain attend une réponse ; « animation » =
+    |            incitation (favoris, nouveautés, conseils).
+    |
+    | Les notifications liées à l'argent ou à la sécurité du compte ne sont ni
+    | différées ni plafonnées.
+    |
+    */
+
+    'silence' => [
+        'debut' => (int) env('PUSH_SILENCE_DEBUT', 22),
+        'fin' => (int) env('PUSH_SILENCE_FIN', 8),
+    ],
+
+    'plafonds' => [
+        'social' => (int) env('PUSH_PLAFOND_SOCIAL', 10),
+        'animation' => (int) env('PUSH_PLAFOND_ANIMATION', 3),
+    ],
+
     'active_days' => (int) env('PUSH_ACTIVE_DAYS', 30),
     'retention_days' => (int) env('PUSH_RETENTION_DAYS', 90),
 

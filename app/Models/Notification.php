@@ -46,14 +46,28 @@ class Notification extends Model
                 return;
             }
 
+            // Garde-fous : heures de silence dans le fuseau du membre et
+            // plafond quotidien. Voir App\Support\PushPolicy.
+            $decision = \App\Support\PushPolicy::decider($destinataire, $notification->type);
+
+            if ($decision['action'] === 'ignorer') {
+                // La notification reste consultable dans l'app : seul le signal
+                // sonore est supprimé.
+                return;
+            }
+
             $url = $notification->clickUrl();
 
-            \App\Jobs\SendPushBroadcast::dispatch(
+            $envoi = \App\Jobs\SendPushBroadcast::dispatch(
                 title: $notification->title ?: "Swap'Îles",
                 body: (string) $notification->message,
                 url: $url === '#' ? null : $url,
                 userId: $notification->user_id,
             );
+
+            if ($decision['action'] === 'differer' && $decision['envoi_a']) {
+                $envoi->delay($decision['envoi_a']);
+            }
         });
     }
 

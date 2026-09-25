@@ -172,8 +172,10 @@ class NotificationPreferencesTest extends TestCase
         $this->assertArrayNotHasKey('email', $motif->getAttributes());
     }
 
-    public function test_le_motif_est_facultatif_et_n_empeche_jamais_la_suppression(): void
+    public function test_un_depart_sans_reponse_est_quand_meme_comptabilise(): void
     {
+        // Sans ça, le compteur affichait zéro départ alors que des membres
+        // étaient réellement partis.
         $membre = $this->membre();
 
         $this->actingAs($membre)->delete(route('account.delete'), [
@@ -181,8 +183,23 @@ class NotificationPreferencesTest extends TestCase
             'password' => 'motdepasse123',
         ])->assertRedirect();
 
-        $this->assertSame(0, AccountDeletionReason::count());
+        $motif = AccountDeletionReason::firstOrFail();
+        $this->assertSame(AccountDeletionReason::NON_RENSEIGNE, $motif->reason);
+        $this->assertSame('Sans réponse', $motif->motifLabel());
+        $this->assertNull($motif->details);
+
+        // La suppression n'est jamais empêchée par la collecte du motif.
         $this->assertNull(User::find($membre->id));
+    }
+
+    public function test_les_motifs_sont_visibles_et_non_caches_dans_un_menu(): void
+    {
+        // Un menu déroulant fermé sur « je préfère ne pas répondre » ne recueille
+        // quasiment aucune réponse : les motifs doivent être affichés.
+        $vue = file_get_contents(resource_path('views/account-deletion.blade.php'));
+
+        $this->assertStringContainsString('type="radio" name="reason"', $vue);
+        $this->assertStringNotContainsString('<select id="reason"', $vue);
     }
 
     public function test_un_motif_invente_est_refuse(): void

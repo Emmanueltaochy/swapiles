@@ -87,22 +87,28 @@
                     @csrf
                     @method('DELETE')
 
-                    <div>
-                        <label for="reason" class="block text-sm font-semibold text-gray-700">
+                    {{-- Motifs VISIBLES, pas cachés dans un menu déroulant fermé sur
+                         « je préfère ne pas répondre » : personne n'ouvrait le menu,
+                         et aucun motif n'était jamais recueilli. --}}
+                    <fieldset>
+                        <legend class="block text-sm font-semibold text-gray-700">
                             Pourquoi partez-vous ? <span class="font-normal text-gray-400">(facultatif)</span>
-                        </label>
-                        <select id="reason" name="reason"
-                                class="mt-1 w-full rounded-xl border border-gray-200 px-4 py-2.5 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100">
-                            <option value="">Je préfère ne pas répondre</option>
-                            @foreach(\App\Models\AccountDeletionReason::MOTIFS as $cle => $libelle)
-                                <option value="{{ $cle }}">{{ $libelle }}</option>
-                            @endforeach
-                        </select>
+                        </legend>
                         <p class="mt-1 text-xs text-gray-400">
                             Votre réponse est anonyme : elle n’est reliée ni à votre nom,
                             ni à votre adresse e-mail. Elle nous aide à corriger ce qui ne va pas.
                         </p>
-                    </div>
+
+                        <div class="mt-3 space-y-2">
+                            @foreach(\App\Models\AccountDeletionReason::MOTIFS as $cle => $libelle)
+                                <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 px-4 py-3 transition hover:bg-gray-50 has-[:checked]:border-red-300 has-[:checked]:bg-red-50">
+                                    <input type="radio" name="reason" value="{{ $cle }}"
+                                           class="mt-0.5 h-4 w-4 shrink-0 border-gray-300 text-red-600 focus:ring-red-500">
+                                    <span class="text-sm text-gray-800">{{ $libelle }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </fieldset>
 
                     <div>
                         <label for="reason_details" class="sr-only">Précision</label>

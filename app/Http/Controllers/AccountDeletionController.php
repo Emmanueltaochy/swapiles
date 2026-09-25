@@ -29,13 +29,14 @@ class AccountDeletionController extends Controller
      */
     private function consignerMotif(Request $request, $user): void
     {
-        if (blank($request->input('reason'))) {
-            return;
-        }
+        // On consigne TOUJOURS le départ, même sans réponse : sinon le compteur
+        // affiche zéro alors que des membres sont réellement partis.
+        $motif = $request->input('reason')
+            ?: \App\Models\AccountDeletionReason::NON_RENSEIGNE;
 
         try {
             \App\Models\AccountDeletionReason::create([
-                'reason' => (string) $request->input('reason'),
+                'reason' => (string) $motif,
                 'details' => $request->input('reason_details') ?: null,
                 'days_since_signup' => $user->created_at ? (int) $user->created_at->diffInDays(now()) : null,
                 'had_sales' => $user->sales()->exists() || $user->purchases()->exists(),

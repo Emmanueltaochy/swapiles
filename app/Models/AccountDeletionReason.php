@@ -23,6 +23,13 @@ class AccountDeletionReason extends Model
         'created_at' => 'datetime',
     ];
 
+    /**
+     * Motif enregistré quand le membre n'a pas répondu.
+     * Le départ est consigné quand même : sinon le compteur affiche zéro alors
+     * que des membres sont réellement partis.
+     */
+    public const NON_RENSEIGNE = 'non_renseigne';
+
     /** Motifs proposés, dans l'ordre d'affichage. */
     public const MOTIFS = [
         'trop_notifications' => 'Je recevais trop de notifications ou d’e-mails',
@@ -36,6 +43,10 @@ class AccountDeletionReason extends Model
 
     public function motifLabel(): string
     {
+        if ($this->reason === self::NON_RENSEIGNE) {
+            return 'Sans réponse';
+        }
+
         return self::MOTIFS[$this->reason] ?? $this->reason;
     }
 }

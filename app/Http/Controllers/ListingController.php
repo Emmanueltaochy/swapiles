@@ -68,6 +68,17 @@ class ListingController extends Controller
                 return;
             }
 
+            // Notification interne -> c'est elle qui declenche le push.
+            // Sans elle, le vendeur recevait l'e-mail « annonce vue » mais
+            // aucune notification sur son telephone.
+            \App\Models\Notification::create([
+                'user_id' => $listing->user_id,
+                'type' => 'listing_viewed',
+                'title' => 'Votre annonce a été vue 👀',
+                'message' => '« ' . $listing->title . ' » vient d’être consultée.',
+                'url' => route('listings.show', $listing, absolute: false),
+            ]);
+
             SendListingViewedEmail::dispatch($listing->id);
         } catch (\Throwable $e) {
             report($e);

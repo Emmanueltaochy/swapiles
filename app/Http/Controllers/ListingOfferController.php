@@ -44,6 +44,14 @@ class ListingOfferController extends Controller
             'body' => "💸 Nouvelle offre : {$offer->amount} €\n\n" . ($offer->message ?: 'Aucun message ajouté.'),
         ]);
 
+        $this->notifier(
+            $listing->user_id,
+            'offer_received',
+            'Nouvelle offre 💸',
+            $offer->amount . ' € proposés pour « ' . $listing->title . ' ».',
+            $listing,
+        );
+
         SendOfferEmail::dispatch($offer->id, $listing->user_id, 'received');
 
         return redirect()
@@ -52,6 +60,29 @@ class ListingOfferController extends Controller
                 'user' => $listing->user,
             ])
             ->with('status', 'Votre offre a bien été envoyée au vendeur.');
+    }
+
+    /**
+     * Notification interne au destinataire : c'est elle qui declenche le push.
+     * Sans elle, seul l'e-mail partait.
+     */
+    private function notifier(?int $userId, string $type, string $titre, string $message, $listing): void
+    {
+        if (! $userId || ! $listing) {
+            return;
+        }
+
+        try {
+            \App\Models\Notification::create([
+                'user_id' => $userId,
+                'type' => $type,
+                'title' => $titre,
+                'message' => $message,
+                'url' => route('listings.show', $listing, absolute: false),
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     public function accept(ListingOffer $offer)
@@ -66,6 +97,14 @@ class ListingOfferController extends Controller
             'receiver_id' => $offer->buyer_id,
             'body' => "✅ Votre offre de {$offer->amount} € a été acceptée.\n\nVous pouvez maintenant finaliser l’achat au prix accepté.",
         ]);
+
+        $this->notifier(
+            $offer->buyer_id,
+            'offer_accepted',
+            'Offre acceptée ✅',
+            'Votre offre de ' . $offer->amount . ' € a été acceptée.',
+            $offer->listing,
+        );
 
         SendOfferEmail::dispatch($offer->id, $offer->buyer_id, 'accepted');
 
@@ -84,6 +123,14 @@ class ListingOfferController extends Controller
             'receiver_id' => $offer->buyer_id,
             'body' => "❌ Votre offre de {$offer->amount} € a été refusée.",
         ]);
+
+        $this->notifier(
+            $offer->buyer_id,
+            'offer_declined',
+            'Offre refusée',
+            'Votre offre de ' . $offer->amount . ' € a été refusée.',
+            $offer->listing,
+        );
 
         SendOfferEmail::dispatch($offer->id, $offer->buyer_id, 'refused');
 

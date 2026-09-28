@@ -23,9 +23,9 @@ class NotificationPreferences
             'types' => ['message_received', 'exchange_proposal', 'listing_interest'],
         ],
         'favoris' => [
-            'label' => 'Favoris sur mes annonces',
-            'description' => 'Quand quelqu’un met une de vos annonces en favori.',
-            'types' => ['favorite_added'],
+            'label' => 'Activité sur mes annonces',
+            'description' => 'Quand quelqu’un consulte une de vos annonces ou la met en favori.',
+            'types' => ['favorite_added', 'listing_viewed'],
         ],
         'vendeurs_suivis' => [
             'label' => 'Nouveautés des vendeurs suivis',
@@ -44,6 +44,7 @@ class NotificationPreferences
         'transaction_paid_buyer',
         'transaction_paid_seller',
         'transaction_refunded',
+        'offer_received',
         'offer_accepted',
         'offer_declined',
         'moderation_warning',

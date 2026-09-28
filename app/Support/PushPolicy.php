@@ -48,6 +48,7 @@ class PushPolicy
         'social' => ['message_received', 'exchange_proposal', 'listing_interest'],
         'animation' => [
             'favorite_added',
+            'listing_viewed',
             'seller_published_listing',
             'listing_available_colissimo',
             'listing_needs_photo',

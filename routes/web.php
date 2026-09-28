@@ -37,6 +37,14 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
+// Fichiers de vérification permettant aux liens swapiles.com d'ouvrir
+// directement l'application quand elle est installée (App Links / Universal
+// Links). Doivent rester accessibles publiquement, sans redirection.
+Route::get('/.well-known/assetlinks.json', [\App\Http\Controllers\DeepLinkController::class, 'android'])
+    ->name('deeplinks.android');
+Route::get('/.well-known/apple-app-site-association', [\App\Http\Controllers\DeepLinkController::class, 'apple'])
+    ->name('deeplinks.apple');
+
 Route::get('/territoire/{territoire}', function (string $territoire) {
     $territoires = \App\Support\TerritoireContext::CLES;
 

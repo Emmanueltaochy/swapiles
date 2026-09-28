@@ -30,7 +30,7 @@ jobs:
           #   APNS_KEY_B64 : cle d'authentification Apple .p8 (push iPhone), base64
           #   APNS_KEY_ID / APNS_TEAM_ID : identifiants de cette cle
           #   MAIL_*       : identifiants SMTP du fournisseur d'e-mails
-          envs: FCM_SA_B64,APNS_KEY_B64,APNS_KEY_ID,APNS_TEAM_ID,MAIL_HOST,MAIL_PORT,MAIL_USERNAME,MAIL_PASSWORD,MAIL_SCHEME,MAIL_FROM_ADDRESS,MAIL_FROM_NAME
+          envs: FCM_SA_B64,APNS_KEY_B64,APNS_KEY_ID,APNS_TEAM_ID,ANDROID_SHA256_FINGERPRINT,MAIL_HOST,MAIL_PORT,MAIL_USERNAME,MAIL_PASSWORD,MAIL_SCHEME,MAIL_FROM_ADDRESS,MAIL_FROM_NAME
           script: |
             set -e
             cd "${{ secrets.VPS_PATH }}"
@@ -60,6 +60,11 @@ jobs:
             if [ -n "${APNS_TEAM_ID:-}" ]; then
               ./scripts/set-env.sh APNS_TEAM_ID "$APNS_TEAM_ID"
             fi
+            # Empreinte du certificat de signature Android : permet aux liens
+            # swapiles.com d'ouvrir directement l'application installee.
+            if [ -n "${ANDROID_SHA256_FINGERPRINT:-}" ]; then
+              ./scripts/set-env.sh ANDROID_SHA256_FINGERPRINT "$ANDROID_SHA256_FINGERPRINT"
+            fi
             # Fournisseur d'e-mails : renseigné depuis les secrets GitHub, ce qui
             # permet d'en changer sans aucun accès SSH. La boîte de l'hébergeur
             # est plafonnée à 1 000 envois par jour et finit en indésirable ;
@@ -82,6 +87,7 @@ jobs:
           APNS_KEY_B64: ${{ secrets.APNS_KEY_B64 }}
           APNS_KEY_ID: ${{ secrets.APNS_KEY_ID }}
           APNS_TEAM_ID: ${{ secrets.APNS_TEAM_ID }}
+          ANDROID_SHA256_FINGERPRINT: ${{ secrets.ANDROID_SHA256_FINGERPRINT }}
           MAIL_HOST: ${{ secrets.MAIL_HOST }}
           MAIL_PORT: ${{ secrets.MAIL_PORT }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}

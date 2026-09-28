@@ -84,7 +84,10 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        // « Rester connecté » est coché par défaut (voir le formulaire). Sans
+        // mémorisation, la session expire au bout de quelques heures et le
+        // membre doit se reconnecter, ce qu'aucune app grand public ne fait.
+        if (Auth::attempt($credentials, $request->boolean('remember', true))) {
             if (Auth::user()->is_banned || \App\Models\BlockedEmail::isBlocked(Auth::user()->email)) {
                 Auth::logout();
                 $request->session()->invalidate();
@@ -155,7 +158,9 @@ class AuthController extends Controller
             'transactions_count' => 0,
         ]);
 
-        Auth::login($user);
+        // Un membre qui vient de s'inscrire reste connecté : le renvoyer vers
+        // l'écran de connexion quelques heures plus tard le ferait fuir.
+        Auth::login($user, true);
 
         \App\Models\UserSession::record($user->id, $request, 'registration');
 

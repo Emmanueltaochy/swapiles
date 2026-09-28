@@ -32,7 +32,10 @@ return [
     |
     */
 
-    'lifetime' => (int) env('SESSION_LIFETIME', 120),
+    // 30 jours. La mémorisation de connexion (« Rester connecté ») prend le
+    // relais au-delà, mais une session courte faisait aussi perdre les
+    // formulaires en cours de saisie.
+    'lifetime' => (int) env('SESSION_LIFETIME', 43200),
 
     'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
 

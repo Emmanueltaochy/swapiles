@@ -42,9 +42,15 @@
                 </div>
 
                 <div class="flex items-center justify-between">
+                    {{-- Rester connecte est COCHE par defaut : sur un telephone
+                         personnel, personne ne veut retaper son mot de passe a
+                         chaque visite. Le champ cache permet de distinguer une
+                         case decochee d'un champ absent. --}}
                     <label class="flex items-center gap-2 text-sm text-gray-600">
-                        <input type="checkbox" name="remember" class="rounded border-gray-300 text-teal-600 focus:ring-teal-500">
-                        Se souvenir de moi
+                        <input type="hidden" name="remember" value="0">
+                        <input type="checkbox" name="remember" value="1" checked
+                               class="rounded border-gray-300 text-teal-600 focus:ring-teal-500">
+                        Rester connecté
                     </label>
                     <a href="{{ route('password.request') }}" class="text-sm font-medium text-teal-700 hover:text-teal-900">Mot de passe oublié ?</a>
                 </div>

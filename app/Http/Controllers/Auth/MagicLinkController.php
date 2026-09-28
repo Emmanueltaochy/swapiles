@@ -63,7 +63,9 @@ class MagicLinkController extends Controller
             ]);
         }
 
-        Auth::login($user);
+        // Le lien magique prouve la possession de l'adresse e-mail : on
+        // mémorise la connexion, comme pour une connexion classique.
+        Auth::login($user, true);
         \App\Models\UserSession::record($user->id, $request, 'login');
         $request->session()->regenerate();
 

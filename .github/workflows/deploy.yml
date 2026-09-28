@@ -30,7 +30,7 @@ jobs:
           #   APNS_KEY_B64 : cle d'authentification Apple .p8 (push iPhone), base64
           #   APNS_KEY_ID / APNS_TEAM_ID : identifiants de cette cle
           #   MAIL_*       : identifiants SMTP du fournisseur d'e-mails
-          envs: FCM_SA_B64,APNS_KEY_B64,APNS_KEY_ID,APNS_TEAM_ID,ANDROID_SHA256_FINGERPRINT,MAIL_HOST,MAIL_PORT,MAIL_USERNAME,MAIL_PASSWORD,MAIL_SCHEME,MAIL_FROM_ADDRESS,MAIL_FROM_NAME
+          envs: FCM_SA_B64,APNS_KEY_B64,APNS_KEY_ID,APNS_TEAM_ID,ANDROID_SHA256_FINGERPRINT,SESSION_LIFETIME,MAIL_HOST,MAIL_PORT,MAIL_USERNAME,MAIL_PASSWORD,MAIL_SCHEME,MAIL_FROM_ADDRESS,MAIL_FROM_NAME
           script: |
             set -e
             cd "${{ secrets.VPS_PATH }}"
@@ -65,6 +65,10 @@ jobs:
             if [ -n "${ANDROID_SHA256_FINGERPRINT:-}" ]; then
               ./scripts/set-env.sh ANDROID_SHA256_FINGERPRINT "$ANDROID_SHA256_FINGERPRINT"
             fi
+            # Duree de session : 30 jours par defaut. Une session courte
+            # deconnectait les membres au bout de quelques minutes d'inactivite.
+            # La memorisation de connexion prend le relais au-dela.
+            ./scripts/set-env.sh SESSION_LIFETIME "${SESSION_LIFETIME:-43200}"
             # Fournisseur d'e-mails : renseigné depuis les secrets GitHub, ce qui
             # permet d'en changer sans aucun accès SSH. La boîte de l'hébergeur
             # est plafonnée à 1 000 envois par jour et finit en indésirable ;
@@ -88,6 +92,7 @@ jobs:
           APNS_KEY_ID: ${{ secrets.APNS_KEY_ID }}
           APNS_TEAM_ID: ${{ secrets.APNS_TEAM_ID }}
           ANDROID_SHA256_FINGERPRINT: ${{ secrets.ANDROID_SHA256_FINGERPRINT }}
+          SESSION_LIFETIME: ${{ secrets.SESSION_LIFETIME }}
           MAIL_HOST: ${{ secrets.MAIL_HOST }}
           MAIL_PORT: ${{ secrets.MAIL_PORT }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}

@@ -8,10 +8,14 @@
         @endif
 
         @auth
-            <button type="button" aria-label="Ajouter aux favoris"
-                    onclick="event.preventDefault(); event.stopPropagation(); window.location.href='{{ route('account.favorites.toggle.get', $listing) }}';"
+            @php $dejaFavori = auth()->user()->favorites()->where('listing_id', $listing->id)->exists(); @endphp
+            <button type="button"
+                    data-favori-url="{{ route('account.favorites.toggle', $listing) }}"
+                    data-favori="{{ $dejaFavori ? '1' : '0' }}"
+                    aria-pressed="{{ $dejaFavori ? 'true' : 'false' }}"
+                    aria-label="{{ $dejaFavori ? 'Retirer des favoris' : 'Ajouter aux favoris' }}"
                     class="absolute right-2 top-2 z-20 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-lg shadow">
-                {{ auth()->user()->favorites()->where('listing_id', $listing->id)->exists() ? '❤️' : '🤍' }}
+                {{ $dejaFavori ? '❤️' : '🤍' }}
             </button>
         @else
             <button type="button" aria-label="Se connecter pour ajouter aux favoris"

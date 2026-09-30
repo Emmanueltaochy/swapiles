@@ -172,10 +172,10 @@
 
         @php
             $emojiCategories = [
-                ['label' => 'Femme', 'emoji' => '👗', 'url' => route('search', ['category' => 'Femme', 'territoire' => $selectedTerritoire])],
-                ['label' => 'Homme', 'emoji' => '👕', 'url' => route('search', ['category' => 'Homme', 'territoire' => $selectedTerritoire])],
-                ['label' => 'Enfant', 'emoji' => '🧸', 'url' => route('search', ['category' => 'Enfant', 'territoire' => $selectedTerritoire])],
-                ['label' => 'Accessoires', 'emoji' => '👜', 'url' => route('search', ['category' => 'Accessoires', 'territoire' => $selectedTerritoire])],
+                ['label' => 'Femme', 'emoji' => '👗', 'url' => route('search', ['category' => 'femme', 'territoire' => $selectedTerritoire])],
+                ['label' => 'Homme', 'emoji' => '👕', 'url' => route('search', ['category' => 'homme', 'territoire' => $selectedTerritoire])],
+                ['label' => 'Enfant', 'emoji' => '🧸', 'url' => route('search', ['category' => 'enfant', 'territoire' => $selectedTerritoire])],
+                ['label' => 'Accessoires', 'emoji' => '👜', 'url' => route('search', ['category' => 'accessoires', 'territoire' => $selectedTerritoire])],
                 ['label' => 'Chaussures', 'emoji' => '👟', 'url' => route('search', ['q' => 'chaussures', 'territoire' => $selectedTerritoire])],
                 ['label' => 'Nouveautés', 'emoji' => '✨', 'url' => route('search')],
             ];

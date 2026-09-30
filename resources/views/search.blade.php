@@ -27,6 +27,29 @@
     $selectedCategory = request('category');
     $selectedLevel2 = request('category_level2');
     $selectedLevel3 = request('category_level3');
+
+    // Les categories sont enregistrees en minuscules, mais les liens peuvent
+    // arriver avec une majuscule (pastilles de l'accueil, anciens liens,
+    // favoris du navigateur). Le filtrage les tolere deja ; la navigation par
+    // sous-categorie, elle, ne s'affichait pas. On retrouve donc la cle reelle
+    // de l'arbre, sans tenir compte de la casse.
+    $cleReelle = function (?string $valeur, array $cles) {
+        if (! $valeur) {
+            return $valeur;
+        }
+
+        foreach ($cles as $cle) {
+            if (mb_strtolower((string) $cle) === mb_strtolower($valeur)) {
+                return $cle;
+            }
+        }
+
+        return $valeur;
+    };
+
+    $selectedCategory = $cleReelle($selectedCategory, array_keys($categoryTree));
+    $selectedLevel2 = $cleReelle($selectedLevel2, array_keys($categoryTree[$selectedCategory] ?? []));
+    $selectedLevel3 = $cleReelle($selectedLevel3, ($categoryTree[$selectedCategory][$selectedLevel2] ?? []));
     $prettyCategory = fn ($value) => ucfirst(str_replace('-', ' ', (string) $value));
     $advancedActive = request()->filled('category_level2') || request()->filled('category_level3')
         || request()->filled('etat') || request()->filled('taille')
@@ -256,10 +279,14 @@
                     @endif
 
                     @auth
-                        <button type="button" aria-label="Ajouter aux favoris"
-                                onclick="event.preventDefault(); event.stopPropagation(); window.location.href='{{ route('account.favorites.toggle.get', $listing) }}';"
-                                class="absolute right-2 top-2 z-20 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-lg shadow">
-                            {{ auth()->user()->favorites()->where('listing_id', $listing->id)->exists() ? '❤️' : '🤍' }}
+                        @php $dejaFavori = auth()->user()->favorites()->where('listing_id', $listing->id)->exists(); @endphp
+                        <button type="button"
+                                data-favori-url="{{ route('account.favorites.toggle', $listing) }}"
+                                data-favori="{{ $dejaFavori ? '1' : '0' }}"
+                                aria-pressed="{{ $dejaFavori ? 'true' : 'false' }}"
+                                aria-label="{{ $dejaFavori ? 'Retirer des favoris' : 'Ajouter aux favoris' }}"
+                                class="absolute right-2 top-2 z-20 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-lg shadow transition">
+                            {{ $dejaFavori ? '❤️' : '🤍' }}
                         </button>
                     @else
                         <button type="button" aria-label="Se connecter pour ajouter aux favoris"

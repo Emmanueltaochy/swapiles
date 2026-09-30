@@ -631,6 +631,8 @@ document.addEventListener('DOMContentLoaded', function () {
 <script src="{{ asset('js/report.js') }}"></script>
 <script src="{{ asset('js/share.js') }}"></script>
 <script src="{{ asset('js/password-eye.js') }}"></script>
+<script src="{{ asset('js/form-draft.js') }}"></script>
+<script src="{{ asset('js/favorite.js') }}"></script>
 
 </body>
 </html>

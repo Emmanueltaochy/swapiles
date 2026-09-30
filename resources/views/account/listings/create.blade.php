@@ -51,7 +51,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('account.listings.store') }}" enctype="multipart/form-data" class="space-y-5" id="form-annonce">
+        <form method="POST" action="{{ route('account.listings.store') }}" enctype="multipart/form-data" class="space-y-5" id="form-annonce" data-brouillon="depot-annonce">
             {{-- Anti-doublon : identifie cet envoi de formulaire. Un deuxième envoi
                  du même formulaire (double tap, actualisation pendant l'envoi des
                  photos) renvoie sur l'annonce déjà publiée au lieu d'en créer une

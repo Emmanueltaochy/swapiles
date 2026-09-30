@@ -89,8 +89,11 @@
 
                         <button
                             type="button"
-                            onclick="event.preventDefault(); event.stopPropagation(); window.location.href='{{ route('account.favorites.toggle.get', $listing) }}';"
-                            class="absolute top-2 right-2 w-9 h-9 rounded-full bg-white shadow flex items-center justify-center text-red-500 text-lg z-20"
+                            data-favori-url="{{ route('account.favorites.toggle', $listing) }}"
+                            data-favori="1"
+                            aria-pressed="true"
+                            aria-label="Retirer des favoris"
+                            class="absolute top-2 right-2 w-9 h-9 rounded-full bg-white shadow flex items-center justify-center text-red-500 text-lg z-20 transition"
                         >
                             ❤️
                         </button>

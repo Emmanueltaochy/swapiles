@@ -102,6 +102,32 @@ class SearchCategoryNavigationTest extends TestCase
         $this->assertStringNotContainsString('Toutes catégories</a>', $html);
     }
 
+    public function test_une_categorie_avec_majuscule_affiche_quand_meme_la_navigation(): void
+    {
+        // Les pastilles de l'accueil et les anciens liens envoient « Femme »,
+        // alors que les annonces sont enregistrees en « femme ». Le filtrage le
+        // tolerait deja, mais la navigation par sous-categorie ne s'affichait pas.
+        $this->annonce('femme', 'robes', 'robe-longue');
+        $this->annonce('femme', 'chaussures', 'baskets');
+
+        $html = $this->get(route('search', ['category' => 'Femme']))->assertOk()->getContent();
+
+        $this->assertStringContainsString('Robes', $html);
+        $this->assertStringContainsString('Chaussures', $html);
+    }
+
+    public function test_une_sous_categorie_avec_majuscule_est_aussi_toleree(): void
+    {
+        $this->annonce('femme', 'robes', 'robe-longue');
+
+        $html = $this->get(route('search', [
+            'category' => 'FEMME',
+            'category_level2' => 'Robes',
+        ]))->assertOk()->getContent();
+
+        $this->assertStringContainsString('Robe longue', $html);
+    }
+
     public function test_le_filtrage_par_sous_categorie_fonctionne(): void
     {
         $robe = $this->annonce('femme', 'robes', 'robe-longue');

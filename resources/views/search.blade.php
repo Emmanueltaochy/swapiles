@@ -32,6 +32,21 @@
         || request()->filled('etat') || request()->filled('taille')
         || request()->filled('min_price') || request()->filled('max_price');
 
+    // Lien vers un niveau de categorie, en conservant tous les autres filtres.
+    $catUrl = function (?string $l1 = null, ?string $l2 = null, ?string $l3 = null) {
+        $params = request()->except(['category', 'category_level2', 'category_level3', 'page']);
+
+        if ($l1) { $params['category'] = $l1; }
+        if ($l2) { $params['category_level2'] = $l2; }
+        if ($l3) { $params['category_level3'] = $l3; }
+
+        return route('search', $params);
+    };
+
+    $chip = 'shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-medium transition';
+    $chipOff = $chip . ' border-gray-200 bg-white text-gray-700 hover:border-teal-300 hover:bg-teal-50';
+    $chipOn = $chip . ' border-teal-600 bg-teal-600 text-white';
+
     $pillSelect = 'shrink-0 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none';
     $pillInput = 'rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none';
 @endphp
@@ -106,6 +121,61 @@
                 @endforeach
             </div>
 
+            {{-- NAVIGATION PAR CATEGORIE, VISIBLE.
+                 Les sous-categories etaient enfouies dans « Plus de filtres » :
+                 personne ne les trouvait, alors que c'est le chemin principal
+                 pour parcourir le catalogue. Chaque niveau s'affiche des que le
+                 precedent est choisi, comme sur les grandes marketplaces. --}}
+            @if($selectedCategory && isset($categoryTree[$selectedCategory]))
+                @php
+                    $enfantsN2 = $categoryTree[$selectedCategory] ?? [];
+                    $enfantsN3 = ($selectedLevel2 && isset($enfantsN2[$selectedLevel2]))
+                        ? $enfantsN2[$selectedLevel2]
+                        : [];
+                @endphp
+
+                {{-- Fil d'Ariane : on voit ou on est, et on remonte d'un clic. --}}
+                <nav class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm" aria-label="Fil d'Ariane des catégories">
+                    <a href="{{ $catUrl() }}" class="font-semibold text-teal-700 hover:underline">Toutes catégories</a>
+                    <span class="text-gray-300" aria-hidden="true">›</span>
+
+                    @if($selectedLevel2)
+                        <a href="{{ $catUrl($selectedCategory) }}" class="font-semibold text-teal-700 hover:underline">{{ $prettyCategory($selectedCategory) }}</a>
+                        <span class="text-gray-300" aria-hidden="true">›</span>
+                    @else
+                        <span class="font-bold text-gray-900">{{ $prettyCategory($selectedCategory) }}</span>
+                    @endif
+
+                    @if($selectedLevel2)
+                        @if($selectedLevel3)
+                            <a href="{{ $catUrl($selectedCategory, $selectedLevel2) }}" class="font-semibold text-teal-700 hover:underline">{{ $prettyCategory($selectedLevel2) }}</a>
+                            <span class="text-gray-300" aria-hidden="true">›</span>
+                            <span class="font-bold text-gray-900">{{ $prettyCategory($selectedLevel3) }}</span>
+                        @else
+                            <span class="font-bold text-gray-900">{{ $prettyCategory($selectedLevel2) }}</span>
+                        @endif
+                    @endif
+                </nav>
+
+                {{-- Niveau suivant, en pastilles. On n'affiche que ce qui est
+                     pertinent la ou l'on se trouve. --}}
+                @if(! $selectedLevel2 && count($enfantsN2))
+                    <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                        @foreach($enfantsN2 as $n2 => $n3Items)
+                            <a href="{{ $catUrl($selectedCategory, $n2) }}" class="{{ $chipOff }}">{{ $prettyCategory($n2) }}</a>
+                        @endforeach
+                    </div>
+                @elseif($selectedLevel2)
+                    <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                        <a href="{{ $catUrl($selectedCategory) }}" class="{{ $chipOff }}">← Tout {{ $prettyCategory($selectedCategory) }}</a>
+                        @foreach($enfantsN3 as $n3)
+                            <a href="{{ $catUrl($selectedCategory, $selectedLevel2, $n3) }}"
+                               class="{{ $selectedLevel3 === $n3 ? $chipOn : $chipOff }}">{{ $prettyCategory($n3) }}</a>
+                        @endforeach
+                    </div>
+                @endif
+            @endif
+
             {{-- Filtres avancés (repliables) --}}
             <details class="group" @if($advancedActive) open @endif>
                 <summary class="inline-flex cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-teal-700 hover:text-teal-900">
@@ -114,29 +184,9 @@
                 </summary>
 
                 <div class="mt-3 flex flex-wrap gap-2">
-                    <select name="category_level2" id="category_level2_select" onchange="resetLevel3AndSubmit()" class="{{ $pillSelect }}">
-                        <option value="">Sous-catégorie</option>
-                        @foreach($categoryTree as $level1 => $children)
-                            @foreach($children as $level2 => $level3Items)
-                                <option value="{{ $level2 }}" data-parent="{{ $level1 }}" @selected($selectedLevel2 === $level2 && (!$selectedCategory || $selectedCategory === $level1))>
-                                    {{ $prettyCategory($level1) }} — {{ $prettyCategory($level2) }}
-                                </option>
-                            @endforeach
-                        @endforeach
-                    </select>
-
-                    <select name="category_level3" id="category_level3_select" onchange="this.form.submit()" class="{{ $pillSelect }}">
-                        <option value="">Type précis</option>
-                        @foreach($categoryTree as $level1 => $children)
-                            @foreach($children as $level2 => $level3Items)
-                                @foreach($level3Items as $level3)
-                                    <option value="{{ $level3 }}" data-parent="{{ $level1 }}" data-level2="{{ $level2 }}" @selected($selectedLevel3 === $level3 && (!$selectedCategory || $selectedCategory === $level1) && (!$selectedLevel2 || $selectedLevel2 === $level2))>
-                                        {{ $prettyCategory($level3) }}
-                                    </option>
-                                @endforeach
-                            @endforeach
-                        @endforeach
-                    </select>
+                    {{-- Les sous-categories sont desormais accessibles par la
+                         navigation visible plus haut (fil d'Ariane + pastilles) :
+                         ces deux listes faisaient doublon et etaient introuvables. --}}
 
                     <select name="etat" onchange="this.form.submit()" class="{{ $pillSelect }}">
                         <option value="">État</option>
@@ -400,20 +450,28 @@ document.addEventListener('DOMContentLoaded', () => {
     rebuildCategoryOptions();
 });
 
+// Les listes de sous-categories ont ete remplacees par la navigation visible
+// (fil d'Ariane + pastilles) : ces fonctions doivent donc tolerer leur absence.
 function resetSubCategoriesAndSubmit() {
+    const level1 = document.getElementById('category_level1_select');
     const level2 = document.getElementById('category_level2_select');
     const level3 = document.getElementById('category_level3_select');
-    level2.value = '';
-    level3.value = '';
+
+    if (level2) { level2.value = ''; }
+    if (level3) { level3.value = ''; }
     rebuildCategoryOptions();
-    document.getElementById('category_level1_select').form.submit();
+
+    if (level1) { level1.form.submit(); }
 }
 
 function resetLevel3AndSubmit() {
+    const level2 = document.getElementById('category_level2_select');
     const level3 = document.getElementById('category_level3_select');
-    level3.value = '';
+
+    if (level3) { level3.value = ''; }
     rebuildLevel3Options();
-    document.getElementById('category_level2_select').form.submit();
+
+    if (level2) { level2.form.submit(); }
 }
 </script>
 @endsection

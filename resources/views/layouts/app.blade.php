@@ -630,6 +630,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <script src="{{ asset('js/push.js') }}"></script>
 <script src="{{ asset('js/report.js') }}"></script>
 <script src="{{ asset('js/share.js') }}"></script>
+<script src="{{ asset('js/password-eye.js') }}"></script>
 
 </body>
 </html>

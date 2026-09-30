@@ -9,11 +9,11 @@ use Filament\Pages\Page;
 /**
  * Rangement des catégories.
  *
- * L'arbre ne couvrait que l'habillement alors que la plateforme vend aussi du
- * mobilier, du high-tech, du sport et du bricolage : ces annonces portaient une
- * catégorie fausse ou vide et restaient introuvables par la navigation. Cette
- * page montre où en sont vraiment les annonces, propose un rangement, et ne
- * l'applique que sur demande.
+ * Le formulaire de dépôt n'a longtemps offert que Femme / Homme / Enfant : le
+ * vendeur d'un réfrigérateur n'avait aucun rayon juste à choisir. Toutes les
+ * annonces portent donc une catégorie « valide » sans que le contenu
+ * corresponde. Cette page montre le désordre réel, propose un rangement et ne
+ * l'applique que sur clic — avec un retour en arrière possible.
  */
 class CategoryTidy extends Page
 {
@@ -33,25 +33,46 @@ class CategoryTidy extends Page
 
         return [
             'repartition' => CategoryAudit::repartition(),
-            'propositions' => $apercu['propositions'],
-            'reconnues' => $apercu['reconnues'],
-            'inconnues' => $apercu['inconnues'],
+            'repartitionNiveau2' => CategoryAudit::repartitionNiveau2(),
+            'aRanger' => $apercu['aRanger'],
+            'aReclasser' => $apercu['aReclasser'],
+            'laissees' => $apercu['laissees'],
+            'motsNonReconnus' => CategoryAudit::motsNonReconnus(),
+            'dejaDeplacees' => CategoryAudit::nombreDeplacees(),
         ];
     }
 
-    /** Range toutes les annonces que les règles reconnaissent. */
+    /** Range et reclasse toutes les annonces dont le titre est reconnu. */
     public function rangerTout(): void
     {
-        $deplacees = CategoryAudit::ranger();
+        $bilan = CategoryAudit::ranger();
+        $total = $bilan['rangees'] + $bilan['reclassees'];
 
-        Notification::make()
-            ->success()
-            ->title($deplacees > 0
-                ? $deplacees . ' annonce' . ($deplacees > 1 ? 's rangées' : ' rangée')
-                : 'Rien à ranger')
-            ->body($deplacees > 0
-                ? 'Elles sont désormais visibles dans la navigation par catégorie.'
-                : 'Toutes les annonces reconnues sont déjà à leur place.')
+        if ($total === 0) {
+            Notification::make()->warning()
+                ->title('Rien à ranger')
+                ->body('Aucun titre ne correspond à une règle pour le moment.')
+                ->send();
+
+            return;
+        }
+
+        Notification::make()->success()
+            ->title($total . ' annonce' . ($total > 1 ? 's déplacées' : ' déplacée'))
+            ->body($bilan['rangees'] . ' rangée(s) depuis un rayon invalide, '
+                . $bilan['reclassees'] . ' reclassée(s) d\'après leur titre. '
+                . 'Le bouton « Annuler » remet tout en place.')
+            ->persistent()
+            ->send();
+    }
+
+    /** Remet chaque annonce déplacée là où elle était. */
+    public function annulerRangement(): void
+    {
+        $remises = CategoryAudit::annuler();
+
+        Notification::make()->success()
+            ->title($remises . ' annonce' . ($remises > 1 ? 's remises' : ' remise') . ' en place')
             ->send();
     }
 }

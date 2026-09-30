@@ -164,33 +164,66 @@ class CategoryClassifier
     }
 
     /**
-     * Catégorie proposée pour une annonce, ou null si aucune règle ne
-     * reconnaît son texte.
+     * Catégorie proposée d'après le TITRE seul.
      *
-     * @return array{0: string, 1: string, 2: string}|null [niveau1, niveau2, niveau3]
+     * Le titre nomme l'objet ; la description raconte autour. « Robe légère,
+     * parfaite pour aller à la plage, je vends aussi mon frigo » ne doit pas
+     * envoyer une robe au rayon électroménager. C'est le seul signal assez
+     * sûr pour sortir une annonce du rayon où son vendeur l'avait mise.
+     *
+     * @return array{0: string, 1: string, 2: string}|null
+     */
+    public static function classerDepuisTitre(Listing $listing): ?array
+    {
+        return self::appliquerRegles(self::normaliser($listing->title));
+    }
+
+    /**
+     * Catégorie proposée d'après le titre, puis la description.
+     *
+     * Le repli sur la description ne sert qu'à sauver une annonce qui n'est
+     * rangée nulle part : le pire qui puisse arriver est qu'elle reste
+     * introuvable, ce qu'elle est déjà.
+     *
+     * @return array{0: string, 1: string, 2: string}|null
      */
     public static function classer(Listing $listing): ?array
     {
-        $texte = self::normaliser($listing->title . ' ' . $listing->description);
+        return self::classerDepuisTitre($listing)
+            ?? self::appliquerRegles(self::normaliser($listing->description));
+    }
 
-        if ($texte === '') {
-            return null;
+    /**
+     * Ce qu'il faut faire d'une annonce, en un mot.
+     *
+     * - « ranger »     : elle n'est rangée nulle part de valide, on la place.
+     * - « reclasser »  : elle est dans un rayon valide, mais son titre nomme
+     *                    clairement autre chose. C'est le cas de la quasi-
+     *                    totalité du stock : le formulaire n'offrait que
+     *                    Femme / Homme / Enfant, donc le vendeur d'un
+     *                    réfrigérateur n'avait aucun rayon juste à choisir.
+     * - « laisser »    : rien de sûr à proposer.
+     *
+     * @return array{action: string, place: ?array{0: string, 1: string, 2: string}}
+     */
+    public static function decider(Listing $listing): array
+    {
+        if (! self::dejaRangee($listing)) {
+            return ['action' => 'ranger', 'place' => self::classer($listing)];
         }
 
-        foreach (self::regles() as [$motif, $n1, $n2, $n3]) {
-            if (preg_match('/' . $motif . '/u', $texte)) {
-                return [$n1, $n2, $n3];
-            }
+        $place = self::classerDepuisTitre($listing);
+
+        // Déjà au bon endroit : rien à faire.
+        if ($place === null || self::memePlace($listing, $place)) {
+            return ['action' => 'laisser', 'place' => null];
         }
 
-        return null;
+        return ['action' => 'reclasser', 'place' => $place];
     }
 
     /**
      * L'annonce porte-t-elle déjà une place valide dans l'arbre ?
-     *
-     * Une annonce correctement rangée n'est jamais déplacée, même si une règle
-     * pourrait lui donner une autre place : le choix du vendeur fait foi.
      */
     public static function dejaRangee(Listing $listing): bool
     {
@@ -202,6 +235,30 @@ class CategoryClassifier
         }
 
         return isset(Categories::ARBRE[$n1]['enfants'][$n2]);
+    }
+
+    private static function memePlace(Listing $listing, array $place): bool
+    {
+        return mb_strtolower((string) $listing->category_level1) === $place[0]
+            && mb_strtolower((string) $listing->category_level2) === $place[1];
+    }
+
+    /**
+     * @return array{0: string, 1: string, 2: string}|null
+     */
+    private static function appliquerRegles(string $texte): ?array
+    {
+        if ($texte === '') {
+            return null;
+        }
+
+        foreach (self::regles() as [$motif, $n1, $n2, $n3]) {
+            if (preg_match('/' . $motif . '/u', $texte)) {
+                return [$n1, $n2, $n3];
+            }
+        }
+
+        return null;
     }
 
     /**

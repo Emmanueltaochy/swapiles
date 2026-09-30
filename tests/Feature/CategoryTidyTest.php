@@ -136,53 +136,121 @@ class CategoryTidyTest extends TestCase
         $this->assertNull($annonce->fresh()->category_level1);
     }
 
-    public function test_une_annonce_deja_bien_rangee_n_est_pas_touchee(): void
+    public function test_un_frigo_range_dans_femme_est_reclasse(): void
     {
-        // Le vendeur a rangé sa robe dans Femme > Vêtements. Même si une règle
-        // pouvait dire autre chose, son choix fait foi.
-        $annonce = $this->annonce('Table basse en verre', 'femme', 'vetements');
+        // Le cas reel : le formulaire n'offrait que Femme / Homme / Enfant, donc
+        // le vendeur d'un refrigerateur a pris le rayon qui existait. Sa
+        // categorie est « valide » et pourtant fausse.
+        $annonce = $this->annonce('Réfrigérateur 300 litres', 'femme', 'vetements');
 
         $this->assertTrue(CategoryClassifier::dejaRangee($annonce));
+
+        $decision = CategoryClassifier::decider($annonce);
+        $this->assertSame('reclasser', $decision['action']);
+
+        CategoryAudit::ranger();
+
+        $this->assertSame('maison', $annonce->fresh()->category_level1);
+        $this->assertSame('electromenager', $annonce->fresh()->category_level2);
+    }
+
+    public function test_une_vraie_robe_rangee_dans_femme_ne_bouge_pas(): void
+    {
+        $annonce = $this->annonce('Robe longue fleurie', 'femme', 'vetements');
+
+        $this->assertSame('laisser', CategoryClassifier::decider($annonce)['action']);
+
+        CategoryAudit::ranger();
+
+        $this->assertSame('femme', $annonce->fresh()->category_level1);
+        $this->assertSame('vetements', $annonce->fresh()->category_level2);
+    }
+
+    public function test_la_description_ne_suffit_pas_a_deplacer_une_annonce_rangee(): void
+    {
+        // « Robe légère… je vends aussi mon frigo » : le titre nomme l'objet,
+        // la description raconte autour. Sans cette regle, toutes les robes
+        // dont la description cite un autre objet partiraient au mauvais rayon.
+        $annonce = $this->annonce('Robe légère', 'femme', 'vetements');
+        $annonce->description = 'Très jolie. Je vends aussi mon réfrigérateur.';
+        $annonce->save();
+
+        $this->assertSame('laisser', CategoryClassifier::decider($annonce)['action']);
 
         CategoryAudit::ranger();
 
         $this->assertSame('femme', $annonce->fresh()->category_level1);
     }
 
-    public function test_le_rangement_deplace_les_annonces_reconnues(): void
+    public function test_la_description_sauve_une_annonce_rangee_nulle_part(): void
     {
-        $frigo = $this->annonce('Réfrigérateur 300 litres');
-        $telephone = $this->annonce('iPhone 12 en bon état', 'accessoires');
-
-        $deplacees = CategoryAudit::ranger();
-
-        $this->assertSame(2, $deplacees);
-        $this->assertSame('maison', $frigo->fresh()->category_level1);
-        $this->assertSame('electromenager', $frigo->fresh()->category_level2);
-        $this->assertSame('high-tech', $telephone->fresh()->category_level1);
-    }
-
-    public function test_le_rangement_ne_notifie_personne(): void
-    {
-        // saveQuietly : ranger une annonce n'est pas une modification du
-        // vendeur, il ne doit recevoir aucune alerte.
-        $annonce = $this->annonce('Télévision 40 pouces');
-        $avant = $annonce->updated_at;
+        // Ici le pire qui puisse arriver est qu'elle reste introuvable : elle
+        // l'est deja. On accepte donc un signal plus faible.
+        $annonce = $this->annonce('Super affaire', 'categorie-inventee');
+        $annonce->description = 'Un aquarium de 60 litres complet.';
+        $annonce->save();
 
         CategoryAudit::ranger();
 
-        $this->assertSame('high-tech', $annonce->fresh()->category_level1);
-        $this->assertNotNull($avant);
+        $this->assertSame('animaux', $annonce->fresh()->category_level1);
+    }
+
+    public function test_le_rangement_est_annulable(): void
+    {
+        $annonce = $this->annonce('Réfrigérateur 300 litres', 'femme', 'vetements');
+
+        CategoryAudit::ranger();
+        $this->assertSame('maison', $annonce->fresh()->category_level1);
+        $this->assertSame(1, CategoryAudit::nombreDeplacees());
+
+        $remises = CategoryAudit::annuler();
+
+        $this->assertSame(1, $remises);
+        $this->assertSame('femme', $annonce->fresh()->category_level1);
+        $this->assertSame('vetements', $annonce->fresh()->category_level2);
+        $this->assertNull($annonce->fresh()->category_avant);
+    }
+
+    public function test_deux_rangements_de_suite_gardent_la_place_d_origine(): void
+    {
+        $annonce = $this->annonce('Réfrigérateur 300 litres', 'femme', 'vetements');
+
+        CategoryAudit::ranger();
+        CategoryAudit::ranger();
+        CategoryAudit::annuler();
+
+        $this->assertSame('femme', $annonce->fresh()->category_level1);
+    }
+
+    public function test_le_rangement_compte_les_deux_familles(): void
+    {
+        $this->annonce('Réfrigérateur 300 litres', 'femme', 'vetements');
+        $this->annonce('iPhone 12 en bon état', 'categorie-inventee');
+
+        $bilan = CategoryAudit::ranger();
+
+        $this->assertSame(1, $bilan['reclassees']);
+        $this->assertSame(1, $bilan['rangees']);
     }
 
     public function test_l_apercu_ne_modifie_rien(): void
     {
-        $annonce = $this->annonce('Canapé d\'angle convertible');
+        $annonce = $this->annonce('Canapé d\'angle convertible', 'femme', 'vetements');
 
         $apercu = CategoryAudit::apercu();
 
-        $this->assertSame(1, $apercu['reconnues']);
-        $this->assertNull($annonce->fresh()->category_level1);
+        $this->assertSame(1, $apercu['aReclasser']->count());
+        $this->assertSame('femme', $annonce->fresh()->category_level1);
+    }
+
+    public function test_les_mots_non_reconnus_remontent(): void
+    {
+        $this->annonce('Paréo traditionnel', 'femme', 'accessoires');
+        $this->annonce('Paréo en coton', 'femme', 'accessoires');
+
+        $mots = collect(CategoryAudit::motsNonReconnus());
+
+        $this->assertSame(2, $mots->firstWhere('mot', 'pareo')['total'] ?? null);
     }
 
     public function test_la_repartition_signale_les_categories_hors_arbre(): void

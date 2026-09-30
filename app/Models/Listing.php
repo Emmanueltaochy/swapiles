@@ -26,6 +26,7 @@ class Listing extends Model
         'category_level1',
         'category_level2',
         'category_level3',
+        'category_avant',
         'etat',
         'marque',
         'taille',
@@ -47,6 +48,7 @@ class Listing extends Model
 
     protected $casts = [
         'couleurs' => 'array',
+        'category_avant' => 'array',
         'also_territoires' => 'array',
         'pickup_enabled' => 'boolean',
         'shipping_enabled' => 'boolean',

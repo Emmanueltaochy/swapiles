@@ -54,13 +54,44 @@ class MobileHeaderMenuTest extends TestCase
         $this->assertStringContainsString("S'inscrire", $html);
     }
 
+    /**
+     * Contenu du seul panneau de menu, pied de page exclu : « Confidentialité »
+     * vit aussi dans le pied de page, une recherche sur toute la page ne dirait
+     * donc rien sur le menu.
+     */
+    private function contenuDuMenu(string $html): string
+    {
+        $debut = strpos($html, 'id="menu-mobile"');
+        $fin = strpos($html, '<main>', $debut ?: 0);
+
+        $this->assertNotFalse($debut, 'Le panneau de menu a disparu.');
+        $this->assertNotFalse($fin, 'Impossible de delimiter le panneau de menu.');
+
+        return substr($html, $debut, $fin - $debut);
+    }
+
     public function test_le_menu_expose_la_navigation_absente_de_la_barre_du_bas(): void
     {
-        $html = $this->get('/')->assertOk()->getContent();
+        $menu = $this->contenuDuMenu($this->get('/')->assertOk()->getContent());
 
-        foreach (['Classement des dressings', 'Devenir point relais', 'Conditions générales', 'Confidentialité'] as $entree) {
-            $this->assertStringContainsString($entree, $html, "Entrée manquante : {$entree}");
+        foreach (['Classement des dressings', 'Devenir point relais', 'Comment ça marche'] as $entree) {
+            $this->assertStringContainsString($entree, $menu, "Entrée manquante : {$entree}");
         }
+    }
+
+    public function test_le_menu_ne_contient_pas_les_pages_juridiques(): void
+    {
+        $html = $this->get('/')->assertOk()->getContent();
+        $menu = $this->contenuDuMenu($html);
+
+        // Le menu sert a naviguer dans la boutique, pas a lire du juridique.
+        $this->assertStringNotContainsString('Conditions générales', $menu);
+        $this->assertStringNotContainsString('Confidentialité', $menu);
+
+        // Mais les deux pages restent liees ailleurs : Apple et Google l'exigent,
+        // et les retirer partout ferait refuser l'application.
+        $this->assertStringContainsString(route('legal.cgu'), $html);
+        $this->assertStringContainsString(route('legal.privacy'), $html);
     }
 
     public function test_un_membre_connecte_voit_son_compte_et_la_deconnexion(): void

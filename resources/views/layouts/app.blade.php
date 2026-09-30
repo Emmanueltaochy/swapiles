@@ -440,8 +440,10 @@ document.addEventListener('DOMContentLoaded', function () {
         <a href="{{ route('dressings.top') }}" class="{{ $menuLien }}"><span>🏆 Classement des dressings</span></a>
         <a href="{{ route('home') }}#comment-ca-marche" class="{{ $menuLien }}"><span>❓ Comment ça marche</span></a>
         <a href="{{ route('relay.partner') }}" class="{{ $menuLien }}"><span>🏪 Devenir point relais</span></a>
-        <a href="{{ route('legal.cgu') }}" class="{{ $menuLien }}"><span>📄 Conditions générales</span></a>
-        <a href="{{ route('legal.privacy') }}" class="{{ $menuLien }}"><span>🔒 Confidentialité</span></a>
+        {{-- Conditions generales et Confidentialite ne sont plus dans le menu :
+             il servait a naviguer, pas a lire des pages juridiques. Les deux
+             pages restent liees depuis le pied de page, ce qu'Apple et Google
+             exigent. --}}
 
         @auth
             <form method="POST" action="{{ route('logout') }}" class="mt-2 border-t border-gray-100">

@@ -74,7 +74,10 @@
     $pillInput = 'rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none';
 @endphp
 
-<section class="bg-white border-b border-gray-200 sticky top-0 z-30">
+{{-- L'entete est desormais collante en permanence : cette barre, collante
+     elle aussi au meme endroit mais moins prioritaire, glissait simplement
+     dessous et devenait invisible. On la laisse defiler normalement. --}}
+<section class="bg-white border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <form method="GET" action="{{ route('search') }}" class="space-y-3">
 
@@ -98,7 +101,59 @@
                     ->count();
             @endphp
 
-            <div class="flex items-center gap-2 lg:hidden">
+            {{-- Pastilles de filtre rapide.
+                 Ouvrir le panneau pour un seul reglage demande quatre gestes.
+                 Les envies les plus frequentes tiennent en un clic, dans une
+                 rangee qui defile : c'est ce que font les grandes places de
+                 marche. Chaque pastille est un lien, et un second clic la
+                 retire. --}}
+            @php
+                $pastillesRapides = [
+                    ['cle' => 'listing_type', 'valeur' => 'don',              'label' => '🎁 Dons'],
+                    ['cle' => 'payment',      'valeur' => 'cb',               'label' => '🔒 Paiement sécurisé'],
+                    ['cle' => 'listing_type', 'valeur' => 'negoce-prix',      'label' => '💬 Négociable'],
+                    ['cle' => 'listing_type', 'valeur' => 'echange-produits', 'label' => '🔄 Échange'],
+                    ['cle' => 'etat',         'valeur' => 'Neuf avec étiquette', 'label' => '✨ Neuf'],
+                    ['cle' => 'max_price',    'valeur' => '10',               'label' => '💶 Moins de 10 €'],
+                    ['cle' => 'sort',         'valeur' => 'price_asc',        'label' => '↕️ Prix croissant'],
+                    ['cle' => 'listing_type', 'valeur' => 'location-vetements', 'label' => '👗 Location'],
+                    ['cle' => 'inter_iles',   'valeur' => '1',                'label' => '🌍 Inter-îles'],
+                ];
+
+                // « payment » accepte plusieurs valeurs : on ajoute ou on retire
+                // de la liste. Les autres cles n'en portent qu'une seule.
+                $pastilleActive = function (string $cle, string $valeur): bool {
+                    if ($cle === 'payment') {
+                        return in_array($valeur, (array) request('payment', []), true);
+                    }
+
+                    return (string) request($cle, '') === $valeur;
+                };
+
+                $pastilleUrl = function (string $cle, string $valeur) use ($pastilleActive): string {
+                    $params = request()->query();
+                    unset($params['page']);
+
+                    if ($cle === 'payment') {
+                        $choisis = array_values((array) ($params['payment'] ?? []));
+                        $params['payment'] = $pastilleActive($cle, $valeur)
+                            ? array_values(array_diff($choisis, [$valeur]))
+                            : array_values(array_unique(array_merge($choisis, [$valeur])));
+
+                        if (empty($params['payment'])) {
+                            unset($params['payment']);
+                        }
+                    } elseif ($pastilleActive($cle, $valeur)) {
+                        unset($params[$cle]);
+                    } else {
+                        $params[$cle] = $valeur;
+                    }
+
+                    return route('search', $params);
+                };
+            @endphp
+
+            <div class="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-0.5 no-scrollbar sm:-mx-6 sm:px-6 lg:hidden">
                 <button type="button" data-filtres-ouvrir
                         aria-expanded="false" aria-controls="panneau-filtres"
                         class="inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition
@@ -110,9 +165,23 @@
                 </button>
 
                 @if($filtresActifs)
-                    <a href="{{ route('search', array_filter(['q' => request('q')])) }}"
-                       class="shrink-0 text-sm font-semibold text-gray-500 hover:text-gray-700">Effacer</a>
+                    <a href="{{ route('search', array_filter(['q' => request('q')])) }}" data-filtres-effacer
+                       class="inline-flex shrink-0 items-center gap-1 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-sm font-semibold text-gray-500">
+                        <span aria-hidden="true">✕</span> Effacer
+                    </a>
                 @endif
+
+                <span class="h-6 w-px shrink-0 bg-gray-200" aria-hidden="true"></span>
+
+                @foreach($pastillesRapides as $pastille)
+                    @php $active = $pastilleActive($pastille['cle'], $pastille['valeur']); @endphp
+                    <a href="{{ $pastilleUrl($pastille['cle'], $pastille['valeur']) }}"
+                       @if($active) aria-current="true" @endif
+                       class="inline-flex shrink-0 items-center rounded-full border px-3.5 py-2 text-sm font-semibold transition
+                              {{ $active ? 'border-teal-600 bg-teal-600 text-white' : 'border-gray-200 bg-white text-gray-700 hover:border-teal-300' }}">
+                        {{ $pastille['label'] }}
+                    </a>
+                @endforeach
             </div>
 
             {{-- NAVIGATION PAR CATEGORIE, VISIBLE.

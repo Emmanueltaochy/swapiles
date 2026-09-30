@@ -73,7 +73,7 @@ class SearchFilterPanelTest extends TestCase
         $html = $this->get(route('search', ['q' => 'article']))->assertOk()->getContent();
 
         // Le bouton reste neutre : ni fond plein, ni lien « Effacer ».
-        $this->assertStringNotContainsString('>Effacer<', $html);
+        $this->assertStringNotContainsString('data-filtres-effacer', $html);
     }
 
     public function test_les_filtres_actifs_sont_comptes_sur_le_bouton(): void
@@ -88,7 +88,7 @@ class SearchFilterPanelTest extends TestCase
 
         // Trois filtres posés, hors recherche texte et hors catégories.
         $this->assertStringContainsString('>3</span>', $html);
-        $this->assertStringContainsString('>Effacer<', $html);
+        $this->assertStringContainsString('data-filtres-effacer', $html);
     }
 
     public function test_les_categories_ne_sont_pas_enfermees_dans_le_panneau(): void
@@ -107,6 +107,79 @@ class SearchFilterPanelTest extends TestCase
             $positionNavigation,
             'La navigation par catégorie doit rester hors du panneau, toujours visible.'
         );
+    }
+
+    public function test_les_pastilles_rapides_sont_proposees(): void
+    {
+        $this->annonce();
+
+        $html = $this->get(route('search'))->assertOk()->getContent();
+
+        foreach (['Dons', 'Paiement sécurisé', 'Négociable', 'Échange', 'Neuf', 'Prix croissant'] as $pastille) {
+            $this->assertStringContainsString($pastille, $html, "Pastille manquante : {$pastille}");
+        }
+    }
+
+    public function test_une_pastille_applique_son_filtre(): void
+    {
+        $this->annonce();
+
+        $html = $this->get(route('search'))->assertOk()->getContent();
+
+        $this->assertStringContainsString(route('search', ['listing_type' => 'don']), $html);
+        $this->assertStringContainsString(route('search', ['payment' => ['cb']]), $html);
+    }
+
+    public function test_une_pastille_active_propose_de_se_retirer(): void
+    {
+        $this->annonce();
+
+        // Filtre « Dons » pose : la pastille doit renvoyer vers la recherche
+        // sans ce filtre, pour qu'un second clic l'enleve.
+        $html = $this->get(route('search', ['listing_type' => 'don']))->assertOk()->getContent();
+
+        $this->assertStringContainsString('aria-current="true"', $html);
+        $this->assertStringContainsString(route('search'), $html);
+    }
+
+    public function test_une_pastille_conserve_les_autres_filtres(): void
+    {
+        $this->annonce('mode');
+
+        // On navigue dans une categorie : la pastille ne doit pas la perdre.
+        $html = $this->get(route('search', ['category' => 'mode']))->assertOk()->getContent();
+
+        // e() : dans un attribut HTML, « & » est ecrit « &amp; ».
+        $this->assertStringContainsString(
+            e(route('search', ['category' => 'mode', 'listing_type' => 'don'])),
+            $html,
+            'Une pastille doit s\'ajouter aux filtres en place, pas les remplacer.'
+        );
+    }
+
+    public function test_les_pastilles_paiement_s_additionnent(): void
+    {
+        $this->annonce();
+
+        // Un paiement deja choisi : la pastille d'un autre doit proposer les deux.
+        $html = $this->get(route('search', ['payment' => ['cash']]))->assertOk()->getContent();
+
+        $this->assertStringContainsString(
+            e(route('search', ['payment' => ['cash', 'cb']])),
+            $html,
+            'Le choix « Paiement securise » doit s\'ajouter a « Especes », pas le remplacer.'
+        );
+    }
+
+    public function test_la_barre_de_filtres_ne_colle_plus_sous_l_entete(): void
+    {
+        $this->annonce();
+
+        $vue = file_get_contents(resource_path('views/search.blade.php'));
+
+        // L'entete est collante en permanence : une seconde barre collante au
+        // meme endroit glissait dessous et devenait invisible.
+        $this->assertStringNotContainsString('border-gray-200 sticky top-0 z-30', $vue);
     }
 
     public function test_le_lien_effacer_conserve_la_recherche_texte(): void

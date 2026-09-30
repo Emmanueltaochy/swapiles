@@ -75,8 +75,11 @@
 
 
 <section class="bg-white border-b border-gray-100">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div class="flex items-center gap-3">
+    {{-- Sur mobile, seules les pastilles d'ile restent : le libelle « territoire
+         selectionne » est redondant avec la pastille active, et occupait une
+         hauteur prise sur les annonces. --}}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+        <div class="hidden sm:flex items-center gap-3">
             <span class="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-teal-50 text-2xl">
                 {{ $selectedMeta['flag'] }}
             </span>
@@ -118,29 +121,33 @@
          style="background-image: url('{{ asset($heroBg ?: 'images/home-hero-reunion.webp') }}');"></div>
     <div class="absolute inset-0 bg-gradient-to-br from-teal-950/85 via-teal-900/70 to-emerald-900/65"></div>
 
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
+    {{-- Hauteur volontairement contenue sur mobile : chaque pixel gagne ici
+         rapproche la premiere annonce. Le badge et le nombre d'annonces ne
+         s'affichent qu'a partir du grand ecran, ils sont deja repris dans la
+         barre de territoire juste au-dessus. --}}
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 sm:py-14">
         <div class="max-w-3xl">
-            <span class="inline-flex items-center rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white backdrop-blur">
+            <span class="hidden sm:inline-flex items-center rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white backdrop-blur">
                 {{ $selectedMeta['flag'] }} Marketplace seconde main des Outre-mer
             </span>
 
-            <h1 class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
+            <h1 class="sm:mt-5 text-2xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight">
                 La seconde main, pensée pour {{ $selectedDisplay }}.
             </h1>
 
-            <p class="mt-5 text-lg sm:text-xl text-white/90 max-w-2xl leading-relaxed">
+            <p class="hidden sm:block mt-4 text-lg text-white/90 max-w-2xl leading-relaxed">
                 Vendez, achetez, échangez ou donnez près de chez vous.
                 Déjà <span class="font-bold text-white">{{ number_format($activeListingsCount, 0, ',', ' ') }}</span> annonces à {{ $selectedDisplay }} et <span class="font-bold text-white">{{ number_format($totalListingsCount, 0, ',', ' ') }}</span> annonces sur les îles.
             </p>
 
-            <form method="GET" action="{{ route('search', ['territoire' => $selectedTerritoire]) }}" class="mt-8 bg-white rounded-3xl shadow-2xl p-3 max-w-5xl">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
+            <form method="GET" action="{{ route('search', ['territoire' => $selectedTerritoire]) }}" class="mt-4 sm:mt-7 bg-white rounded-3xl shadow-2xl p-2.5 sm:p-3 max-w-5xl">
+                <div class="grid grid-cols-[1fr_auto] md:grid-cols-4 gap-2">
                     <input type="hidden" name="territoire" value="{{ $selectedTerritoire }}">
 
                     <input type="text" name="q" value="{{ request('q') }}" placeholder="Que recherches-tu ?"
                         class="md:col-span-2 px-4 py-3 bg-gray-50 rounded-2xl border-0 text-sm focus:ring-2 focus:ring-teal-600">
 
-                    <select name="category" class="px-4 py-3 bg-gray-50 rounded-2xl border-0 text-sm focus:ring-2 focus:ring-teal-600">
+                    <select name="category" class="hidden md:block px-4 py-3 bg-gray-50 rounded-2xl border-0 text-sm focus:ring-2 focus:ring-teal-600">
                         <option value="">Catégorie</option>
                         <option value="Femme">Femme</option>
                         <option value="Homme">Homme</option>
@@ -148,7 +155,7 @@
                         <option value="Accessoires">Accessoires</option>
                     </select>
 
-                    <button class="bg-teal-700 hover:bg-teal-800 text-white font-bold px-6 py-3 rounded-2xl transition">
+                    <button class="bg-teal-700 hover:bg-teal-800 text-white font-bold px-5 sm:px-6 py-3 rounded-2xl transition">
                         Rechercher
                     </button>
                 </div>
@@ -157,77 +164,6 @@
     </div>
 </section>
 
-<section class="bg-white border-b border-gray-100">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-5">
-                <p class="text-3xl font-bold text-gray-950">{{ number_format($totalListingsCount, 0, ',', ' ') }}</p>
-                <p class="text-sm font-bold text-gray-500 mt-1">annonces sur les îles</p>
-            </div>
-
-            <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-5">
-                <p class="text-3xl font-bold text-gray-950">{{ number_format($membersCount, 0, ',', ' ') }}</p>
-                <p class="text-sm font-bold text-gray-500 mt-1">membres inscrits</p>
-            </div>
-
-            <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-5">
-                <p class="text-3xl font-bold text-teal-700">{{ number_format($activeListingsCount, 0, ',', ' ') }}</p>
-                <p class="text-sm font-bold text-gray-500 mt-1">à {{ $selectedDisplay }}</p>
-            </div>
-
-            <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-5">
-                <p class="text-3xl font-bold text-emerald-700">{{ count($territoires) }} îles</p>
-                <p class="text-sm font-bold text-gray-500 mt-1">couvertes par Swap'Îles</p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div class="lg:col-span-2 rounded-3xl bg-gradient-to-br from-gray-950 via-teal-950 to-emerald-900 text-white p-6 sm:p-8 overflow-hidden relative">
-            <div class="absolute -right-8 -top-8 text-9xl opacity-10">🛡️</div>
-            <p class="text-sm font-bold uppercase tracking-wide text-emerald-200">Paiement sécurisé Swap’Îles</p>
-            <h2 class="text-2xl sm:text-3xl font-bold mt-2">Achète et vends en toute confiance.</h2>
-            <p class="text-white/75 mt-3 max-w-2xl">
-                Paie par carte, même en remise en main propre : le vendeur n'est payé qu'<span class="font-semibold text-white">après la remise confirmée</span>. Zéro avance pour l'acheteur, zéro impayé pour le vendeur — fini les faux rendez-vous. Et pour les vendeurs qui expédient, Colissimo reste disponible.
-            </p>
-
-<div id="low-price-colissimo-warning" class="hidden mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
-    <p class="font-bold">💡 Conseil pour les petits prix</p>
-    <p class="mt-1 text-sm leading-relaxed">
-        Pour les articles à moins de 10 €, les frais Colissimo se situent souvent autour de 7 à 9 €.
-        Vous pouvez laisser la livraison, mais nous vous conseillons aussi d’activer la remise en main propre
-        pour augmenter vos chances de vendre.
-    </p>
-</div>
-
-            <div class="mt-5 flex flex-wrap gap-3 text-sm font-bold">
-                <span class="bg-white/10 rounded-full px-4 py-2">💳 CB sécurisée</span>
-                <span class="bg-white/10 rounded-full px-4 py-2">🤝 Remise en main propre protégée</span>
-                <span class="bg-white/10 rounded-full px-4 py-2">📦 Colissimo si le vendeur expédie</span>
-            </div>
-        </div>
-
-        <a href="{{ route('account.listings.create') }}"
-           class="rounded-3xl bg-teal-600 hover:bg-teal-700 text-white p-6 sm:p-8 flex flex-col justify-between transition shadow-lg">
-            <div>
-                <p class="text-sm font-bold uppercase tracking-wide text-teal-100">Vendeur</p>
-                <h2 class="text-2xl font-bold mt-2">Publiez une annonce gratuitement.</h2>
-                <p class="text-white/80 mt-3">Mettez vos articles en ligne en quelques minutes.</p>
-            </div>
-            <span class="mt-8 inline-flex bg-white text-teal-700 rounded-2xl px-5 py-3 font-bold justify-center">
-                Déposer une annonce →
-            </span>
-        </a>
-    </div>
-</section>
-
-<section class="max-w-7xl mx-auto px-4 mt-2 mb-6">
-    <div class="overflow-hidden rounded-3xl shadow-lg border border-gray-100 bg-white">
-        <img loading="lazy" decoding="async" src="{{ asset('images/IMG_1431.jpg') }}" alt="Livraison Colissimo Swap'Îles" class="w-full h-full object-contain">
-    </div>
-</section>
 
 
 {{-- EMOJI_CATEGORIES_START --}}
@@ -262,7 +198,7 @@
     <div class="flex items-end justify-between mb-6">
         <div>
             <p class="text-sm font-bold uppercase tracking-wide text-rose-600">Tendance</p>
-            <h2 class="text-3xl md:text-4xl font-bold text-gray-950">🔥 Les annonces populaires</h2>
+            <h2 class="text-xl sm:text-3xl md:text-4xl font-bold text-gray-950">🔥 Les annonces populaires</h2>
             <p class="text-gray-500 mt-2">Les articles les plus regardés à {{ $selectedDisplay }}.</p>
         </div>
 
@@ -334,73 +270,6 @@
 
 
 
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="mb-6">
-        <p class="text-sm font-bold uppercase tracking-wide text-teal-700">Confiance</p>
-        <h2 class="text-3xl md:text-4xl font-bold text-gray-950">Pourquoi choisir Swap’Îles ?</h2>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="rounded-3xl bg-white border border-gray-100 shadow-sm p-6">
-            <div class="text-4xl mb-4">🛡️</div>
-            <h3 class="font-bold text-gray-950 text-lg">Paiement sécurisé</h3>
-            <p class="text-sm text-gray-500 mt-2">Achetez avec plus de confiance grâce au paiement en ligne protégé.</p>
-        </div>
-
-        <div class="rounded-3xl bg-white border border-gray-100 shadow-sm p-6">
-            <div class="text-4xl mb-4">🌍</div>
-            <h3 class="font-bold text-gray-950 text-lg">Inter-îles</h3>
-            <p class="text-sm text-gray-500 mt-2">Les annonces compatibles Colissimo peuvent toucher les autres territoires.</p>
-        </div>
-
-        <div class="rounded-3xl bg-white border border-gray-100 shadow-sm p-6">
-            <div class="text-4xl mb-4">💬</div>
-            <h3 class="font-bold text-gray-950 text-lg">Messagerie intégrée</h3>
-            <p class="text-sm text-gray-500 mt-2">Discutez directement avec les acheteurs et vendeurs sur la plateforme.</p>
-        </div>
-
-        <div class="rounded-3xl bg-white border border-gray-100 shadow-sm p-6">
-            <div class="text-4xl mb-4">♻️</div>
-            <h3 class="font-bold text-gray-950 text-lg">Seconde main locale</h3>
-            <p class="text-sm text-gray-500 mt-2">Donnez une seconde vie aux articles près de chez vous.</p>
-        </div>
-    </div>
-</section>
-
-<section id="comment-ca-marche" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 scroll-mt-24">
-    <div class="rounded-3xl bg-gray-950 text-white p-6 sm:p-8 lg:p-10 overflow-hidden relative">
-        <div class="absolute -right-10 -top-10 text-9xl opacity-10">🌴</div>
-
-        <div class="max-w-2xl mb-8">
-            <p class="text-sm font-bold uppercase tracking-wide text-emerald-300">Simple et rapide</p>
-            <h2 class="text-3xl md:text-4xl font-bold mt-2">Comment ça marche ?</h2>
-            <p class="text-white/70 mt-3">Swap’Îles simplifie la seconde main entre les îles, du premier message jusqu’à la vente.</p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="rounded-3xl bg-white/10 border border-white/10 p-6">
-                <div class="text-5xl mb-5">📸</div>
-                <p class="text-sm font-bold text-emerald-300">Étape 1</p>
-                <h3 class="text-xl font-bold mt-1">Publiez gratuitement</h3>
-                <p class="text-sm text-white/65 mt-2">Ajoutez vos photos, votre prix et votre territoire en quelques minutes.</p>
-            </div>
-
-            <div class="rounded-3xl bg-white/10 border border-white/10 p-6">
-                <div class="text-5xl mb-5">💬</div>
-                <p class="text-sm font-bold text-emerald-300">Étape 2</p>
-                <h3 class="text-xl font-bold mt-1">Discutez facilement</h3>
-                <p class="text-sm text-white/65 mt-2">Échangez avec les acheteurs et vendeurs directement depuis la messagerie.</p>
-            </div>
-
-            <div class="rounded-3xl bg-white/10 border border-white/10 p-6">
-                <div class="text-5xl mb-5">🛡️</div>
-                <p class="text-sm font-bold text-emerald-300">Étape 3</p>
-                <h3 class="text-xl font-bold mt-1">Vendez en sécurité</h3>
-                <p class="text-sm text-white/65 mt-2">Activez le paiement sécurisé pour proposer l’expédition et toucher plus d’acheteurs.</p>
-            </div>
-        </div>
-    </div>
-</section>
 
 @if($activeListingsCount < 12 && $crossIslandAvailableCount > 0)
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
@@ -435,7 +304,7 @@
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="flex items-end justify-between mb-6">
         <div>
-            <h2 class="text-2xl md:text-3xl font-bold text-gray-900">{{ $selectedMeta['flag'] }} Annonces à {{ $selectedDisplay }} &amp; sur les autres îles</h2>
+            <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">{{ $selectedMeta['flag'] }} Annonces à {{ $selectedDisplay }} &amp; sur les autres îles</h2>
             <p class="text-gray-500 mt-1">D'abord ce que vous pouvez acheter depuis {{ $selectedDisplay }} (main propre ou Colissimo), puis les articles des autres îles à faire expédier.</p>
         </div>
     </div>
@@ -655,6 +524,148 @@
     </div>
 </section>
 
+
+{{-- Blocs de reassurance et d'explication : APRES les produits.
+     Ils occupaient quatre ecrans avant la premiere annonce. --}}
+<section class="bg-white border-b border-gray-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-5">
+                <p class="text-3xl font-bold text-gray-950">{{ number_format($totalListingsCount, 0, ',', ' ') }}</p>
+                <p class="text-sm font-bold text-gray-500 mt-1">annonces sur les îles</p>
+            </div>
+
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-5">
+                <p class="text-3xl font-bold text-gray-950">{{ number_format($membersCount, 0, ',', ' ') }}</p>
+                <p class="text-sm font-bold text-gray-500 mt-1">membres inscrits</p>
+            </div>
+
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-5">
+                <p class="text-3xl font-bold text-teal-700">{{ number_format($activeListingsCount, 0, ',', ' ') }}</p>
+                <p class="text-sm font-bold text-gray-500 mt-1">à {{ $selectedDisplay }}</p>
+            </div>
+
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-5">
+                <p class="text-3xl font-bold text-emerald-700">{{ count($territoires) }} îles</p>
+                <p class="text-sm font-bold text-gray-500 mt-1">couvertes par Swap'Îles</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="lg:col-span-2 rounded-3xl bg-gradient-to-br from-gray-950 via-teal-950 to-emerald-900 text-white p-6 sm:p-8 overflow-hidden relative">
+            <div class="absolute -right-8 -top-8 text-9xl opacity-10">🛡️</div>
+            <p class="text-sm font-bold uppercase tracking-wide text-emerald-200">Paiement sécurisé Swap’Îles</p>
+            <h2 class="text-2xl sm:text-3xl font-bold mt-2">Achète et vends en toute confiance.</h2>
+            <p class="text-white/75 mt-3 max-w-2xl">
+                Paie par carte, même en remise en main propre : le vendeur n'est payé qu'<span class="font-semibold text-white">après la remise confirmée</span>. Zéro avance pour l'acheteur, zéro impayé pour le vendeur — fini les faux rendez-vous. Et pour les vendeurs qui expédient, Colissimo reste disponible.
+            </p>
+
+<div id="low-price-colissimo-warning" class="hidden mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+    <p class="font-bold">💡 Conseil pour les petits prix</p>
+    <p class="mt-1 text-sm leading-relaxed">
+        Pour les articles à moins de 10 €, les frais Colissimo se situent souvent autour de 7 à 9 €.
+        Vous pouvez laisser la livraison, mais nous vous conseillons aussi d’activer la remise en main propre
+        pour augmenter vos chances de vendre.
+    </p>
+</div>
+
+            <div class="mt-5 flex flex-wrap gap-3 text-sm font-bold">
+                <span class="bg-white/10 rounded-full px-4 py-2">💳 CB sécurisée</span>
+                <span class="bg-white/10 rounded-full px-4 py-2">🤝 Remise en main propre protégée</span>
+                <span class="bg-white/10 rounded-full px-4 py-2">📦 Colissimo si le vendeur expédie</span>
+            </div>
+        </div>
+
+        <a href="{{ route('account.listings.create') }}"
+           class="rounded-3xl bg-teal-600 hover:bg-teal-700 text-white p-6 sm:p-8 flex flex-col justify-between transition shadow-lg">
+            <div>
+                <p class="text-sm font-bold uppercase tracking-wide text-teal-100">Vendeur</p>
+                <h2 class="text-2xl font-bold mt-2">Publiez une annonce gratuitement.</h2>
+                <p class="text-white/80 mt-3">Mettez vos articles en ligne en quelques minutes.</p>
+            </div>
+            <span class="mt-8 inline-flex bg-white text-teal-700 rounded-2xl px-5 py-3 font-bold justify-center">
+                Déposer une annonce →
+            </span>
+        </a>
+    </div>
+</section>
+
+<section class="max-w-7xl mx-auto px-4 mt-2 mb-6">
+    <div class="overflow-hidden rounded-3xl shadow-lg border border-gray-100 bg-white">
+        <img loading="lazy" decoding="async" src="{{ asset('images/IMG_1431.jpg') }}" alt="Livraison Colissimo Swap'Îles" class="w-full h-full object-contain">
+    </div>
+</section>
+
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+        <p class="text-sm font-bold uppercase tracking-wide text-teal-700">Confiance</p>
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-950">Pourquoi choisir Swap’Îles ?</h2>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="rounded-3xl bg-white border border-gray-100 shadow-sm p-6">
+            <div class="text-4xl mb-4">🛡️</div>
+            <h3 class="font-bold text-gray-950 text-lg">Paiement sécurisé</h3>
+            <p class="text-sm text-gray-500 mt-2">Achetez avec plus de confiance grâce au paiement en ligne protégé.</p>
+        </div>
+
+        <div class="rounded-3xl bg-white border border-gray-100 shadow-sm p-6">
+            <div class="text-4xl mb-4">🌍</div>
+            <h3 class="font-bold text-gray-950 text-lg">Inter-îles</h3>
+            <p class="text-sm text-gray-500 mt-2">Les annonces compatibles Colissimo peuvent toucher les autres territoires.</p>
+        </div>
+
+        <div class="rounded-3xl bg-white border border-gray-100 shadow-sm p-6">
+            <div class="text-4xl mb-4">💬</div>
+            <h3 class="font-bold text-gray-950 text-lg">Messagerie intégrée</h3>
+            <p class="text-sm text-gray-500 mt-2">Discutez directement avec les acheteurs et vendeurs sur la plateforme.</p>
+        </div>
+
+        <div class="rounded-3xl bg-white border border-gray-100 shadow-sm p-6">
+            <div class="text-4xl mb-4">♻️</div>
+            <h3 class="font-bold text-gray-950 text-lg">Seconde main locale</h3>
+            <p class="text-sm text-gray-500 mt-2">Donnez une seconde vie aux articles près de chez vous.</p>
+        </div>
+    </div>
+</section>
+
+<section id="comment-ca-marche" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 scroll-mt-24">
+    <div class="rounded-3xl bg-gray-950 text-white p-6 sm:p-8 lg:p-10 overflow-hidden relative">
+        <div class="absolute -right-10 -top-10 text-9xl opacity-10">🌴</div>
+
+        <div class="max-w-2xl mb-8">
+            <p class="text-sm font-bold uppercase tracking-wide text-emerald-300">Simple et rapide</p>
+            <h2 class="text-3xl md:text-4xl font-bold mt-2">Comment ça marche ?</h2>
+            <p class="text-white/70 mt-3">Swap’Îles simplifie la seconde main entre les îles, du premier message jusqu’à la vente.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="rounded-3xl bg-white/10 border border-white/10 p-6">
+                <div class="text-5xl mb-5">📸</div>
+                <p class="text-sm font-bold text-emerald-300">Étape 1</p>
+                <h3 class="text-xl font-bold mt-1">Publiez gratuitement</h3>
+                <p class="text-sm text-white/65 mt-2">Ajoutez vos photos, votre prix et votre territoire en quelques minutes.</p>
+            </div>
+
+            <div class="rounded-3xl bg-white/10 border border-white/10 p-6">
+                <div class="text-5xl mb-5">💬</div>
+                <p class="text-sm font-bold text-emerald-300">Étape 2</p>
+                <h3 class="text-xl font-bold mt-1">Discutez facilement</h3>
+                <p class="text-sm text-white/65 mt-2">Échangez avec les acheteurs et vendeurs directement depuis la messagerie.</p>
+            </div>
+
+            <div class="rounded-3xl bg-white/10 border border-white/10 p-6">
+                <div class="text-5xl mb-5">🛡️</div>
+                <p class="text-sm font-bold text-emerald-300">Étape 3</p>
+                <h3 class="text-xl font-bold mt-1">Vendez en sécurité</h3>
+                <p class="text-sm text-white/65 mt-2">Activez le paiement sécurisé pour proposer l’expédition et toucher plus d’acheteurs.</p>
+            </div>
+        </div>
+    </div>
+</section>
 
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="flex items-center justify-between mb-5">

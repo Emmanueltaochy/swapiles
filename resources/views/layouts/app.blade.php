@@ -9,9 +9,18 @@
     @vite(['resources/css/app.css','resources/js/app.js'])
 
 <style id="swapiles-mobile-fix">
+/* « clip » et non « hidden » : hidden transforme le corps de page en conteneur
+   de defilement, ce qui CASSE position: sticky. L'entete etait donc collante
+   dans le code mais jamais a l'ecran. clip empeche le debordement horizontal
+   sans creer de conteneur de defilement. */
 html, body {
     max-width: 100%;
-    overflow-x: hidden;
+    overflow-x: clip;
+}
+@supports not (overflow: clip) {
+    html, body {
+        overflow-x: hidden;
+    }
 }
 @media (max-width: 1023px) {
     header .max-w-7xl {
@@ -25,7 +34,7 @@ html, body {
     }
     main {
         max-width: 100vw;
-        overflow-x: hidden;
+        overflow-x: clip;
     }
 }
 /* Zones de sécurité (encoches / barres système) : en mode edge-to-edge sur
@@ -283,6 +292,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 @endif
             </a>
 
+            {{-- Menu mobile. La barre du bas couvre deja Accueil, Produits,
+                 Deposer, Messages et Compte : ce menu porte le reste, qui
+                 n'etait accessible nulle part sur telephone. --}}
+            <button type="button"
+                    data-menu-ouvrir
+                    aria-label="Ouvrir le menu"
+                    aria-expanded="false"
+                    aria-controls="menu-mobile"
+                    class="lg:hidden relative shrink-0 w-11 h-11 rounded-full bg-gray-100 flex flex-col items-center justify-center gap-[5px]">
+                <span class="block h-0.5 w-5 rounded-full bg-gray-700"></span>
+                <span class="block h-0.5 w-5 rounded-full bg-gray-700"></span>
+                <span class="block h-0.5 w-5 rounded-full bg-gray-700"></span>
+                @auth
+                    @if(($unreadNotificationsCount ?? 0) > 0)
+                        <span class="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-600 ring-2 ring-white"></span>
+                    @endif
+                @endauth
+            </button>
+
             <nav class="hidden lg:flex items-center gap-4 text-sm font-bold">
                 <a href="{{ route('dressings.top') }}" class="hover:text-teal-700 {{ request()->routeIs('dressings.top') ? 'text-teal-700' : 'text-gray-700' }}" title="Meilleurs dressings">
                     🏆 Classement
@@ -341,7 +369,115 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
 </header>
 
+{{-- Panneau de navigation mobile --}}
+<div id="menu-mobile" data-menu-panneau hidden class="lg:hidden fixed inset-0 z-[9998]">
+    <div data-menu-fond class="absolute inset-0 bg-black/50"></div>
+
+    <div class="swp-safe-top absolute right-0 top-0 h-full w-[85%] max-w-sm overflow-y-auto bg-white shadow-2xl">
+        <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+            <span class="text-base font-bold text-gray-900">Menu</span>
+            <button type="button" data-menu-fermer aria-label="Fermer le menu"
+                    class="grid h-9 w-9 place-items-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-700">✕</button>
+        </div>
+
+        @auth
+            <a href="{{ route('account.dashboard') }}" class="flex items-center gap-3 border-b border-gray-100 px-5 py-4">
+                <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-teal-50 text-xl">👤</span>
+                <span class="min-w-0">
+                    <span class="block truncate font-bold text-gray-900">{{ auth()->user()->name }}</span>
+                    <span class="block text-sm text-gray-500">Voir mon compte</span>
+                </span>
+            </a>
+        @else
+            <div class="flex gap-2 border-b border-gray-100 px-5 py-4">
+                <a href="{{ route('login') }}" class="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-center text-sm font-semibold text-gray-700">Se connecter</a>
+                <a href="{{ route('register') }}" class="flex-1 rounded-xl bg-teal-600 px-4 py-2.5 text-center text-sm font-semibold text-white">S'inscrire</a>
+            </div>
+        @endauth
+
+        @php
+            $menuLien = 'flex items-center justify-between gap-3 px-5 py-3.5 text-[15px] text-gray-800 active:bg-gray-50';
+            $menuTitre = 'px-5 pt-5 pb-1 text-xs font-bold uppercase tracking-wide text-gray-400';
+        @endphp
+
+        <p class="{{ $menuTitre }}">Parcourir</p>
+        <a href="{{ route('search') }}" class="{{ $menuLien }}"><span>🔍 Tous les produits</span></a>
+        <a href="{{ route('search', ['category' => 'femme']) }}" class="{{ $menuLien }}"><span>👗 Femme</span></a>
+        <a href="{{ route('search', ['category' => 'homme']) }}" class="{{ $menuLien }}"><span>👕 Homme</span></a>
+        <a href="{{ route('search', ['category' => 'enfant']) }}" class="{{ $menuLien }}"><span>🧸 Enfant</span></a>
+        <a href="{{ route('search', ['category' => 'accessoires']) }}" class="{{ $menuLien }}"><span>👜 Accessoires</span></a>
+
+        @auth
+            <p class="{{ $menuTitre }}">Mon compte</p>
+            <a href="{{ route('account.notifications.index') }}" class="{{ $menuLien }}">
+                <span>🔔 Notifications</span>
+                @if(($unreadNotificationsCount ?? 0) > 0)
+                    <span class="rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white">{{ $unreadNotificationsCount > 9 ? '9+' : $unreadNotificationsCount }}</span>
+                @endif
+            </a>
+            <a href="/favoris" class="{{ $menuLien }}">
+                <span>🤍 Mes favoris</span>
+                @if(($favoriteAlertCount ?? 0) > 0)
+                    <span class="rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white">{{ $favoriteAlertCount }}</span>
+                @endif
+            </a>
+            <a href="{{ route('account.transactions.index') }}" class="{{ $menuLien }}"><span>📦 Mes transactions</span></a>
+            <a href="/mon-wallet" class="{{ $menuLien }}"><span>💶 Mon wallet</span></a>
+            <a href="{{ route('account.profile.edit') }}" class="{{ $menuLien }}"><span>⚙️ Mon profil et mes notifications</span></a>
+            @if(auth()->user()->managesAnyRelay())
+                <a href="{{ route('account.relay.dashboard') }}" class="{{ $menuLien }}"><span>🏪 Mon espace relais</span></a>
+            @endif
+        @endauth
+
+        <p class="{{ $menuTitre }}">Swap'Îles</p>
+        <a href="{{ route('dressings.top') }}" class="{{ $menuLien }}"><span>🏆 Classement des dressings</span></a>
+        <a href="{{ route('home') }}#comment-ca-marche" class="{{ $menuLien }}"><span>❓ Comment ça marche</span></a>
+        <a href="{{ route('relay.partner') }}" class="{{ $menuLien }}"><span>🏪 Devenir point relais</span></a>
+        <a href="{{ route('legal.cgu') }}" class="{{ $menuLien }}"><span>📄 Conditions générales</span></a>
+        <a href="{{ route('legal.privacy') }}" class="{{ $menuLien }}"><span>🔒 Confidentialité</span></a>
+
+        @auth
+            <form method="POST" action="{{ route('logout') }}" class="mt-2 border-t border-gray-100">
+                @csrf
+                <button class="w-full px-5 py-4 text-left text-[15px] font-semibold text-red-600 active:bg-gray-50">Se déconnecter</button>
+            </form>
+        @endauth
+
+        <div class="h-24"></div>
+    </div>
+</div>
+
     <script>
+        // Menu mobile : ouverture, fermeture, et verrouillage du defilement
+        // derriere le panneau.
+        (function () {
+            var panneau = document.getElementById('menu-mobile');
+            if (!panneau) return;
+
+            var bouton = document.querySelector('[data-menu-ouvrir]');
+
+            function ouvrir() {
+                panneau.hidden = false;
+                document.body.style.overflow = 'hidden';
+                if (bouton) bouton.setAttribute('aria-expanded', 'true');
+            }
+
+            function fermer() {
+                panneau.hidden = true;
+                document.body.style.overflow = '';
+                if (bouton) bouton.setAttribute('aria-expanded', 'false');
+            }
+
+            document.addEventListener('click', function (e) {
+                if (e.target.closest('[data-menu-ouvrir]')) { e.preventDefault(); ouvrir(); return; }
+                if (e.target.closest('[data-menu-fermer]') || e.target.matches('[data-menu-fond]')) { fermer(); }
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && !panneau.hidden) fermer();
+            });
+        })();
+
         // Ferme le menu "Mon compte" du header quand on clique en dehors
         document.addEventListener('click', function (e) {
             document.querySelectorAll('details.account-menu[open]').forEach(function (d) {

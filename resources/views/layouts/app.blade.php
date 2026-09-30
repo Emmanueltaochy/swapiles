@@ -47,6 +47,13 @@ html, body {
 .swp-safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* Rangees qui defilent horizontalement (pastilles de categories, carrousels) :
+   on masque la barre de defilement, qui sur ordinateur ajoute une bande grise
+   sous chaque rangee. La regle vivait seulement dans l'accueil ; les autres
+   pages utilisaient la classe sans effet. */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>
     <meta name="description" content="@yield('meta_description', 'Swap’Îles, la marketplace seconde main des îles : achetez, vendez, échangez et donnez près de chez vous à La Réunion, en Martinique, Guadeloupe, Guyane et Mayotte.')">
     <meta name="robots" content="@yield('robots', 'index, follow, max-image-preview:large')">

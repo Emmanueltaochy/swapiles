@@ -86,62 +86,33 @@
                 <button class="shrink-0 rounded-full bg-teal-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-700">Rechercher</button>
             </div>
 
-            {{-- Filtres principaux --}}
-            <div class="flex flex-wrap gap-2">
-                <select name="category" id="category_level1_select" onchange="resetSubCategoriesAndSubmit()" class="{{ $pillSelect }}">
-                    <option value="">Toutes catégories</option>
-                    @foreach($categoryTree as $level1 => $children)
-                        <option value="{{ $level1 }}" @selected($selectedCategory === $level1)>{{ $prettyCategory($level1) }}</option>
-                    @endforeach
-                </select>
+            {{-- BARRE DE FILTRES COMPACTE.
+                 Les filtres occupaient sept rangees et la moitie de l'ecran avant
+                 le premier produit. Ils tiennent desormais derriere un bouton, et
+                 seule la navigation par categorie — le chemin principal — reste
+                 visible. Sur grand ecran, tout reste affiche : la place ne manque pas. --}}
+            @php
+                $filtresActifs = collect(request()->except(['q', 'page', 'category', 'category_level2', 'category_level3']))
+                    ->flatMap(fn ($v) => is_array($v) ? $v : [$v])
+                    ->filter(fn ($v) => filled($v) && $v !== '0')
+                    ->count();
+            @endphp
 
-                <select name="listing_type" onchange="this.form.submit()" class="{{ $pillSelect }}">
-                    <option value="">Tous types</option>
-                    <option value="achat" @selected(request('listing_type') === 'achat')>🛍️ Achat / Vente</option>
-                    <option value="negoce-prix" @selected(request('listing_type') === 'negoce-prix')>💬 Prix négociable</option>
-                    <option value="don" @selected(request('listing_type') === 'don')>🎁 Don</option>
-                    <option value="echange-produits" @selected(request('listing_type') === 'echange-produits')>🔄 Échange</option>
-                    <option value="location-vetements" @selected(request('listing_type') === 'location-vetements')>👗 Location</option>
-                </select>
+            <div class="flex items-center gap-2 lg:hidden">
+                <button type="button" data-filtres-ouvrir
+                        aria-expanded="false" aria-controls="panneau-filtres"
+                        class="inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition
+                               {{ $filtresActifs ? 'border-teal-600 bg-teal-600 text-white' : 'border-gray-200 bg-white text-gray-700' }}">
+                    <span aria-hidden="true">⚙️</span> Filtres
+                    @if($filtresActifs)
+                        <span class="grid h-5 min-w-5 place-items-center rounded-full bg-white px-1 text-xs font-bold text-teal-700">{{ $filtresActifs }}</span>
+                    @endif
+                </button>
 
-                <select name="territoire" onchange="this.form.submit()" class="{{ $pillSelect }}">
-                    <option value="" @selected(($selectedTerritoire ?? null) === '')>🌍 Tous les territoires</option>
-                    <option value="La Réunion" @selected(($selectedTerritoire ?? request('territoire')) === 'La Réunion')>🇷🇪 La Réunion</option>
-                    <option value="Martinique" @selected(($selectedTerritoire ?? request('territoire')) === 'Martinique')>🇲🇶 Martinique</option>
-                    <option value="Guadeloupe" @selected(($selectedTerritoire ?? request('territoire')) === 'Guadeloupe')>🇬🇵 Guadeloupe</option>
-                    <option value="Guyane" @selected(($selectedTerritoire ?? request('territoire')) === 'Guyane')>🇬🇫 Guyane</option>
-                    <option value="Mayotte" @selected(($selectedTerritoire ?? request('territoire')) === 'Mayotte')>🇾🇹 Mayotte</option>
-                </select>
-
-                <select name="sort" onchange="this.form.submit()" class="{{ $pillSelect }}">
-                    <option value="">Plus récents</option>
-                    <option value="price_asc" @selected(request('sort') === 'price_asc')>Prix croissant</option>
-                    <option value="price_desc" @selected(request('sort') === 'price_desc')>Prix décroissant</option>
-                    <option value="oldest" @selected(request('sort') === 'oldest')>Plus anciens</option>
-                </select>
-
-                <label class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800">
-                    <input type="checkbox" name="inter_iles" value="1" onchange="this.form.submit()" @checked(request()->boolean('inter_iles')) class="rounded text-emerald-600 focus:ring-emerald-500">
-                    🌍 Inter-îles
-                </label>
-            </div>
-
-            {{-- Facette PAIEMENT (choix multiple) : distincte du type d'annonce --}}
-            @php $selPayments = (array) request('payment', []); @endphp
-            <div class="mt-3 flex flex-wrap items-center gap-2">
-                <span class="text-xs font-bold uppercase tracking-wide text-gray-400">Paiement :</span>
-                @foreach([
-                    'cb' => '🔒 Carte sécurisée',
-                    'cash' => '💵 Espèces / main propre',
-                    'exchange' => '🔄 Échange',
-                    'don' => '🎁 Don',
-                ] as $pKey => $pLabel)
-                    <label class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition
-                                  {{ in_array($pKey, $selPayments, true) ? 'border-teal-600 bg-teal-600 text-white' : 'border-gray-200 bg-white text-gray-700 hover:border-teal-300' }}">
-                        <input type="checkbox" name="payment[]" value="{{ $pKey }}" onchange="this.form.submit()" @checked(in_array($pKey, $selPayments, true)) class="hidden">
-                        {{ $pLabel }}
-                    </label>
-                @endforeach
+                @if($filtresActifs)
+                    <a href="{{ route('search', array_filter(['q' => request('q')])) }}"
+                       class="shrink-0 text-sm font-semibold text-gray-500 hover:text-gray-700">Effacer</a>
+                @endif
             </div>
 
             {{-- NAVIGATION PAR CATEGORIE, VISIBLE.
@@ -199,19 +170,91 @@
                 @endif
             @endif
 
+
+            {{-- Panneau : plein ecran sur telephone, colonne ordinaire sur grand ecran. --}}
+            <div id="panneau-filtres" data-filtres-panneau
+                 class="hidden lg:block fixed inset-0 z-[9998] overflow-y-auto bg-white p-5
+                        lg:static lg:inset-auto lg:z-auto lg:overflow-visible lg:bg-transparent lg:p-0">
+
+                {{-- Dans l'application, le plein ecran passe sous la barre d'etat :
+                     on descend l'entete du panneau de la hauteur de l'encoche. --}}
+                <div class="lg:hidden" style="height: env(safe-area-inset-top)" aria-hidden="true"></div>
+
+                <div class="mb-4 flex items-center justify-between lg:hidden">
+                    <span class="text-base font-bold text-gray-900">Filtres</span>
+                    <button type="button" data-filtres-fermer aria-label="Fermer les filtres"
+                            class="grid h-9 w-9 place-items-center rounded-full text-gray-400 transition hover:bg-gray-100">✕</button>
+                </div>
+
+                <div class="space-y-3">
+            {{-- Filtres principaux --}}
+            <div class="flex flex-wrap gap-2">
+                <select name="category" id="category_level1_select" class="{{ $pillSelect }}">
+                    <option value="">Toutes catégories</option>
+                    @foreach($categoryTree as $level1 => $children)
+                        <option value="{{ $level1 }}" @selected($selectedCategory === $level1)>{{ $prettyCategory($level1) }}</option>
+                    @endforeach
+                </select>
+
+                <select name="listing_type" class="{{ $pillSelect }}">
+                    <option value="">Tous types</option>
+                    <option value="achat" @selected(request('listing_type') === 'achat')>🛍️ Achat / Vente</option>
+                    <option value="negoce-prix" @selected(request('listing_type') === 'negoce-prix')>💬 Prix négociable</option>
+                    <option value="don" @selected(request('listing_type') === 'don')>🎁 Don</option>
+                    <option value="echange-produits" @selected(request('listing_type') === 'echange-produits')>🔄 Échange</option>
+                    <option value="location-vetements" @selected(request('listing_type') === 'location-vetements')>👗 Location</option>
+                </select>
+
+                <select name="territoire" class="{{ $pillSelect }}">
+                    <option value="" @selected(($selectedTerritoire ?? null) === '')>🌍 Tous les territoires</option>
+                    <option value="La Réunion" @selected(($selectedTerritoire ?? request('territoire')) === 'La Réunion')>🇷🇪 La Réunion</option>
+                    <option value="Martinique" @selected(($selectedTerritoire ?? request('territoire')) === 'Martinique')>🇲🇶 Martinique</option>
+                    <option value="Guadeloupe" @selected(($selectedTerritoire ?? request('territoire')) === 'Guadeloupe')>🇬🇵 Guadeloupe</option>
+                    <option value="Guyane" @selected(($selectedTerritoire ?? request('territoire')) === 'Guyane')>🇬🇫 Guyane</option>
+                    <option value="Mayotte" @selected(($selectedTerritoire ?? request('territoire')) === 'Mayotte')>🇾🇹 Mayotte</option>
+                </select>
+
+                <select name="sort" class="{{ $pillSelect }}">
+                    <option value="">Plus récents</option>
+                    <option value="price_asc" @selected(request('sort') === 'price_asc')>Prix croissant</option>
+                    <option value="price_desc" @selected(request('sort') === 'price_desc')>Prix décroissant</option>
+                    <option value="oldest" @selected(request('sort') === 'oldest')>Plus anciens</option>
+                </select>
+
+                <label class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800">
+                    <input type="checkbox" name="inter_iles" value="1" @checked(request()->boolean('inter_iles')) class="rounded text-emerald-600 focus:ring-emerald-500">
+                    🌍 Inter-îles
+                </label>
+            </div>
+
+            {{-- Facette PAIEMENT (choix multiple) : distincte du type d'annonce --}}
+            @php $selPayments = (array) request('payment', []); @endphp
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+                <span class="text-xs font-bold uppercase tracking-wide text-gray-400">Paiement :</span>
+                @foreach([
+                    'cb' => '🔒 Carte sécurisée',
+                    'cash' => '💵 Espèces / main propre',
+                    'exchange' => '🔄 Échange',
+                    'don' => '🎁 Don',
+                ] as $pKey => $pLabel)
+                    <label class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition
+                                  {{ in_array($pKey, $selPayments, true) ? 'border-teal-600 bg-teal-600 text-white' : 'border-gray-200 bg-white text-gray-700 hover:border-teal-300' }}">
+                        <input type="checkbox" name="payment[]" value="{{ $pKey }}" @checked(in_array($pKey, $selPayments, true)) class="hidden">
+                        {{ $pLabel }}
+                    </label>
+                @endforeach
+            </div>
+
             {{-- Filtres avancés (repliables) --}}
-            <details class="group" @if($advancedActive) open @endif>
-                <summary class="inline-flex cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-teal-700 hover:text-teal-900">
-                    <span>Plus de filtres</span>
-                    <span class="transition group-open:rotate-180" aria-hidden="true">▾</span>
-                </summary>
+            <div>
+                <p class="mb-1 text-xs font-bold uppercase tracking-wide text-gray-400">Détail</p>
 
                 <div class="mt-3 flex flex-wrap gap-2">
                     {{-- Les sous-categories sont desormais accessibles par la
                          navigation visible plus haut (fil d'Ariane + pastilles) :
                          ces deux listes faisaient doublon et etaient introuvables. --}}
 
-                    <select name="etat" onchange="this.form.submit()" class="{{ $pillSelect }}">
+                    <select name="etat" class="{{ $pillSelect }}">
                         <option value="">État</option>
                         <option value="Neuf avec étiquette" @selected(request('etat') === 'Neuf avec étiquette')>Neuf avec étiquette</option>
                         <option value="Neuf sans étiquette" @selected(request('etat') === 'Neuf sans étiquette')>Neuf sans étiquette</option>
@@ -224,7 +267,16 @@
                     <input name="min_price" value="{{ request('min_price') }}" type="number" placeholder="Min €" class="{{ $pillInput }} w-24">
                     <input name="max_price" value="{{ request('max_price') }}" type="number" placeholder="Max €" class="{{ $pillInput }} w-24">
                 </div>
-            </details>
+            </div>
+
+                </div>
+
+                <div class="swp-safe-bottom sticky bottom-0 mt-5 -mx-5 border-t border-gray-100 bg-white px-5 py-4 lg:hidden">
+                    <button class="w-full rounded-xl bg-teal-600 px-5 py-3 text-sm font-bold text-white">
+                        Voir les résultats
+                    </button>
+                </div>
+            </div>
 
             {{-- Filtres actifs --}}
             @php
@@ -486,5 +538,84 @@ function resetLevel3AndSubmit() {
 
     if (level2) { level2.form.submit(); }
 }
+</script>
+
+{{-- PANNEAU DE FILTRES.
+     Sur telephone il s'ouvre par-dessus la page : on regle ce qu'on veut, puis
+     « Voir les resultats » envoie le formulaire une seule fois. Sur ordinateur
+     le panneau est toujours visible, et chaque changement relance la recherche
+     tout de suite, comme avant. --}}
+<script>
+(function () {
+    const panneau = document.querySelector('[data-filtres-panneau]');
+    const ouvrir  = document.querySelector('[data-filtres-ouvrir]');
+    const fermer  = document.querySelector('[data-filtres-fermer]');
+    if (! panneau) { return; }
+
+    const grandEcran = () => window.matchMedia('(min-width: 1024px)').matches;
+
+    function ouvre() {
+        panneau.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        if (ouvrir) { ouvrir.setAttribute('aria-expanded', 'true'); }
+        const premier = panneau.querySelector('select, input:not([type=hidden]):not(.hidden), button');
+        if (premier) { premier.focus({ preventScroll: true }); }
+    }
+
+    function ferme() {
+        // Sur grand ecran le panneau fait partie de la page : on ne le cache pas.
+        if (! grandEcran()) { panneau.classList.add('hidden'); }
+        document.body.style.overflow = '';
+        if (ouvrir) { ouvrir.setAttribute('aria-expanded', 'false'); }
+        if (ouvrir) { ouvrir.focus({ preventScroll: true }); }
+    }
+
+    if (ouvrir) { ouvrir.addEventListener('click', ouvre); }
+    if (fermer) { fermer.addEventListener('click', ferme); }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && ! panneau.classList.contains('hidden') && ! grandEcran()) {
+            ferme();
+        }
+    });
+
+    // Si on passe d'un telephone a un ecran large (rotation, fenetre
+    // redimensionnee), le panneau doit redevenir une colonne normale.
+    window.addEventListener('resize', () => {
+        if (grandEcran()) {
+            panneau.classList.remove('hidden');
+            document.body.style.overflow = '';
+        } else if (ouvrir && ouvrir.getAttribute('aria-expanded') !== 'true') {
+            panneau.classList.add('hidden');
+        }
+    });
+
+    // Sur ordinateur, on garde l'envoi automatique : le panneau est ouvert en
+    // permanence, il n'y a donc pas de bouton « Voir les resultats ».
+    // Les pastilles « Paiement » cachent leur case a cocher : sans retour visuel,
+    // sur telephone on ne voit pas ce qu'on vient de choisir.
+    const PASTILLE_ON  = ['border-teal-600', 'bg-teal-600', 'text-white'];
+    const PASTILLE_OFF = ['border-gray-200', 'bg-white', 'text-gray-700', 'hover:border-teal-300'];
+
+    panneau.querySelectorAll('input[name="payment[]"]').forEach((case_) => {
+        case_.addEventListener('change', () => {
+            const pastille = case_.closest('label');
+            if (! pastille) { return; }
+            pastille.classList.remove(...(case_.checked ? PASTILLE_OFF : PASTILLE_ON));
+            pastille.classList.add(...(case_.checked ? PASTILLE_ON : PASTILLE_OFF));
+        });
+    });
+
+    panneau.querySelectorAll('select, input[type=checkbox]').forEach((champ) => {
+        champ.addEventListener('change', () => {
+            if (! grandEcran()) { return; }
+            if (champ.id === 'category_level1_select') {
+                resetSubCategoriesAndSubmit();
+                return;
+            }
+            champ.form.submit();
+        });
+    });
+})();
 </script>
 @endsection

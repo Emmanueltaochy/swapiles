@@ -280,7 +280,59 @@
             @endif
         </section>
 
-        {{-- 6. Reglages.
+        {{-- 6. Le concept.
+             Les points relais, le classement, le fonctionnement de la
+             protection acheteur : tout cela ne vit que dans le menu ou au
+             moment de payer. Ce sont pourtant les trois choses qui font
+             Swap'Iles. Elles ont leur place ici, apres les annonces, sans
+             encombrer la grille de raccourcis reservee aux gestes du
+             quotidien. --}}
+        @php
+            $conceptEntrees = array_values(array_filter([
+                $user->managesAnyRelay() ? [
+                    'url' => route('account.relay.dashboard'),
+                    'icone' => '🏪',
+                    'label' => 'Mon espace relais',
+                    'aide' => 'Colis a receptionner et a remettre',
+                ] : null,
+                [
+                    'url' => route('relay.partner'),
+                    'icone' => '🏬',
+                    'label' => 'Devenir point relais',
+                    'aide' => 'Recevoir les colis des membres dans mon commerce',
+                ],
+                [
+                    'url' => route('dressings.top'),
+                    'icone' => '🏆',
+                    'label' => 'Classement des dressings',
+                    'aide' => 'Les vendeurs les plus actifs de mon ile',
+                ],
+                [
+                    'url' => route('home') . '#comment-ca-marche',
+                    'icone' => '❓',
+                    'label' => 'Comment ca marche',
+                    'aide' => 'Paiement protege, livraison, inter-iles',
+                ],
+            ]));
+        @endphp
+
+        <section aria-labelledby="concept-titre" class="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+            <h2 id="concept-titre" class="border-b border-gray-100 px-5 py-4 font-semibold text-gray-900">Swap'Îles</h2>
+
+            @foreach($conceptEntrees as $entree)
+                <a href="{{ $entree['url'] }}"
+                   class="flex items-center gap-3 border-gray-100 px-5 py-4 transition hover:bg-gray-50 @if(! $loop->first) border-t @endif">
+                    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gray-50 text-xl" aria-hidden="true">{{ $entree['icone'] }}</span>
+                    <span class="min-w-0 flex-1">
+                        <span class="block font-semibold text-gray-900">{{ $entree['label'] }}</span>
+                        <span class="mt-0.5 block text-sm text-gray-500">{{ $entree['aide'] }}</span>
+                    </span>
+                    <span class="shrink-0 text-gray-300" aria-hidden="true">›</span>
+                </a>
+            @endforeach
+        </section>
+
+        {{-- 7. Reglages.
              Trois boutons poses cote a cote ne disaient pas ce qu'on trouvait
              derriere, et « Modifier mon profil » cachait en realite l'adresse
              d'expedition, le mot de passe, les points relais et les

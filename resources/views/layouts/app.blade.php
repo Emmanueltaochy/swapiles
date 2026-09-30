@@ -48,6 +48,16 @@ html, body {
     padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* Barre qui reste collee JUSTE SOUS l'entete. La hauteur de l'entete varie
+   (encoche, logo, largeur d'ecran), donc on ne peut pas l'ecrire en dur : un
+   petit script la mesure et la publie dans --swp-entete. La valeur de repli
+   sert le temps que le script tourne, et si le JavaScript est coupe. */
+.swp-sous-entete {
+    position: sticky;
+    top: var(--swp-entete, 64px);
+    z-index: 40;
+}
+
 /* Rangees qui defilent horizontalement (pastilles de categories, carrousels) :
    on masque la barre de defilement, qui sur ordinateur ajoute une bande grise
    sous chaque rangee. La regle vivait seulement dans l'accueil ; les autres
@@ -268,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 <body class="bg-gray-50 text-gray-900 antialiased overflow-x-hidden">
-    <header class="swp-safe-top sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100">
+    <header data-entete class="swp-safe-top sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100">
     <div class="max-w-7xl mx-auto px-4 py-3">
         <div class="flex items-center gap-3">
             <a href="{{ route('home') }}" class="shrink-0 flex items-center">
@@ -485,6 +495,30 @@ document.addEventListener('DOMContentLoaded', function () {
 </div>
 
     <script>
+        // Hauteur reelle de l'entete, publiee dans --swp-entete : les barres
+        // « swp-sous-entete » viennent se coller juste en dessous au lieu de
+        // glisser dessous et de disparaitre. On remesure au redimensionnement
+        // et a la rotation, ou l'entete change de hauteur.
+        (function () {
+            var entete = document.querySelector('[data-entete]');
+            if (!entete) return;
+
+            function mesurer() {
+                document.documentElement.style.setProperty(
+                    '--swp-entete', Math.round(entete.getBoundingClientRect().height) + 'px'
+                );
+            }
+
+            mesurer();
+            window.addEventListener('resize', mesurer);
+            window.addEventListener('orientationchange', mesurer);
+
+            // Les polices web changent la hauteur une fois chargees.
+            if (document.fonts && document.fonts.ready) {
+                document.fonts.ready.then(mesurer);
+            }
+        })();
+
         // Menu mobile : ouverture, fermeture, et verrouillage du defilement
         // derriere le panneau.
         (function () {

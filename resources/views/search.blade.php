@@ -206,7 +206,11 @@
                 $typesArticle = \App\Support\Categories::typesArticle($selectedCategory, $selectedLevel2);
             @endphp
 
-            <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 no-scrollbar sm:-mx-6 sm:px-6">
+            {{-- Cette rangee-ci reste collee sous l'entete quand on fait defiler :
+                 changer de rayon est le geste le plus frequent, et il ne doit
+                 pas demander de remonter en haut de page. Les autres filtres,
+                 eux, defilent normalement. --}}
+            <div class="swp-sous-entete -mx-4 flex gap-2 overflow-x-auto bg-white px-4 py-2 no-scrollbar sm:-mx-6 sm:px-6">
                 <a href="{{ $catUrl() }}" class="{{ $selectedCategory ? $chipOff : $chipOn }}">Tout</a>
 
                 @foreach($racineCategories as $cle => $categorie)

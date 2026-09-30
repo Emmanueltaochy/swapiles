@@ -29,9 +29,17 @@ class CategoryNavigationSourceTest extends TestCase
         ]);
     }
 
-    public function test_l_arbre_porte_les_trois_categories_du_formulaire(): void
+    public function test_l_arbre_couvre_ce_que_la_plateforme_vend(): void
     {
-        $this->assertSame(['femme', 'homme', 'enfant'], array_keys(Categories::ARBRE));
+        // L'habillement d'abord — c'est le coeur —, puis les rayons qui
+        // existaient en annonces mais dans aucune categorie.
+        $attendues = [
+            'femme', 'homme', 'enfant',
+            'maison', 'high-tech', 'sport-loisirs', 'beaute-sante',
+            'culture-loisirs', 'auto-moto', 'jardin-bricolage', 'animaux',
+        ];
+
+        $this->assertSame($attendues, array_keys(Categories::ARBRE));
 
         foreach (Categories::niveau1() as $categorie) {
             $this->assertNotEmpty($categorie['label']);

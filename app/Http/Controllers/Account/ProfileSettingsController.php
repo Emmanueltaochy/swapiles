@@ -10,6 +10,42 @@ use Illuminate\Support\Facades\Storage;
 
 class ProfileSettingsController extends Controller
 {
+    /**
+     * Sommaire des reglages.
+     *
+     * Tout vivait dans une seule page « Modifier mon profil » : identite,
+     * adresse d'expedition, mot de passe, points relais, notifications et
+     * suppression de compte s'empilaient sur plus de deux ecrans. Personne
+     * ne trouvait les preferences de notification. Chaque reglage a
+     * desormais son entree nommee, avec son etat visible.
+     */
+    public function settings()
+    {
+        $user = Auth::user();
+
+        return view('account.settings', [
+            'user' => $user,
+            'adresseComplete' => filled($user->address_line1) && filled($user->city) && filled($user->postal_code),
+            'relaisChoisis' => config('features.relay_points')
+                ? $user->acceptedRelayPoints()->count()
+                : 0,
+        ]);
+    }
+
+    /**
+     * Preferences de notification, sur leur propre page.
+     *
+     * Elles etaient en bas de « Modifier mon profil », apres le mot de passe
+     * et les points relais : introuvables pour qui voulait simplement arreter
+     * de recevoir un type de message.
+     */
+    public function notificationPreferences()
+    {
+        return view('account.notification-preferences', [
+            'user' => Auth::user(),
+        ]);
+    }
+
     public function edit()
     {
         $user = Auth::user();

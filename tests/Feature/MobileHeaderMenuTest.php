@@ -107,7 +107,11 @@ class MobileHeaderMenuTest extends TestCase
 
         $this->assertStringContainsString('Marie', $html);
         $this->assertStringContainsString('Mes transactions', $html);
-        $this->assertStringContainsString('Mon profil et mes notifications', $html);
+        $this->assertStringContainsString('Réglages', $html);
+
+        // Les preferences de notification sont atteignables en un geste depuis
+        // le menu : elles etaient enfouies au bas de « Modifier mon profil ».
+        $this->assertStringContainsString(route('account.notifications.preferences'), $html);
         $this->assertStringContainsString('Se déconnecter', $html);
     }
 

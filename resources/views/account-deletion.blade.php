@@ -69,7 +69,9 @@
                     choisir précisément ce que vous souhaitez recevoir — et garder
                     votre compte, vos annonces et votre historique.
                 </p>
-                <a href="{{ route('account.profile.edit') }}#notifications"
+                {{-- Les preferences ont leur propre page : l'ancre #notifications au bas de
+                     la page profil n'existe plus. --}}
+                <a href="{{ route('account.notifications.preferences') }}"
                    class="mt-3 inline-block rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700">
                     Régler mes notifications
                 </a>

@@ -6,7 +6,8 @@
 <section class="bg-gray-50 min-h-screen py-8">
     <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <h1 class="text-3xl font-extrabold text-gray-900">Profil & expédition</h1>
+        <a href="{{ route('account.settings') }}" class="text-sm font-semibold text-teal-700 hover:text-teal-900">← Réglages</a>
+        <h1 class="mt-2 text-3xl font-extrabold text-gray-900">Profil & expédition</h1>
         <p class="text-gray-500 mt-2">Mettez à jour votre profil et vos informations d’expédition.</p>
 
         @if(session('status'))
@@ -62,7 +63,7 @@
                 </select>
             </div>
 
-            <div class="border-t border-gray-100 pt-5">
+            <div id="expedition" class="scroll-mt-24 border-t border-gray-100 pt-5">
                 <h2 class="text-lg font-extrabold text-gray-900">📦 Adresse d’expédition</h2>
                 <p class="text-sm text-gray-500 mt-1">Utilisée pour générer vos bordereaux Colissimo.</p>
             </div>
@@ -91,7 +92,7 @@
 
             <input type="hidden" name="country_code" value="FR">
 
-            <div class="border-t border-gray-100 pt-5">
+            <div id="mot-de-passe" class="scroll-mt-24 border-t border-gray-100 pt-5">
                 <h2 class="font-extrabold text-gray-900 mb-3">Changer le mot de passe</h2>
 
                 <div class="space-y-4">
@@ -108,7 +109,7 @@
             </div>
 
             @if($relayPoints->isNotEmpty())
-                <div class="pt-5 border-t border-gray-100">
+                <div id="points-relais" class="scroll-mt-24 pt-5 border-t border-gray-100">
                     <h2 class="font-extrabold text-gray-900 mb-1">🏪 Mes points relais de dépôt</h2>
                     <p class="text-sm text-gray-500 mb-3">
                         Coche les commerçants où tu acceptes de déposer tes colis. L'acheteur choisira, parmi eux, le plus proche de chez lui.
@@ -137,57 +138,18 @@
             </button>
         </form>
 
-        {{-- Réglages de notification : le membre doit pouvoir couper ce qu'il ne
-             veut plus recevoir. Sans ça, le seul moyen d'arrêter d'être sollicité
-             était de supprimer son compte. --}}
-        <div id="notifications" class="mt-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-            <h2 class="text-lg font-bold text-gray-900">🔔 Mes notifications</h2>
-            <p class="mt-1 text-sm text-gray-500">
-                Choisissez ce que vous souhaitez recevoir. Les messages liés à vos
-                ventes et à vos achats vous sont toujours envoyés.
-            </p>
-
-            <form method="POST" action="{{ route('account.profile.update') }}" class="mt-4">
-                @csrf
-                @method('PUT')
-                <input type="hidden" name="name" value="{{ auth()->user()->name }}">
-                <input type="hidden" name="notification_prefs_submitted" value="1">
-
-                @php $prefs = auth()->user()->notification_prefs ?? []; @endphp
-
-                <div class="overflow-hidden rounded-xl border border-gray-100">
-                    <div class="flex items-center justify-between bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-500">
-                        <span>Type de notification</span>
-                        <span class="flex gap-4"><span class="w-14 text-center">Mobile</span><span class="w-14 text-center">E-mail</span></span>
-                    </div>
-
-                    @foreach(\App\Support\NotificationPreferences::CATEGORIES as $cle => $categorie)
-                        <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3">
-                            <div class="min-w-0">
-                                <p class="text-sm font-semibold text-gray-900">{{ $categorie['label'] }}</p>
-                                <p class="text-xs text-gray-500">{{ $categorie['description'] }}</p>
-                            </div>
-                            <div class="flex shrink-0 gap-4">
-                                <label class="flex w-14 justify-center">
-                                    <input type="checkbox" name="notification_prefs[{{ $cle }}][push]" value="1"
-                                           @checked($prefs[$cle]['push'] ?? true)
-                                           class="h-5 w-5 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
-                                </label>
-                                <label class="flex w-14 justify-center">
-                                    <input type="checkbox" name="notification_prefs[{{ $cle }}][email]" value="1"
-                                           @checked($prefs[$cle]['email'] ?? true)
-                                           class="h-5 w-5 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
-                                </label>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-
-                <button class="mt-4 w-full rounded-xl bg-teal-600 px-6 py-3 font-semibold text-white transition hover:bg-teal-700">
-                    Enregistrer mes préférences
-                </button>
-            </form>
-        </div>
+        {{-- Les preferences de notification ont leur propre page : elles etaient
+             ici, tout en bas, apres le mot de passe et les points relais, donc
+             introuvables pour qui voulait juste arreter de recevoir un message. --}}
+        <a href="{{ route('account.notifications.preferences') }}"
+           class="mt-6 flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition hover:bg-gray-50">
+            <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gray-50 text-xl" aria-hidden="true">🔔</span>
+            <span class="min-w-0 flex-1">
+                <span class="block font-semibold text-gray-900">Préférences de notification</span>
+                <span class="mt-0.5 block text-sm text-gray-500">Choisir ce que je reçois, sur mobile et par e-mail</span>
+            </span>
+            <span class="shrink-0 text-gray-300" aria-hidden="true">›</span>
+        </a>
 
         {{-- Suppression de compte (RGPD) --}}
         <div class="mt-6 rounded-2xl border border-gray-100 bg-white p-5 text-center shadow-sm">

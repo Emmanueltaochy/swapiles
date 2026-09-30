@@ -99,6 +99,10 @@ Route::get('/email/verifier/{id}/{hash}', [AuthController::class, 'verifyEmail']
 Route::middleware('auth')->group(function () {
     Route::get('/mon-compte', [AccountController::class, 'dashboard'])->name('account.dashboard');
     Route::get('/mon-wallet', [WalletController::class, 'index'])->name('account.wallet.index');
+    // Sommaire des reglages : chaque reglage a son entree nommee, au lieu
+    // d'une seule page ou tout s'empilait.
+    Route::get('/mon-compte/reglages', [ProfileSettingsController::class, 'settings'])->name('account.settings');
+    Route::get('/mon-compte/notifications/preferences', [ProfileSettingsController::class, 'notificationPreferences'])->name('account.notifications.preferences');
     Route::get('/mon-profil/modifier', [ProfileSettingsController::class, 'edit'])->name('account.profile.edit');
     Route::put('/mon-profil/modifier', [ProfileSettingsController::class, 'update'])->name('account.profile.update');
 

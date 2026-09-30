@@ -280,19 +280,25 @@
             @endif
         </section>
 
-        {{-- 6. Réglages --}}
-        <section aria-label="Réglages" class="flex flex-wrap items-center gap-2">
-            <a href="{{ route('account.profile.edit') }}"
-               class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
-                ⚙️ Modifier mon profil
+        {{-- 6. Reglages.
+             Trois boutons poses cote a cote ne disaient pas ce qu'on trouvait
+             derriere, et « Modifier mon profil » cachait en realite l'adresse
+             d'expedition, le mot de passe, les points relais et les
+             preferences de notification. Une seule porte, nommee. --}}
+        <section aria-label="Réglages" class="space-y-2">
+            <a href="{{ route('account.settings') }}"
+               class="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition hover:bg-gray-50">
+                <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gray-50 text-xl" aria-hidden="true">⚙️</span>
+                <span class="min-w-0 flex-1">
+                    <span class="block font-semibold text-gray-900">Réglages</span>
+                    <span class="mt-0.5 block text-sm text-gray-500">Profil, adresses, notifications, mot de passe</span>
+                </span>
+                <span class="shrink-0 text-gray-300" aria-hidden="true">›</span>
             </a>
-            <a href="{{ route('account.addresses.edit') }}"
-               class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
-                📮 Mes adresses
-            </a>
-            <form method="POST" action="{{ route('logout') }}" class="ml-auto">
+
+            <form method="POST" action="{{ route('logout') }}">
                 @csrf
-                <button class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-500 hover:bg-gray-50">
+                <button class="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-500 transition hover:bg-gray-50 sm:w-auto">
                     Se déconnecter
                 </button>
             </form>

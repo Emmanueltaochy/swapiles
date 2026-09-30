@@ -430,7 +430,8 @@ document.addEventListener('DOMContentLoaded', function () {
             </a>
             <a href="{{ route('account.transactions.index') }}" class="{{ $menuLien }}"><span>📦 Mes transactions</span></a>
             <a href="/mon-wallet" class="{{ $menuLien }}"><span>💶 Mon wallet</span></a>
-            <a href="{{ route('account.profile.edit') }}" class="{{ $menuLien }}"><span>⚙️ Mon profil et mes notifications</span></a>
+            <a href="{{ route('account.notifications.preferences') }}" class="{{ $menuLien }}"><span>🔇 Préférences de notification</span></a>
+            <a href="{{ route('account.settings') }}" class="{{ $menuLien }}"><span>⚙️ Réglages</span></a>
             @if(auth()->user()->managesAnyRelay())
                 <a href="{{ route('account.relay.dashboard') }}" class="{{ $menuLien }}"><span>🏪 Mon espace relais</span></a>
             @endif

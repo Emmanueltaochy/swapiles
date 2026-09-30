@@ -87,16 +87,7 @@
                             </div>
                         @endif
 
-                        <button
-                            type="button"
-                            data-favori-url="{{ route('account.favorites.toggle', $listing) }}"
-                            data-favori="1"
-                            aria-pressed="true"
-                            aria-label="Retirer des favoris"
-                            class="absolute top-2 right-2 w-9 h-9 rounded-full bg-white shadow flex items-center justify-center text-red-500 text-lg z-20 transition"
-                        >
-                            ❤️
-                        </button>
+                        @include('partials.favorite-heart', ['listing' => $listing])
 
                         @if($isLivraison)
                             <span class="absolute inset-x-2 bottom-2 rounded-lg bg-amber-500/95 px-2 py-1 text-center text-[11px] font-semibold text-white">

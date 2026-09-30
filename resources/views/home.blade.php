@@ -222,6 +222,8 @@
                     <span class="absolute top-3 left-3 rounded-full bg-rose-600 text-white px-3 py-1 text-xs font-bold shadow">
                         🔥 Populaire
                     </span>
+
+                    @include('partials.favorite-heart', ['listing' => $listing])
                 </div>
 
                 <div class="p-3">
@@ -320,12 +322,14 @@
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
         @foreach($listings as $listing)
             <a href="{{ route('listings.show', $listing) }}" class="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition">
-                <div class="aspect-[4/5] bg-gray-100 overflow-hidden">
+                <div class="relative aspect-[4/5] bg-gray-100 overflow-hidden">
                     @if($listing->images->first())
                         <img loading="lazy" decoding="async" src="{{ $listing->images->first()->url }}" alt="{{ $listing->title }}" class="w-full h-full object-cover group-hover:scale-[1.03] transition duration-300">
                     @else
                         <div class="w-full h-full flex items-center justify-center text-gray-300 text-4xl">📦</div>
                     @endif
+
+                    @include('partials.favorite-heart', ['listing' => $listing])
                 </div>
 
                 <div class="p-3">
@@ -424,7 +428,7 @@
         @foreach($globalShippableListings as $listing)
             <a href="{{ route('listings.show', $listing) }}"
                class="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition">
-                <div class="aspect-[4/5] bg-gray-100 overflow-hidden">
+                <div class="relative aspect-[4/5] bg-gray-100 overflow-hidden">
                     @if($listing->images->first())
                         <img loading="lazy" decoding="async" src="{{ $listing->images->first()->url }}"
                              alt="{{ $listing->title }}"
@@ -432,6 +436,8 @@
                     @else
                         <div class="w-full h-full flex items-center justify-center text-gray-300 text-4xl">📦</div>
                     @endif
+
+                    @include('partials.favorite-heart', ['listing' => $listing])
                 </div>
 
                 <div class="p-3">
@@ -485,12 +491,14 @@
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                             @foreach($island['listings'] as $listing)
                                 <a href="{{ route('listings.show', $listing) }}" class="bg-white rounded-3xl overflow-hidden text-gray-900">
-                                    <div class="aspect-[4/5] bg-gray-100">
+                                    <div class="relative aspect-[4/5] bg-gray-100">
                                         @if($listing->images->first())
                                             <img loading="lazy" decoding="async" src="{{ $listing->images->first()->url }}" class="w-full h-full object-cover" alt="{{ $listing->title }}">
                                         @else
                                             <div class="w-full h-full flex items-center justify-center text-gray-300 text-4xl">📦</div>
                                         @endif
+
+                                        @include('partials.favorite-heart', ['listing' => $listing])
                                     </div>
                                     <div class="p-3">
                                         <p class="text-sm font-bold line-clamp-1">{{ $listing->title }}</p>

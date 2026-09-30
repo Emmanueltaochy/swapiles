@@ -153,6 +153,24 @@ class User extends Authenticatable implements FilamentUser
             ->withTimestamps();
     }
 
+    /** Identifiants des annonces mises en favori, charges une seule fois. */
+    protected ?array $favorisCharges = null;
+
+    /**
+     * Les cartes d'annonce doivent savoir si l'article est deja en favori.
+     * Sans cette mise en cache, chaque vignette declenchait sa propre requete :
+     * 24 requetes pour une page d'accueil, 48 pour une recherche.
+     */
+    public function favoriteListingIds(): array
+    {
+        return $this->favorisCharges ??= $this->favorites()->pluck('listings.id')->all();
+    }
+
+    public function aEnFavori(int $listingId): bool
+    {
+        return in_array($listingId, $this->favoriteListingIds(), true);
+    }
+
     public function sentMessages()
     {
         return $this->hasMany(Message::class, 'sender_id');

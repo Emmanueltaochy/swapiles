@@ -278,21 +278,7 @@
                         <div class="grid h-full w-full place-items-center text-5xl text-gray-300" aria-hidden="true">📦</div>
                     @endif
 
-                    @auth
-                        @php $dejaFavori = auth()->user()->favorites()->where('listing_id', $listing->id)->exists(); @endphp
-                        <button type="button"
-                                data-favori-url="{{ route('account.favorites.toggle', $listing) }}"
-                                data-favori="{{ $dejaFavori ? '1' : '0' }}"
-                                aria-pressed="{{ $dejaFavori ? 'true' : 'false' }}"
-                                aria-label="{{ $dejaFavori ? 'Retirer des favoris' : 'Ajouter aux favoris' }}"
-                                class="absolute right-2 top-2 z-20 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-lg shadow transition">
-                            {{ $dejaFavori ? '❤️' : '🤍' }}
-                        </button>
-                    @else
-                        <button type="button" aria-label="Se connecter pour ajouter aux favoris"
-                                onclick="event.preventDefault(); event.stopPropagation(); window.location.href='{{ route('login') }}';"
-                                class="absolute right-2 top-2 z-20 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-gray-500 shadow">♡</button>
-                    @endauth
+                    @include('partials.favorite-heart', ['listing' => $listing])
 
                     @if($listing->listing_type === 'don')
                         <span class="absolute left-2 top-2 rounded-full bg-green-600 px-2 py-1 text-[11px] font-semibold text-white">🎁 Don</span>

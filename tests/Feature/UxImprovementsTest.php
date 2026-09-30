@@ -110,6 +110,82 @@ class UxImprovementsTest extends TestCase
         $this->assertStringNotContainsString('favoris/1/toggle\';', $html);
     }
 
+    public function test_les_cartes_de_l_accueil_ont_un_coeur_favori(): void
+    {
+        $vendeur = $this->membre('Vendeur');
+        $visiteur = $this->membre('Visiteur');
+        $this->annonce($vendeur);
+
+        $html = $this->actingAs($visiteur)->get('/')->assertOk()->getContent();
+
+        $this->assertStringContainsString('data-favori-url', $html);
+        $this->assertStringContainsString('🤍', $html);
+    }
+
+    public function test_un_visiteur_non_connecte_est_invite_a_se_connecter(): void
+    {
+        $this->annonce($this->membre('Vendeur'));
+
+        $html = $this->get('/')->assertOk()->getContent();
+
+        // Pas de bouton actif, mais un lien vers la connexion.
+        $this->assertStringNotContainsString('data-favori-url', $html);
+        $this->assertStringContainsString('Se connecter pour ajouter aux favoris', $html);
+    }
+
+    public function test_le_coeur_reflete_les_favoris_deja_poses(): void
+    {
+        $vendeur = $this->membre('Vendeur');
+        $visiteur = $this->membre('Visiteur');
+        $annonce = $this->annonce($vendeur);
+
+        $visiteur->favorites()->attach($annonce->id);
+
+        $html = $this->actingAs($visiteur)->get('/')->assertOk()->getContent();
+
+        $this->assertStringContainsString('data-favori="1"', $html);
+        $this->assertStringContainsString('Retirer des favoris', $html);
+    }
+
+    public function test_le_nombre_de_requetes_ne_depend_pas_du_nombre_de_vignettes(): void
+    {
+        // Sans mise en cache, chaque vignette declenchait sa propre requete de
+        // favoris. On verifie la vraie propriete : ajouter des annonces ne doit
+        // pas ajouter de requetes.
+        $vendeur = $this->membre('Vendeur');
+        $visiteur = $this->membre('Visiteur');
+
+        $compter = function () use ($visiteur) {
+            $total = 0;
+            \DB::flushQueryLog();
+            \DB::enableQueryLog();
+
+            $this->actingAs($visiteur)->get('/')->assertOk();
+            $total = count(\DB::getQueryLog());
+
+            \DB::disableQueryLog();
+
+            return $total;
+        };
+
+        foreach (range(1, 3) as $i) {
+            $this->annonce($vendeur, 'Article A' . $i);
+        }
+        $avec3 = $compter();
+
+        foreach (range(1, 9) as $i) {
+            $this->annonce($vendeur, 'Article B' . $i);
+        }
+        $avec12 = $compter();
+
+        $this->assertLessThanOrEqual(
+            $avec3 + 2,
+            $avec12,
+            "Le nombre de requetes augmente avec les vignettes ({$avec3} puis {$avec12}) : "
+                . 'la liste des favoris doit etre chargee une seule fois.'
+        );
+    }
+
     public function test_le_favori_repond_en_json(): void
     {
         $vendeur = $this->membre('Vendeur');

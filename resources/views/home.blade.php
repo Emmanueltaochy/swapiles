@@ -141,11 +141,11 @@
             </p>
 
             <form method="GET" action="{{ route('search', ['territoire' => $selectedTerritoire]) }}" class="mt-4 sm:mt-7 bg-white rounded-3xl shadow-2xl p-2.5 sm:p-3 max-w-5xl">
-                <div class="grid grid-cols-[1fr_auto] md:grid-cols-4 gap-2">
+                <div class="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-4 gap-2">
                     <input type="hidden" name="territoire" value="{{ $selectedTerritoire }}">
 
                     <input type="text" name="q" value="{{ request('q') }}" placeholder="Que recherches-tu ?"
-                        class="md:col-span-2 px-4 py-3 bg-gray-50 rounded-2xl border-0 text-sm focus:ring-2 focus:ring-teal-600">
+                        class="min-w-0 w-full md:col-span-2 px-4 py-3 bg-gray-50 rounded-2xl border-0 text-sm focus:ring-2 focus:ring-teal-600">
 
                     <select name="category" class="hidden md:block px-4 py-3 bg-gray-50 rounded-2xl border-0 text-sm focus:ring-2 focus:ring-teal-600">
                         <option value="">Catégorie</option>
@@ -155,7 +155,7 @@
                         <option value="Accessoires">Accessoires</option>
                     </select>
 
-                    <button class="bg-teal-700 hover:bg-teal-800 text-white font-bold px-5 sm:px-6 py-3 rounded-2xl transition">
+                    <button class="shrink-0 whitespace-nowrap bg-teal-700 hover:bg-teal-800 text-white font-bold px-4 sm:px-6 py-3 rounded-2xl transition">
                         Rechercher
                     </button>
                 </div>
@@ -167,7 +167,7 @@
 
 
 {{-- EMOJI_CATEGORIES_START --}}
-<section class="max-w-7xl mx-auto px-4 mt-4 mb-8">
+<section class="max-w-7xl mx-auto px-4 mt-4 mb-2 sm:mb-8">
     <div class="flex gap-3 overflow-x-auto pb-2 no-scrollbar md:grid md:grid-cols-6 md:overflow-visible">
 
         @php

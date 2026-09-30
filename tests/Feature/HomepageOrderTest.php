@@ -88,6 +88,25 @@ class HomepageOrderTest extends TestCase
         $this->assertLessThan($chiffres, $annonces, 'Les compteurs ne doivent plus repousser les annonces.');
     }
 
+    public function test_le_champ_de_recherche_peut_retrecir_sur_petit_ecran(): void
+    {
+        // Sans « minmax(0,1fr) » et « min-w-0 », le champ texte garde sa largeur
+        // par defaut dans la grille et pousse le bouton hors de la carte.
+        $vue = file_get_contents(resource_path('views/home.blade.php'));
+
+        $this->assertStringContainsString('grid-cols-[minmax(0,1fr)_auto]', $vue);
+        $this->assertMatchesRegularExpression(
+            '/name="q"[^>]*\n?\s*class="[^"]*min-w-0/s',
+            $vue,
+            'Le champ de recherche doit pouvoir rétrécir.'
+        );
+        $this->assertMatchesRegularExpression(
+            '/<button class="[^"]*shrink-0[^"]*">\s*Rechercher/s',
+            $vue,
+            'Le bouton ne doit pas être compressé ni déborder.'
+        );
+    }
+
     public function test_l_accueil_reste_fonctionnel_sans_aucune_annonce(): void
     {
         $this->get('/')->assertOk()->assertSee('Que recherches-tu', false);

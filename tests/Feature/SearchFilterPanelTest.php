@@ -20,7 +20,7 @@ class SearchFilterPanelTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function annonce(string $n1 = 'mode', ?string $n2 = null): Listing
+    private function annonce(string $n1 = 'femme', ?string $n2 = null): Listing
     {
         $vendeur = User::create([
             'name' => 'Vendeur',
@@ -93,9 +93,9 @@ class SearchFilterPanelTest extends TestCase
 
     public function test_les_categories_ne_sont_pas_enfermees_dans_le_panneau(): void
     {
-        $this->annonce('mode', 'chaussures');
+        $this->annonce('femme', 'chaussures');
 
-        $html = $this->get(route('search', ['category' => 'mode']))->assertOk()->getContent();
+        $html = $this->get(route('search', ['category' => 'femme']))->assertOk()->getContent();
 
         $positionNavigation = strpos($html, 'Fil d\'Ariane des catégories');
         $positionPanneau = strpos($html, 'id="panneau-filtres"');
@@ -144,14 +144,14 @@ class SearchFilterPanelTest extends TestCase
 
     public function test_une_pastille_conserve_les_autres_filtres(): void
     {
-        $this->annonce('mode');
+        $this->annonce('femme');
 
         // On navigue dans une categorie : la pastille ne doit pas la perdre.
-        $html = $this->get(route('search', ['category' => 'mode']))->assertOk()->getContent();
+        $html = $this->get(route('search', ['category' => 'femme']))->assertOk()->getContent();
 
         // e() : dans un attribut HTML, « & » est ecrit « &amp; ».
         $this->assertStringContainsString(
-            e(route('search', ['category' => 'mode', 'listing_type' => 'don'])),
+            e(route('search', ['category' => 'femme', 'listing_type' => 'don'])),
             $html,
             'Une pastille doit s\'ajouter aux filtres en place, pas les remplacer.'
         );

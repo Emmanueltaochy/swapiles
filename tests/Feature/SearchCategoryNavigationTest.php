@@ -44,14 +44,18 @@ class SearchCategoryNavigationTest extends TestCase
 
     public function test_les_sous_categories_apparaissent_des_qu_une_categorie_est_choisie(): void
     {
-        $this->annonce('femme', 'robes', 'robe-longue');
+        $this->annonce('femme', 'vetements', 'robes');
         $this->annonce('femme', 'chaussures', 'baskets');
 
         $html = $this->get(route('search', ['category' => 'femme']))->assertOk()->getContent();
 
-        // Les deux sous-catégories doivent être proposées, en clair.
-        $this->assertStringContainsString('Robes', $html);
+        // Les sous-catégories doivent être proposées, en clair.
+        $this->assertStringContainsString('Vêtements', $html);
         $this->assertStringContainsString('Chaussures', $html);
+
+        // Y compris celles qui n'ont encore aucune annonce : la navigation
+        // suit l'arbre du formulaire de dépôt, pas le stock du moment.
+        $this->assertStringContainsString('Accessoires', $html);
 
         // Et le fil d'Ariane doit permettre de remonter.
         $this->assertStringContainsString('Toutes catégories', $html);
@@ -59,25 +63,25 @@ class SearchCategoryNavigationTest extends TestCase
 
     public function test_le_troisieme_niveau_apparait_apres_la_sous_categorie(): void
     {
-        $this->annonce('femme', 'robes', 'robe-longue');
-        $this->annonce('femme', 'robes', 'robe-courte');
+        $this->annonce('femme', 'vetements', 'robes');
+        $this->annonce('femme', 'vetements', 'jupes');
 
         $html = $this->get(route('search', [
             'category' => 'femme',
-            'category_level2' => 'robes',
+            'category_level2' => 'vetements',
         ]))->assertOk()->getContent();
 
-        $this->assertStringContainsString('Robe longue', $html);
-        $this->assertStringContainsString('Robe courte', $html);
+        $this->assertStringContainsString('Robes', $html);
+        $this->assertStringContainsString('Jupes', $html);
     }
 
     public function test_le_fil_d_ariane_conserve_les_autres_filtres(): void
     {
-        $this->annonce('femme', 'robes', 'robe-longue');
+        $this->annonce('femme', 'vetements', 'robes');
 
         $html = $this->get(route('search', [
             'category' => 'femme',
-            'category_level2' => 'robes',
+            'category_level2' => 'vetements',
             'etat' => 'Très bon état',
         ]))->assertOk()->getContent();
 
@@ -94,7 +98,7 @@ class SearchCategoryNavigationTest extends TestCase
 
     public function test_aucune_navigation_parasite_sans_categorie_choisie(): void
     {
-        $this->annonce('femme', 'robes', 'robe-longue');
+        $this->annonce('femme', 'vetements', 'robes');
 
         $html = $this->get(route('search'))->assertOk()->getContent();
 
@@ -107,25 +111,25 @@ class SearchCategoryNavigationTest extends TestCase
         // Les pastilles de l'accueil et les anciens liens envoient « Femme »,
         // alors que les annonces sont enregistrees en « femme ». Le filtrage le
         // tolerait deja, mais la navigation par sous-categorie ne s'affichait pas.
-        $this->annonce('femme', 'robes', 'robe-longue');
+        $this->annonce('femme', 'vetements', 'robes');
         $this->annonce('femme', 'chaussures', 'baskets');
 
         $html = $this->get(route('search', ['category' => 'Femme']))->assertOk()->getContent();
 
-        $this->assertStringContainsString('Robes', $html);
+        $this->assertStringContainsString('Vêtements', $html);
         $this->assertStringContainsString('Chaussures', $html);
     }
 
     public function test_une_sous_categorie_avec_majuscule_est_aussi_toleree(): void
     {
-        $this->annonce('femme', 'robes', 'robe-longue');
+        $this->annonce('femme', 'vetements', 'robes');
 
         $html = $this->get(route('search', [
             'category' => 'FEMME',
-            'category_level2' => 'Robes',
+            'category_level2' => 'Vetements',
         ]))->assertOk()->getContent();
 
-        $this->assertStringContainsString('Robe longue', $html);
+        $this->assertStringContainsString('Robes', $html);
     }
 
     public function test_le_filtrage_par_sous_categorie_fonctionne(): void

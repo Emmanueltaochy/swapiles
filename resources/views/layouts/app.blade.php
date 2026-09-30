@@ -407,12 +407,39 @@ document.addEventListener('DOMContentLoaded', function () {
             $menuTitre = 'px-5 pt-5 pb-1 text-xs font-bold uppercase tracking-wide text-gray-400';
         @endphp
 
+        {{-- Parcourir : chaque categorie deplie ses sous-categories.
+             Elles n'existaient que dans le formulaire de depot et sur la page
+             de recherche une fois une categorie choisie : depuis le menu, on
+             ne pouvait viser qu'une categorie entiere. « details » suffit, pas
+             de JavaScript, et le clavier fonctionne tout seul.
+             « Accessoires » quitte cette liste : ce n'est pas une categorie
+             mais une sous-categorie, presente sous chacune des trois. On la
+             trouve maintenant a sa vraie place, dans chaque sous-menu. --}}
         <p class="{{ $menuTitre }}">Parcourir</p>
         <a href="{{ route('search') }}" class="{{ $menuLien }}"><span>🔍 Tous les produits</span></a>
-        <a href="{{ route('search', ['category' => 'femme']) }}" class="{{ $menuLien }}"><span>👗 Femme</span></a>
-        <a href="{{ route('search', ['category' => 'homme']) }}" class="{{ $menuLien }}"><span>👕 Homme</span></a>
-        <a href="{{ route('search', ['category' => 'enfant']) }}" class="{{ $menuLien }}"><span>🧸 Enfant</span></a>
-        <a href="{{ route('search', ['category' => 'accessoires']) }}" class="{{ $menuLien }}"><span>👜 Accessoires</span></a>
+
+        @foreach(\App\Support\Categories::ARBRE as $cleCategorie => $categorie)
+            <details class="group border-b border-gray-50 last:border-b-0">
+                <summary class="{{ $menuLien }} cursor-pointer list-none marker:content-['']">
+                    <span>{{ $categorie['emoji'] }} {{ $categorie['label'] }}</span>
+                    <span class="text-gray-300 transition-transform group-open:rotate-90" aria-hidden="true">›</span>
+                </summary>
+
+                <div class="bg-gray-50/70 pb-2">
+                    <a href="{{ route('search', ['category' => $cleCategorie]) }}"
+                       class="block px-5 py-2.5 pl-12 text-[15px] font-semibold text-teal-700 active:bg-gray-100">
+                        Tout {{ $categorie['label'] }}
+                    </a>
+
+                    @foreach($categorie['enfants'] as $cleSous => $sousCategorie)
+                        <a href="{{ route('search', ['category' => $cleCategorie, 'category_level2' => $cleSous]) }}"
+                           class="block px-5 py-2.5 pl-12 text-[15px] text-gray-700 active:bg-gray-100">
+                            {{ $sousCategorie['label'] }}
+                        </a>
+                    @endforeach
+                </div>
+            </details>
+        @endforeach
 
         @auth
             <p class="{{ $menuTitre }}">Mon compte</p>

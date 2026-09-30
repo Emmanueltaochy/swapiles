@@ -47,10 +47,16 @@
         return $valeur;
     };
 
-    $selectedCategory = $cleReelle($selectedCategory, array_keys($categoryTree));
-    $selectedLevel2 = $cleReelle($selectedLevel2, array_keys($categoryTree[$selectedCategory] ?? []));
-    $selectedLevel3 = $cleReelle($selectedLevel3, ($categoryTree[$selectedCategory][$selectedLevel2] ?? []));
-    $prettyCategory = fn ($value) => ucfirst(str_replace('-', ' ', (string) $value));
+    // On compare a l'arbre de reference, pas aux annonces publiees : une
+    // categorie sans annonce doit rester navigable.
+    $selectedCategory = $cleReelle($selectedCategory, array_keys(\App\Support\Categories::ARBRE));
+    $selectedLevel2 = $cleReelle($selectedLevel2, array_keys(\App\Support\Categories::sousCategories($selectedCategory)));
+    $selectedLevel3 = $cleReelle($selectedLevel3, array_keys(\App\Support\Categories::typesArticle($selectedCategory, $selectedLevel2)));
+
+    // Le libelle lisible vient de l'arbre (« Jeans, pantalons, shorts ») ;
+    // on ne retombe sur la cle formatee que pour une valeur inconnue.
+    $prettyCategory = fn ($value) => \App\Support\Categories::label($value)
+        ?? ucfirst(str_replace('-', ' ', (string) $value));
     $advancedActive = request()->filled('category_level2') || request()->filled('category_level3')
         || request()->filled('etat') || request()->filled('taille')
         || request()->filled('min_price') || request()->filled('max_price');
@@ -184,19 +190,35 @@
                 @endforeach
             </div>
 
-            {{-- NAVIGATION PAR CATEGORIE, VISIBLE.
-                 Les sous-categories etaient enfouies dans « Plus de filtres » :
-                 personne ne les trouvait, alors que c'est le chemin principal
-                 pour parcourir le catalogue. Chaque niveau s'affiche des que le
-                 precedent est choisi, comme sur les grandes marketplaces. --}}
-            @if($selectedCategory && isset($categoryTree[$selectedCategory]))
-                @php
-                    $enfantsN2 = $categoryTree[$selectedCategory] ?? [];
-                    $enfantsN3 = ($selectedLevel2 && isset($enfantsN2[$selectedLevel2]))
-                        ? $enfantsN2[$selectedLevel2]
-                        : [];
-                @endphp
+            {{-- NAVIGATION PAR CATEGORIE, EN TETE.
+                 C'est le chemin principal : on cherche « une robe », pas
+                 « un don negociable ». La rangee de categories passe donc
+                 avant les filtres, et elle est toujours la — au niveau
+                 racine comme au fond d'une sous-categorie.
 
+                 L'arbre vient de App\Support\Categories, la meme source que
+                 le formulaire de depot : une categorie sans annonce reste
+                 visible et affiche son message de resultat vide, au lieu de
+                 disparaitre du chemin de navigation. --}}
+            @php
+                $racineCategories = \App\Support\Categories::niveau1();
+                $sousCategories = \App\Support\Categories::sousCategories($selectedCategory);
+                $typesArticle = \App\Support\Categories::typesArticle($selectedCategory, $selectedLevel2);
+            @endphp
+
+            <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 no-scrollbar sm:-mx-6 sm:px-6">
+                <a href="{{ $catUrl() }}" class="{{ $selectedCategory ? $chipOff : $chipOn }}">Tout</a>
+
+                @foreach($racineCategories as $cle => $categorie)
+                    <a href="{{ $catUrl($cle) }}"
+                       @if($selectedCategory === $cle) aria-current="true" @endif
+                       class="{{ $selectedCategory === $cle ? $chipOn : $chipOff }}">
+                        {{ $categorie['emoji'] }} {{ $categorie['label'] }}
+                    </a>
+                @endforeach
+            </div>
+
+            @if($selectedCategory && count($sousCategories))
                 {{-- Fil d'Ariane : on voit ou on est, et on remonte d'un clic. --}}
                 <nav class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm" aria-label="Fil d'Ariane des catégories">
                     <a href="{{ $catUrl() }}" class="font-semibold text-teal-700 hover:underline">Toutes catégories</a>
@@ -222,18 +244,18 @@
 
                 {{-- Niveau suivant, en pastilles. On n'affiche que ce qui est
                      pertinent la ou l'on se trouve. --}}
-                @if(! $selectedLevel2 && count($enfantsN2))
-                    <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                        @foreach($enfantsN2 as $n2 => $n3Items)
-                            <a href="{{ $catUrl($selectedCategory, $n2) }}" class="{{ $chipOff }}">{{ $prettyCategory($n2) }}</a>
+                @if(! $selectedLevel2)
+                    <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 no-scrollbar sm:-mx-6 sm:px-6">
+                        @foreach($sousCategories as $cle2 => $label2)
+                            <a href="{{ $catUrl($selectedCategory, $cle2) }}" class="{{ $chipOff }}">{{ $label2 }}</a>
                         @endforeach
                     </div>
-                @elseif($selectedLevel2)
-                    <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                @else
+                    <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 no-scrollbar sm:-mx-6 sm:px-6">
                         <a href="{{ $catUrl($selectedCategory) }}" class="{{ $chipOff }}">← Tout {{ $prettyCategory($selectedCategory) }}</a>
-                        @foreach($enfantsN3 as $n3)
-                            <a href="{{ $catUrl($selectedCategory, $selectedLevel2, $n3) }}"
-                               class="{{ $selectedLevel3 === $n3 ? $chipOn : $chipOff }}">{{ $prettyCategory($n3) }}</a>
+                        @foreach($typesArticle as $cle3 => $label3)
+                            <a href="{{ $catUrl($selectedCategory, $selectedLevel2, $cle3) }}"
+                               class="{{ $selectedLevel3 === $cle3 ? $chipOn : $chipOff }}">{{ $label3 }}</a>
                         @endforeach
                     </div>
                 @endif
@@ -260,8 +282,8 @@
             <div class="flex flex-wrap gap-2">
                 <select name="category" id="category_level1_select" class="{{ $pillSelect }}">
                     <option value="">Toutes catégories</option>
-                    @foreach($categoryTree as $level1 => $children)
-                        <option value="{{ $level1 }}" @selected($selectedCategory === $level1)>{{ $prettyCategory($level1) }}</option>
+                    @foreach(\App\Support\Categories::niveau1() as $level1 => $categorie)
+                        <option value="{{ $level1 }}" @selected($selectedCategory === $level1)>{{ $categorie['label'] }}</option>
                     @endforeach
                 </select>
 

@@ -333,6 +333,51 @@ class CategoryTidyTest extends TestCase
         $this->assertSame('laisser', CategoryClassifier::decider($annonce)['action']);
     }
 
+    /**
+     * Les trois propositions fausses du second aperçu réel.
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('piegesDuSecondApercu')]
+    public function test_le_mot_precis_bat_le_mot_large(string $titre, string $n1, string $n2): void
+    {
+        $annonce = $this->annonce($titre, 'femme', 'accessoires');
+        $decision = CategoryClassifier::decider($annonce);
+
+        $this->assertNotNull($decision['place'], "« {$titre} » n'est plus reconnu.");
+        $this->assertSame([$n1, $n2], array_slice($decision['place'], 0, 2), "Mauvais rayon pour « {$titre} ».");
+    }
+
+    public static function piegesDuSecondApercu(): array
+    {
+        return [
+            // « tapis » est declare en Decoration : il avalait le tapis de course.
+            'tapis de course' => ['Tapis de course', 'sport-loisirs', 'fitness-musculation'],
+            'tapis de yoga' => ['Tapis de yoga épais', 'sport-loisirs', 'fitness-musculation'],
+            // ... mais un vrai tapis de salon reste en Decoration.
+            'tapis de salon' => ['Tapis de salon', 'maison', 'decoration'],
+            // « canape » est declare en Meubles : il avalait le jete de canape.
+            'jeté canapé' => ['Jeté Canapé', 'maison', 'linge-de-maison'],
+            'canapé' => ['Canapé 3 places', 'maison', 'meubles'],
+        ];
+    }
+
+    public function test_des_crampons_restent_des_chaussures(): void
+    {
+        // Meme logique qu'un maillot de foot : c'est de l'habillement.
+        $annonce = $this->annonce('Crampon nike', 'homme', 'chaussures-homme');
+
+        $this->assertSame('laisser', CategoryClassifier::decider($annonce)['action']);
+    }
+
+    public function test_les_mots_trop_larges_ont_ete_retires(): void
+    {
+        // « pince » attrapait une pince a cheveux, « bd » un boulevard.
+        $this->assertNull(CategoryClassifier::classerDepuisTitre($this->annonce('Pince à cheveux dorée')));
+        $this->assertNull(CategoryClassifier::classerDepuisTitre($this->annonce('Robe vendue bd Gaulle')));
+
+        // Les vrais outils restent reconnus.
+        $this->assertNotNull(CategoryClassifier::classerDepuisTitre($this->annonce('Pince coupante neuve')));
+    }
+
     public function test_les_mots_non_reconnus_remontent(): void
     {
         $this->annonce('Paréo traditionnel', 'femme', 'accessoires');

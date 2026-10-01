@@ -46,6 +46,13 @@ class CategoryClassifier
             ['body bebe|bodies bebe|barboteuse', 'enfant', 'vetements-enfants', 'bodies'],
             ['pyjama bebe|grenouillere|gigoteuse|turbulette', 'enfant', 'vetements-enfants', 'pyjamas'],
 
+            // --- Pieges connus : un mot large d'un autre rayon avalait ces
+            //     articles. « Tapis de course » partait en Decoration parce que
+            //     « tapis » y est declare, et « Jete canape » en Meubles a cause
+            //     de « canape ». Le plus precis doit etre teste en premier.
+            ['tapis de course|tapis de marche|tapis de yoga|tapis de gym|tapis de sport', 'sport-loisirs', 'fitness-musculation', 'tapis-machines'],
+            ['jete de canape|jete canape|jete de lit|plaid', 'maison', 'linge-de-maison', 'draps-parures'],
+
             // --- High-tech
             ['iphone|samsung galaxy|smartphone|telephone portable|xiaomi|huawei|pixel', 'high-tech', 'telephonie', 'smartphones'],
             ['coque telephone|coque iphone|coque samsung|verre trempe|protection ecran', 'high-tech', 'telephonie', 'coques-protections'],
@@ -61,7 +68,7 @@ class CategoryClassifier
             ['casque audio|ecouteurs|airpods|casque bluetooth', 'high-tech', 'image-et-son', 'casques-ecouteurs'],
             ['appareil photo|reflex|canon eos|nikon|gopro|camera', 'high-tech', 'image-et-son', 'appareils-photo'],
             ['drone', 'high-tech', 'image-et-son', 'drones'],
-            ['playstation|ps4|ps5|xbox|nintendo switch|console de jeu', 'high-tech', 'jeux-video', 'consoles'],
+            ['playstation|ps4|ps5|xbox|nintendo|switch lite|console de jeu', 'high-tech', 'jeux-video', 'consoles'],
             ['manette|joystick|dualshock|joycon', 'high-tech', 'jeux-video', 'manettes-accessoires'],
             ['jeu video|jeux video|jeu ps4|jeu ps5|jeu switch|jeu xbox', 'high-tech', 'jeux-video', 'jeux'],
 
@@ -70,7 +77,7 @@ class CategoryClassifier
             ['lave linge|lave-linge|machine a laver|seche linge|seche-linge', 'maison', 'electromenager', 'lave-linge-seche-linge'],
             ['climatiseur|climatisation|ventilateur|brasseur d air', 'maison', 'electromenager', 'climatiseurs-ventilateurs'],
             ['four electrique|micro onde|micro-onde|four encastrable', 'maison', 'electromenager', 'fours-micro-ondes'],
-            ['robot cuisine|mixeur|blender|cafetiere|bouilloire|friteuse|airfryer|grille pain', 'maison', 'cuisine-arts-de-la-table', 'petit-electromenager'],
+            ['robot cuisine|mixeur|blender|cafetiere|senseo|nespresso|tassimo|dolce gusto|bouilloire|friteuse|airfryer|grille pain', 'maison', 'cuisine-arts-de-la-table', 'petit-electromenager'],
             ['vaisselle|assiette|couverts|verres a|service de table', 'maison', 'cuisine-arts-de-la-table', 'vaisselle'],
             ['casserole|poele|ustensile|marmite|cocotte', 'maison', 'cuisine-arts-de-la-table', 'ustensiles'],
             ['canape|fauteuil|banquette', 'maison', 'meubles', 'canapes-fauteuils'],
@@ -94,7 +101,7 @@ class CategoryClassifier
             ['palme|masque de plongee|tuba|snorkeling', 'sport-loisirs', 'plage-et-mer', 'palmes-masques-tubas'],
             ['combinaison de plongee|shorty neoprene|neoprene', 'sport-loisirs', 'plage-et-mer', 'combinaisons'],
             ['haltere|poids de musculation|kettlebell|banc de musculation', 'sport-loisirs', 'fitness-musculation', 'halteres-poids'],
-            ['tapis de course|velo elliptique|rameur|tapis de yoga', 'sport-loisirs', 'fitness-musculation', 'tapis-machines'],
+            ['velo elliptique|rameur|stepper', 'sport-loisirs', 'fitness-musculation', 'tapis-machines'],
             ['velo electrique|vae|velo a assistance', 'sport-loisirs', 'velos-trottinettes', 'velos-electriques'],
             ['trottinette', 'sport-loisirs', 'velos-trottinettes', 'trottinettes'],
             ['velo|vtt|bicyclette', 'sport-loisirs', 'velos-trottinettes', 'velos'],
@@ -103,7 +110,7 @@ class CategoryClassifier
             ['chaussure de randonnee|chaussures de rando', 'sport-loisirs', 'randonnee-camping', 'chaussures-de-randonnee'],
             ['canne a peche|moulinet', 'sport-loisirs', 'peche-chasse', 'cannes-moulinets'],
             ['leurre|hamecon|fil de peche', 'sport-loisirs', 'peche-chasse', 'leurres-accessoires'],
-            ['ballon de foot|crampon', 'sport-loisirs', 'sports-collectifs', 'football'],
+            ['ballon de foot', 'sport-loisirs', 'sports-collectifs', 'football'],
             ['ballon de basket', 'sport-loisirs', 'sports-collectifs', 'basket'],
 
             // --- Auto / moto
@@ -122,12 +129,12 @@ class CategoryClassifier
             ['barbecue|plancha', 'jardin-bricolage', 'jardin', 'barbecues-planchas'],
             ['piscine|jacuzzi|spa gonflable', 'jardin-bricolage', 'jardin', 'piscines-spas'],
             ['perceuse|visseuse|meuleuse|scie circulaire|ponceuse|compresseur', 'jardin-bricolage', 'bricolage', 'outillage-electroportatif'],
-            ['tournevis|marteau|cle a molette|pince|boite a outils', 'jardin-bricolage', 'bricolage', 'outillage-a-main'],
+            ['tournevis|marteau|cle a molette|pince coupante|pince multiprise|boite a outils', 'jardin-bricolage', 'bricolage', 'outillage-a-main'],
             ['peinture|enduit|carrelage|parquet|placo', 'jardin-bricolage', 'bricolage', 'peinture-materiaux'],
             ['echelle|escabeau|echafaudage', 'jardin-bricolage', 'bricolage', 'echelles-escabeaux'],
 
             // --- Culture
-            ['bande dessinee|manga|comics|bd', 'culture-loisirs', 'livres', 'bandes-dessinees-mangas'],
+            ['bande dessinee|manga|comics', 'culture-loisirs', 'livres', 'bandes-dessinees-mangas'],
             ['livre scolaire|manuel scolaire|annales|prepa', 'culture-loisirs', 'livres', 'scolaire-etudes'],
             ['livre|roman|bouquin', 'culture-loisirs', 'livres', 'romans'],
             ['dvd|blu ray|blu-ray|coffret serie', 'culture-loisirs', 'films-series-musique', 'dvd-blu-ray'],
@@ -267,7 +274,7 @@ class CategoryClassifier
             // Chaussures
             'chaussure', 'basket', 'sneaker', 'sandale', 'talon', 'escarpin',
             'botte', 'bottine', 'mocassin', 'savate', 'tong', 'ballerine',
-            'espadrille', 'chausson', 'claquette',
+            'espadrille', 'chausson', 'claquette', 'crampon',
             // Accessoires
             'sac', 'pochette', 'portefeuille', 'bijou', 'collier', 'bracelet',
             'boucle d oreille', 'bague', 'montre', 'ceinture', 'echarpe',

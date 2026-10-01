@@ -243,6 +243,96 @@ class CategoryTidyTest extends TestCase
         $this->assertSame('femme', $annonce->fresh()->category_level1);
     }
 
+    /**
+     * Les neuf propositions fausses relevées sur l'aperçu réel. Chacune doit
+     * désormais laisser l'annonce en place.
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('faussesPropositions')]
+    public function test_les_faux_deplacements_releves_sont_corriges(string $titre, string $n1, string $n2): void
+    {
+        $annonce = $this->annonce($titre, $n1, $n2);
+
+        $this->assertSame(
+            'laisser',
+            CategoryClassifier::decider($annonce)['action'],
+            "« {$titre} » ne doit plus quitter {$n1} › {$n2}."
+        );
+    }
+
+    public static function faussesPropositions(): array
+    {
+        return [
+            // « velours » contient « velo » : sans limite de mot, un sac en
+            // velours partait au rayon Vélos.
+            'sac en velours' => ['Vend sac a dos en velours', 'femme', 'accessoires'],
+            'montre connectée' => ['Protection montre connectée', 'femme', 'accessoires'],
+            'montre connectée homme' => ['Protection montre connectée', 'homme', 'accessoires'],
+            // Des chaussures d'enfant restent là où un parent les cherche.
+            'chaussures de rando enfant' => ['Chaussures de randonnée', 'enfant', 'chaussures-enfants'],
+            'piscine à balles' => ['Piscine à balles', 'enfant', 'jeux-enfant'],
+            'vélo enfant' => ['Vend vélo enfant', 'enfant', 'jeux-enfant'],
+            // « artisanat » et « voilage » ne doivent pas battre « sac » et « robe ».
+            'sac artisanat' => ['Sac artisanat malgache', 'femme', 'accessoires'],
+            'robe voilage' => ['Robe à pois femme voilage T36', 'femme', 'vetements'],
+            'maillot de foot' => ['DIVERS MAILLOT DE FOOT', 'homme', 'vetements'],
+        ];
+    }
+
+    public function test_les_limites_de_mots_sont_respectees(): void
+    {
+        // « velo » reconnaît « velos » mais pas « velours ».
+        $this->assertNull(CategoryClassifier::classerDepuisTitre($this->annonce('Vend sac a dos en velours')));
+        $this->assertNotNull(CategoryClassifier::classerDepuisTitre($this->annonce('Deux velos adultes')));
+    }
+
+    /**
+     * Le garde-fou ne doit pas tout figer : les vrais objets mal rangés
+     * continuent de bouger.
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('vraisDeplacements')]
+    public function test_les_objets_vraiment_mal_ranges_bougent_toujours(string $titre, string $attendu): void
+    {
+        $annonce = $this->annonce($titre, 'femme', 'vetements');
+        $decision = CategoryClassifier::decider($annonce);
+
+        $this->assertSame('reclasser', $decision['action'], "« {$titre} » doit être reclassé.");
+        $this->assertSame($attendu, $decision['place'][0]);
+    }
+
+    public static function vraisDeplacements(): array
+    {
+        return [
+            'frigo' => ['Réfrigérateur 300 litres', 'maison'],
+            'iPhone' => ['iPhone 13 128 Go', 'high-tech'],
+            'canapé' => ['Canapé 3 places', 'maison'],
+            'perceuse' => ['Perceuse visseuse Bosch', 'jardin-bricolage'],
+            'scooter' => ['Scooter 50cc', 'auto-moto'],
+            'aquarium' => ['Aquarium 60 litres', 'animaux'],
+            'surf' => ['Planche de surf 6 pieds', 'sport-loisirs'],
+            'manga' => ['Lot de mangas One Piece', 'culture-loisirs'],
+            'poussette' => ['Poussette canne pliante', 'enfant'],
+        ];
+    }
+
+    public function test_un_enfant_peut_etre_range_a_l_interieur_d_enfant(): void
+    {
+        // Le garde-fou enfant empêche de SORTIR du rayon, pas d'y ranger mieux.
+        $annonce = $this->annonce('Poussette canne pliante', 'enfant', 'jeux-enfant');
+        $decision = CategoryClassifier::decider($annonce);
+
+        $this->assertSame('reclasser', $decision['action']);
+        $this->assertSame(['enfant', 'puericulture', 'poussettes'], $decision['place']);
+    }
+
+    public function test_un_frigo_pour_enfant_reste_quand_meme_dans_enfant(): void
+    {
+        // Choix assumé : mieux vaut un objet au mauvais rayon qu'un objet
+        // disparu du rayon où le parent le cherche.
+        $annonce = $this->annonce('Réfrigérateur chambre enfant', 'enfant', 'jeux-enfant');
+
+        $this->assertSame('laisser', CategoryClassifier::decider($annonce)['action']);
+    }
+
     public function test_les_mots_non_reconnus_remontent(): void
     {
         $this->annonce('Paréo traditionnel', 'femme', 'accessoires');

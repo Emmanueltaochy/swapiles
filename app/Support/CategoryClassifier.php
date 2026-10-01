@@ -41,13 +41,13 @@ class CategoryClassifier
             ['biberon|tire lait|tire-lait|chauffe biberon|sterilisateur', 'enfant', 'puericulture', 'biberons'],
             ['jouet d eveil|jouet eveil|tapis d eveil|hochet|portique', 'enfant', 'jeux-enfant', 'jouets-d-eveil'],
             ['jeu educatif|jeux educatifs|montessori', 'enfant', 'jeux-enfant', 'jeux-educatifs'],
-            ['toboggan|balancoire|piscine gonflable|trampoline|jeu de plage', 'enfant', 'jeux-enfant', 'jeux-exterieurs-plage-jardin'],
+            ['toboggan|balancoire|piscine a balles|piscine gonflable|trampoline|jeu de plage', 'enfant', 'jeux-enfant', 'jeux-exterieurs-plage-jardin'],
             ['chausson bebe|chaussons bebe', 'enfant', 'chaussures-enfants', 'chaussons'],
             ['body bebe|bodies bebe|barboteuse', 'enfant', 'vetements-enfants', 'bodies'],
             ['pyjama bebe|grenouillere|gigoteuse|turbulette', 'enfant', 'vetements-enfants', 'pyjamas'],
 
             // --- High-tech
-            ['iphone|samsung galaxy|smartphone|telephone portable|xiaomi|huawei|pixel ', 'high-tech', 'telephonie', 'smartphones'],
+            ['iphone|samsung galaxy|smartphone|telephone portable|xiaomi|huawei|pixel', 'high-tech', 'telephonie', 'smartphones'],
             ['coque telephone|coque iphone|coque samsung|verre trempe|protection ecran', 'high-tech', 'telephonie', 'coques-protections'],
             ['chargeur|cable usb|cable lightning|powerbank|batterie externe', 'high-tech', 'telephonie', 'chargeurs-cables'],
             ['montre connectee|apple watch|smartwatch|bracelet connecte', 'high-tech', 'telephonie', 'montres-connectees'],
@@ -74,7 +74,7 @@ class CategoryClassifier
             ['vaisselle|assiette|couverts|verres a|service de table', 'maison', 'cuisine-arts-de-la-table', 'vaisselle'],
             ['casserole|poele|ustensile|marmite|cocotte', 'maison', 'cuisine-arts-de-la-table', 'ustensiles'],
             ['canape|fauteuil|banquette', 'maison', 'meubles', 'canapes-fauteuils'],
-            ['table basse|table a manger|table de salle|chaise|tabouret|bureau ', 'maison', 'meubles', 'tables-chaises'],
+            ['table basse|table a manger|table de salle|chaise|tabouret|bureau', 'maison', 'meubles', 'tables-chaises'],
             ['armoire|commode|etagere|bibliotheque|buffet|dressing meuble', 'maison', 'meubles', 'rangements-etageres'],
             ['matelas|sommier|lit double|lit simple|tete de lit', 'maison', 'meubles', 'lits-matelas'],
             ['salon de jardin|transat|bain de soleil|hamac', 'maison', 'meubles', 'meubles-exterieur'],
@@ -103,12 +103,12 @@ class CategoryClassifier
             ['chaussure de randonnee|chaussures de rando', 'sport-loisirs', 'randonnee-camping', 'chaussures-de-randonnee'],
             ['canne a peche|moulinet', 'sport-loisirs', 'peche-chasse', 'cannes-moulinets'],
             ['leurre|hamecon|fil de peche', 'sport-loisirs', 'peche-chasse', 'leurres-accessoires'],
-            ['ballon de foot|maillot de foot|crampon', 'sport-loisirs', 'sports-collectifs', 'football'],
-            ['ballon de basket|maillot nba', 'sport-loisirs', 'sports-collectifs', 'basket'],
+            ['ballon de foot|crampon', 'sport-loisirs', 'sports-collectifs', 'football'],
+            ['ballon de basket', 'sport-loisirs', 'sports-collectifs', 'basket'],
 
             // --- Auto / moto
             ['scooter|cyclomoteur|50cc', 'auto-moto', 'deux-roues', 'scooters'],
-            ['moto |motocross|125cc|roadster', 'auto-moto', 'deux-roues', 'motos'],
+            ['moto|motocross|125cc|roadster', 'auto-moto', 'deux-roues', 'motos'],
             ['casque moto|casque integral|casque jet', 'auto-moto', 'deux-roues', 'casques'],
             ['blouson moto|gant moto|bottes moto', 'auto-moto', 'deux-roues', 'equipement-pilote'],
             ['pneu|jante', 'auto-moto', 'pieces-accessoires-auto', 'pneus-jantes'],
@@ -122,12 +122,12 @@ class CategoryClassifier
             ['barbecue|plancha', 'jardin-bricolage', 'jardin', 'barbecues-planchas'],
             ['piscine|jacuzzi|spa gonflable', 'jardin-bricolage', 'jardin', 'piscines-spas'],
             ['perceuse|visseuse|meuleuse|scie circulaire|ponceuse|compresseur', 'jardin-bricolage', 'bricolage', 'outillage-electroportatif'],
-            ['tournevis|marteau|cle a molette|pince |boite a outils', 'jardin-bricolage', 'bricolage', 'outillage-a-main'],
+            ['tournevis|marteau|cle a molette|pince|boite a outils', 'jardin-bricolage', 'bricolage', 'outillage-a-main'],
             ['peinture|enduit|carrelage|parquet|placo', 'jardin-bricolage', 'bricolage', 'peinture-materiaux'],
             ['echelle|escabeau|echafaudage', 'jardin-bricolage', 'bricolage', 'echelles-escabeaux'],
 
             // --- Culture
-            ['bande dessinee|manga|comics|bd ', 'culture-loisirs', 'livres', 'bandes-dessinees-mangas'],
+            ['bande dessinee|manga|comics|bd', 'culture-loisirs', 'livres', 'bandes-dessinees-mangas'],
             ['livre scolaire|manuel scolaire|annales|prepa', 'culture-loisirs', 'livres', 'scolaire-etudes'],
             ['livre|roman|bouquin', 'culture-loisirs', 'livres', 'romans'],
             ['dvd|blu ray|blu-ray|coffret serie', 'culture-loisirs', 'films-series-musique', 'dvd-blu-ray'],
@@ -219,7 +219,63 @@ class CategoryClassifier
             return ['action' => 'laisser', 'place' => null];
         }
 
+        $niveau1 = mb_strtolower((string) $listing->category_level1);
+
+        // Garde-fou 1 — l'habillement reste l'habillement.
+        // « Robe à pois femme voilage T36 » contient « voilage » et partait au
+        // rayon Rideaux ; « Sac artisanat malgache » contient « artisanat » et
+        // partait en Décoration. Dès que le titre nomme un vêtement, une paire
+        // de chaussures ou un accessoire, le rayon d'habillement a raison.
+        if (self::estHabillement($listing->title)) {
+            return ['action' => 'laisser', 'place' => null];
+        }
+
+        // Garde-fou 2 — ce qui est pour un enfant reste dans Enfant.
+        // Des chaussures de randonnée d'enfant ou un vélo d'enfant ne doivent
+        // pas quitter le rayon où un parent les cherche. Le rangement reste
+        // possible À L'INTÉRIEUR d'Enfant (un vélo d'enfant classé dans
+        // « Jeux / jouets » peut encore bouger).
+        $pourEnfant = $niveau1 === 'enfant'
+            || preg_match('/(?<![a-z])(enfant|bebe|fille|garcon|junior|ado)/u', self::normaliser($listing->title));
+
+        if ($pourEnfant && $place[0] !== 'enfant') {
+            return ['action' => 'laisser', 'place' => null];
+        }
+
         return ['action' => 'reclasser', 'place' => $place];
+    }
+
+    /**
+     * Le titre nomme-t-il un vêtement, une chaussure ou un accessoire ?
+     *
+     * Ces mots-là ne sortent jamais d'un rayon d'habillement : c'est le coeur
+     * du catalogue, et un faux déplacement y coûte bien plus cher qu'un
+     * article laissé en place.
+     */
+    public static function estHabillement(?string $titre): bool
+    {
+        $mots = implode('|', [
+            // Vêtements
+            'robe', 'jupe', 'pantalon', 'jean', 'short', 'bermuda', 'legging',
+            't shirt', 'tshirt', 'chemise', 'chemisier', 'blouse', 'debardeur',
+            'pull', 'gilet', 'sweat', 'hoodie', 'veste', 'blouson', 'manteau',
+            'parka', 'combinaison', 'ensemble', 'body', 'bodies', 'jogging',
+            'survetement', 'maillot', 'bikini', 'soutien gorge', 'culotte',
+            'calecon', 'chaussette', 'collant', 'pyjama', 'peignoir', 'kimono',
+            'pareo', 'tunique', 'salopette', 'costume', 'cravate', 'barboteuse',
+            'grenouillere', 'gigoteuse', 'turbulette',
+            // Chaussures
+            'chaussure', 'basket', 'sneaker', 'sandale', 'talon', 'escarpin',
+            'botte', 'bottine', 'mocassin', 'savate', 'tong', 'ballerine',
+            'espadrille', 'chausson', 'claquette',
+            // Accessoires
+            'sac', 'pochette', 'portefeuille', 'bijou', 'collier', 'bracelet',
+            'boucle d oreille', 'bague', 'montre', 'ceinture', 'echarpe',
+            'foulard', 'bonnet', 'casquette', 'chapeau', 'gant', 'banane',
+            'lunette de soleil',
+        ]);
+
+        return (bool) preg_match(self::enMotsEntiers($mots), self::normaliser($titre));
     }
 
     /**
@@ -253,12 +309,24 @@ class CategoryClassifier
         }
 
         foreach (self::regles() as [$motif, $n1, $n2, $n3]) {
-            if (preg_match('/' . $motif . '/u', $texte)) {
+            if (preg_match(self::enMotsEntiers($motif), $texte)) {
                 return [$n1, $n2, $n3];
             }
         }
 
         return null;
+    }
+
+    /**
+     * Un motif ne doit matcher que des mots entiers.
+     *
+     * Sans cela, « velours » contient « velo » et un sac à dos en velours
+     * partait au rayon Vélos. Le « s? » final laisse passer le pluriel :
+     * « velo » reconnaît « velos », mais pas « velours ».
+     */
+    private static function enMotsEntiers(string $motif): string
+    {
+        return '/(?<![a-z0-9])(?:' . $motif . ')s?(?![a-z0-9])/u';
     }
 
     /**

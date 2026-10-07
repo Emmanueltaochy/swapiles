@@ -117,10 +117,15 @@
         <div class="rounded-2xl border border-gray-200 px-5 py-4 dark:border-gray-700">
             <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">Tester l’envoi</p>
             <p class="mt-1 text-xs text-gray-500">
-                Envoie immédiatement une notification de test <strong>uniquement sur vos propres appareils</strong>
-                (ceux où l’appli est connectée avec votre compte) et affiche la réponse exacte d’Apple ou de Google.
-                Les membres ne la reçoivent pas.
+                Envoie immédiatement une notification de test <strong>à un seul compte</strong> et affiche la
+                réponse exacte d’Apple ou de Google. Laissez l’adresse vide pour l’envoyer sur vos propres
+                appareils. Aucun autre membre ne la reçoit.
             </p>
+
+            <label for="email-test" class="mt-3 block text-xs font-semibold text-gray-700 dark:text-gray-300">Adresse e-mail du compte (facultatif)</label>
+            <input id="email-test" type="email" wire:model="emailTest" autocomplete="off"
+                   placeholder="{{ auth()->user()->email }}"
+                   class="mt-1 block w-full max-w-sm rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
 
             <x-filament::button wire:click="testerEnvoi" color="gray" icon="heroicon-o-beaker" class="mt-3">
                 Envoyer un test et voir le résultat

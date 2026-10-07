@@ -73,4 +73,41 @@ class PushTestButtonTest extends TestCase
         $this->assertNull($appareilMembre->fresh()->last_sent_at);
         Http::assertNothingSent();
     }
+
+    public function test_le_test_peut_viser_un_compte_par_son_adresse(): void
+    {
+        Http::fake(['*' => Http::response(['name' => 'ok'], 200)]);
+
+        $admin = $this->membre('cabinet@taochyconsulting.fr');
+        $monTelephone = $this->appareil($admin, 'admin');
+        $testeuse = $this->appareil($this->membre('testeuse@ex.com'), 'testeuse');
+        $autre = $this->appareil($this->membre('autre@ex.com'), 'autre');
+
+        $this->actingAs($admin);
+        Livewire::test(PushBroadcast::class)
+            ->set('emailTest', '  Testeuse@EX.com ')
+            ->call('testerEnvoi');
+
+        $this->assertNotNull($testeuse->fresh()->last_sent_at);
+        $this->assertNull($autre->fresh()->last_sent_at);
+        $this->assertNull($monTelephone->fresh()->last_sent_at);
+    }
+
+    public function test_une_adresse_inconnue_n_envoie_rien(): void
+    {
+        Http::fake(['*' => Http::response(['name' => 'ok'], 200)]);
+
+        $admin = $this->membre('cabinet@taochyconsulting.fr');
+        $monTelephone = $this->appareil($admin, 'admin');
+
+        $this->actingAs($admin);
+        Livewire::test(PushBroadcast::class)
+            ->set('emailTest', 'inconnu@ex.com')
+            ->call('testerEnvoi')
+            ->assertNotified('Aucun compte avec cette adresse');
+
+        // Une faute de frappe ne bascule pas sur un autre destinataire.
+        $this->assertNull($monTelephone->fresh()->last_sent_at);
+        Http::assertNothingSent();
+    }
 }

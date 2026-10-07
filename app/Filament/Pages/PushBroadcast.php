@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Jobs\SendPushBroadcast;
 use App\Models\DeviceToken;
+use App\Models\User;
 use App\Support\ApnsService;
 use App\Support\FcmService;
 use Filament\Forms\Components\TextInput;
@@ -27,6 +28,9 @@ class PushBroadcast extends Page
 
     /** Résultat du dernier test d'envoi, affiché tel quel dans la page. */
     public array $diagnostic = [];
+
+    /** Compte visé par le test (vide = l'administrateur connecté). */
+    public string $emailTest = '';
 
     public function mount(): void
     {
@@ -113,10 +117,11 @@ class PushBroadcast extends Page
     }
 
     /**
-     * Envoi de test IMMÉDIAT (hors file d'attente) vers les appareils de
-     * L'ADMINISTRATEUR CONNECTÉ uniquement, avec le résultat exact renvoyé
-     * par Apple ou Google. (Il partait auparavant aux 10 derniers appareils
-     * enregistrés, donc chez de vrais membres.)
+     * Envoi de test IMMÉDIAT (hors file d'attente) vers les appareils d'UN
+     * SEUL compte : celui dont l'e-mail est saisi, ou à défaut
+     * l'administrateur connecté. Affiche le résultat exact renvoyé par Apple
+     * ou Google. (Il partait auparavant aux 10 derniers appareils
+     * enregistrés, donc chez de vrais membres au hasard.)
      *
      * L'envoi normal passe par la file d'attente : en cas d'échec, rien n'est
      * visible depuis l'administration. Ce bouton existe pour voir la réponse
@@ -124,18 +129,35 @@ class PushBroadcast extends Page
      */
     public function testerEnvoi(): void
     {
+        $this->diagnostic = [];
+        $email = trim($this->emailTest);
+
+        if ($email === '') {
+            $cible = auth()->user();
+        } else {
+            $cible = User::query()->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])->first();
+
+            if (! $cible) {
+                FilamentNotification::make()
+                    ->title('Aucun compte avec cette adresse')
+                    ->body($email . ' : vérifiez l’orthographe. Rien n’a été envoyé.')
+                    ->danger()
+                    ->send();
+
+                return;
+            }
+        }
+
         $appareils = DeviceToken::query()
-            ->where('user_id', auth()->id())
+            ->where('user_id', $cible->id)
             ->orderByDesc('id')
             ->limit(10)
             ->get();
 
         if ($appareils->isEmpty()) {
-            $this->diagnostic = [];
-
             FilamentNotification::make()
-                ->title('Aucun appareil à votre nom')
-                ->body('Ouvrez l’appli Swap’Îles sur votre téléphone en étant connecté avec CE compte, acceptez les notifications, puis réessayez. Le test n’est jamais envoyé aux membres.')
+                ->title($email === '' ? 'Aucun appareil à votre nom' : 'Aucun appareil pour ' . $cible->email)
+                ->body('Il faut ouvrir l’appli Swap’Îles sur le téléphone en étant connecté avec CE compte et accepter les notifications, puis réessayer. Rien n’a été envoyé.')
                 ->warning()
                 ->send();
 

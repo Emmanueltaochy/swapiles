@@ -56,6 +56,14 @@ Route::get('/territoire/{territoire}', function (string $territoire) {
 })->name('territoire.switch');
 Route::get('/recherche', [HomeController::class, 'search'])->name('search');
 
+// Jeton de sécurité frais, demandé par l'appli quand elle revient au premier
+// plan : une page ouverte depuis des jours garderait sinon un jeton périmé, et
+// le premier envoi échouerait. Cet appel prolonge aussi la session.
+Route::get('/jeton', function () {
+    return response()->json(['jeton' => csrf_token()])
+        ->header('Cache-Control', 'no-store, private');
+})->middleware('throttle:60,1')->name('csrf.refresh');
+
 // Point 17b : alerte « préviens-moi » sur une recherche sans résultat (capture e-mail).
 Route::post('/recherche/alerte', [\App\Http\Controllers\SearchAlertController::class, 'store'])
     ->middleware('throttle:10,1')

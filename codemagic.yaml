@@ -75,6 +75,9 @@ workflows:
           cd mobile
           yes | sdkmanager "platforms;android-36" >/dev/null 2>&1 || true
           python3 scripts/target-sdk-36.py
+          # Cookies de connexion écrits sur le disque au passage en arrière-plan
+          # (sinon : déconnexion si l'appli est fermée juste après la connexion).
+          python3 scripts/android-cookies-flush.py
       - name: Build APK debug (non signé)
         script: |
           export JAVA_HOME=$(/usr/libexec/java_home -v 21)
@@ -275,6 +278,9 @@ workflows:
           cd mobile
           yes | sdkmanager "platforms;android-36" >/dev/null 2>&1 || true
           python3 scripts/target-sdk-36.py
+          # Cookies de connexion écrits sur le disque au passage en arrière-plan
+          # (sinon : déconnexion si l'appli est fermée juste après la connexion).
+          python3 scripts/android-cookies-flush.py
       - name: Injecter signature + versionCode unique dans build.gradle
         script: |
           cd mobile

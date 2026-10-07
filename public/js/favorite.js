@@ -52,15 +52,32 @@
         bouton.classList.add('scale-110');
         setTimeout(function () { bouton.classList.remove('scale-110'); }, 180);
 
-        fetch(bouton.dataset.favoriUrl, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': csrf(),
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json',
-            },
-            credentials: 'same-origin',
-        })
+        function envoyer() {
+            return fetch(bouton.dataset.favoriUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrf(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                },
+                credentials: 'same-origin',
+            });
+        }
+
+        envoyer()
+            .then(function (r) {
+                // Jeton périmé (page ouverte depuis des jours) : le serveur en
+                // renvoie un neuf. On le pose et on réessaie une seule fois.
+                if (r.status !== 419) return r;
+
+                return r.json().then(function (data) {
+                    if (!data || !data.jeton) return r;
+                    var meta = document.querySelector('meta[name="csrf-token"]');
+                    if (meta) meta.setAttribute('content', data.jeton);
+
+                    return envoyer();
+                });
+            })
             .then(function (r) {
                 if (!r.ok) throw new Error('refus');
                 return r.json();

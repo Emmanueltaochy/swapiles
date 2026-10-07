@@ -101,6 +101,12 @@ class AuthController extends Controller
             \App\Models\UserSession::record(Auth::id(), $request, 'login');
 
             $request->session()->regenerate();
+
+            // « Rester connecté » décoché (ordinateur partagé) : la connexion ne
+            // sera pas prolongée automatiquement (voir KeepMemberSignedIn).
+            if (! $request->boolean('remember', true)) {
+                $request->session()->put(\App\Http\Middleware\KeepMemberSignedIn::SANS_MEMORISATION, true);
+            }
             $this->forgetAdminIntendedForNonAdmin($request);
 
             // Le sélecteur d'île suit le compte qui vient de se connecter : sans
@@ -220,7 +226,11 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        Auth::logout();
+        // CET appareil seulement. Auth::logout() changeait le jeton de
+        // mémorisation du compte : se déconnecter sur l'ordinateur faisait
+        // perdre la connexion de l'appli sur le téléphone, quelques jours plus
+        // tard, sans raison apparente pour le membre.
+        Auth::logoutCurrentDevice();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

@@ -207,4 +207,56 @@ document.addEventListener('turbo:load', () => {
     }
 });
 
+/**
+ * JETON DE SÉCURITÉ TOUJOURS FRAIS.
+ *
+ * Dans l'appli, une page peut rester ouverte des jours : on la quitte, on
+ * revient. Son jeton de sécurité, lui, a pu expirer entre-temps, et le premier
+ * envoi (message, favori, formulaire) échouait — ce que les membres prenaient
+ * pour une déconnexion. Au retour au premier plan après quelques minutes, on
+ * demande un jeton neuf et on le pose partout dans la page. L'appel prolonge
+ * aussi la session côté serveur.
+ */
+const ABSENCE_AVANT_RAFRAICHISSEMENT = 5 * 60 * 1000;
+let cacheeDepuis = null;
+
+function poserJeton(jeton) {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta) meta.setAttribute('content', jeton);
+    document.querySelectorAll('input[name="_token"]').forEach((champ) => { champ.value = jeton; });
+}
+
+async function rafraichirJeton() {
+    try {
+        const reponse = await fetch('/jeton', {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+            cache: 'no-store',
+        });
+        if (!reponse.ok) return;
+
+        const { jeton } = await reponse.json();
+        if (jeton) poserJeton(jeton);
+    } catch (e) {
+        // Hors connexion : on réessaiera au prochain retour.
+    }
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+        cacheeDepuis = Date.now();
+        return;
+    }
+
+    if (cacheeDepuis && Date.now() - cacheeDepuis > ABSENCE_AVANT_RAFRAICHISSEMENT) {
+        rafraichirJeton();
+    }
+    cacheeDepuis = null;
+});
+
+// Page restaurée depuis la mémoire du navigateur (retour arrière).
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted) rafraichirJeton();
+});
+
 window.Turbo = Turbo;

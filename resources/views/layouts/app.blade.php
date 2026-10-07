@@ -702,6 +702,15 @@ document.addEventListener('turbo:load', function () {
         }, { signal: window.swpPage() });
     </script>
 
+    {{-- Message ponctuel valable sur toutes les pages (jeton périmé…). --}}
+    @if(session('swp_info'))
+        <div role="status" class="mx-auto mt-3 max-w-3xl px-4">
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+                {{ session('swp_info') }}
+            </div>
+        </div>
+    @endif
+
     <main>
         @yield('content')
     </main>

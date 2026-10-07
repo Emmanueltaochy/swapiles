@@ -6,7 +6,85 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="google-site-verification" content="jl2dzZ3jQ5JfJg-QrS6qftgcitH7oS6oVXopqLDSW4U">
     <title>@yield('title', "Swap'Îles")</title>
+
+    {{-- Navigation sans rechargement (Turbo, voir resources/js/app.js).
+         « no-preview » : au retour arrière la page revient instantanément,
+         mais un onglet déjà visité n'affiche jamais une version périmée avant
+         la vraie.
+         Pas de fondu pour les pages ouvertes par Turbo : mesuré, Turbo attend
+         la fin de l'animation avant de rendre la page prête (535 ms au lieu de
+         246). Le contenu étant remplacé d'un seul coup, sans écran blanc, le
+         fondu n'apportait rien. Il reste actif pour les rechargements
+         complets (règle @view-transition plus bas). --}}
+    <meta name="turbo-cache-control" content="no-preview">
+
+    {{-- SOCLE — doit passer avant tout autre script.
+         Avec Turbo, la page n'est plus rechargée : seul son contenu est
+         remplacé, et ses scripts sont réexécutés. Deux conséquences que ce
+         socle règle pour tous les scripts du site, sans les réécrire :
+
+         1. « DOMContentLoaded » ne se produit qu'une fois, au tout premier
+            chargement. Un script qui attendait cet événement pour démarrer
+            ne démarrerait plus jamais. On l'exécute donc aussitôt quand la
+            page est déjà prête — exactement ce que faisait jQuery.
+
+         2. Un écouteur posé sur document ou window survit au changement de
+            page. Réexécuté à chaque visite, il s'empilerait (un clic traité
+            dix fois après dix pages). Les scripts de page passent donc
+            swpPage() en signal : leurs écouteurs sont retirés dès que la page
+            suivante s'affiche. --}}
+    <script>
+        (function () {
+            var controleur = new AbortController();
+
+            window.swpPage = function () {
+                return controleur.signal;
+            };
+
+            document.addEventListener('turbo:before-render', function () {
+                controleur.abort();
+                controleur = new AbortController();
+            });
+
+            function differer(cible, type, ecouteur) {
+                setTimeout(function () {
+                    var evenement = new Event(type);
+                    if (typeof ecouteur === 'function') {
+                        ecouteur.call(cible, evenement);
+                    } else if (ecouteur && typeof ecouteur.handleEvent === 'function') {
+                        ecouteur.handleEvent(evenement);
+                    }
+                }, 0);
+            }
+
+            var ajouterDocument = document.addEventListener;
+            document.addEventListener = function (type, ecouteur, options) {
+                if (type === 'DOMContentLoaded' && document.readyState !== 'loading') {
+                    return differer(document, type, ecouteur);
+                }
+                return ajouterDocument.call(document, type, ecouteur, options);
+            };
+
+            var ajouterFenetre = window.addEventListener;
+            window.addEventListener = function (type, ecouteur, options) {
+                if (type === 'load' && document.readyState === 'complete') {
+                    return differer(window, type, ecouteur);
+                }
+                return ajouterFenetre.call(window, type, ecouteur, options);
+            };
+        })();
+    </script>
+
     @vite(['resources/css/app.css','resources/js/app.js'])
+
+    {{-- Scripts communs : chargés UNE fois, ils restent en mémoire d'une page
+         à l'autre. Le « ?v= » change à chaque modification du fichier : Turbo
+         voit alors la différence et recharge complètement la page, pour que
+         personne ne garde l'ancienne version. --}}
+    @foreach(['push', 'report', 'share', 'password-eye', 'form-draft', 'favorite'] as $scriptCommun)
+        <script defer data-turbo-track="reload"
+                src="{{ asset('js/' . $scriptCommun . '.js') }}?v={{ @filemtime(public_path('js/' . $scriptCommun . '.js')) }}"></script>
+    @endforeach
 
 <style id="swapiles-mobile-fix">
 /* « clip » et non « hidden » : hidden transforme le corps de page en conteneur
@@ -167,6 +245,7 @@ html, body {
     @endphp
     </script>
     @stack('structured_data')
+    @stack('head')
 
     {{-- Suivi publicitaire, conditionné au consentement cookies (RGPD) --}}
     @php
@@ -176,6 +255,11 @@ html, body {
         $gaEvent = session('ga_event');
     @endphp
     <script>
+    // Avec Turbo, ce script n'est réexécuté que si son contenu change (un
+    // événement en attente, par exemple). Les balises Google et Meta sont
+    // alors DÉJÀ chargées : on ne les recharge pas — ce qui compterait la
+    // page deux fois —, on rejoue seulement l'événement en attente.
+    var swpDejaCharge = !!(window.SWP && window.SWP.loaded);
     window.SWP = {
         metaId: @json($metaPixelId),
         gaId: @json($googleTagId),
@@ -244,6 +328,14 @@ html, body {
             return;
         }
 
+        if (swpDejaCharge) {
+            window.SWP.loaded = true;
+            if (window.SWP.pending) { window.SWP.track(window.SWP.pending.event, window.SWP.pending.params || {}); }
+            if (window.SWP.pendingGa) { window.SWP.ga4(window.SWP.pendingGa.event, window.SWP.pendingGa.params || {}); }
+
+            return;
+        }
+
         var m = document.cookie.match(/(?:^|; )swapiles_cookie_consent=([^;]+)/);
         if (m && decodeURIComponent(m[1]) === 'accepted') { window.SWP.load(); }
     })();
@@ -271,7 +363,10 @@ html, body {
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+// « turbo:load » : au premier chargement ET à chaque page ouverte par Turbo.
+// Ce script de l'en-tête ne s'exécute qu'une fois ; c'est l'écouteur qui
+// refait le travail sur chaque nouvelle page.
+document.addEventListener('turbo:load', function () {
     const imgs = Array.from(document.querySelectorAll('img')).filter(function (img) {
         const src = (img.getAttribute('src') || '').toLowerCase();
         const alt = (img.getAttribute('alt') || '').toLowerCase();
@@ -325,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function () {
 @endphp
 
 
-<body class="bg-gray-50 text-gray-900 antialiased overflow-x-hidden" data-instant-allow-query-string>
+<body class="bg-gray-50 text-gray-900 antialiased overflow-x-hidden">
 <div id="swp-chargement" aria-hidden="true"></div>
     <header data-entete class="swp-safe-top sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100">
     <div class="max-w-7xl mx-auto px-4 py-3">
@@ -334,7 +429,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <img src="{{ asset('images/logo.png') }}" alt="Swap'Îles" class="h-9 sm:h-10 w-auto">
             </a>
 
-            <form method="GET" action="{{ route('search') }}" class="flex-1 relative" id="header-search-form">
+            <form method="GET" action="{{ route('search') }}" data-turbo="true" class="flex-1 relative" id="header-search-form">
                 <input
                     type="search"
                     name="q"
@@ -559,8 +654,9 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             mesurer();
-            window.addEventListener('resize', mesurer);
-            window.addEventListener('orientationchange', mesurer);
+            // swpPage() : retirés au changement de page (voir le socle).
+            window.addEventListener('resize', mesurer, { signal: window.swpPage() });
+            window.addEventListener('orientationchange', mesurer, { signal: window.swpPage() });
 
             // Les polices web changent la hauteur une fois chargees.
             if (document.fonts && document.fonts.ready) {
@@ -591,11 +687,11 @@ document.addEventListener('DOMContentLoaded', function () {
             document.addEventListener('click', function (e) {
                 if (e.target.closest('[data-menu-ouvrir]')) { e.preventDefault(); ouvrir(); return; }
                 if (e.target.closest('[data-menu-fermer]') || e.target.matches('[data-menu-fond]')) { fermer(); }
-            });
+            }, { signal: window.swpPage() });
 
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape' && !panneau.hidden) fermer();
-            });
+            }, { signal: window.swpPage() });
         })();
 
         // Ferme le menu "Mon compte" du header quand on clique en dehors
@@ -603,7 +699,7 @@ document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('details.account-menu[open]').forEach(function (d) {
                 if (!d.contains(e.target)) d.removeAttribute('open');
             });
-        });
+        }, { signal: window.swpPage() });
     </script>
 
     <main>
@@ -721,7 +817,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!results.contains(e.target) && e.target !== input) {
             results.classList.add('hidden');
         }
-    });
+    }, { signal: window.swpPage() });
 });
 </script>
 
@@ -834,6 +930,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // iOS/Safari : au retour arrière (swipe du pouce ou bouton) la page est
     // restaurée depuis le bfcache, mais des images en loading="lazy" peuvent
     // rester vides. On force leur (re)chargement à la restauration.
+    var page = { signal: window.swpPage() };
+
     window.addEventListener('pageshow', function (event) {
         if (!event.persisted) return;
 
@@ -846,7 +944,7 @@ document.addEventListener('DOMContentLoaded', function () {
             img.loading = 'eager';
             img.src = src;
         });
-    });
+    }, page);
 
     // Image qui échoue (scroll rapide qui avorte la requête, ou fichier absent) :
     // on réessaie une fois, puis on affiche un placeholder propre (📦) au lieu de
@@ -877,69 +975,31 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(function () {
             img.src = clean + (clean.indexOf('?') > -1 ? '&' : '?') + '_r=' + Date.now();
         }, 500);
-    }, true);
+    }, { capture: true, signal: page.signal });
 })();
 </script>
 
-{{-- Préchargement des pages au survol / touch (navigation quasi instantanée). --}}
+{{-- RÉPONSE IMMÉDIATE AU TOUCHER — liens ouverts par rechargement complet.
+     Les liens suivis par Turbo sont acquittés dans resources/js/app.js ; ce
+     script-ci couvre ceux qui rechargent la page (paiement, messagerie…),
+     pour que le geste soit pris en compte à l'instant, quel que soit le lien.
+     Le préchargement au toucher est désormais assuré par Turbo (app.js). --}}
 <script>
-    // PRÉCHARGEMENT SÛR.
-    // instant.page télécharge une page dès que le doigt touche un lien, pour
-    // qu'elle s'ouvre sans attendre. Mais certaines adresses AGISSENT quand on
-    // les charge : la liste des messages les marque tous comme lus, /territoire
-    // change d'île, Stripe crée un lien de paiement… Les précharger pendant un
-    // simple défilement déclencherait l'action sans que le membre l'ait voulue.
-    // Ce garde passe avant instant.page et retire ces liens du préchargement.
     (function () {
-        var interdits = [
-            '/messages', '/territoire/', '/stripe/', '/portefeuille/',
-            '/checkout/', '/transactions/', '/mon-compte/ventes/',
-            '/magic-link/', '/email/', '/n/'
-        ];
-
-        function marquer(evenement) {
-            var lien = evenement.target && evenement.target.closest && evenement.target.closest('a[href]');
-            if (!lien || 'noInstant' in lien.dataset) return;
-
-            var chemin;
-            try { chemin = new URL(lien.href, location.href).pathname; } catch (e) { return; }
-
-            for (var i = 0; i < interdits.length; i++) {
-                if (chemin.indexOf(interdits[i]) === 0) {
-                    lien.dataset.noInstant = '';
-                    return;
-                }
-            }
-        }
-
-        // Phase de capture, enregistrée avant instant.page (module, donc
-        // exécuté plus tard) : ce garde voit le toucher en premier.
-        document.addEventListener('touchstart', marquer, { capture: true, passive: true });
-        document.addEventListener('mouseover', marquer, { capture: true, passive: true });
-        document.addEventListener('mousedown', marquer, { capture: true, passive: true });
-    })();
-
-    // RÉPONSE IMMÉDIATE AU TOUCHER.
-    // Le serveur met une demi-seconde à répondre ; pendant ce temps l'écran
-    // restait figé. On acquitte le geste tout de suite : barre de chargement
-    // en haut, et l'onglet touché s'allume avant même que la page arrive.
-    (function () {
-        var barre = document.getElementById('swp-chargement');
-
+        var page = { signal: window.swpPage() };
         var filet;
 
-        function demarrer() {
-            if (!barre) return;
-            barre.classList.add('actif');
+        function barre(active) {
+            var element = document.getElementById('swp-chargement');
+            if (element) element.classList.toggle('actif', active);
+        }
 
+        function demarrer() {
+            barre(true);
             // Filet : téléchargement, navigation annulée… la barre ne doit
             // jamais rester affichée indéfiniment.
             clearTimeout(filet);
-            filet = setTimeout(arreter, 10000);
-        }
-
-        function arreter() {
-            if (barre) barre.classList.remove('actif');
+            filet = setTimeout(function () { barre(false); }, 10000);
         }
 
         document.addEventListener('click', function (e) {
@@ -951,50 +1011,26 @@ document.addEventListener('DOMContentLoaded', function () {
             var cible;
             try { cible = new URL(lien.href, location.href); } catch (err) { return; }
             if (cible.origin !== location.origin) return;
-
-            // Simple ancre sur la même page : pas de chargement.
             if (cible.pathname === location.pathname && cible.search === location.search && cible.hash) return;
 
-            // On attend la fin du clic : favoris, partage ou signalement le
-            // gèrent en JavaScript sans changer de page (preventDefault), et
-            // ces scripts-là passent après celui-ci.
+            // On attend la fin du clic : Turbo, favoris, partage ou
+            // signalement l'interceptent (preventDefault) sans recharger.
             setTimeout(function () {
-                if (e.defaultPrevented) return;
-
-                if (lien.hasAttribute('data-onglet')) {
-                    document.querySelectorAll('[data-onglet]').forEach(function (o) {
-                        o.classList.remove('text-teal-700');
-                        o.classList.add('text-gray-500');
-                    });
-                    lien.classList.remove('text-gray-500');
-                    lien.classList.add('text-teal-700');
-                }
-
-                demarrer();
+                if (!e.defaultPrevented) demarrer();
             }, 0);
-        });
+        }, page);
 
-        // Formulaires classiques (recherche, filtres) : même acquittement,
-        // même prudence pour ceux qu'un script envoie sans changer de page.
         document.addEventListener('submit', function (e) {
             setTimeout(function () {
                 if (!e.defaultPrevented && !e.target.hasAttribute('data-sans-chargement')) demarrer();
             }, 0);
-        });
+        }, page);
 
-        // Retour arrière (page restaurée depuis la mémoire) ou départ : on
-        // n'affiche jamais une barre qui ne s'arrêterait pas.
-        window.addEventListener('pageshow', arreter);
-        window.addEventListener('pagehide', arreter);
+        // Retour arrière (page restaurée) ou départ : jamais de barre figée.
+        window.addEventListener('pageshow', function () { barre(false); }, page);
+        window.addEventListener('pagehide', function () { barre(false); }, page);
     })();
 </script>
-<script src="{{ asset('js/instantpage.js') }}" type="module"></script>
-<script src="{{ asset('js/push.js') }}"></script>
-<script src="{{ asset('js/report.js') }}"></script>
-<script src="{{ asset('js/share.js') }}"></script>
-<script src="{{ asset('js/password-eye.js') }}"></script>
-<script src="{{ asset('js/form-draft.js') }}"></script>
-<script src="{{ asset('js/favorite.js') }}"></script>
 
 </body>
 </html>

@@ -64,11 +64,14 @@ class ListingController extends Controller
      *
      * Chrome et Android l'annoncent par « Sec-Purpose: prefetch » (ou
      * « prefetch;prerender »), Firefox par « X-Moz: prefetch », d'anciens
-     * navigateurs par « Purpose: prefetch ».
+     * navigateurs par « Purpose: prefetch ». Turbo, qui précharge en
+     * JavaScript, ne peut pas poser d'en-tête « Sec-… » : il envoie
+     * « X-Sec-Purpose: prefetch ».
      */
     public static function estPrechargement(Request $request): bool
     {
         $entetes = strtolower(implode(' ', [
+            (string) $request->header('X-Sec-Purpose'),
             (string) $request->header('Sec-Purpose'),
             (string) $request->header('Purpose'),
             (string) $request->header('X-Moz'),

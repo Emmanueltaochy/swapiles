@@ -28,5 +28,11 @@ class AppServiceProvider extends ServiceProvider
 
         // Journalise chaque e-mail envoyé (pour l'onglet Admin > Activité > Emails).
         Event::listen(MessageSent::class, LogSentEmail::class);
+
+        // Navigation sans rechargement (Turbo) : ces fichiers changent de nom à
+        // chaque mise en ligne. Turbo le remarque et recharge alors la page en
+        // entier, pour que personne ne reste sur l'ancienne version du site.
+        \Illuminate\Support\Facades\Vite::useScriptTagAttributes(['data-turbo-track' => 'reload']);
+        \Illuminate\Support\Facades\Vite::useStyleTagAttributes(['data-turbo-track' => 'reload']);
     }
 }

@@ -126,29 +126,41 @@ class NavigationSpeedTest extends TestCase
         $this->assertSame(0, (int) $annonce->fresh()->views_count);
     }
 
+    public function test_le_prechargement_de_turbo_ne_compte_pas_de_vue(): void
+    {
+        $annonce = $this->annonce();
+
+        // Turbo précharge en JavaScript : il ne peut pas poser d'en-tête
+        // « Sec-… » et envoie « X-Sec-Purpose » à la place.
+        $this->get(route('listings.show', $annonce), ['X-Sec-Purpose' => 'prefetch'])
+            ->assertOk()
+            ->assertSee('prerenderingchange', false);
+
+        $this->assertSame(0, (int) $annonce->fresh()->views_count);
+    }
+
+    public function test_le_signalement_de_vue_s_efface_apres_usage(): void
+    {
+        $annonce = $this->annonce();
+
+        // La page gardée en mémoire pour le retour arrière rejoue ses scripts :
+        // sans cet effacement, la vue serait signalée une seconde fois.
+        $this->get(route('listings.show', $annonce), ['X-Sec-Purpose' => 'prefetch'])
+            ->assertOk()
+            ->assertSee('document.currentScript.remove()', false);
+    }
+
     public function test_les_adresses_qui_agissent_ne_sont_jamais_prechargees(): void
     {
-        $html = $this->get('/')->assertOk()->getContent();
+        $js = file_get_contents(resource_path('js/app.js'));
 
         // La liste des messages les marque tous comme lus ; /territoire change
         // d'île ; Stripe et le portefeuille créent des liens de paiement.
         foreach (["'/messages'", "'/territoire/'", "'/stripe/'", "'/portefeuille/'", "'/checkout/'"] as $interdit) {
-            $this->assertStringContainsString($interdit, $html, "Préchargement non bloqué : {$interdit}");
+            $this->assertStringContainsString($interdit, $js, "Adresse sensible non protégée : {$interdit}");
         }
 
-        // Le garde doit passer AVANT instant.page.
-        $this->assertLessThan(
-            strpos($html, 'instantpage.js'),
-            strpos($html, "'/messages'"),
-            'Le garde de préchargement doit être déclaré avant instant.page.'
-        );
-    }
-
-    public function test_les_recherches_par_categorie_sont_prechargees(): void
-    {
-        // Sans cet attribut, instant.page ignorait tout lien avec « ? » :
-        // catégories, filtres, pastilles — les gestes les plus fréquents.
-        $this->get('/')->assertOk()->assertSee('data-instant-allow-query-string', false);
+        $this->assertStringContainsString('turbo:before-prefetch', $js);
     }
 
     public function test_les_pages_s_enchainent_sans_ecran_blanc(): void

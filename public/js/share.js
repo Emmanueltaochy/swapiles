@@ -73,6 +73,10 @@
         initialiser();
     }
 
+    // Pages ouvertes sans rechargement (Turbo) : ce script reste en mémoire,
+    // on prépare les boutons de partage de chaque nouvelle page.
+    document.addEventListener('turbo:load', initialiser);
+
     // Le partage natif doit partir du geste de l'utilisateur : on l'appelle
     // directement dans le gestionnaire de clic, sans étape intermédiaire.
     document.addEventListener('click', function (e) {

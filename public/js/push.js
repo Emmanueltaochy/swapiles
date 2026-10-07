@@ -69,7 +69,12 @@
     var data = action && action.notification && action.notification.data;
     var url = data && data.url;
     if (url) {
-      window.location.href = url;
+      // Sans rechargement quand c'est possible : l'appli reste « chaude ».
+      if (window.Turbo && typeof window.Turbo.visit === 'function') {
+        window.Turbo.visit(url);
+      } else {
+        window.location.href = url;
+      }
     }
   });
 

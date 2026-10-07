@@ -2,6 +2,13 @@
 
 @section('title', 'Déposer une annonce — Swap\'Îles')
 
+{{-- Page à scripts lourds (paiement, photos, messagerie) : toujours ouverte
+     par un rechargement complet, même si l'on y arrive sans recharger
+     (redirection). Voir resources/js/app.js. --}}
+@push('head')
+    <meta name="turbo-visit-control" content="reload">
+@endpush
+
 @section('content')
 @php
     $stripeReady = auth()->user()?->stripe_account_id

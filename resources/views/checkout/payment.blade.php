@@ -2,6 +2,13 @@
 
 @section('title', 'Finaliser ma commande — Swap\'Îles')
 
+{{-- Page à scripts lourds (paiement, photos, messagerie) : toujours ouverte
+     par un rechargement complet, même si l'on y arrive sans recharger
+     (redirection). Voir resources/js/app.js. --}}
+@push('head')
+    <meta name="turbo-visit-control" content="reload">
+@endpush
+
 @section('content')
 <section class="bg-gray-50 min-h-screen py-8 sm:py-10">
     <div class="max-w-5xl mx-auto px-4 sm:px-6">

@@ -764,12 +764,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }, { passive: true });
 
+    // swpPage() : retiré au changement de page (voir le socle, layouts/app).
     document.addEventListener('keydown', function (e) {
         if (!modal || modal.classList.contains('hidden')) return;
         if (e.key === 'Escape') closeModal();
         if (e.key === 'ArrowLeft') setActive(currentIndex - 1);
         if (e.key === 'ArrowRight') setActive(currentIndex + 1);
-    });
+    }, { signal: window.swpPage() });
 
     setActive(0);
 });
@@ -905,7 +906,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape') fermer();
-            });
+            }, { signal: window.swpPage() });
         })();
     </script>
 @endif
@@ -917,6 +918,12 @@ document.addEventListener('DOMContentLoaded', function () {
 @if($vueACompter ?? false)
     <script>
         (function () {
+            // Avec la navigation sans rechargement, la page est gardée en
+            // mémoire pour le retour arrière et ses scripts y sont rejoués.
+            // Le script s'efface donc dès son exécution : la copie en mémoire
+            // ne signalera pas la vue une seconde fois.
+            if (document.currentScript) document.currentScript.remove();
+
             var envoye = false;
             function signaler() {
                 if (envoye) return;

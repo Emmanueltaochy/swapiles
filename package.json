@@ -14,6 +14,7 @@
         "vite": "^8.0.0"
     },
     "dependencies": {
+        "@hotwired/turbo": "^8.0.23",
         "@stripe/connect-js": "^3.4.6"
     }
 }

@@ -140,7 +140,7 @@
                 Déjà <span class="font-bold text-white">{{ number_format($activeListingsCount, 0, ',', ' ') }}</span> annonces à {{ $selectedDisplay }} et <span class="font-bold text-white">{{ number_format($totalListingsCount, 0, ',', ' ') }}</span> annonces sur les îles.
             </p>
 
-            <form method="GET" action="{{ route('search', ['territoire' => $selectedTerritoire]) }}" class="mt-4 sm:mt-7 bg-white rounded-3xl shadow-2xl p-2.5 sm:p-3 max-w-5xl">
+            <form method="GET" action="{{ route('search', ['territoire' => $selectedTerritoire]) }}" data-turbo="true" class="mt-4 sm:mt-7 bg-white rounded-3xl shadow-2xl p-2.5 sm:p-3 max-w-5xl">
                 <div class="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-4 gap-2">
                     <input type="hidden" name="territoire" value="{{ $selectedTerritoire }}">
 
@@ -571,15 +571,6 @@
                 Paie par carte, même en remise en main propre : le vendeur n'est payé qu'<span class="font-semibold text-white">après la remise confirmée</span>. Zéro avance pour l'acheteur, zéro impayé pour le vendeur — fini les faux rendez-vous. Et pour les vendeurs qui expédient, Colissimo reste disponible.
             </p>
 
-<div id="low-price-colissimo-warning" class="hidden mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
-    <p class="font-bold">💡 Conseil pour les petits prix</p>
-    <p class="mt-1 text-sm leading-relaxed">
-        Pour les articles à moins de 10 €, les frais Colissimo se situent souvent autour de 7 à 9 €.
-        Vous pouvez laisser la livraison, mais nous vous conseillons aussi d’activer la remise en main propre
-        pour augmenter vos chances de vendre.
-    </p>
-</div>
-
             <div class="mt-5 flex flex-wrap gap-3 text-sm font-bold">
                 <span class="bg-white/10 rounded-full px-4 py-2">💳 CB sécurisée</span>
                 <span class="bg-white/10 rounded-full px-4 py-2">🤝 Remise en main propre protégée</span>
@@ -755,44 +746,3 @@
 </section>
 
 @endsection
-
-
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const priceInput =
-        document.querySelector('input[name="price"]') ||
-        document.querySelector('input[name="prix"]');
-
-    const colissimoInput =
-        document.querySelector('input[name="allows_colissimo"]') ||
-        document.querySelector('input[name="shipping_enabled"]');
-
-    const warning = document.getElementById('low-price-colissimo-warning');
-
-    function refreshLowPriceWarning() {
-        if (!priceInput || !warning) return;
-
-        const price = parseFloat(String(priceInput.value || '').replace(',', '.')) || 0;
-        const colissimoEnabled = colissimoInput ? colissimoInput.checked : true;
-
-        if (price > 0 && price < 10 && colissimoEnabled) {
-            warning.classList.remove('hidden');
-        } else {
-            warning.classList.add('hidden');
-        }
-    }
-
-    if (priceInput) {
-        priceInput.addEventListener('input', refreshLowPriceWarning);
-        priceInput.addEventListener('change', refreshLowPriceWarning);
-    }
-
-    if (colissimoInput) {
-        colissimoInput.addEventListener('change', refreshLowPriceWarning);
-    }
-
-    refreshLowPriceWarning();
-});
-</script>
-

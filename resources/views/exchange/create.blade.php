@@ -2,6 +2,13 @@
 
 @section('title', 'Proposer un échange — Swap\'Îles')
 
+{{-- Page à scripts lourds (paiement, photos, messagerie) : toujours ouverte
+     par un rechargement complet, même si l'on y arrive sans recharger
+     (redirection). Voir resources/js/app.js. --}}
+@push('head')
+    <meta name="turbo-visit-control" content="reload">
+@endpush
+
 @section('content')
 @php
     $inp = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100';

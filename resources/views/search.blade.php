@@ -85,7 +85,7 @@
      dessous et devenait invisible. On la laisse defiler normalement. --}}
 <section class="bg-white border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <form method="GET" action="{{ route('search') }}" class="space-y-3">
+        <form method="GET" action="{{ route('search') }}" data-turbo="true" class="space-y-3">
 
             {{-- Recherche --}}
             <div class="flex gap-2">
@@ -538,7 +538,10 @@
 </section>
 
 <script>
-const categoryTree = @json($categoryTree);
+// « var » et non « const » : sans rechargement de page, ce script est
+// réexécuté à chaque visite de la recherche, et redéclarer une « const »
+// globale est une erreur qui bloquait tout le script.
+var categoryTree = @json($categoryTree);
 
 function prettyCategory(value) {
     if (!value) return '';
@@ -612,6 +615,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Les listes de sous-categories ont ete remplacees par la navigation visible
 // (fil d'Ariane + pastilles) : ces fonctions doivent donc tolerer leur absence.
+// requestSubmit() déclenche l'envoi « normal » du formulaire, que Turbo
+// intercepte pour ne pas recharger la page ; submit() le contournait.
+function envoyer(form) {
+    if (typeof form.requestSubmit === 'function') {
+        form.requestSubmit();
+    } else {
+        form.submit();
+    }
+}
+
 function resetSubCategoriesAndSubmit() {
     const level1 = document.getElementById('category_level1_select');
     const level2 = document.getElementById('category_level2_select');
@@ -621,7 +634,7 @@ function resetSubCategoriesAndSubmit() {
     if (level3) { level3.value = ''; }
     rebuildCategoryOptions();
 
-    if (level1) { level1.form.submit(); }
+    if (level1) { envoyer(level1.form); }
 }
 
 function resetLevel3AndSubmit() {
@@ -631,7 +644,7 @@ function resetLevel3AndSubmit() {
     if (level3) { level3.value = ''; }
     rebuildLevel3Options();
 
-    if (level2) { level2.form.submit(); }
+    if (level2) { envoyer(level2.form); }
 }
 </script>
 
@@ -668,11 +681,12 @@ function resetLevel3AndSubmit() {
     if (ouvrir) { ouvrir.addEventListener('click', ouvre); }
     if (fermer) { fermer.addEventListener('click', ferme); }
 
+    // swpPage() : retirés au changement de page (voir le socle, layouts/app).
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && ! panneau.classList.contains('hidden') && ! grandEcran()) {
             ferme();
         }
-    });
+    }, { signal: window.swpPage() });
 
     // Si on passe d'un telephone a un ecran large (rotation, fenetre
     // redimensionnee), le panneau doit redevenir une colonne normale.
@@ -683,7 +697,7 @@ function resetLevel3AndSubmit() {
         } else if (ouvrir && ouvrir.getAttribute('aria-expanded') !== 'true') {
             panneau.classList.add('hidden');
         }
-    });
+    }, { signal: window.swpPage() });
 
     // Sur ordinateur, on garde l'envoi automatique : le panneau est ouvert en
     // permanence, il n'y a donc pas de bouton « Voir les resultats ».
@@ -708,7 +722,7 @@ function resetLevel3AndSubmit() {
                 resetSubCategoriesAndSubmit();
                 return;
             }
-            champ.form.submit();
+            envoyer(champ.form);
         });
     });
 })();

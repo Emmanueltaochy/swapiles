@@ -86,6 +86,11 @@
     }
 
     function initialiser(form) {
+        // Une seule fois par formulaire : avec la navigation sans rechargement,
+        // l'initialisation est relancée à chaque page affichée.
+        if (form.dataset.brouillonPret) return;
+        form.dataset.brouillonPret = '1';
+
         var cle = PREFIXE + form.dataset.brouillon;
         var minuteur = null;
 
@@ -155,4 +160,8 @@
     } else {
         demarrer();
     }
+
+    // Pages ouvertes sans rechargement (Turbo) : ce script reste en mémoire,
+    // on équipe les formulaires de chaque nouvelle page.
+    document.addEventListener('turbo:load', demarrer);
 })();

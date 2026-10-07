@@ -28,6 +28,8 @@ class MailVolumeTest extends TestCase
             'email' => 'v' . uniqid() . '@ex.com',
             'password' => bcrypt('secret1234'),
             'territoire' => 'La Réunion',
+            // Les vues sont coupées par défaut : ce vendeur les a activées.
+            'notification_prefs' => ['vues' => ['push' => true, 'email' => true]],
         ]);
     }
 

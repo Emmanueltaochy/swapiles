@@ -40,6 +40,8 @@ class UxImprovementsTest extends TestCase
             'email' => strtolower($nom) . uniqid() . '@ex.com',
             'password' => bcrypt('secret1234'),
             'territoire' => 'La Réunion',
+            // Les favoris sont coupés par défaut : ces membres les ont activés.
+            'notification_prefs' => ['favoris' => ['push' => true, 'email' => true]],
         ]);
     }
 

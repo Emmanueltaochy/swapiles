@@ -29,13 +29,14 @@ class PushCoverageAndDeepLinksTest extends TestCase
         config(['push.fcm.project_id' => 'swap-iles']);
     }
 
-    private function membre(): User
+    private function membre(?array $prefs = null): User
     {
         return User::create([
             'name' => 'Membre',
             'email' => 'm' . uniqid() . '@ex.com',
             'password' => bcrypt('secret1234'),
             'territoire' => 'La Réunion',
+            'notification_prefs' => $prefs,
         ]);
     }
 
@@ -58,7 +59,8 @@ class PushCoverageAndDeepLinksTest extends TestCase
     {
         Queue::fake();
 
-        $vendeur = $this->membre();
+        // Les vues sont coupées par défaut : ce vendeur les a activées.
+        $vendeur = $this->membre(['vues' => ['push' => true, 'email' => true]]);
         $annonce = $this->annonce($vendeur);
 
         $this->get(route('listings.show', $annonce))->assertOk();
@@ -75,7 +77,7 @@ class PushCoverageAndDeepLinksTest extends TestCase
         // Ce type ne doit PAS être traité comme transactionnel : sans ça, il
         // échapperait au plafond quotidien et aux heures de silence.
         $this->assertSame('animation', PushPolicy::niveau('listing_viewed'));
-        $this->assertSame('favoris', NotificationPreferences::categorieDuType('listing_viewed'));
+        $this->assertSame('vues', NotificationPreferences::categorieDuType('listing_viewed'));
     }
 
     public function test_une_offre_recue_declenche_une_notification_au_vendeur(): void

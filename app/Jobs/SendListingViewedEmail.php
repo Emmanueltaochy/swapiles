@@ -42,9 +42,10 @@ class SendListingViewedEmail implements ShouldQueue
             . "L'équipe Swap Îles\n"
             . "https://swapiles.com";
 
-        // Reglages du membre : il peut avoir coupe cette categorie d'e-mail.
+        // Reglages du membre. Ce garde verifiait le type « listing_needs_photo »
+        // (categorie Conseils) : couper les vues n'arretait pas ces e-mails.
         if (method_exists($seller, 'accepteNotification')
-            && ! $seller->accepteNotification('listing_needs_photo', 'email')) {
+            && ! $seller->accepteNotification('listing_viewed', 'email')) {
             return;
         }
 

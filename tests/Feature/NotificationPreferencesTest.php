@@ -39,12 +39,22 @@ class NotificationPreferencesTest extends TestCase
         config(['push.fcm.project_id' => 'swap-iles']);
     }
 
-    public function test_tout_est_recu_par_defaut(): void
+    public function test_par_defaut_seul_l_essentiel_est_recu(): void
     {
         $membre = $this->membre();
 
-        $this->assertTrue($membre->accepteNotification('favorite_added', 'push'));
-        $this->assertTrue($membre->accepteNotification('message_received', 'email'));
+        // Activés d'office : messages, propositions, échanges, dressings suivis.
+        foreach (['message_received', 'exchange_proposal', 'listing_interest', 'seller_published_listing'] as $type) {
+            $this->assertTrue($membre->accepteNotification($type, 'push'), $type . ' (push)');
+            $this->assertTrue($membre->accepteNotification($type, 'email'), $type . ' (e-mail)');
+        }
+
+        // Coupés d'office : vues et favoris (chacun les active s'il veut).
+        foreach (['listing_viewed', 'favorite_added'] as $type) {
+            $this->assertFalse($membre->accepteNotification($type, 'push'), $type . ' (push)');
+            $this->assertFalse($membre->accepteNotification($type, 'email'), $type . ' (e-mail)');
+            $this->assertFalse($membre->veutEtrePrevenu($type), $type);
+        }
     }
 
     public function test_une_categorie_coupee_bloque_le_push(): void

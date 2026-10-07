@@ -15,27 +15,45 @@ namespace App\Support;
  */
 class NotificationPreferences
 {
-    /** Catégories réglables, avec leur libellé et les types de notification couverts. */
+    /**
+     * Catégories réglables, avec leur libellé, les types couverts et leur
+     * réglage PAR DÉFAUT.
+     *
+     * Activé d'office : ce qu'un membre attend (un message, une proposition
+     * d'échange, une nouveauté d'un dressing qu'il a choisi de suivre).
+     * Désactivé d'office : les vues et les mises en favori. Trop fréquentes,
+     * elles noyaient les notifications utiles ; chacun peut les activer.
+     */
     public const CATEGORIES = [
         'messages' => [
-            'label' => 'Messages reçus',
-            'description' => 'Quand un membre vous écrit.',
+            'label' => 'Messages et propositions',
+            'description' => 'Quand un membre vous écrit ou vous propose un échange.',
             'types' => ['message_received', 'exchange_proposal', 'listing_interest'],
-        ],
-        'favoris' => [
-            'label' => 'Activité sur mes annonces',
-            'description' => 'Quand quelqu’un consulte une de vos annonces ou la met en favori.',
-            'types' => ['favorite_added', 'listing_viewed'],
+            'defaut' => true,
         ],
         'vendeurs_suivis' => [
-            'label' => 'Nouveautés des vendeurs suivis',
-            'description' => 'Quand un vendeur que vous suivez publie une annonce.',
+            'label' => 'Dressings que vous suivez',
+            'description' => 'Quand un membre que vous suivez publie un article.',
             'types' => ['seller_published_listing', 'listing_available_colissimo'],
+            'defaut' => true,
+        ],
+        'favoris' => [
+            'label' => 'Mises en favori',
+            'description' => 'Quand quelqu’un ajoute une de vos annonces à ses favoris.',
+            'types' => ['favorite_added'],
+            'defaut' => false,
+        ],
+        'vues' => [
+            'label' => 'Vues de vos annonces',
+            'description' => 'Quand quelqu’un consulte une de vos annonces.',
+            'types' => ['listing_viewed'],
+            'defaut' => false,
         ],
         'conseils' => [
             'label' => 'Conseils et rappels',
             'description' => 'Annonce sans photo, relances, astuces de vente.',
             'types' => ['listing_needs_photo', 'account_onboarding'],
+            'defaut' => true,
         ],
     ];
 
@@ -51,16 +69,22 @@ class NotificationPreferences
         'user_deleted',
     ];
 
-    /** Réglages par défaut : tout activé (comportement actuel). */
+    /** Réglages par défaut de chaque catégorie (voir CATEGORIES). */
     public static function defauts(): array
     {
         $defauts = [];
 
-        foreach (array_keys(self::CATEGORIES) as $cle) {
-            $defauts[$cle] = ['push' => true, 'email' => true];
+        foreach (self::CATEGORIES as $cle => $categorie) {
+            $defauts[$cle] = ['push' => $categorie['defaut'], 'email' => $categorie['defaut']];
         }
 
         return $defauts;
+    }
+
+    /** Réglage par défaut d'une catégorie (activée tant qu'on ne sait pas). */
+    public static function parDefaut(string $categorie): bool
+    {
+        return (bool) (self::CATEGORIES[$categorie]['defaut'] ?? true);
     }
 
     /** Catégorie d'un type de notification, ou null si le type est toujours envoyé. */

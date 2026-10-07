@@ -227,6 +227,14 @@ class User extends Authenticatable implements FilamentUser
             ->withTimestamps();
     }
 
+    /** Cet utilisateur suit-il le dressing de ce membre ? */
+    public function suit(int|User $vendeur): bool
+    {
+        $id = $vendeur instanceof User ? $vendeur->id : $vendeur;
+
+        return $this->followedSellers()->where('seller_id', $id)->exists();
+    }
+
     /** Membres que CET utilisateur a bloqués. */
     public function blockedUsers()
     {
@@ -306,12 +314,22 @@ class User extends Authenticatable implements FilamentUser
         }
 
         $prefs = $this->notification_prefs;
+        $parDefaut = \App\Support\NotificationPreferences::parDefaut($categorie);
 
+        // Rien d'enregistré pour cette catégorie : son réglage par défaut.
+        // Les vues et les favoris sont donc coupés tant que le membre ne les
+        // a pas activés lui-même.
         if (! is_array($prefs) || ! array_key_exists($categorie, $prefs)) {
-            return true;
+            return $parDefaut;
         }
 
-        return (bool) ($prefs[$categorie][$canal] ?? true);
+        return (bool) ($prefs[$categorie][$canal] ?? $parDefaut);
+    }
+
+    /** Le membre veut-il être prévenu de ce type, par au moins un canal ? */
+    public function veutEtrePrevenu(string $type): bool
+    {
+        return $this->accepteNotification($type, 'push') || $this->accepteNotification($type, 'email');
     }
 
     public function deleteOrAnonymize(): string

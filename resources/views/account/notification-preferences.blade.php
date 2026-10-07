@@ -48,18 +48,21 @@
                     <div class="min-w-0">
                         <p class="font-semibold text-gray-900">{{ $categorie['label'] }}</p>
                         <p class="mt-0.5 text-sm text-gray-500">{{ $categorie['description'] }}</p>
+                        @unless($categorie['defaut'])
+                            <p class="mt-1 text-xs font-semibold text-gray-400">Désactivé par défaut</p>
+                        @endunless
                     </div>
                     <div class="flex shrink-0 gap-4">
                         <label class="flex w-14 justify-center" title="Notification sur mobile — {{ $categorie['label'] }}">
                             <span class="sr-only">Notification mobile : {{ $categorie['label'] }}</span>
                             <input type="checkbox" name="notification_prefs[{{ $cle }}][push]" value="1"
-                                   @checked($prefs[$cle]['push'] ?? true)
+                                   @checked($prefs[$cle]['push'] ?? $categorie['defaut'])
                                    class="h-6 w-6 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
                         </label>
                         <label class="flex w-14 justify-center" title="E-mail — {{ $categorie['label'] }}">
                             <span class="sr-only">E-mail : {{ $categorie['label'] }}</span>
                             <input type="checkbox" name="notification_prefs[{{ $cle }}][email]" value="1"
-                                   @checked($prefs[$cle]['email'] ?? true)
+                                   @checked($prefs[$cle]['email'] ?? $categorie['defaut'])
                                    class="h-6 w-6 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
                         </label>
                     </div>

@@ -42,6 +42,8 @@ class ProfileController extends Controller
             ->get()
             ->sum('favorited_by_count');
 
+        $followersCount = $user->followers()->count();
+
         $activeTab = $request->get('tab', 'annonces');
 
         $firstListing = $user->listings()
@@ -67,7 +69,8 @@ class ProfileController extends Controller
             'publishedListingsCount',
             'totalViewsCount',
             'totalFavoritesCount',
-            'dressingRank'
+            'dressingRank',
+            'followersCount'
         ));
     }
 }

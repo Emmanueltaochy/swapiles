@@ -81,7 +81,7 @@
          à l'autre. Le « ?v= » change à chaque modification du fichier : Turbo
          voit alors la différence et recharge complètement la page, pour que
          personne ne garde l'ancienne version. --}}
-    @foreach(['push', 'report', 'share', 'password-eye', 'form-draft', 'favorite'] as $scriptCommun)
+    @foreach(['push', 'report', 'share', 'password-eye', 'form-draft', 'favorite', 'follow'] as $scriptCommun)
         <script defer data-turbo-track="reload"
                 src="{{ asset('js/' . $scriptCommun . '.js') }}?v={{ @filemtime(public_path('js/' . $scriptCommun . '.js')) }}"></script>
     @endforeach

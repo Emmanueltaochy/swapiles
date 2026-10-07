@@ -288,7 +288,14 @@
              encombrer la grille de raccourcis reservee aux gestes du
              quotidien. --}}
         @php
+            $mesAbonnes = $user->followers()->count();
             $conceptEntrees = array_values(array_filter([
+                [
+                    'url' => route('profiles.show', $user),
+                    'icone' => '📣',
+                    'label' => 'Mon dressing · ' . number_format($mesAbonnes, 0, ',', ' ') . ' abonné' . ($mesAbonnes > 1 ? 's' : ''),
+                    'aide' => 'Partagez-le : vos abonnés sont prévenus de chaque nouvel article',
+                ],
                 $user->managesAnyRelay() ? [
                     'url' => route('account.relay.dashboard'),
                     'icone' => '🏪',

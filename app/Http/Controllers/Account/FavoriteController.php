@@ -68,6 +68,12 @@ class FavoriteController extends Controller
      */
     private function notifierFavori(Listing $listing, $user): void
     {
+        // Les mises en favori sont coupées par défaut : sans demande du
+        // vendeur, on ne crée même pas l'alerte (pas de badge rouge pour rien).
+        if ($listing->user && ! $listing->user->veutEtrePrevenu('favorite_added')) {
+            return;
+        }
+
         $aujourdHui = Notification::query()
             ->where('user_id', $listing->user_id)
             ->where('type', 'favorite_added')

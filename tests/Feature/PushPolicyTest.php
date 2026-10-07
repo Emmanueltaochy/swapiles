@@ -169,6 +169,8 @@ class PushPolicyTest extends TestCase
         Carbon::setTestNow(Carbon::parse('2026-09-24 14:00:00', 'Indian/Reunion'));
 
         $membre = $this->membre('La Réunion');
+        // Les favoris sont coupés par défaut : ce membre les a activés.
+        $membre->forceFill(['notification_prefs' => ['favoris' => ['push' => true, 'email' => true]]])->save();
 
         for ($i = 0; $i < 5; $i++) {
             Notification::create([

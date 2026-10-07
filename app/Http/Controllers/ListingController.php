@@ -95,6 +95,12 @@ class ListingController extends Controller
                 return;
             }
 
+            // Les vues sont coupées par défaut : sans demande du vendeur, ni
+            // alerte, ni e-mail (et pas de badge rouge pour rien).
+            if ($listing->user && ! $listing->user->veutEtrePrevenu('listing_viewed')) {
+                return;
+            }
+
             // Un e-mail par annonce et par fenêtre — plus par VISITEUR :
             // le compte par visiteur multipliait les envois et saturait à lui
             // seul le quota quotidien de la boîte d'envoi.

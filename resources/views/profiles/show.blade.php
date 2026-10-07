@@ -61,6 +61,10 @@
                         <span>· {{ number_format($soldListingsCount, 0, ',', ' ') }} vendue{{ $soldListingsCount > 1 ? 's' : '' }}</span>
                     </div>
 
+                    <p class="mt-1 text-sm font-semibold text-gray-900">
+                        👥 <span data-abonnes-de="{{ $user->id }}">{{ number_format($followersCount, 0, ',', ' ') }} abonné{{ $followersCount > 1 ? 's' : '' }}</span>
+                    </p>
+
                     @php
                         $profilePct = $user->profileCompletion();
                         $profileComplete = $profilePct >= 100;
@@ -99,12 +103,7 @@
 
                 @auth
                     @if(auth()->id() !== $user->id)
-                        @unless($iBlockedThem)
-                            <button type="button" id="follow-seller-btn" data-url="{{ route('account.seller-follow.toggle', $user) }}"
-                                    class="flex-1 sm:flex-none rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
-                                {{ auth()->user()->followedSellers()->where('seller_id', $user->id)->exists() ? '✓ Suivi' : '♡ Suivre' }}
-                            </button>
-                        @endunless
+                        @include('partials.follow-button', ['seller' => $user, 'classes' => 'flex-1 sm:flex-none px-5 py-2.5 text-sm'])
 
                         @include('partials.report', [
                             'action' => route('reports.user', $user),
@@ -120,7 +119,7 @@
                         </form>
                     @endif
                 @else
-                    <a href="{{ route('login') }}" class="flex-1 sm:flex-none rounded-xl border border-gray-200 px-5 py-2.5 text-center text-sm font-semibold text-gray-700 transition hover:bg-gray-50">♡ Suivre</a>
+                    @include('partials.follow-button', ['seller' => $user, 'classes' => 'flex-1 sm:flex-none px-5 py-2.5 text-sm'])
                 @endauth
             </div>
         </div>
@@ -158,6 +157,29 @@
                 </div>
             @endforeach
         </div>
+
+        {{-- Suivre un dressing, comme sur un réseau social. --}}
+        @if($isOwnProfile)
+            <div class="mt-6 rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50 to-emerald-50 p-4 sm:p-5" data-partager-dressing>
+                <h2 class="text-base font-extrabold text-gray-900">📣 Faites grandir votre dressing</h2>
+                <p class="mt-1 text-sm text-gray-700">
+                    Partagez votre dressing Swap'Îles sur Instagram, TikTok, Facebook ou WhatsApp.
+                    Chaque personne qui vous suit est <strong>prévenue à chaque nouvel article</strong> que vous publiez —
+                    plus vous avez d'abonnés, plus vous vendez vite.
+                </p>
+                <div class="mt-3">
+                    @include('partials.share-buttons', [
+                        'shareBase' => route('profiles.show', $user),
+                        'shareText' => "Venez suivre mon dressing sur Swap'Îles 🌴 : vous serez prévenus dès que je publie un nouvel article !",
+                        'campaign' => 'dressing_' . $user->id,
+                    ])
+                </div>
+            </div>
+        @elseif(! $iBlockedThem && ! (auth()->check() && auth()->user()->suit($user)))
+            <p class="mt-4 rounded-xl bg-teal-50 px-4 py-3 text-sm text-teal-900" data-invitation-suivre>
+                🔔 <strong>Suivez ce dressing</strong> : vous serez prévenu dès que {{ $user->name }} publie un nouvel article.
+            </p>
+        @endif
 
         {{-- Barre de complétion du profil (visible par le propriétaire uniquement) --}}
         @if($isOwnProfile && ! $profileComplete)
@@ -330,44 +352,4 @@
     </div>
 </section>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const btn = document.getElementById('follow-seller-btn');
-    if (!btn) return;
-
-    btn.addEventListener('click', async function () {
-        btn.disabled = true;
-        try {
-            const response = await fetch(btn.dataset.url, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}',
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({}),
-            });
-
-            const data = await response.json();
-            btn.textContent = data.following ? '✓ Suivi' : '♡ Suivre';
-
-            const pop = document.createElement('div');
-            pop.textContent = data.following ? '✅ Vendeur suivi' : 'Vendeur retiré';
-            pop.className = 'fixed left-1/2 bottom-8 -translate-x-1/2 z-[9999] rounded-full bg-gray-950 text-white px-5 py-3 text-sm font-semibold shadow-2xl';
-            document.body.appendChild(pop);
-
-            pop.animate([
-                { opacity: 0, transform: 'translate(-50%, 16px)' },
-                { opacity: 1, transform: 'translate(-50%, 0)' },
-                { opacity: 1, transform: 'translate(-50%, 0)' },
-                { opacity: 0, transform: 'translate(-50%, -12px)' }
-            ], { duration: 1500, easing: 'ease-out' });
-
-            setTimeout(() => pop.remove(), 1500);
-        } finally {
-            btn.disabled = false;
-        }
-    });
-});
-</script>
 @endsection

@@ -27,10 +27,11 @@ jobs:
           # Secrets transmis au serveur. Tous facultatifs : si le secret n'existe
           # pas dans GitHub, l'étape correspondante est simplement ignorée.
           #   FCM_SA_B64   : compte de service Firebase (push Android), base64
-          #   APNS_KEY_B64 : cle d'authentification Apple .p8 (push iPhone), base64
+          #   APNS_KEY_P8  : contenu du fichier .p8 (push iPhone), colle tel quel
+          #   APNS_KEY_B64 : la meme cle encodee en base64 (ancienne methode)
           #   APNS_KEY_ID / APNS_TEAM_ID : identifiants de cette cle
           #   MAIL_*       : identifiants SMTP du fournisseur d'e-mails
-          envs: FCM_SA_B64,APNS_KEY_B64,APNS_KEY_ID,APNS_TEAM_ID,ANDROID_SHA256_FINGERPRINT,SESSION_LIFETIME,MAIL_HOST,MAIL_PORT,MAIL_USERNAME,MAIL_PASSWORD,MAIL_SCHEME,MAIL_FROM_ADDRESS,MAIL_FROM_NAME
+          envs: FCM_SA_B64,APNS_KEY_P8,APNS_KEY_B64,APNS_KEY_ID,APNS_TEAM_ID,ANDROID_SHA256_FINGERPRINT,SESSION_LIFETIME,MAIL_HOST,MAIL_PORT,MAIL_USERNAME,MAIL_PASSWORD,MAIL_SCHEME,MAIL_FROM_ADDRESS,MAIL_FROM_NAME
           script: |
             set -e
             cd "${{ secrets.VPS_PATH }}"
@@ -47,7 +48,14 @@ jobs:
             # Cle Apple (.p8) pour les notifications iPhone. L'app iOS n'embarque
             # pas Firebase : son jeton est un jeton Apple, servi directement par
             # Apple. Sans cette cle, les iPhone ne recoivent rien.
-            if [ -n "${APNS_KEY_B64:-}" ]; then
+            # Contenu du .p8 colle tel quel dans le secret : le plus simple depuis
+            # un iPad ou Windows (le fichier s'ouvre comme du texte).
+            if [ -n "${APNS_KEY_P8:-}" ]; then
+              echo "==> Installation de la cle Apple (notifications iPhone)"
+              mkdir -p storage/app/apple
+              printf '%s\n' "$APNS_KEY_P8" > storage/app/apple/apns-key.p8
+              chmod 600 storage/app/apple/apns-key.p8
+            elif [ -n "${APNS_KEY_B64:-}" ]; then
               echo "==> Installation de la cle Apple (notifications iPhone)"
               mkdir -p storage/app/apple
               echo "$APNS_KEY_B64" | base64 -d > storage/app/apple/apns-key.p8
@@ -88,6 +96,7 @@ jobs:
             ./scripts/deploy.sh
         env:
           FCM_SA_B64: ${{ secrets.FCM_SERVICE_ACCOUNT_B64 }}
+          APNS_KEY_P8: ${{ secrets.APNS_KEY_P8 }}
           APNS_KEY_B64: ${{ secrets.APNS_KEY_B64 }}
           APNS_KEY_ID: ${{ secrets.APNS_KEY_ID }}
           APNS_TEAM_ID: ${{ secrets.APNS_TEAM_ID }}

@@ -75,7 +75,7 @@ class PushBroadcast extends Page
 
         $chemin = config('push.apns.key_path');
         if (! $chemin || ! is_file($chemin)) {
-            $manque[] = 'la cle APNs (.p8) sur le serveur';
+            $manque[] = 'la cle APNs (.p8) sur le serveur (secret GitHub APNS_KEY_P8 : contenu du fichier colle tel quel)';
         }
         if (blank(config('push.apns.key_id'))) {
             $manque[] = "l'identifiant de la cle (APNS_KEY_ID)";

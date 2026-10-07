@@ -125,6 +125,12 @@ workflows:
         script: |
           cd mobile
           python3 scripts/ios-splash-background.py
+      - name: Notifications iPhone (jeton + autorisation)
+        script: |
+          cd mobile
+          # Le modèle Capacitor ne contient rien pour les notifications : sans
+          # ce correctif, aucun iPhone ne reçoit de notification (voir le script).
+          python3 scripts/ios-push.py
       - name: Installer les pods
         script: |
           cd mobile/ios/App
@@ -199,10 +205,43 @@ workflows:
           keychain initialize
           # Crée le certificat de distribution (avec CERTIFICATE_PRIVATE_KEY) et
           # le profil App Store pour le bundle, puis les installe et les applique.
+
+          # NOTIFICATIONS : l'identifiant de l'appli doit les autoriser chez
+          # Apple, sinon le profil de signature ne les contient pas. On les
+          # active d'office (sans effet si c'est déjà fait). Un échec ici ne
+          # bloque rien : la vérification plus bas prend le relais.
+          BUNDLE_RESOURCE_ID=$(app-store-connect bundle-ids list --bundle-id-identifier "$BUNDLE_ID" --json 2>/dev/null \
+            | python3 -c 'import json,sys,os; d=json.load(sys.stdin); print(next((b["id"] for b in d if b.get("attributes",{}).get("identifier")==os.environ["BUNDLE_ID"]), ""))' || true)
+          if [ -n "$BUNDLE_RESOURCE_ID" ]; then
+            app-store-connect bundle-ids enable-capabilities "$BUNDLE_RESOURCE_ID" --capability PUSH_NOTIFICATIONS \
+              && echo "Notifications activées sur $BUNDLE_ID." \
+              || echo "Activation automatique des notifications impossible (voir plus bas)."
+          fi
+
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create
           keychain add-certificates
+
+          # Le profil obtenu autorise-t-il les notifications ? Si non, on retire
+          # l'autorisation de l'appli : le build RÉUSSIT quand même (sans
+          # notifications), au lieu d'échouer à la signature.
+          PUSH_OK=0
+          for PROFIL in "$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision; do
+            CONTENU=$(security cms -D -i "$PROFIL" 2>/dev/null || true)
+            if echo "$CONTENU" | grep -q "$BUNDLE_ID" && echo "$CONTENU" | grep -q "aps-environment"; then
+              PUSH_OK=1
+            fi
+          done
+          if [ "$PUSH_OK" = "1" ]; then
+            echo "=== Notifications iPhone : ACTIVES dans ce build ==="
+          else
+            echo "!!! ATTENTION : le profil Apple n'autorise pas encore les notifications."
+            echo "!!! Ce build est construit SANS notifications. A faire une fois :"
+            echo "!!! developer.apple.com > Identifiers > $BUNDLE_ID > cocher Push Notifications > Save,"
+            echo "!!! puis supprimer l'ancien profil App Store de l'appli (Profiles) et relancer ce build."
+            (cd mobile && python3 scripts/ios-push.py --retirer)
+          fi
           echo "=== Profils téléchargés ==="
           ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/"
           cd mobile/ios/App

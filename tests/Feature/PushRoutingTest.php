@@ -110,6 +110,52 @@ class PushRoutingTest extends TestCase
         Http::assertNotSent(fn ($r) => str_contains($r->url(), 'fcm.googleapis.com'));
     }
 
+    public function test_la_pastille_de_l_icone_affiche_les_vraies_notifications_non_lues(): void
+    {
+        $this->configurerApns();
+        Http::fake(['*' => Http::response(['ok' => true], 200)]);
+
+        $membre = \App\Models\User::create([
+            'name' => 'Membre',
+            'email' => 'pastille' . uniqid() . '@ex.com',
+            'password' => bcrypt('secret1234'),
+            'territoire' => 'La Réunion',
+        ]);
+        DeviceToken::create(['user_id' => $membre->id, 'token' => $this->jetonApns(), 'platform' => 'ios', 'last_seen_at' => now()]);
+
+        \App\Models\Notification::withoutEvents(function () use ($membre) {
+            foreach ([null, null, null, now()] as $lu) {
+                \App\Models\Notification::create(['user_id' => $membre->id, 'type' => 'message_received', 'title' => 'T', 'message' => 'M', 'read_at' => $lu]);
+            }
+        });
+
+        (new SendPushBroadcast('Titre', 'Message', null, $membre->id))->handle(new FcmService, new ApnsService);
+
+        // 3 non lues (la 4e est lue) : plus jamais un « 1 » figé.
+        Http::assertSent(fn ($r) => str_contains($r->url(), 'push.apple.com') && ($r->data()['aps']['badge'] ?? null) === 3);
+    }
+
+    public function test_une_annonce_a_tous_ne_touche_pas_a_la_pastille(): void
+    {
+        $this->configurerApns();
+        Http::fake(['*' => Http::response(['ok' => true], 200)]);
+        $this->jeton($this->jetonApns(), 'ios');
+
+        (new SendPushBroadcast('Titre', 'Message'))->handle(new FcmService, new ApnsService);
+
+        Http::assertSent(fn ($r) => str_contains($r->url(), 'push.apple.com') && ! array_key_exists('badge', $r->data()['aps'] ?? []));
+    }
+
+    public function test_l_appli_remet_la_pastille_a_zero_a_l_ouverture(): void
+    {
+        $js = file_get_contents(public_path('js/push.js'));
+
+        $this->assertStringContainsString('Push.removeAllDeliveredNotifications()', $js);
+        // Au lancement (une fois l'appareil enregistré, exigence d'iOS) et au retour dans l'appli.
+        $this->assertMatchesRegularExpression("/addListener\('registration', function \(payload\) \{\s*enregistre = true;\s*effacerPastille\(\);/", $js);
+        $this->assertStringContainsString("document.visibilityState === 'visible') effacerPastille()", $js);
+    }
+
     public function test_un_jeton_android_part_chez_firebase(): void
     {
         $this->configurerApns();

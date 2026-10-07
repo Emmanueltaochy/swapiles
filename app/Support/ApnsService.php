@@ -60,7 +60,7 @@ class ApnsService
      * @return string 'ok' (envoyé), 'invalid' (jeton mort à supprimer),
      *                'skipped' (non configuré) ou 'error' (échec temporaire).
      */
-    public function sendToToken(string $token, string $title, string $body, ?string $url = null): string
+    public function sendToToken(string $token, string $title, string $body, ?string $url = null, ?int $badge = null): string
     {
         $this->lastError = null;
 
@@ -87,9 +87,16 @@ class ApnsService
             'aps' => [
                 'alert' => ['title' => $title, 'body' => $body],
                 'sound' => 'default',
-                'badge' => 1,
             ],
         ];
+
+        // Pastille de l'icône : le VRAI nombre de notifications non lues du
+        // membre. (Elle était fixée à 1 à chaque envoi et jamais remise à
+        // zéro : un « 1 » restait affiché même quand tout était lu.)
+        // Sans membre précis (annonce à tous, test), on n'y touche pas.
+        if ($badge !== null) {
+            $payload['aps']['badge'] = max(0, $badge);
+        }
 
         if ($url) {
             $payload['url'] = $url;

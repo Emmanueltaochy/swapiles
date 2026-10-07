@@ -37,11 +37,17 @@ class SendPushBroadcast implements ShouldQueue
             return;
         }
 
+        // Notification à un membre : la pastille de l'icône affiche son
+        // nombre de notifications non lues (celle-ci comprise).
+        $pastille = $this->userId
+            ? max(1, \App\Models\Notification::where('user_id', $this->userId)->whereNull('read_at')->count())
+            : null;
+
         DeviceToken::query()
             ->when($this->userId, fn ($q) => $q->where('user_id', $this->userId))
-            ->chunkById(200, function ($tokens) use ($fcm, $apns) {
+            ->chunkById(200, function ($tokens) use ($fcm, $apns, $pastille) {
                 foreach ($tokens as $device) {
-                    $result = self::envoyerVers($device, $this->title, $this->body, $this->url, $fcm, $apns);
+                    $result = self::envoyerVers($device, $this->title, $this->body, $this->url, $fcm, $apns, $pastille);
 
                     if ($result['status'] === 'invalid') {
                         $device->delete();
@@ -66,11 +72,15 @@ class SendPushBroadcast implements ShouldQueue
         ?string $url,
         FcmService $fcm,
         ApnsService $apns,
+        ?int $pastille = null,
     ): array {
-        $service = self::estIos($device) ? $apns : $fcm;
-
-        $status = $service->sendToToken($device->token, $title, $body, $url);
-        $error = $service->lastError;
+        if (self::estIos($device)) {
+            $status = $apns->sendToToken($device->token, $title, $body, $url, $pastille);
+            $error = $apns->lastError;
+        } else {
+            $status = $fcm->sendToToken($device->token, $title, $body, $url);
+            $error = $fcm->lastError;
+        }
 
         $device->forceFill([
             'last_result' => $status,

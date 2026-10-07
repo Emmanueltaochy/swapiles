@@ -53,8 +53,26 @@
     }
   }
 
+  // Pastille de l'icône (le petit chiffre) : remise à zéro quand on ouvre
+  // l'appli ou qu'on y revient — les non-lus restent signalés DANS l'appli
+  // (cloche, messages). Le prochain envoi affichera le vrai nombre de non-lus.
+  // iOS n'accepte cette remise à zéro qu'une fois l'appareil enregistré.
+  var enregistre = false;
+  function effacerPastille() {
+    if (!enregistre || typeof Push.removeAllDeliveredNotifications !== 'function') return;
+    try {
+      Push.removeAllDeliveredNotifications().catch(function () {});
+    } catch (e) { /* sans gravité */ }
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') effacerPastille();
+  });
+
   // Jeton reçu -> on l'envoie au serveur.
   Push.addListener('registration', function (payload) {
+    enregistre = true;
+    effacerPastille();
     if (payload && payload.value) {
       sendToken(payload.value);
     }

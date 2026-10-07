@@ -117,8 +117,9 @@
         <div class="rounded-2xl border border-gray-200 px-5 py-4 dark:border-gray-700">
             <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">Tester l’envoi</p>
             <p class="mt-1 text-xs text-gray-500">
-                Envoie immédiatement une notification de test aux appareils enregistrés et affiche
-                la réponse exacte d’Apple ou de Google — utile quand rien n’arrive sans qu’on sache pourquoi.
+                Envoie immédiatement une notification de test <strong>uniquement sur vos propres appareils</strong>
+                (ceux où l’appli est connectée avec votre compte) et affiche la réponse exacte d’Apple ou de Google.
+                Les membres ne la reçoivent pas.
             </p>
 
             <x-filament::button wire:click="testerEnvoi" color="gray" icon="heroicon-o-beaker" class="mt-3">

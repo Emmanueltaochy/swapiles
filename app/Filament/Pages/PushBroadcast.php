@@ -113,8 +113,10 @@ class PushBroadcast extends Page
     }
 
     /**
-     * Envoi de test IMMÉDIAT (hors file d'attente) vers les appareils
-     * enregistrés, avec le résultat exact renvoyé par Apple ou Google.
+     * Envoi de test IMMÉDIAT (hors file d'attente) vers les appareils de
+     * L'ADMINISTRATEUR CONNECTÉ uniquement, avec le résultat exact renvoyé
+     * par Apple ou Google. (Il partait auparavant aux 10 derniers appareils
+     * enregistrés, donc chez de vrais membres.)
      *
      * L'envoi normal passe par la file d'attente : en cas d'échec, rien n'est
      * visible depuis l'administration. Ce bouton existe pour voir la réponse
@@ -122,11 +124,18 @@ class PushBroadcast extends Page
      */
     public function testerEnvoi(): void
     {
-        $appareils = DeviceToken::query()->orderByDesc('id')->limit(10)->get();
+        $appareils = DeviceToken::query()
+            ->where('user_id', auth()->id())
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get();
 
         if ($appareils->isEmpty()) {
+            $this->diagnostic = [];
+
             FilamentNotification::make()
-                ->title('Aucun appareil enregistré')
+                ->title('Aucun appareil à votre nom')
+                ->body('Ouvrez l’appli Swap’Îles sur votre téléphone en étant connecté avec CE compte, acceptez les notifications, puis réessayez. Le test n’est jamais envoyé aux membres.')
                 ->warning()
                 ->send();
 

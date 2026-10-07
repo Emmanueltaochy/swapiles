@@ -19,8 +19,13 @@
         {{ $dejaFavori ? '❤️' : '🤍' }}
     </button>
 @else
-    <a href="{{ route('login') }}"
-       aria-label="Se connecter pour ajouter aux favoris"
-       onclick="event.stopPropagation();"
-       class="absolute right-2 top-2 z-20 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-lg text-gray-500 shadow transition">♡</a>
+    {{-- Un BOUTON, jamais un lien : ce cœur est placé dans le lien de la
+         carte, et un lien dans un lien est interdit en HTML. Le navigateur
+         coupait alors la carte en deux — la photo dans une case de la grille,
+         le texte dans la suivante — pour tous les visiteurs non connectés.
+         L'envoi vers la connexion est fait par public/js/favorite.js. --}}
+    <button type="button"
+            data-favori-connexion="{{ route('login') }}"
+            aria-label="Se connecter pour ajouter aux favoris"
+            class="absolute right-2 top-2 z-20 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-lg text-gray-500 shadow transition">♡</button>
 @endauth

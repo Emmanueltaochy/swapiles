@@ -219,8 +219,11 @@
                         <div class="w-full h-full flex items-center justify-center text-gray-300 text-4xl">📦</div>
                     @endif
 
-                    <span class="absolute top-3 left-3 rounded-full bg-rose-600 text-white px-3 py-1 text-xs font-bold shadow">
-                        🔥 Populaire
+                    {{-- Sur un téléphone, « Populaire » passait sous le cœur favori,
+                         en haut à droite : libellé court sur petit écran, complet
+                         au-delà. --}}
+                    <span class="absolute top-2 left-2 max-w-[calc(100%-3.25rem)] rounded-full bg-rose-600 text-white px-2.5 py-1 text-[11px] font-bold shadow">
+                        <span class="sm:hidden">🔥 Top</span><span class="hidden sm:inline">🔥 Populaire</span>
                     </span>
 
                     @include('partials.favorite-heart', ['listing' => $listing])

@@ -24,6 +24,17 @@
         bouton.dataset.favori = favori ? '1' : '0';
     }
 
+    // Visiteur non connecté : le cœur mène à la connexion. Il est dans le
+    // lien de la carte : sans preventDefault, le clic ouvrirait l'annonce.
+    document.addEventListener('click', function (e) {
+        var connexion = e.target.closest('[data-favori-connexion]');
+        if (!connexion) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+        window.location.href = connexion.getAttribute('data-favori-connexion');
+    });
+
     document.addEventListener('click', function (e) {
         var bouton = e.target.closest('[data-favori-url]');
         if (!bouton) return;

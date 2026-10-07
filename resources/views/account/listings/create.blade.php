@@ -31,6 +31,11 @@
     $oldLevel2 = old('category_level2', isset($listing) ? $listing->category_level2 : '');
     $oldLevel3 = old('category_level3', isset($listing) ? $listing->category_level3 : '');
 
+    // Champs adaptés au rayon choisi (voir Categories::fiche) : calculés ici
+    // pour l'affichage initial, puis ajustés en direct par _fiche-champs.
+    $fiche = \App\Support\Categories::fiche($oldLevel1, $oldLevel2);
+    $choixEtat = \App\Support\Etat::choixFormulaire()[$fiche['etat']];
+
     // Par défaut, le paiement CB est coché si le vendeur a déjà activé Stripe
     // (IBAN OK) : il gagne la vente par carte + protection acheteur sans y penser.
     $oldCb = old('payment_cb', (isset($listing) ? $listing->requires_online_payment : $stripeReady) ? 1 : 0);
@@ -97,7 +102,7 @@
 
                 <div>
                     <label for="title" class="{{ $lbl }}">Titre de l'annonce</label>
-                    <input id="title" type="text" name="title" value="{{ old('title') }}" required placeholder="Ex : Robe Zara noire taille M" class="{{ $inp }}">
+                    <input id="title" type="text" name="title" value="{{ old('title') }}" required placeholder="{{ $fiche['titre'] }}" data-champ-titre class="{{ $inp }}">
                 </div>
 
                 <div>
@@ -136,22 +141,20 @@
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                         <label for="etat" class="{{ $lbl }}">État</label>
-                        <select id="etat" name="etat" class="{{ $inp }}">
+                        <select id="etat" name="etat" data-champ-etat class="{{ $inp }}">
                             <option value="">Non renseigné</option>
-                            <option value="Neuf avec étiquette" @selected(old('etat') === 'Neuf avec étiquette')>Neuf avec étiquette</option>
-                            <option value="Neuf sans étiquette" @selected(old('etat') === 'Neuf sans étiquette')>Neuf sans étiquette</option>
-                            <option value="Très bon état" @selected(old('etat') === 'Très bon état')>Très bon état</option>
-                            <option value="Bon état" @selected(old('etat') === 'Bon état')>Bon état</option>
-                            <option value="Satisfaisant" @selected(old('etat') === 'Satisfaisant')>Satisfaisant</option>
+                            @foreach($choixEtat as $valeurEtat => $libelleEtat)
+                                <option value="{{ $valeurEtat }}" @selected(old('etat') === $valeurEtat)>{{ $libelleEtat }}</option>
+                            @endforeach
                         </select>
                     </div>
-                    <div>
-                        <label for="marque" class="{{ $lbl }}">Marque</label>
-                        <input id="marque" type="text" name="marque" value="{{ old('marque') }}" placeholder="Ex : Nike" class="{{ $inp }}">
+                    <div data-champ="marque" @if(! $fiche['marque']) hidden @endif>
+                        <label for="marque" data-champ-label class="{{ $lbl }}">{{ $fiche['marque']['label'] ?? 'Marque' }}</label>
+                        <input id="marque" type="text" name="marque" value="{{ old('marque') }}" placeholder="{{ $fiche['marque']['exemple'] ?? '' }}" @disabled(! $fiche['marque']) class="{{ $inp }}">
                     </div>
-                    <div>
-                        <label for="taille" class="{{ $lbl }}">Taille</label>
-                        <input id="taille" type="text" name="taille" value="{{ old('taille') }}" placeholder="Ex : M, 38, 6 ans" class="{{ $inp }}">
+                    <div data-champ="taille" @if(! $fiche['taille']) hidden @endif>
+                        <label for="taille" data-champ-label class="{{ $lbl }}">{{ $fiche['taille']['label'] ?? 'Taille' }}</label>
+                        <input id="taille" type="text" name="taille" value="{{ old('taille') }}" placeholder="{{ $fiche['taille']['exemple'] ?? '' }}" @disabled(! $fiche['taille']) class="{{ $inp }}">
                     </div>
                 </div>
             </div>
@@ -170,7 +173,7 @@
                             <option value="negoce-prix" @selected(old('listing_type') === 'negoce-prix')>Vente / prix négociable</option>
                             <option value="don" @selected(old('listing_type') === 'don')>Don</option>
                             <option value="echange-produits" @selected(old('listing_type') === 'echange-produits')>Échange</option>
-                            <option value="location-vetements" @selected(old('listing_type') === 'location-vetements')>Location vêtement</option>
+                            <option value="location-vetements" data-option-location @selected(old('listing_type') === 'location-vetements') @if(! $fiche['location']) hidden disabled @endif>Location vêtement</option>
                         </select>
                     </div>
                     <div>
@@ -347,6 +350,14 @@
                                     <li>🧥 Manteau / grosse veste : <strong>~900–1500 g</strong></li>
                                     <li>👟 Chaussures : <strong>~700–1200 g</strong></li>
                                     <li>👜 Sac : <strong>~300–800 g</strong></li>
+                                    {{-- Repères pour les objets : le guide ne parlait que de vêtements. --}}
+                                    <li class="pt-1 font-semibold text-gray-700">Objets</li>
+                                    <li>📚 Livre / manga : <strong>~200–500 g</strong></li>
+                                    <li>📱 Téléphone dans sa boîte : <strong>~400–600 g</strong></li>
+                                    <li>🎮 Console avec manettes : <strong>~2–4 kg</strong></li>
+                                    <li>☕ Petit électroménager (cafetière, mixeur) : <strong>~2–5 kg</strong></li>
+                                    <li>💄 Parfum / soin : <strong>~200–400 g</strong></li>
+                                    <li>📦 Au-delà de <strong>30 kg</strong>, Colissimo ne prend pas le colis : proposez la remise en main propre.</li>
                                 </ul>
                                 <p class="mt-2 text-gray-400">Pèse l'article emballé si tu peux. En cas de doute, arrondis au-dessus.</p>
                             </details>
@@ -649,4 +660,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 })();
 </script>
+@include('account.listings._fiche-champs')
+
 @endsection

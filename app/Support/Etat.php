@@ -53,4 +53,55 @@ class Etat
     {
         return array_values(self::CANONICAL);
     }
+
+    /**
+     * « Étiquette » ne veut rien dire pour un frigo ou un livre. Pour les
+     * objets, les deux premiers états se disent autrement — mais la VALEUR
+     * stockée reste la même : le filtre « Neuf » de la recherche continue de
+     * trouver les vêtements comme les objets.
+     */
+    private const LIBELLES_OBJET = [
+        'neuf avec etiquette' => 'Neuf, sous emballage',
+        'neuf sans etiquette' => 'Neuf, déballé',
+    ];
+
+    /**
+     * Libellé adapté au rayon de l'annonce.
+     *
+     * @param  string|null  $niveau1  catégorie de l'annonce (null : libellé textile)
+     */
+    public static function libelle(?string $value, ?string $niveau1 = null, ?string $niveau2 = null): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        if ($niveau1 !== null && Categories::fiche($niveau1, $niveau2)['etat'] === 'objet') {
+            $objet = self::LIBELLES_OBJET[self::normalize($value)] ?? null;
+            if ($objet) {
+                return $objet;
+            }
+        }
+
+        return self::label($value);
+    }
+
+    /**
+     * Les choix du formulaire : valeur stockée => libellé, pour les deux types
+     * d'articles. Le formulaire bascule de l'un à l'autre selon le rayon.
+     *
+     * @return array{textile: array<string, string>, objet: array<string, string>}
+     */
+    public static function choixFormulaire(): array
+    {
+        $textile = [];
+        $objet = [];
+
+        foreach (self::CANONICAL as $cle => $valeur) {
+            $textile[$valeur] = $valeur;
+            $objet[$valeur] = self::LIBELLES_OBJET[$cle] ?? $valeur;
+        }
+
+        return ['textile' => $textile, 'objet' => $objet];
+    }
 }

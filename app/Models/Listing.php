@@ -60,6 +60,64 @@ class Listing extends Model
         'photoless_hidden_at' => 'datetime',
     ];
 
+    /**
+     * Fiche de champs du rayon de l'annonce (voir Categories::fiche) : dit
+     * comment s'appelle la colonne « taille » ici (pointure, dimensions,
+     * capacité…) et comment se lit l'état.
+     */
+    public function ficheChamps(): array
+    {
+        return \App\Support\Categories::fiche($this->category_level1, $this->category_level2);
+    }
+
+    /** Libellé de la caractéristique « taille » de ce rayon. */
+    public function libelleTaille(): string
+    {
+        return $this->ficheChamps()['taille']['label'] ?? 'Taille';
+    }
+
+    /** Libellé de la « marque » de ce rayon (« Auteur » pour un livre). */
+    public function libelleMarque(): string
+    {
+        return $this->ficheChamps()['marque']['label'] ?? 'Marque';
+    }
+
+    /**
+     * La taille telle qu'on l'affiche. En majuscules pour un vêtement (« M »,
+     * « XL »), telle quelle ailleurs : « 128 GO » ou « 60 X 180 CM » étaient
+     * faux.
+     */
+    public function tailleAffichee(): ?string
+    {
+        if (blank($this->taille)) {
+            return null;
+        }
+
+        return $this->ficheChamps()['etat'] === 'textile'
+            ? mb_strtoupper($this->taille)
+            : $this->taille;
+    }
+
+    /** L'état tel qu'on l'affiche, dans les mots du rayon. */
+    public function etatAffiche(): ?string
+    {
+        return \App\Support\Etat::libelle($this->etat, $this->category_level1 ?: null, $this->category_level2);
+    }
+
+    /**
+     * Ligne de résumé des cartes : « M · Bon état · Zara ». Les morceaux
+     * absents sont simplement omis (avant, une annonce sans taille
+     * commençait par « · »).
+     */
+    public function resumeCaracteristiques(): string
+    {
+        return implode(' · ', array_filter([
+            $this->tailleAffichee(),
+            $this->etatAffiche(),
+            $this->marque,
+        ]));
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

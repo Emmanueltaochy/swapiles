@@ -271,16 +271,16 @@
                         @if($listing->marque || $listing->taille || $listing->etat || $listing->category_level3)
                             <div class="mt-4 grid grid-cols-2 gap-2.5 text-sm">
                                 @if($listing->marque)
-                                    <div class="rounded-xl border border-gray-100 p-3"><p class="text-gray-500">Marque</p><p class="font-semibold text-gray-900">{{ $listing->marque }}</p></div>
+                                    <div class="rounded-xl border border-gray-100 p-3"><p class="text-gray-500">{{ $listing->libelleMarque() }}</p><p class="font-semibold text-gray-900">{{ $listing->marque }}</p></div>
                                 @endif
                                 @if($listing->taille)
-                                    <div class="rounded-xl border border-gray-100 p-3"><p class="text-gray-500">Taille</p><p class="font-semibold text-gray-900">{{ strtoupper($listing->taille) }}</p></div>
+                                    <div class="rounded-xl border border-gray-100 p-3"><p class="text-gray-500">{{ $listing->libelleTaille() }}</p><p class="font-semibold text-gray-900">{{ $listing->tailleAffichee() }}</p></div>
                                 @endif
                                 @if($listing->etat)
-                                    <div class="rounded-xl border border-gray-100 p-3"><p class="text-gray-500">État</p><p class="font-semibold text-gray-900">{{ \App\Support\Etat::label($listing->etat) }}</p></div>
+                                    <div class="rounded-xl border border-gray-100 p-3"><p class="text-gray-500">État</p><p class="font-semibold text-gray-900">{{ $listing->etatAffiche() }}</p></div>
                                 @endif
                                 @if($listing->category_level3)
-                                    <div class="rounded-xl border border-gray-100 p-3"><p class="text-gray-500">Catégorie</p><p class="font-semibold text-gray-900">{{ str_replace('-', ' ', $listing->category_level3) }}</p></div>
+                                    <div class="rounded-xl border border-gray-100 p-3"><p class="text-gray-500">Catégorie</p><p class="font-semibold text-gray-900">{{ \App\Support\Categories::label($listing->category_level3) ?? str_replace('-', ' ', $listing->category_level3) }}</p></div>
                                 @endif
                             </div>
                         @endif

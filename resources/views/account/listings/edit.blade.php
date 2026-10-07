@@ -11,6 +11,15 @@
 
 @section('content')
 @php
+    // Champs adaptés au rayon de l'annonce (voir Categories::fiche) : calculés
+    // dès le début, la liste « Type d'annonce » s'en sert avant les autres
+    // champs ; ajustés ensuite en direct par _fiche-champs.
+    $fiche = \App\Support\Categories::fiche(
+        old('category_level1', $listing->category_level1),
+        old('category_level2', $listing->category_level2)
+    );
+    $choixEtat = \App\Support\Etat::choixFormulaire()[$fiche['etat']];
+
     $stripeReady = auth()->user()?->stripe_account_id
         && auth()->user()?->stripe_charges_enabled
         && auth()->user()?->stripe_payouts_enabled
@@ -71,7 +80,7 @@
 
             <div>
                 <label class="block text-sm font-bold text-gray-800 mb-2">Titre de l’annonce</label>
-                <input type="text" name="title" value="{{ old('title', $listing->title) }}" required placeholder="Ex : Robe Zara noire taille M" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
+                <input type="text" name="title" value="{{ old('title', $listing->title) }}" required placeholder="{{ $fiche['titre'] }}" data-champ-titre class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
             </div>
 
             <div>
@@ -87,7 +96,7 @@
                         <option value="negoce-prix" @selected(old('listing_type', $listing->listing_type) === 'negoce-prix')>Vente / prix négociable</option>
                         <option value="don" @selected(old('listing_type', $listing->listing_type) === 'don')>Don</option>
                         <option value="echange-produits" @selected(old('listing_type', $listing->listing_type) === 'echange-produits')>Échange</option>
-                        <option value="location-vetements" @selected(old('listing_type', $listing->listing_type) === 'location-vetements')>Location vêtement</option>
+                        <option value="location-vetements" data-option-location @selected(old('listing_type', $listing->listing_type) === 'location-vetements') @if(! $fiche['location']) hidden disabled @endif>Location vêtement</option>
                     </select>
                 </div>
 
@@ -101,6 +110,7 @@
     $oldLevel1 = old('category_level1', isset($listing) ? $listing->category_level1 : '');
     $oldLevel2 = old('category_level2', isset($listing) ? $listing->category_level2 : '');
     $oldLevel3 = old('category_level3', isset($listing) ? $listing->category_level3 : '');
+
 
     $oldCb = old('payment_cb', (isset($listing) ? $listing->requires_online_payment : false) ? 1 : 0);
     $oldCash = old('payment_cash', 1);
@@ -376,24 +386,22 @@ document.addEventListener('DOMContentLoaded', function () {
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-sm font-bold text-gray-800 mb-2">État</label>
-                    <select name="etat" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
+                    <select name="etat" id="etat" data-champ-etat class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
                         <option value="">Non renseigné</option>
-                        <option value="Neuf avec étiquette" @selected(old('etat', $listing->etat) === 'Neuf avec étiquette')>Neuf avec étiquette</option>
-                        <option value="Neuf sans étiquette" @selected(old('etat', $listing->etat) === 'Neuf sans étiquette')>Neuf sans étiquette</option>
-                        <option value="Très bon état" @selected(old('etat', $listing->etat) === 'Très bon état')>Très bon état</option>
-                        <option value="Bon état" @selected(old('etat', $listing->etat) === 'Bon état')>Bon état</option>
-                        <option value="Satisfaisant" @selected(old('etat', $listing->etat) === 'Satisfaisant')>Satisfaisant</option>
+                        @foreach($choixEtat as $valeurEtat => $libelleEtat)
+                            <option value="{{ $valeurEtat }}" @selected(old('etat', $listing->etat) === $valeurEtat)>{{ $libelleEtat }}</option>
+                        @endforeach
                     </select>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-bold text-gray-800 mb-2">Marque</label>
-                    <input type="text" name="marque" value="{{ old('marque', $listing->marque) }}" placeholder="Ex : Nike" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
+                <div data-champ="marque" @if(! $fiche['marque']) hidden @endif>
+                    <label for="marque" data-champ-label class="block text-sm font-bold text-gray-800 mb-2">{{ $fiche['marque']['label'] ?? 'Marque' }}</label>
+                    <input id="marque" type="text" name="marque" value="{{ old('marque', $listing->marque) }}" placeholder="{{ $fiche['marque']['exemple'] ?? '' }}" @disabled(! $fiche['marque']) class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
                 </div>
 
-                <div>
-                    <label class="block text-sm font-bold text-gray-800 mb-2">Taille</label>
-                    <input type="text" name="taille" value="{{ old('taille', $listing->taille) }}" placeholder="Ex : M, 38, 6 ans" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
+                <div data-champ="taille" @if(! $fiche['taille']) hidden @endif>
+                    <label for="taille" data-champ-label class="block text-sm font-bold text-gray-800 mb-2">{{ $fiche['taille']['label'] ?? 'Taille' }}</label>
+                    <input id="taille" type="text" name="taille" value="{{ old('taille', $listing->taille) }}" placeholder="{{ $fiche['taille']['exemple'] ?? '' }}" @disabled(! $fiche['taille']) class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
                 </div>
             </div>
 
@@ -403,4 +411,6 @@ document.addEventListener('DOMContentLoaded', function () {
         </form>
     </div>
 </section>
+@include('account.listings._fiche-champs')
+
 @endsection

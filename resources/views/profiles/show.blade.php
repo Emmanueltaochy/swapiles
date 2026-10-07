@@ -307,8 +307,7 @@
                         <div class="p-3">
                             <p class="line-clamp-1 text-sm font-medium text-gray-900">{{ $listing->title }}</p>
                             <p class="mt-0.5 line-clamp-1 text-xs text-gray-400">
-                                @if($listing->taille){{ strtoupper($listing->taille) }}@endif
-                                @if($listing->etat) · {{ $listing->etat }}@endif
+                                {{ $listing->resumeCaracteristiques() }}
                             </p>
                             <p class="mt-1 text-sm font-bold text-gray-900">
                                 @if($listing->price > 0){{ number_format($listing->price, 0, ',', ' ') }} €@else<span class="text-green-600">Gratuit</span>@endif

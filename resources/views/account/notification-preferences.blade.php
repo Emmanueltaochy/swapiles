@@ -59,12 +59,16 @@
                                    @checked($prefs[$cle]['push'] ?? $categorie['defaut'])
                                    class="h-6 w-6 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
                         </label>
-                        <label class="flex w-14 justify-center" title="E-mail — {{ $categorie['label'] }}">
-                            <span class="sr-only">E-mail : {{ $categorie['label'] }}</span>
-                            <input type="checkbox" name="notification_prefs[{{ $cle }}][email]" value="1"
-                                   @checked($prefs[$cle]['email'] ?? $categorie['defaut'])
-                                   class="h-6 w-6 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
-                        </label>
+                        @if(\App\Support\NotificationPreferences::aLeCanal($cle, 'email'))
+                            <label class="flex w-14 justify-center" title="E-mail — {{ $categorie['label'] }}">
+                                <span class="sr-only">E-mail : {{ $categorie['label'] }}</span>
+                                <input type="checkbox" name="notification_prefs[{{ $cle }}][email]" value="1"
+                                       @checked($prefs[$cle]['email'] ?? $categorie['defaut'])
+                                       class="h-6 w-6 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
+                            </label>
+                        @else
+                            <span class="flex w-14 justify-center text-gray-300" title="Pas d'e-mail pour ce type">—</span>
+                        @endif
                     </div>
                 </div>
             @endforeach

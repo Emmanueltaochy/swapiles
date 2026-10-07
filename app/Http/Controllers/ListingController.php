@@ -34,6 +34,7 @@ class ListingController extends Controller
         if ($listing->status === 'published' && ! $isBot && ! $prechargee) {
             $listing->increment('views_count');
             $this->notifySellerOfView($request, $listing);
+            \App\Support\Recommandations::noterConsultation($request->user(), $listing);
         }
 
         $listing->loadCount('favoritedBy');
@@ -54,6 +55,7 @@ class ListingController extends Controller
         if ($listing->status === 'published' && ! \App\Support\BotDetector::isBot($request->userAgent())) {
             $listing->increment('views_count');
             $this->notifySellerOfView($request, $listing);
+            \App\Support\Recommandations::noterConsultation($request->user(), $listing);
         }
 
         return response()->noContent();

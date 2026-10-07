@@ -53,6 +53,7 @@ class PushPolicy
             'listing_available_colissimo',
             'listing_needs_photo',
             'account_onboarding',
+            'recommandations',
         ],
     ];
 

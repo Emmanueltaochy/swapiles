@@ -143,6 +143,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/vendeurs-suivis', [\App\Http\Controllers\Account\FollowedSellerController::class, 'index'])->name('account.followed-sellers.index');
     Route::get('/mes-abonnes', [\App\Http\Controllers\Account\FollowerController::class, 'index'])->name('account.followers.index');
     Route::get('/favoris', [FavoriteController::class, 'index'])->name('account.favorites.index');
+    Route::get('/pour-vous', [\App\Http\Controllers\Account\RecommendationController::class, 'index'])->name('account.recommendations');
     Route::post('/favoris/{listing}/toggle', [FavoriteController::class, 'toggle'])->name('account.favorites.toggle');
     Route::get('/favoris/{listing}/toggle', [FavoriteController::class, 'toggle'])->name('account.favorites.toggle.get');
 

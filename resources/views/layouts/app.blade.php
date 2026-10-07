@@ -609,6 +609,7 @@ document.addEventListener('turbo:load', function () {
                     <span class="rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white">{{ $favoriteAlertCount }}</span>
                 @endif
             </a>
+            <a href="{{ route('account.recommendations') }}" class="{{ $menuLien }}"><span>✨ Pour vous</span></a>
             <a href="{{ route('account.transactions.index') }}" class="{{ $menuLien }}"><span>📦 Mes transactions</span></a>
             <a href="/mon-wallet" class="{{ $menuLien }}"><span>💶 Mon wallet</span></a>
             <a href="{{ route('account.notifications.preferences') }}" class="{{ $menuLien }}"><span>🔇 Préférences de notification</span></a>

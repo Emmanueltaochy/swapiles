@@ -49,6 +49,14 @@ class NotificationPreferences
             'types' => ['listing_viewed'],
             'defaut' => false,
         ],
+        'recommandations' => [
+            'label' => 'Recommandé pour vous',
+            'description' => 'De temps en temps, une sélection d’articles qui ressemblent à ce que vous regardez et aimez.',
+            'types' => ['recommandations'],
+            'defaut' => true,
+            // Notification mobile seulement : pas d'e-mail pour ces suggestions.
+            'canaux' => ['push'],
+        ],
         'conseils' => [
             'label' => 'Conseils et rappels',
             'description' => 'Annonce sans photo, relances, astuces de vente.',
@@ -75,7 +83,10 @@ class NotificationPreferences
         $defauts = [];
 
         foreach (self::CATEGORIES as $cle => $categorie) {
-            $defauts[$cle] = ['push' => $categorie['defaut'], 'email' => $categorie['defaut']];
+            $defauts[$cle] = [
+                'push' => $categorie['defaut'] && self::aLeCanal($cle, 'push'),
+                'email' => $categorie['defaut'] && self::aLeCanal($cle, 'email'),
+            ];
         }
 
         return $defauts;
@@ -85,6 +96,12 @@ class NotificationPreferences
     public static function parDefaut(string $categorie): bool
     {
         return (bool) (self::CATEGORIES[$categorie]['defaut'] ?? true);
+    }
+
+    /** La catégorie propose-t-elle ce canal (mobile, e-mail) ? */
+    public static function aLeCanal(string $categorie, string $canal): bool
+    {
+        return in_array($canal, self::CATEGORIES[$categorie]['canaux'] ?? ['push', 'email'], true);
     }
 
     /** Catégorie d'un type de notification, ou null si le type est toujours envoyé. */

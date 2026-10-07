@@ -44,3 +44,8 @@ Schedule::command('messages:remind-unanswered')->everySixHours()->withoutOverlap
 // réinstallation : sans ménage, le nombre d'appareils affiché n'a plus rien à
 // voir avec le nombre d'installations réelles.
 Schedule::command('push:cleanup-tokens')->weeklyOn(1, '04:00')->withoutOverlapping();
+
+// « Recommandé pour vous » : la commande tourne chaque heure mais n'envoie
+// qu'aux membres pour qui il est 18 h–21 h sur leur île, au plus tous les
+// 4 jours, et seulement si la sélection est pertinente (config/recommandations.php).
+Schedule::command('recommandations:envoyer')->hourlyAt(5)->withoutOverlapping();

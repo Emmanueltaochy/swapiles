@@ -113,9 +113,13 @@
         <label class="block text-sm font-bold text-gray-800 mb-2">Catégorie principale</label>
         <select name="category_level1" id="category_level1" required class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
             <option value="">Choisir</option>
-            <option value="femme" @selected($oldLevel1 === 'femme' || $oldLevel1 === 'Femme')>Femme</option>
-            <option value="homme" @selected($oldLevel1 === 'homme' || $oldLevel1 === 'Homme')>Homme</option>
-            <option value="enfant" @selected($oldLevel1 === 'enfant' || $oldLevel1 === 'Enfant')>Enfant</option>
+            {{-- Toutes les catégories de l'arbre (App\Support\Categories) :
+                 la liste était limitée à Femme / Homme / Enfant, alors que la
+                 navigation proposait déjà Maison, High-tech, Sport… Un vendeur ne
+                 pouvait donc pas ranger son annonce là où l'acheteur la cherche. --}}
+            @foreach(\App\Support\Categories::niveau1() as $cleCategorie => $categorie)
+                <option value="{{ $cleCategorie }}" @selected(mb_strtolower((string) $oldLevel1) === $cleCategorie)>{{ $categorie['emoji'] }} {{ $categorie['label'] }}</option>
+            @endforeach
         </select>
     </div>
 
@@ -325,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (oldLevel1) {
         const normalized = normalize(oldLevel1);
-        if (['femme','homme','enfant'].includes(normalized)) l1.value = normalized;
+        if (tree[normalized]) l1.value = normalized; // toute catégorie de l'arbre, plus seulement les trois d'origine
     }
 
     fillLevel2(oldLevel2);

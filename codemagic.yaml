@@ -157,6 +157,20 @@ workflows:
           /usr/libexec/PlistBuddy -c "Delete :NSPhotoLibraryAddUsageDescription" "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryAddUsageDescription string Swap Iles enregistre une image dans vos photos lorsque vous le demandez." "$PLIST"
 
+          # LANGUE DES ÉCRANS SYSTÈME : FRANÇAIS.
+          #
+          # L'appareil photo, le choix de photos, les boutons « Annuler »… sont
+          # dessinés par iOS, pas par le site. iOS les affiche dans une langue
+          # que l'app DÉCLARE gérer : le modèle Capacitor ne déclarant que
+          # l'anglais, un iPhone réglé en français affichait « Use Photo » et
+          # « Retake ». On déclare le français (langue par défaut) et l'anglais.
+          /usr/libexec/PlistBuddy -c "Delete :CFBundleDevelopmentRegion" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleDevelopmentRegion string fr" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Delete :CFBundleLocalizations" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations array" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:0 string fr" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:1 string en" "$PLIST"
+
           # NUMÉRO DE BUILD UNIQUE ET CROISSANT.
           #
           # Le projet iOS est régénéré à chaque build (npx cap add ios) : sans
@@ -173,6 +187,8 @@ workflows:
           /usr/libexec/PlistBuddy -c "Print :ITSAppUsesNonExemptEncryption" "$PLIST"
           /usr/libexec/PlistBuddy -c "Print :NSCameraUsageDescription" "$PLIST"
           /usr/libexec/PlistBuddy -c "Print :NSPhotoLibraryUsageDescription" "$PLIST"
+          echo "Langue par défaut : $(/usr/libexec/PlistBuddy -c "Print :CFBundleDevelopmentRegion" "$PLIST")"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleLocalizations" "$PLIST"
           echo "Version : $(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST") (build $(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST"))"
       - name: Signature (certificat + profil App Store créés automatiquement)
         script: |

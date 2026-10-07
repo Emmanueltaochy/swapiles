@@ -226,8 +226,12 @@ workflows:
           # Le profil obtenu autorise-t-il les notifications ? Si non, on retire
           # l'autorisation de l'appli : le build RÉUSSIT quand même (sans
           # notifications), au lieu d'échouer à la signature.
+          # Les profils sont rangés dans l'un ou l'autre dossier selon la
+          # version de Xcode (Xcode 16 : UserData) : on regarde dans les deux.
           PUSH_OK=0
-          for PROFIL in "$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision; do
+          for PROFIL in "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/"*.mobileprovision \
+                        "$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision; do
+            [ -f "$PROFIL" ] || continue
             CONTENU=$(security cms -D -i "$PROFIL" 2>/dev/null || true)
             if echo "$CONTENU" | grep -q "$BUNDLE_ID" && echo "$CONTENU" | grep -q "aps-environment"; then
               PUSH_OK=1
@@ -243,7 +247,7 @@ workflows:
             (cd mobile && python3 scripts/ios-push.py --retirer)
           fi
           echo "=== Profils téléchargés ==="
-          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/"
+          ls -la "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/" "$HOME/Library/MobileDevice/Provisioning Profiles/" 2>/dev/null || true
           cd mobile/ios/App
           xcode-project use-profiles
       - name: Build IPA

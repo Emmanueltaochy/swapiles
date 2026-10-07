@@ -43,6 +43,17 @@ class IosPushBuildTest extends TestCase
         $this->assertStringContainsString('python3 scripts/ios-push.py --retirer', $this->codemagic());
     }
 
+    public function test_le_profil_est_cherche_dans_le_dossier_de_xcode_16(): void
+    {
+        // Codemagic range désormais les profils dans UserData : ne regarder
+        // que l'ancien dossier faisait croire à un profil SANS notifications,
+        // et le build retirait l'autorisation à tort.
+        $yaml = $this->codemagic();
+
+        $this->assertStringContainsString('"$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/"*.mobileprovision', $yaml);
+        $this->assertStringContainsString('"$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision', $yaml);
+    }
+
     public function test_le_script_pose_le_jeton_et_l_autorisation(): void
     {
         $script = file_get_contents(base_path('mobile/scripts/ios-push.py'));

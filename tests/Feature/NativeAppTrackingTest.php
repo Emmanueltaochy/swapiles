@@ -45,6 +45,17 @@ class NativeAppTrackingTest extends TestCase
         );
     }
 
+    public function test_le_bandeau_reste_retire_a_chaque_page_de_l_application(): void
+    {
+        // Navigation sans rechargement : le script du bandeau est rejoué à
+        // chaque page. Il interroge directement la coque, sans dépendre d'un
+        // attribut posé une seule fois au premier chargement.
+        $this->assertMatchesRegularExpression(
+            "/var dansLAppli = cap && typeof cap\.isNativePlatform === 'function' && cap\.isNativePlatform\(\);\s*if \(dansLAppli \|\|.*?\)\s*\{\s*banner\.remove\(\);/s",
+            $this->layout()
+        );
+    }
+
     public function test_le_site_web_conserve_son_bandeau_et_ses_traceurs(): void
     {
         // Requête web ordinaire : le bandeau et les identifiants restent présents.

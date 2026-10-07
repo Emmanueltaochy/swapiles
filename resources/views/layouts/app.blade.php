@@ -912,7 +912,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // Dans l'application mobile, aucun traceur n'est chargé : il n'y a donc
     // rien à consentir, et Apple interdit une fenêtre maison demandant
     // l'autorisation de suivi (refus 5.1.2(i)). On retire le bandeau.
-    if (document.documentElement.getAttribute('data-sans-traceurs') === '1') {
+    // On regarde aussi directement la coque : avec la navigation sans
+    // rechargement, ce script est rejoué à chaque page.
+    var cap = window.Capacitor;
+    var dansLAppli = cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform();
+    if (dansLAppli || document.documentElement.getAttribute('data-sans-traceurs') === '1') {
         banner.remove();
 
         return;

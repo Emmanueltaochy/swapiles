@@ -910,4 +910,36 @@ document.addEventListener('DOMContentLoaded', function () {
     </script>
 @endif
 
+{{-- Page préchargée : le serveur n'a rien compté (le doigt a peut-être
+     seulement effleuré la carte en faisant défiler). La vue est signalée ici,
+     au moment où la page s'affiche réellement — après l'activation si elle
+     avait été entièrement préparée en arrière-plan. --}}
+@if($vueACompter ?? false)
+    <script>
+        (function () {
+            var envoye = false;
+            function signaler() {
+                if (envoye) return;
+                envoye = true;
+                var jeton = document.querySelector('meta[name="csrf-token"]');
+                fetch(@json(route('listings.view', $listing)), {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    keepalive: true,
+                    headers: {
+                        'X-CSRF-TOKEN': jeton ? jeton.content : '',
+                        'Accept': 'application/json'
+                    }
+                }).catch(function () {});
+            }
+
+            if (document.prerendering) {
+                document.addEventListener('prerenderingchange', signaler, { once: true });
+            } else {
+                signaler();
+            }
+        })();
+    </script>
+@endif
+
 @endsection

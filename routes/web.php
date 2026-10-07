@@ -81,6 +81,9 @@ Route::post('/devenir-point-relais', [\App\Http\Controllers\RelayPartnerControll
     ->middleware('throttle:6,1')->name('relay.partner.contact');
 
 Route::get('/annonce/{listing}', [ListingController::class, 'show'])->name('listings.show');
+// Vue signalée par une page préchargée, au moment où elle s'affiche vraiment.
+Route::post('/annonce/{listing}/vue', [ListingController::class, 'recordView'])
+    ->middleware('throttle:60,1')->name('listings.view');
 
 
 Route::middleware('guest')->group(function () {

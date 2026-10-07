@@ -48,6 +48,54 @@ html, body {
     padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* PASSAGE D'UNE PAGE A L'AUTRE SANS ECRAN BLANC.
+   Dans l'application, chaque changement d'onglet effacait l'ecran puis
+   redessinait tout : c'est ce « flash » qui trahissait le site derriere
+   l'appli. Le navigateur garde maintenant l'ancienne page affichee jusqu'a ce
+   que la nouvelle soit prete, puis fond l'une dans l'autre. L'entete et la
+   barre du bas ne bougent pas du tout, comme dans une appli native.
+   Android recent et iOS 18.2+ ; ailleurs, la regle est simplement ignoree. */
+@view-transition {
+    navigation: auto;
+}
+[data-entete] {
+    view-transition-name: swp-entete;
+}
+[data-barre-bas] {
+    view-transition-name: swp-barre-bas;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: 140ms;
+}
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+        animation: none !important;
+    }
+}
+
+/* Barre de chargement : le toucher est acquitte A L'INSTANT, meme si le
+   serveur met une demi-seconde a repondre. Sans elle, l'ecran restait fige et
+   on ne savait pas si le doigt avait ete pris en compte. */
+#swp-chargement {
+    position: fixed;
+    top: env(safe-area-inset-top);
+    left: 0;
+    height: 3px;
+    width: 0;
+    z-index: 10000;
+    background: #0d9488;
+    opacity: 0;
+    pointer-events: none;
+    transition: width 1.8s cubic-bezier(.1, .7, .3, 1), opacity .2s;
+}
+#swp-chargement.actif {
+    width: 85%;
+    opacity: 1;
+}
+
 /* Barre qui reste collee JUSTE SOUS l'entete. La hauteur de l'entete varie
    (encoche, logo, largeur d'ecran), donc on ne peut pas l'ecrire en dur : un
    petit script la mesure et la publie dans --swp-entete. La valeur de repli
@@ -277,7 +325,8 @@ document.addEventListener('DOMContentLoaded', function () {
 @endphp
 
 
-<body class="bg-gray-50 text-gray-900 antialiased overflow-x-hidden">
+<body class="bg-gray-50 text-gray-900 antialiased overflow-x-hidden" data-instant-allow-query-string>
+<div id="swp-chargement" aria-hidden="true"></div>
     <header data-entete class="swp-safe-top sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100">
     <div class="max-w-7xl mx-auto px-4 py-3">
         <div class="flex items-center gap-3">
@@ -561,13 +610,13 @@ document.addEventListener('DOMContentLoaded', function () {
         @yield('content')
     </main>
 
-    <nav class="swp-safe-bottom lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-t border-gray-200">
+    <nav data-barre-bas class="swp-safe-bottom lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-t border-gray-200">
         <div class="grid grid-cols-5 h-[74px] text-[11px] font-bold">
-            <a href="{{ route('home') }}" class="flex flex-col items-center justify-center gap-1 {{ request()->routeIs('home') ? 'text-teal-700' : 'text-gray-500' }}">
+            <a href="{{ route('home') }}" data-onglet class="flex flex-col items-center justify-center gap-1 {{ request()->routeIs('home') ? 'text-teal-700' : 'text-gray-500' }}">
                 <span class="text-xl">🏠</span><span>Accueil</span>
             </a>
 
-            <a href="{{ route('search') }}" class="flex flex-col items-center justify-center gap-1 {{ request()->routeIs('search') ? 'text-teal-700' : 'text-gray-500' }}">
+            <a href="{{ route('search') }}" data-onglet class="flex flex-col items-center justify-center gap-1 {{ request()->routeIs('search') ? 'text-teal-700' : 'text-gray-500' }}">
                 <span class="text-xl">🔎</span><span>Produits</span>
             </a>
 
@@ -576,7 +625,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <span class="text-teal-800 mt-1">Déposer</span>
             </a>
 
-            <a href="{{ route('account.messages.index') }}" class="relative flex flex-col items-center justify-center gap-1 {{ request()->routeIs('account.messages.*') ? 'text-teal-700' : 'text-gray-500' }}">
+            <a href="{{ route('account.messages.index') }}" data-onglet class="relative flex flex-col items-center justify-center gap-1 {{ request()->routeIs('account.messages.*') ? 'text-teal-700' : 'text-gray-500' }}">
                 <span class="text-xl">💬</span><span>Messages</span>
                 @if($unreadMessagesCount > 0)
                     <span class="absolute top-2 right-5 bg-red-600 text-white text-[10px] font-extrabold rounded-full min-w-5 h-5 px-1 flex items-center justify-center">
@@ -585,7 +634,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 @endif
             </a>
 
-            <a href="{{ route('account.dashboard') }}" class="relative flex flex-col items-center justify-center gap-1 {{ request()->routeIs('account.*') ? 'text-teal-700' : 'text-gray-500' }}">
+            <a href="{{ route('account.dashboard') }}" data-onglet class="relative flex flex-col items-center justify-center gap-1 {{ request()->routeIs('account.*') ? 'text-teal-700' : 'text-gray-500' }}">
                 <span class="text-xl">👤</span><span>Compte</span>
                 @if($unreadNotificationsCount > 0)
                     <span class="absolute top-2 right-5 bg-red-600 text-white text-[10px] font-extrabold rounded-full min-w-5 h-5 px-1 flex items-center justify-center">
@@ -833,6 +882,112 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 {{-- Préchargement des pages au survol / touch (navigation quasi instantanée). --}}
+<script>
+    // PRÉCHARGEMENT SÛR.
+    // instant.page télécharge une page dès que le doigt touche un lien, pour
+    // qu'elle s'ouvre sans attendre. Mais certaines adresses AGISSENT quand on
+    // les charge : la liste des messages les marque tous comme lus, /territoire
+    // change d'île, Stripe crée un lien de paiement… Les précharger pendant un
+    // simple défilement déclencherait l'action sans que le membre l'ait voulue.
+    // Ce garde passe avant instant.page et retire ces liens du préchargement.
+    (function () {
+        var interdits = [
+            '/messages', '/territoire/', '/stripe/', '/portefeuille/',
+            '/checkout/', '/transactions/', '/mon-compte/ventes/',
+            '/magic-link/', '/email/', '/n/'
+        ];
+
+        function marquer(evenement) {
+            var lien = evenement.target && evenement.target.closest && evenement.target.closest('a[href]');
+            if (!lien || 'noInstant' in lien.dataset) return;
+
+            var chemin;
+            try { chemin = new URL(lien.href, location.href).pathname; } catch (e) { return; }
+
+            for (var i = 0; i < interdits.length; i++) {
+                if (chemin.indexOf(interdits[i]) === 0) {
+                    lien.dataset.noInstant = '';
+                    return;
+                }
+            }
+        }
+
+        // Phase de capture, enregistrée avant instant.page (module, donc
+        // exécuté plus tard) : ce garde voit le toucher en premier.
+        document.addEventListener('touchstart', marquer, { capture: true, passive: true });
+        document.addEventListener('mouseover', marquer, { capture: true, passive: true });
+        document.addEventListener('mousedown', marquer, { capture: true, passive: true });
+    })();
+
+    // RÉPONSE IMMÉDIATE AU TOUCHER.
+    // Le serveur met une demi-seconde à répondre ; pendant ce temps l'écran
+    // restait figé. On acquitte le geste tout de suite : barre de chargement
+    // en haut, et l'onglet touché s'allume avant même que la page arrive.
+    (function () {
+        var barre = document.getElementById('swp-chargement');
+
+        var filet;
+
+        function demarrer() {
+            if (!barre) return;
+            barre.classList.add('actif');
+
+            // Filet : téléchargement, navigation annulée… la barre ne doit
+            // jamais rester affichée indéfiniment.
+            clearTimeout(filet);
+            filet = setTimeout(arreter, 10000);
+        }
+
+        function arreter() {
+            if (barre) barre.classList.remove('actif');
+        }
+
+        document.addEventListener('click', function (e) {
+            if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+            var lien = e.target.closest && e.target.closest('a[href]');
+            if (!lien || lien.target === '_blank' || lien.hasAttribute('download')) return;
+
+            var cible;
+            try { cible = new URL(lien.href, location.href); } catch (err) { return; }
+            if (cible.origin !== location.origin) return;
+
+            // Simple ancre sur la même page : pas de chargement.
+            if (cible.pathname === location.pathname && cible.search === location.search && cible.hash) return;
+
+            // On attend la fin du clic : favoris, partage ou signalement le
+            // gèrent en JavaScript sans changer de page (preventDefault), et
+            // ces scripts-là passent après celui-ci.
+            setTimeout(function () {
+                if (e.defaultPrevented) return;
+
+                if (lien.hasAttribute('data-onglet')) {
+                    document.querySelectorAll('[data-onglet]').forEach(function (o) {
+                        o.classList.remove('text-teal-700');
+                        o.classList.add('text-gray-500');
+                    });
+                    lien.classList.remove('text-gray-500');
+                    lien.classList.add('text-teal-700');
+                }
+
+                demarrer();
+            }, 0);
+        });
+
+        // Formulaires classiques (recherche, filtres) : même acquittement,
+        // même prudence pour ceux qu'un script envoie sans changer de page.
+        document.addEventListener('submit', function (e) {
+            setTimeout(function () {
+                if (!e.defaultPrevented && !e.target.hasAttribute('data-sans-chargement')) demarrer();
+            }, 0);
+        });
+
+        // Retour arrière (page restaurée depuis la mémoire) ou départ : on
+        // n'affiche jamais une barre qui ne s'arrêterait pas.
+        window.addEventListener('pageshow', arreter);
+        window.addEventListener('pagehide', arreter);
+    })();
+</script>
 <script src="{{ asset('js/instantpage.js') }}" type="module"></script>
 <script src="{{ asset('js/push.js') }}"></script>
 <script src="{{ asset('js/report.js') }}"></script>

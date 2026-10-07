@@ -22,7 +22,16 @@ class ListingController extends Controller
         // On ne compte pas les vues des robots/crawlers (chiffres gonflés).
         $isBot = \App\Support\BotDetector::isBot($request->userAgent());
 
-        if ($listing->status === 'published' && ! $isBot) {
+        // PRÉCHARGEMENT : pour que la page s'ouvre instantanément, le navigateur
+        // la télécharge dès que le doigt touche une carte — parfois juste en
+        // faisant défiler la grille, sans jamais l'ouvrir. Compter ces requêtes
+        // gonflait les vues et pouvait prévenir un vendeur que son annonce
+        // avait été vue alors que personne ne l'avait regardée. Une page
+        // préchargée ne compte donc rien côté serveur : c'est elle qui
+        // signalera la vue, au moment où elle s'affiche vraiment.
+        $prechargee = self::estPrechargement($request);
+
+        if ($listing->status === 'published' && ! $isBot && ! $prechargee) {
             $listing->increment('views_count');
             $this->notifySellerOfView($request, $listing);
         }
@@ -30,7 +39,42 @@ class ListingController extends Controller
         $listing->loadCount('favoritedBy');
         $listing->load(['images' => fn($q) => $q->orderBy('order')]);
 
-        return view('listings.show', compact('listing'));
+        return view('listings.show', [
+            'listing' => $listing,
+            'vueACompter' => $prechargee && $listing->status === 'published' && ! $isBot,
+        ]);
+    }
+
+    /**
+     * La vue d'une page préchargée, signalée par la page elle-même au moment
+     * où elle s'affiche réellement à l'écran.
+     */
+    public function recordView(Request $request, Listing $listing)
+    {
+        if ($listing->status === 'published' && ! \App\Support\BotDetector::isBot($request->userAgent())) {
+            $listing->increment('views_count');
+            $this->notifySellerOfView($request, $listing);
+        }
+
+        return response()->noContent();
+    }
+
+    /**
+     * La requête est-elle un préchargement (et non une visite) ?
+     *
+     * Chrome et Android l'annoncent par « Sec-Purpose: prefetch » (ou
+     * « prefetch;prerender »), Firefox par « X-Moz: prefetch », d'anciens
+     * navigateurs par « Purpose: prefetch ».
+     */
+    public static function estPrechargement(Request $request): bool
+    {
+        $entetes = strtolower(implode(' ', [
+            (string) $request->header('Sec-Purpose'),
+            (string) $request->header('Purpose'),
+            (string) $request->header('X-Moz'),
+        ]));
+
+        return str_contains($entetes, 'prefetch');
     }
 
     /**

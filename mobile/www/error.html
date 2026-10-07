@@ -15,7 +15,7 @@
       display: flex; align-items: center; justify-content: center;
       padding: 24px; text-align: center;
     }
-    .card { max-width: 340px; }
+    .card { max-width: 340px; width: 100%; }
     .palm { font-size: 56px; line-height: 1; margin-bottom: 12px; }
     h1 { font-size: 22px; margin: 0 0 8px; font-weight: 800; }
     p { font-size: 15px; line-height: 1.5; opacity: .92; margin: 0 0 24px; }
@@ -26,10 +26,26 @@
     }
     button:active { transform: scale(.98); }
     .hint { margin-top: 16px; font-size: 13px; opacity: .8; }
+    .spinner {
+      width: 36px; height: 36px; margin: 0 auto;
+      border: 3px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%;
+      animation: tourne .8s linear infinite;
+    }
+    @keyframes tourne { to { transform: rotate(360deg); } }
+    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
-  <div class="card">
+  <!-- D'abord : on recharge en silence, comme l'écran de démarrage.
+       Cette page s'ouvre parfois pour une simple coupure d'une seconde
+       (réseau pas encore prêt à l'ouverture de l'appli) : afficher
+       « Connexion impossible » alors que tout revient aussitôt inquiétait
+       pour rien. Le message n'apparaît que si le site reste injoignable. -->
+  <div class="card" id="chargement" role="status" aria-label="Chargement de Swap'Îles">
+    <div class="spinner"></div>
+  </div>
+
+  <div class="card" id="erreur" hidden>
     <div class="palm" aria-hidden="true">🌴</div>
     <h1>Connexion impossible</h1>
     <p>Impossible de charger Swap'Îles pour le moment. Vérifiez votre connexion internet, puis réessayez.</p>
@@ -38,13 +54,69 @@
   </div>
 
   <script>
-    function retry() {
-      // Recharge le site en direct.
-      window.location.href = 'https://swapiles.com';
-    }
-    document.getElementById('retry').addEventListener('click', retry);
-    // Nouvelle tentative automatique dès que la connexion revient.
-    window.addEventListener('online', retry);
+    (function () {
+      var SITE = 'https://swapiles.com';
+      var CLE = 'swp_reprises_auto';
+      var parti = false;
+
+      function retry() {
+        if (parti) return;
+        parti = true;
+        window.location.replace(SITE);
+      }
+
+      function montrerErreur() {
+        document.getElementById('chargement').hidden = true;
+        document.getElementById('erreur').hidden = false;
+      }
+
+      // Garde-fou : si le site répond mais que la page échoue encore
+      // (plusieurs retours ici en une minute), on n'insiste pas en boucle.
+      function reprisesRecentes() {
+        try {
+          var maintenant = Date.now();
+          var liste = JSON.parse(localStorage.getItem(CLE) || '[]').filter(function (t) {
+            return maintenant - t < 60000;
+          });
+          liste.push(maintenant);
+          localStorage.setItem(CLE, JSON.stringify(liste));
+          return liste.length;
+        } catch (e) {
+          return 1;
+        }
+      }
+
+      // Le site répond-il ? (réponse opaque : seule compte la joignabilité)
+      function joignable() {
+        return fetch(SITE + '/jeton?verif=' + Date.now(), { mode: 'no-cors', cache: 'no-store' })
+          .then(function () { return true; }, function () { return false; });
+      }
+
+      document.getElementById('retry').addEventListener('click', function () {
+        parti = false;
+        retry();
+      });
+      // Nouvelle tentative automatique dès que la connexion revient.
+      window.addEventListener('online', retry);
+
+      if (reprisesRecentes() > 2) {
+        montrerErreur();
+        return;
+      }
+
+      // Jusqu'à ~8 secondes d'essais discrets avant d'afficher le message.
+      var essais = [0, 700, 1500, 2500, 4000];
+      var i = 0;
+      (function essayer() {
+        if (parti) return;
+        if (i >= essais.length) { montrerErreur(); return; }
+        setTimeout(function () {
+          joignable().then(function (ok) {
+            if (ok) { retry(); } else { i++; essayer(); }
+          });
+        }, essais[i] - (i ? essais[i - 1] : 0));
+      })();
+    })();
   </script>
 </body>
 </html>

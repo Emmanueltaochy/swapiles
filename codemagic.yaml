@@ -39,6 +39,9 @@ workflows:
         script: |
           cd mobile
           npm install
+          # « Connexion impossible » seulement en cas de VRAIE panne de réseau
+          # (pas pour un chargement interrompu ou une erreur du site).
+          python3 scripts/capacitor-error-page.py
       - name: Générer le projet Android + icônes
         script: |
           cd mobile
@@ -115,6 +118,9 @@ workflows:
         script: |
           cd mobile
           npm install
+          # « Connexion impossible » seulement en cas de VRAIE panne de réseau
+          # (pas pour un chargement interrompu ou une erreur du site).
+          python3 scripts/capacitor-error-page.py
       - name: Générer le projet iOS + icônes
         script: |
           cd mobile
@@ -289,6 +295,9 @@ workflows:
         script: |
           cd mobile
           npm install
+          # « Connexion impossible » seulement en cas de VRAIE panne de réseau
+          # (pas pour un chargement interrompu ou une erreur du site).
+          python3 scripts/capacitor-error-page.py
       - name: Générer le projet Android + icônes
         script: |
           cd mobile

@@ -206,11 +206,18 @@
                 $typesArticle = \App\Support\Categories::typesArticle($selectedCategory, $selectedLevel2);
             @endphp
 
-            {{-- Cette rangee-ci reste collee sous l'entete quand on fait defiler :
+            {{-- Cette rangee-ci reste a portee de doigt quand on fait defiler :
                  changer de rayon est le geste le plus frequent, et il ne doit
-                 pas demander de remonter en haut de page. Les autres filtres,
-                 eux, defilent normalement. --}}
-            <div class="swp-sous-entete -mx-4 flex gap-2 overflow-x-auto bg-white px-4 py-2 no-scrollbar sm:-mx-6 sm:px-6">
+                 pas demander de remonter en haut de page (surtout avec le
+                 defilement infini). Les autres filtres, eux, defilent.
+
+                 Un « position: sticky » ne colle que DANS le bloc qui le
+                 contient : ici l'en-tete de recherche, qui sort vite de
+                 l'ecran, et la rangee partait avec lui. Une copie de la rangee
+                 (data-rangee-fixe, juste avant les resultats) prend le relais sous
+                 l'entete des que l'originale disparait. --}}
+            @php ob_start(); @endphp
+
                 <a href="{{ $catUrl() }}" class="{{ $selectedCategory ? $chipOff : $chipOn }}">Tout</a>
 
                 @foreach($racineCategories as $cle => $categorie)
@@ -220,7 +227,9 @@
                         {{ $categorie['emoji'] }} {{ $categorie['label'] }}
                     </a>
                 @endforeach
-            </div>
+            @php $pastillesCategories = ob_get_clean(); @endphp
+            <div data-rangee-categories class="-mx-4 flex gap-2 overflow-x-auto bg-white px-4 py-2 no-scrollbar sm:-mx-6 sm:px-6">
+{!! $pastillesCategories !!}            </div>
 
             @if($selectedCategory && count($sousCategories))
                 {{-- Fil d'Ariane : on voit ou on est, et on remonte d'un clic. --}}
@@ -401,6 +410,15 @@
     </div>
 </section>
 
+{{-- Copie de la rangee de categories, accrochee sous l'entete pendant le
+     defilement (voir plus haut). Cachee tant que l'originale est visible. --}}
+<div data-rangee-fixe hidden class="fixed inset-x-0 z-40 border-b border-gray-100 bg-white/95 shadow-sm backdrop-blur" style="top: var(--swp-entete, 64px)">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <nav aria-label="Catégories" class="-mx-4 flex gap-2 overflow-x-auto px-4 py-2 no-scrollbar sm:-mx-6 sm:px-6">
+{!! $pastillesCategories !!}        </nav>
+    </div>
+</div>
+
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
     @if(($localCount ?? 0) === 0 && ($selectedTerritoire ?? '') !== '' && $listings->total() > 0)
@@ -534,6 +552,46 @@
         <div class="mt-10" data-pagination>{{ $listings->links() }}</div>
     @endif
 </section>
+
+<script>
+// Rangee de categories accrochee sous l'entete : la copie apparait quand
+// l'originale passe sous l'entete, et disparait quand on remonte.
+(function () {
+    var originale = document.querySelector('[data-rangee-categories]');
+    var copie = document.querySelector('[data-rangee-fixe]');
+    if (!originale || !copie) return;
+
+    var defilante = copie.querySelector('nav');
+    var prevu = false;
+
+    function hauteurEntete() {
+        return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--swp-entete')) || 64;
+    }
+
+    function mettreAJour() {
+        prevu = false;
+        var cachee = originale.getBoundingClientRect().bottom <= hauteurEntete();
+        if (cachee && copie.hidden) {
+            copie.hidden = false;
+            // Même position horizontale que la rangée qu'on vient de quitter.
+            defilante.scrollLeft = originale.scrollLeft;
+        } else if (!cachee && !copie.hidden) {
+            copie.hidden = true;
+        }
+    }
+
+    function surveiller() {
+        if (prevu) return;
+        prevu = true;
+        window.requestAnimationFrame(mettreAJour);
+    }
+
+    var options = { passive: true, signal: window.swpPage() };
+    window.addEventListener('scroll', surveiller, options);
+    window.addEventListener('resize', surveiller, options);
+    mettreAJour();
+})();
+</script>
 
 <script>
 // « var » et non « const » : sans rechargement de page, ce script est

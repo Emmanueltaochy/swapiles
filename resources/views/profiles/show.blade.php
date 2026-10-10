@@ -313,7 +313,7 @@
                 <h2 class="text-xl sm:text-2xl font-bold text-gray-900">{{ number_format($listings->total(), 0, ',', ' ') }} annonce{{ $listings->total() > 1 ? 's' : '' }} en ligne</h2>
             </div>
 
-            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5" data-defilement-infini data-page-suivante="{{ $listings->nextPageUrl() }}">
                 @forelse($listings as $listing)
                     <a href="{{ route('listings.show', $listing) }}" class="group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:shadow-md">
                         <div class="relative aspect-[3/4] overflow-hidden bg-gray-100">
@@ -345,7 +345,7 @@
             </div>
 
             @if($listings->hasPages())
-                <div class="mt-10">{{ $listings->links() }}</div>
+                <div class="mt-10" data-pagination>{{ $listings->links() }}</div>
             @endif
         @endif
 

@@ -322,7 +322,7 @@
         </div>
     @endif
 
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" data-defilement-infini data-page-suivante="{{ $listings->nextPageUrl() }}">
         @foreach($listings as $listing)
             <a href="{{ route('listings.show', $listing) }}" class="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition">
                 <div class="relative aspect-[4/5] bg-gray-100 overflow-hidden">
@@ -401,7 +401,7 @@
         @endforeach
     </div>
 
-    <div class="mt-10">
+    <div class="mt-10" data-pagination>
         {{ $listings->links() }}
     </div>
 </section>

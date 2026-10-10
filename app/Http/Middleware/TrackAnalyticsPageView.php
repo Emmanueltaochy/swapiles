@@ -35,7 +35,8 @@ class TrackAnalyticsPageView
                 return;
             }
 
-            if ($request->ajax() || $request->expectsJson()) {
+            // La suite d'une liste chargée au défilement n'est pas une page vue.
+            if ($request->ajax() || $request->expectsJson() || $request->hasHeader('X-Swp-Infini')) {
                 return;
             }
 

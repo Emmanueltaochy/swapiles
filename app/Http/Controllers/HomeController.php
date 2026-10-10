@@ -143,7 +143,7 @@ class HomeController extends Controller
     private function applyBuyableOrdering($query, ?string $territoire, bool $alsoColExists): void
     {
         if (! $territoire) {
-            $query->latest();
+            $query->latest()->orderByDesc('listings.id');
 
             return;
         }
@@ -158,7 +158,7 @@ class HomeController extends Controller
 
         $sql .= 'OR (requires_online_payment = 1 AND allows_colissimo = 1)) THEN 0 ELSE 1 END';
 
-        $query->orderByRaw($sql, $bindings)->latest();
+        $query->orderByRaw($sql, $bindings)->latest()->orderByDesc('listings.id');
     }
 
     public function search(Request $request)
@@ -349,9 +349,10 @@ class HomeController extends Controller
         }
 
         match ($request->get('sort')) {
-            'price_asc' => $query->orderBy('price', 'asc'),
-            'price_desc' => $query->orderBy('price', 'desc'),
-            'oldest' => $query->oldest(),
+            // Départage par identifiant : un ordre stable d'une page à l'autre.
+            'price_asc' => $query->orderBy('price', 'asc')->orderByDesc('listings.id'),
+            'price_desc' => $query->orderBy('price', 'desc')->orderByDesc('listings.id'),
+            'oldest' => $query->oldest()->orderBy('listings.id'),
             // Tri par défaut : achetables depuis l'île choisie d'abord, puis le reste.
             default => $this->applyBuyableOrdering(
                 $query,

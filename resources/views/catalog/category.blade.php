@@ -70,7 +70,7 @@
         </div>
     @endif
 
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5">
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5" data-defilement-infini data-page-suivante="{{ $listings->nextPageUrl() }}">
         @forelse($listings as $listing)
             @include('partials.listing-card', ['listing' => $listing])
         @empty
@@ -82,7 +82,7 @@
         @endforelse
     </div>
 
-    <div class="mt-8">
+    <div class="mt-8" data-pagination>
         {{ $listings->links() }}
     </div>
 

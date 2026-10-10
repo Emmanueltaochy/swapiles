@@ -15,6 +15,7 @@ class ProfileController extends Controller
             ->withCount('favoritedBy')
             ->where('status', 'published')
             ->latest()
+            ->orderByDesc('id') // ordre stable d'une page à l'autre
             ->paginate(24);
 
         $reviews = $user->reviewsReceived()

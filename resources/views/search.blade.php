@@ -414,7 +414,7 @@
         <p class="mt-0.5 text-sm text-gray-500">{{ $listings->total() }} résultat{{ $listings->total() > 1 ? 's' : '' }}</p>
     </div>
 
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5">
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5" data-defilement-infini data-page-suivante="{{ $listings->nextPageUrl() }}">
         @forelse($listings as $listing)
             <a href="{{ route('listings.show', $listing) }}" class="group block">
                 <div class="relative aspect-[4/5] overflow-hidden rounded-2xl bg-gray-100">
@@ -531,7 +531,7 @@
     </div>
 
     @if($listings->hasPages())
-        <div class="mt-10">{{ $listings->links() }}</div>
+        <div class="mt-10" data-pagination>{{ $listings->links() }}</div>
     @endif
 </section>
 

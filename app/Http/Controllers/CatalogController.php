@@ -45,6 +45,7 @@ class CatalogController extends Controller
             ->where('status', 'published')
             ->where('territoire', $label)
             ->latest()
+            ->orderByDesc('id') // ordre stable d'une page à l'autre
             ->paginate(24);
 
         $categories = $this->categoriesFor($label);
@@ -79,6 +80,7 @@ class CatalogController extends Controller
             ->where('territoire', $label)
             ->where('category_level1', $categoryLabel)
             ->latest()
+            ->orderByDesc('id') // ordre stable d'une page à l'autre
             ->paginate(24);
 
         $categories = $this->categoriesFor($label);

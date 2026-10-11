@@ -50,7 +50,12 @@
 
     $breadcrumbItems = collect([
         ['name' => 'Accueil', 'item' => url('/')],
-        $listing->category_level1 ? ['name' => $listing->category_level1, 'item' => route('search', ['q' => $listing->category_level1])] : null,
+        // Lien vers la CATÉGORIE (et non une recherche de texte « femme »,
+        // qui ne trouvait rien : Google suivait ce lien).
+        $listing->category_level1 ? [
+            'name' => \App\Support\Categories::label($listing->category_level1) ?? $listing->category_level1,
+            'item' => route('search', ['category' => \App\Support\Categories::niveau1DepuisTexte($listing->category_level1) ?? $listing->category_level1]),
+        ] : null,
         ['name' => $listing->title, 'item' => route('listings.show', $listing)],
     ])->filter()->values();
 

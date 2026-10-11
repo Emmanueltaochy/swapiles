@@ -163,6 +163,22 @@ class HomeController extends Controller
 
     public function search(Request $request)
     {
+        // « femme », « high-tech »… tapé ou reçu dans un lien : c'est une
+        // catégorie, pas une recherche de texte (aucun titre ne contient
+        // « femme », d'où « Aucune annonce trouvée »). D'anciens liens connus
+        // de Google pointaient ainsi vers une recherche vide : on les envoie
+        // vers la bonne catégorie, définitivement (301).
+        if ($request->filled('q') && ! $request->filled('category')) {
+            $categorie = \App\Support\Categories::niveau1DepuisTexte($request->input('q'));
+
+            if ($categorie) {
+                return redirect()->route('search', array_merge(
+                    $request->except(['q', 'page']),
+                    ['category' => $categorie]
+                ), 301);
+            }
+        }
+
         $categoryRows = Listing::query()
             ->where('status', 'published')
             ->whereNotNull('category_level1')

@@ -711,6 +711,28 @@ class Categories
         return $fiches;
     }
 
+    /**
+     * Le texte cherché est-il le nom d'une grande catégorie (« femme »,
+     * « High-tech », « Jardin & bricolage », « jardin-bricolage »…) ?
+     * Renvoie sa clé, sinon null.
+     */
+    public static function niveau1DepuisTexte(?string $texte): ?string
+    {
+        $cherche = \Illuminate\Support\Str::slug((string) $texte);
+
+        if ($cherche === '') {
+            return null;
+        }
+
+        foreach (self::ARBRE as $cle => $categorie) {
+            if ($cherche === \Illuminate\Support\Str::slug($cle) || $cherche === \Illuminate\Support\Str::slug($categorie['label'])) {
+                return $cle;
+            }
+        }
+
+        return null;
+    }
+
     private static function normaliser(?string $cle): ?string
     {
         return filled($cle) ? mb_strtolower(trim($cle)) : null;

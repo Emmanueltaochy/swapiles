@@ -2,6 +2,9 @@
 
 namespace App\Jobs;
 
+use App\Models\Notification as AppNotification;
+use App\Models\SentEmail;
+use App\Models\User;
 use App\Support\DressingLeaderboard;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -40,11 +43,22 @@ class SendTopDressingsCongratsEmails implements ShouldQueue
 
         foreach ($top as $row) {
             $user = $row->user ?? null;
-            if (! $user?->email) {
+            if (! $user) {
                 continue;
             }
 
-            [$subject, $body] = self::buildEmail($user->name ?? 'toi', (int) $row->rank, $total, $url);
+            $rang = (int) $row->rank;
+
+            // Notification dans l'appli : c'est elle qui fait sonner le
+            // téléphone. Le bouton n'envoyait que l'e-mail, rien n'arrivait
+            // sur l'appli.
+            self::notifier($user, $rang, $total);
+
+            if (! $user->email || self::dejaFeliciteParEmail($user->email)) {
+                continue;
+            }
+
+            [$subject, $body] = self::buildEmail($user->name ?? 'toi', $rang, $total, $url);
 
             try {
                 Mail::raw($body, function ($mail) use ($user, $subject) {
@@ -64,6 +78,48 @@ class SendTopDressingsCongratsEmails implements ShouldQueue
      *
      * @return array{0:string,1:string}
      */
+    /** Jours pendant lesquels on ne félicite pas deux fois le même membre. */
+    public const DELAI_JOURS = 3;
+
+    /** Notification « Top dressings » (une seule par période). */
+    public static function notifier(User $user, int $rang, int $total): void
+    {
+        $recente = AppNotification::query()
+            ->where('user_id', $user->id)
+            ->where('type', 'top_dressing')
+            ->where('created_at', '>=', now()->subDays(self::DELAI_JOURS))
+            ->exists();
+
+        if ($recente) {
+            return;
+        }
+
+        try {
+            AppNotification::create([
+                'user_id' => $user->id,
+                'type' => 'top_dressing',
+                'title' => '🏆 Bravo, tu es dans le Top ' . $total . ' des dressings !',
+                'message' => 'Ton dressing est classé n°' . $rang . ' sur Swap\'Îles. Découvre le classement.',
+                'url' => route('dressings.top', absolute: false),
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
+    /**
+     * L'e-mail est-il déjà parti récemment ? Relancer le bouton (pour la
+     * notification, par exemple) ne renvoie pas le même e-mail à tout le Top.
+     */
+    public static function dejaFeliciteParEmail(string $email): bool
+    {
+        return SentEmail::query()
+            ->where('to_email', $email)
+            ->where('subject', 'like', '%des dressings Swap%')
+            ->where('created_at', '>=', now()->subDays(self::DELAI_JOURS))
+            ->exists();
+    }
+
     public static function buildEmail(string $name, int $rank, int $total, string $url): array
     {
         $subject = "🏆 Bravo {$name}, tu es dans le Top {$total} des dressings Swap'Îles !";

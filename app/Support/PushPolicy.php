@@ -54,6 +54,7 @@ class PushPolicy
             'listing_needs_photo',
             'account_onboarding',
             'recommandations',
+            'top_dressing',
         ],
     ];
 

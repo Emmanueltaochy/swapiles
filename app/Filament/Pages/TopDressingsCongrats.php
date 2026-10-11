@@ -38,14 +38,14 @@ class TopDressingsCongrats extends Page
                 ->disabled($count === 0)
                 ->requiresConfirmation()
                 ->modalHeading('Envoyer l’e-mail de félicitations ?')
-                ->modalDescription("Un e-mail « Bravo, tu es dans le Top {$count} » sera envoyé à chacun de ces {$count} vendeurs, avec le lien vers le classement. ⚠️ Le DKIM n’est pas encore vérifié : l’e-mail peut tomber en spam. À envoyer en connaissance de cause.")
+                ->modalDescription("Chacun de ces {$count} vendeurs reçoit une notification dans l’appli et un e-mail « Bravo, tu es dans le Top {$count} », avec le lien vers le classement. Un vendeur déjà félicité ces 3 derniers jours n’est pas relancé. ⚠️ Le DKIM n’est pas encore vérifié : l’e-mail peut tomber en spam. À envoyer en connaissance de cause.")
                 ->modalSubmitActionLabel('Envoyer maintenant')
                 ->action(function () {
                     SendTopDressingsCongratsEmails::dispatch();
 
                     Notification::make()
                         ->title('Envoi lancé 🎉')
-                        ->body('Les e-mails de félicitations partent vers le Top des dressings.')
+                        ->body('Notifications et e-mails de félicitations partent vers le Top des dressings.')
                         ->success()
                         ->send();
                 }),

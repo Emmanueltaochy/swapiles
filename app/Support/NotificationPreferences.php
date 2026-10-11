@@ -59,8 +59,8 @@ class NotificationPreferences
         ],
         'conseils' => [
             'label' => 'Conseils et rappels',
-            'description' => 'Annonce sans photo, relances, astuces de vente.',
-            'types' => ['listing_needs_photo', 'account_onboarding'],
+            'description' => 'Annonce sans photo, relances, astuces de vente, classement des dressings.',
+            'types' => ['listing_needs_photo', 'account_onboarding', 'top_dressing'],
             'defaut' => true,
         ],
     ];

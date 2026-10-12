@@ -1,59 +1,60 @@
 @php
     $t = $getRecord();
     $fmt = fn ($v) => $v ? \Illuminate\Support\Carbon::parse($v)->format('d/m/Y à H:i') : null;
+    $paye = in_array($t->status, ['paid', 'completed'], true) || $t->stripe_payment_intent_id;
 
-    $isHand = $t->delivery_method === 'hand_delivery'
-        || in_array($t->shipping_status, ['hand_delivered'], true);
-
-    $paidAt = $t->paid_at ?? (in_array($t->status, ['paid', 'completed'], true) ? $t->created_at : null);
-
-    $steps = [];
-    $steps[] = ['label' => 'Commande passée', 'icon' => '🛒', 'at' => $t->created_at, 'note' => "Achat initié par l'acheteur"];
-    $steps[] = ['label' => 'Paiement confirmé', 'icon' => '💳', 'at' => $paidAt, 'note' => $t->stripe_payment_intent_id ? 'Carte sécurisée (Stripe)' : ('Paiement : ' . ($t->payment_method ?? '—'))];
-
-    if ($isHand) {
-        $steps[] = ['label' => 'Remise en main propre', 'icon' => '🤝', 'at' => $t->received_at ?? $t->completed_at, 'note' => "Article remis à l'acheteur"];
+    $etapes = [];
+    if ($t->estDeclaree()) {
+        $etapes[] = ['📝', 'Vente déclarée', $t->created_at, 'Déclarée par le vendeur, hors paiement Swap’Îles'];
+        if ($t->acheteur_confirme_at) {
+            $etapes[] = ['✅', "Confirmée par l'acheteur", $t->acheteur_confirme_at, null];
+        } elseif ($t->acheteur_conteste_at) {
+            $etapes[] = ['⛔', "Contestée par l'acheteur", $t->acheteur_conteste_at, null];
+        } elseif ($t->buyer_id) {
+            $etapes[] = ['⏳', "Confirmation de l'acheteur", null, 'en attente'];
+        }
     } else {
-        $track = trim(($t->carrier ? $t->carrier . ' ' : '') . ($t->tracking_number ? '· ' . $t->tracking_number : ''));
-        $steps[] = ['label' => 'Expédié', 'icon' => '📦', 'at' => $t->shipped_at, 'note' => $track !== '' ? $track : 'Colis expédié'];
-        $steps[] = ['label' => 'Livré', 'icon' => '🚚', 'at' => $t->delivered_at, 'note' => 'Colis livré'];
-        $steps[] = ['label' => 'Réception confirmée', 'icon' => '✅', 'at' => $t->received_at, 'note' => "L'acheteur a confirmé la réception"];
+        $etapes[] = ['🛒', 'Commande passée', $t->created_at, "Achat initié par l'acheteur"];
+        $etapes[] = ['💳', 'Paiement confirmé', $paye ? $t->created_at : null, 'Carte bancaire (Stripe)'];
+
+        if ($t->delivery_method === 'hand_delivery') {
+            $etapes[] = ['🤝', 'Remise en main propre', $t->received_at ?? ($t->status === 'completed' ? $t->completed_at : null), $t->hand_delivery_location];
+        } elseif ($t->delivery_method === 'relay') {
+            $etapes[] = ['🏪', 'Déposé au point relais', $t->relay_deposited_at, $t->relayPoint?->name];
+            $etapes[] = ['🙋', "Retiré par l'acheteur", $t->relay_collected_at ?? $t->received_at, null];
+        } else {
+            $suivi = trim(($t->carrier ? $t->carrier . ' ' : '') . ($t->tracking_number ? '· ' . $t->tracking_number : ''));
+            $etapes[] = ['📦', 'Expédié', $t->shipped_at, $suivi ?: null];
+            $etapes[] = ['🚚', 'Livré', $t->delivered_at, null];
+            $etapes[] = ['✅', 'Réception confirmée', $t->received_at, "par l'acheteur"];
+        }
+
+        $etapes[] = ['💶', 'Versement au vendeur', $t->transferred_at ?? $t->released_at, null];
     }
 
-    $steps[] = ['label' => 'Versement au vendeur', 'icon' => '💶', 'at' => $t->transferred_at ?? $t->released_at, 'note' => 'Argent envoyé sur le compte du vendeur'];
-
-    $cancelled = in_array($t->status, ['cancelled', 'refunded'], true);
+    $annulee = in_array($t->status, ['cancelled', 'refunded'], true);
 @endphp
 
 <div>
-    @if($cancelled)
-        <div class="mb-4 rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-3 text-sm font-semibold text-red-700 dark:text-red-300">
-            {{ $t->status === 'refunded' ? '↩️ Transaction remboursée' : '✖️ Transaction annulée' }}
+    @if($annulee)
+        <div style="margin-bottom:.8rem;border-radius:.7rem;padding:.6rem .85rem;font-size:.87rem;font-weight:700;color:#b91c1c;background:rgba(239,68,68,.12);">
+            {{ $t->status === 'refunded' ? '↩️ Vente remboursée' : '✖️ Vente annulée' }}
         </div>
     @endif
 
-    <div>
-        @foreach($steps as $s)
-            <div class="flex gap-3">
-                <div class="flex flex-col items-center">
-                    <div class="grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold
-                        {{ $s['at'] ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500' }}">
-                        {{ $s['at'] ? '✓' : '' }}
-                    </div>
-                    @unless($loop->last)
-                        <div class="my-1 w-0.5 flex-1 {{ $s['at'] ? 'bg-emerald-300 dark:bg-emerald-700' : 'bg-gray-200 dark:bg-gray-700' }}" style="min-height:1.75rem"></div>
-                    @endunless
-                </div>
-                <div class="pb-5">
-                    <p class="font-semibold {{ $s['at'] ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500' }}">
-                        {{ $s['icon'] }} {{ $s['label'] }}
-                    </p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $s['note'] }}</p>
-                    <p class="mt-0.5 text-xs {{ $s['at'] ? 'font-medium text-emerald-600 dark:text-emerald-400' : 'text-gray-400' }}">
-                        {{ $s['at'] ? $fmt($s['at']) : 'En attente' }}
-                    </p>
+    @foreach($etapes as $i => [$icone, $libelle, $date, $note])
+        @php $fait = $date !== null; $derniere = $i === count($etapes) - 1; @endphp
+        <div style="display:flex;gap:.8rem;">
+            <div style="display:flex;flex-direction:column;align-items:center;">
+                <div style="width:2rem;height:2rem;flex:none;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:.9rem;{{ $fait ? 'background:rgba(16,185,129,.16);' : 'background:rgba(148,163,184,.14);filter:grayscale(1);opacity:.55;' }}">{{ $icone }}</div>
+                @unless($derniere)<div style="width:2px;flex:1;min-height:1.2rem;background:{{ $fait ? 'rgba(16,185,129,.45)' : 'rgba(148,163,184,.3)' }};"></div>@endunless
+            </div>
+            <div style="padding-bottom:{{ $derniere ? '0' : '.9rem' }};padding-top:.25rem;">
+                <div style="font-weight:700;font-size:.9rem;{{ $fait ? '' : 'opacity:.55;' }}">{{ $libelle }}</div>
+                <div style="font-size:.78rem;opacity:.6;">
+                    {{ $fait ? $fmt($date) : 'à venir' }}@if($note) · {{ $note }}@endif
                 </div>
             </div>
-        @endforeach
-    </div>
+        </div>
+    @endforeach
 </div>

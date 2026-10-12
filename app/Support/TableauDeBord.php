@@ -163,7 +163,10 @@ class TableauDeBord
         $volume = (float) (clone $ventes)->sum('amount');
         // Les ventes déclarées ne rapportent rien à Swap'Îles (0 € de frais) :
         // les revenus se calculent sur toutes les ventes, sans risque de gonfler.
-        $revenus = (float) (clone $vendues)->sum('buyer_protection_fee') + (float) (clone $vendues)->sum('commission');
+        // Revenus = protection + commission + part Swap'Îles des frais de point
+        // relais (le reste va au commerçant) ; même règle que FicheTransaction.
+        $revenus = (float) (clone $vendues)->sum('buyer_protection_fee') + (float) (clone $vendues)->sum('commission')
+            + max(0.0, (float) (clone $vendues)->sum('relay_fee') - (float) (clone $vendues)->sum('relay_merchant_fee'));
         $especes = (clone $vendues)->where('payment_method', 'especes')->whereNull('acheteur_conteste_at');
 
         return [

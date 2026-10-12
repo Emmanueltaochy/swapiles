@@ -142,7 +142,7 @@ class TransactionsTable
      * vendeur n'a PAS encore été payé (pas de transfert/versement), pour éviter
      * que la plateforme rembourse alors qu'elle a déjà versé le vendeur.
      */
-    protected static function refundAction(): Action
+    public static function refundAction(): Action
     {
         return Action::make('refund')
             ->label('Rembourser')

@@ -38,7 +38,7 @@ class AujourdhuiStats extends StatsOverviewWidget
                 ->descriptionIcon('heroicon-m-signal')
                 ->color('success')
                 ->url(LiveVisitors::getUrl()),
-            $this->stat('Visiteurs uniques', $visiteurs, 'heroicon-m-users'),
+            $this->stat('Visiteurs (humains)', $visiteurs, 'heroicon-m-users'),
             $this->stat('Nouveaux membres', $membres, 'heroicon-m-user-plus'),
             $this->stat('Nouvelles annonces', $annonces, 'heroicon-m-shopping-bag'),
             $this->stat('Ventes payées en ligne', $ventes, 'heroicon-m-banknotes'),

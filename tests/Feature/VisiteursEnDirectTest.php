@@ -49,6 +49,26 @@ class VisiteursEnDirectTest extends TestCase
         $this->assertSame(1, VisiteursEnDirect::compte()['humains']);
     }
 
+    public function test_visiteurs_uniques_par_jour_humains_seulement(): void
+    {
+        Carbon::setTestNow('2026-10-12 09:00:00');
+        $this->battement();
+        Carbon::setTestNow('2026-10-12 18:00:00');
+        $this->battement(['page' => true]);
+        $this->battement([], 'Mozilla/5.0 (compatible; Googlebot/2.1)');
+
+        Carbon::setTestNow('2026-10-13 08:00:00');
+        $this->battement();
+        $this->withHeader('User-Agent', self::PC)->withCookie('swp_vid', 'AutreVisiteur0123456789X')->withCredentials()
+            ->postJson('/presence', ['path' => '/']);
+        // Des pages vues sans présence confirmée (robot sans cookie) : jamais comptées.
+        for ($i = 0; $i < 5; $i++) {
+            $this->withHeader('User-Agent', self::IPHONE)->get('/');
+        }
+
+        $this->assertSame([1, 2], \App\Support\TableauDeBord::visiteursParJour(2));
+    }
+
     public function test_les_robots_ne_sont_jamais_comptes(): void
     {
         $this->battement([], 'facebookexternalhit/1.1')->assertNoContent();

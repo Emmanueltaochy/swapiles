@@ -69,6 +69,7 @@ class VisiteursEnDirect
         $path = mb_substr('/' . ltrim((string) ($donnees['path'] ?? '/'), '/'), 0, 500);
 
         $presence = Presence::firstOrNew(['cle' => $cle]);
+        $dejaCompteAujourdhui = $presence->exists && $presence->last_seen_at->isSameDay(now());
         $nouvelle = ! $presence->exists
             || $presence->last_seen_at->lt(now()->subMinutes(30));
 
@@ -95,6 +96,18 @@ class VisiteursEnDirect
             'appli' => $appli,
             'last_seen_at' => now(),
         ])->save();
+
+        // Premier signe de vie du jour : un visiteur unique de plus.
+        if (! $dejaCompteAujourdhui) {
+            \Illuminate\Support\Facades\DB::table('visiteurs_jours')->insertOrIgnore([
+                'jour' => now()->toDateString(),
+                'cle' => $cle,
+                'user_id' => $presence->user_id,
+                'appli' => $presence->appli,
+                'source' => $presence->source,
+                'territoire' => $presence->territoire,
+            ]);
+        }
 
         // Ménage de temps en temps, sans tâche planifiée.
         if (random_int(1, 200) === 1) {

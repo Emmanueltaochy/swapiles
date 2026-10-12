@@ -14,7 +14,6 @@ class TopAnnonces extends TableWidget
 
     protected static ?string $heading = 'Annonces les plus vues';
 
-    protected int | string | array $columnSpan = 'full';
 
     protected static bool $isDiscovered = false;
 
@@ -25,9 +24,8 @@ class TopAnnonces extends TableWidget
             ->paginated(false)
             ->recordUrl(fn (Listing $l) => ListingResource::getUrl('view', ['record' => $l]))
             ->columns([
-                TextColumn::make('title')->label('Annonce')->limit(40),
-                TextColumn::make('user.name')->label('Vendeur')->limit(20)->placeholder('—'),
-                TextColumn::make('territoire')->label('Île')->placeholder('—'),
+                TextColumn::make('title')->label('Annonce')->limit(28)
+                    ->description(fn (Listing $l) => ($l->user->name ?? '—') . ' · ' . ($l->territoire ?: '—')),
                 TextColumn::make('price')->label('Prix')->money('EUR', locale: 'fr'),
                 TextColumn::make('views_count')->label('Vues'),
                 TextColumn::make('favorited_by_count')->label('Favoris'),

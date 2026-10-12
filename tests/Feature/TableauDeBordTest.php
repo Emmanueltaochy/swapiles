@@ -156,8 +156,22 @@ class TableauDeBordTest extends TestCase
         $this->actingAs($admin)->get('/admin')
             ->assertOk()
             ->assertSee('Tableau de bord')
-            ->assertSee('Période des statistiques')
-            ->assertSee('Lundi 12 octobre 2026');
+            ->assertSee('Lundi 12 octobre 2026')
+            ->assertSee('Statistiques sur une période');
+    }
+
+    public function test_le_filtre_de_periode_est_place_juste_au_dessus_de_ce_qu_il_filtre(): void
+    {
+        $avecFiltre = [\App\Filament\Widgets\Tableau\PeriodeStats::class, \App\Filament\Widgets\Tableau\EvolutionChart::class, \App\Filament\Widgets\Tableau\VisiteursChart::class];
+
+        // Sous le filtre : exactement les widgets qui lisent la période.
+        $this->assertSame($avecFiltre, \App\Filament\Pages\Dashboard::WIDGETS_PERIODE);
+        foreach (\App\Filament\Pages\Dashboard::WIDGETS_MAINTENANT as $widget) {
+            $this->assertNotContains(\Filament\Widgets\Concerns\InteractsWithPageFilters::class, class_uses($widget), $widget . ' ignore la période : il doit rester au-dessus du filtre.');
+        }
+        foreach ($avecFiltre as $widget) {
+            $this->assertContains(\Filament\Widgets\Concerns\InteractsWithPageFilters::class, class_uses($widget));
+        }
     }
 
     public function test_chaque_widget_s_affiche(): void

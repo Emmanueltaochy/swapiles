@@ -23,9 +23,8 @@ class DernieresVentes extends TableWidget
             ->paginated(false)
             ->recordUrl(fn (Transaction $t) => TransactionResource::getUrl('view', ['record' => $t]))
             ->columns([
-                TextColumn::make('listing.title')->label('Article')->limit(28)->placeholder('—'),
-                TextColumn::make('buyer.name')->label('Acheteur')->limit(18)
-                    ->default(fn (Transaction $t) => $t->estDeclaree() ? 'Inconnu' : '—'),
+                TextColumn::make('listing.title')->label('Article')->limit(24)->placeholder('—')
+                    ->description(fn (Transaction $t) => '→ ' . ($t->buyer->name ?? ($t->estDeclaree() ? 'acheteur inconnu' : '—'))),
                 TextColumn::make('fiabilite')->label('Fiabilité')->badge()
                     ->state(fn (Transaction $t) => $t->fiabiliteLibelle())
                     ->color(fn (Transaction $t) => Transaction::FIABILITES[$t->fiabilite()][1]),

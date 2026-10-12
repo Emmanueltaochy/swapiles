@@ -4,14 +4,18 @@ namespace App\Filament\Widgets\Tableau;
 
 use App\Support\TableauDeBord;
 use Filament\Widgets\ChartWidget;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 
 class VisiteursChart extends ChartWidget
 {
+    use InteractsWithPageFilters;
+
+    protected int | string | array $columnSpan = 'full';
     protected static ?int $sort = 5;
 
     protected ?string $heading = 'Visiteurs uniques par jour';
 
-    protected ?string $description = '30 derniers jours, robots exclus.';
+    protected ?string $description = 'Humains confirmés par leur navigateur (robots exclus), comptés depuis le 12 octobre 2026.';
 
     protected ?string $maxHeight = '260px';
 
@@ -27,8 +31,9 @@ class VisiteursChart extends ChartWidget
 
     protected function getData(): array
     {
+        $jours = TableauDeBord::joursGraphique($this->pageFilters['periode'] ?? '30j');
         $labels = [];
-        for ($i = 29; $i >= 0; $i--) {
+        for ($i = $jours - 1; $i >= 0; $i--) {
             $labels[] = now()->subDays($i)->format('d/m');
         }
 
@@ -36,7 +41,7 @@ class VisiteursChart extends ChartWidget
             'labels' => $labels,
             'datasets' => [[
                 'label' => 'Visiteurs',
-                'data' => TableauDeBord::visiteursParJour(30),
+                'data' => TableauDeBord::visiteursParJour($jours),
                 'backgroundColor' => 'rgba(13,148,136,.75)',
                 'borderRadius' => 4,
             ]],

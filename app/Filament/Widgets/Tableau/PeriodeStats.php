@@ -21,7 +21,7 @@ class PeriodeStats extends StatsOverviewWidget
 
     protected function getHeading(): ?string
     {
-        return 'Sur la période : ' . strtolower(TableauDeBord::PERIODES[$this->periode()] ?? '30 derniers jours');
+        return ucfirst(TableauDeBord::PERIODES[$this->periode()] ?? '30 derniers jours');
     }
 
     private function periode(): string

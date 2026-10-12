@@ -7,6 +7,9 @@ use App\Support\TableauDeBord;
 use Filament\Forms\Components\Select;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
+use Filament\Schemas\Components\EmbeddedSchema;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 /**
@@ -37,7 +40,7 @@ class Dashboard extends BaseDashboard
     {
         return $schema->components([
             Select::make('periode')
-                ->label('Période des statistiques')
+                ->hiddenLabel()
                 ->options(TableauDeBord::PERIODES)
                 ->default('30j')
                 ->selectablePlaceholder(false)
@@ -45,19 +48,49 @@ class Dashboard extends BaseDashboard
         ]);
     }
 
+    /**
+     * Ordre de la page : ce qui se passe maintenant (ne dépend d'aucun
+     * filtre), PUIS le choix de la période, juste au-dessus de tout ce qu'il
+     * change. Avant, le filtre trônait en haut alors que « Aujourd'hui » et
+     * « À traiter » l'ignoraient.
+     */
+    public function content(Schema $schema): Schema
+    {
+        return $schema->components([
+            Grid::make($this->getColumns())
+                ->schema(fn (): array => $this->getWidgetsSchemaComponents(self::WIDGETS_MAINTENANT)),
+
+            Section::make('Statistiques sur une période')
+                ->description('Ce choix s’applique à tout ce qui suit : chiffres, évolution et visiteurs.')
+                ->icon('heroicon-o-calendar-days')
+                ->compact()
+                ->schema([EmbeddedSchema::make('filtersForm')]),
+
+            Grid::make($this->getColumns())
+                ->schema(fn (): array => $this->getWidgetsSchemaComponents(self::WIDGETS_PERIODE)),
+        ]);
+    }
+
+    /** Indépendants de la période. */
+    public const WIDGETS_MAINTENANT = [
+        Tableau\AujourdhuiStats::class,
+        Tableau\ATraiterStats::class,
+        Tableau\DernieresVentes::class,
+        Tableau\NouveauxMembres::class,
+        Tableau\AnnoncesParIleChart::class,
+        Tableau\TopAnnonces::class,
+    ];
+
+    /** Filtrés par la période choisie. */
+    public const WIDGETS_PERIODE = [
+        Tableau\PeriodeStats::class,
+        Tableau\EvolutionChart::class,
+        Tableau\VisiteursChart::class,
+    ];
+
     public function getWidgets(): array
     {
-        return [
-            Tableau\AujourdhuiStats::class,
-            Tableau\ATraiterStats::class,
-            Tableau\PeriodeStats::class,
-            Tableau\EvolutionChart::class,
-            Tableau\VisiteursChart::class,
-            Tableau\AnnoncesParIleChart::class,
-            Tableau\DernieresVentes::class,
-            Tableau\NouveauxMembres::class,
-            Tableau\TopAnnonces::class,
-        ];
+        return [...self::WIDGETS_MAINTENANT, ...self::WIDGETS_PERIODE];
     }
 
     public function getColumns(): int | array

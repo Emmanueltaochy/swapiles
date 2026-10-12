@@ -93,23 +93,31 @@ class TableauDeBord
         return fn () => Transaction::query()->whereIn('status', self::STATUTS_VENDUS)->enLigne();
     }
 
-    /** Visiteurs uniques (identifiant visiteur) par jour, robots exclus à l'enregistrement. */
+    /** Premier jour où les visiteurs sont comptés de façon fiable (humains confirmés). */
+    public const DEBUT_VISITEURS_FIABLES = '2026-10-12';
+
+    /**
+     * Visiteurs uniques HUMAINS par jour : confirmés par leur navigateur
+     * (voir VisiteursEnDirect). L'ancien comptage par pages vues comptait
+     * chaque page d'un robot sans cookie comme un nouveau visiteur.
+     */
     public static function visiteursParJour(int $jours = 14): array
     {
-        if (! Schema::hasTable('analytics_events')) {
+        if (! Schema::hasTable('visiteurs_jours')) {
             return array_fill(0, $jours, 0);
         }
 
         $debut = now()->subDays($jours - 1)->startOfDay();
-        $parJour = DB::table('analytics_events')
-            ->where('created_at', '>=', $debut)
-            ->selectRaw('DATE(created_at) as jour, COUNT(DISTINCT COALESCE(visitor_id, session_id)) as total')
+        $parJour = DB::table('visiteurs_jours')
+            ->where('jour', '>=', $debut->toDateString())
+            ->selectRaw('jour, COUNT(*) as total')
             ->groupBy('jour')
             ->pluck('total', 'jour');
 
         $serie = [];
         for ($i = 0; $i < $jours; $i++) {
-            $serie[] = (int) ($parJour[$debut->copy()->addDays($i)->toDateString()] ?? 0);
+            $jour = $debut->copy()->addDays($i)->toDateString();
+            $serie[] = (int) ($parJour[$jour] ?? $parJour[$jour . ' 00:00:00'] ?? 0);
         }
 
         return $serie;

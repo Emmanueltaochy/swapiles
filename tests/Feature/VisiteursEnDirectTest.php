@@ -69,6 +69,18 @@ class VisiteursEnDirectTest extends TestCase
         $this->assertSame([1, 2], \App\Support\TableauDeBord::visiteursParJour(2));
     }
 
+    public function test_le_rattrapage_compte_les_presences_deja_enregistrees(): void
+    {
+        Presence::create(['cle' => 'a', 'ip_hash' => 'a', 'debut_at' => '2026-10-12 09:00:00', 'last_seen_at' => '2026-10-12 09:20:00']);
+        Presence::create(['cle' => 'b', 'ip_hash' => 'b', 'debut_at' => '2026-10-12 23:50:00', 'last_seen_at' => '2026-10-13 00:10:00']);
+        \Illuminate\Support\Facades\DB::table('visiteurs_jours')->insert(['jour' => '2026-10-12', 'cle' => 'a']);
+
+        (require database_path('migrations/2026_10_13_100000_backfill_visiteurs_jours_from_presences.php'))->up();
+
+        Carbon::setTestNow('2026-10-13 12:00:00');
+        $this->assertSame([2, 1], \App\Support\TableauDeBord::visiteursParJour(2), 'Sans doublon, chaque jour de présence compté.');
+    }
+
     public function test_les_robots_ne_sont_jamais_comptes(): void
     {
         $this->battement([], 'facebookexternalhit/1.1')->assertNoContent();

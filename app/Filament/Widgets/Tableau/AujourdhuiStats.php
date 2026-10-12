@@ -41,7 +41,7 @@ class AujourdhuiStats extends StatsOverviewWidget
             $this->stat('Visiteurs uniques', $visiteurs, 'heroicon-m-users'),
             $this->stat('Nouveaux membres', $membres, 'heroicon-m-user-plus'),
             $this->stat('Nouvelles annonces', $annonces, 'heroicon-m-shopping-bag'),
-            $this->stat('Ventes payées', $ventes, 'heroicon-m-banknotes'),
+            $this->stat('Ventes payées en ligne', $ventes, 'heroicon-m-banknotes'),
         ];
     }
 

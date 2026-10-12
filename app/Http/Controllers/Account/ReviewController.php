@@ -22,6 +22,8 @@ class ReviewController extends Controller
         // Seuls les deux participants d'une transaction TERMINÉE peuvent noter.
         abort_unless($transaction->buyer_id === $me || $transaction->seller_id === $me, 403);
         abort_unless($transaction->status === 'completed', 403);
+        // Le membre désigné a dit « ce n'est pas moi » : pas d'avis sur une vente fictive.
+        abort_if($transaction->acheteur_conteste_at !== null, 403);
 
         // La personne notée est l'autre partie de la transaction.
         $reviewedId = $transaction->seller_id === $me ? $transaction->buyer_id : $transaction->seller_id;

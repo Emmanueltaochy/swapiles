@@ -84,9 +84,13 @@ class TableauDeBord
         return fn () => Listing::query();
     }
 
+    /**
+     * Ventes payées EN LIGNE (par carte, via Swap'Îles) : les seules certaines.
+     * Les ventes en main propre déclarées par le vendeur sont comptées à part.
+     */
     public static function ventes(): callable
     {
-        return fn () => Transaction::query()->whereIn('status', self::STATUTS_VENDUS);
+        return fn () => Transaction::query()->whereIn('status', self::STATUTS_VENDUS)->enLigne();
     }
 
     /** Visiteurs uniques (identifiant visiteur) par jour, robots exclus à l'enregistrement. */
@@ -153,10 +157,14 @@ class TableauDeBord
         $debut = self::debut($periode);
         $depuis = fn ($q) => $debut ? $q->where('created_at', '>=', $debut) : $q;
 
-        $ventes = $depuis(Transaction::query()->whereIn('status', self::STATUTS_VENDUS));
+        $vendues = $depuis(Transaction::query()->whereIn('status', self::STATUTS_VENDUS));
+        $ventes = (clone $vendues)->enLigne();
         $nbVentes = (clone $ventes)->count();
         $volume = (float) (clone $ventes)->sum('amount');
-        $revenus = (float) (clone $ventes)->sum('buyer_protection_fee') + (float) (clone $ventes)->sum('commission');
+        // Les ventes déclarées ne rapportent rien à Swap'Îles (0 € de frais) :
+        // les revenus se calculent sur toutes les ventes, sans risque de gonfler.
+        $revenus = (float) (clone $vendues)->sum('buyer_protection_fee') + (float) (clone $vendues)->sum('commission');
+        $especes = (clone $vendues)->where('payment_method', 'especes')->whereNull('acheteur_conteste_at');
 
         return [
             'inscriptions' => $depuis(User::query())->count(),
@@ -166,6 +174,10 @@ class TableauDeBord
             'volume' => $volume,
             'revenus' => $revenus,
             'panier_moyen' => $nbVentes > 0 ? $volume / $nbVentes : 0,
+            // Main propre en espèces, sur la seule parole du vendeur.
+            'ventes_declarees' => (clone $especes)->count(),
+            'volume_declare' => (float) (clone $especes)->sum('amount'),
+            'ventes_declarees_confirmees' => (clone $especes)->whereNotNull('acheteur_confirme_at')->count(),
             'messages' => $depuis(Message::query())->count(),
         ];
     }

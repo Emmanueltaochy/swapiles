@@ -66,6 +66,26 @@ class Transaction extends Model
         'transferred_at',
         'estimated_payout_date',
         'auto_review_flagged_at',
+        'acheteur_confirme_at',
+        'acheteur_conteste_at',
+    ];
+
+    /**
+     * Ventes DÉCLARÉES par le vendeur (bouton « Paiement espèces reçu »,
+     * « Échange effectué », « Don remis ») : aucun argent n'est passé par
+     * Swap'Îles, on n'a que la parole du vendeur.
+     */
+    public const MODES_DECLARES = ['especes', 'echange', 'don'];
+
+    /** Niveau de preuve d'une vente, du plus sûr au moins sûr. */
+    public const FIABILITES = [
+        'en_ligne' => ['Payée en ligne', 'success', 'Paiement par carte passé par Swap\'Îles : vente certaine.'],
+        'confirmee' => ['Confirmée par l\'acheteur', 'success', 'Le vendeur a déclaré la vente et l\'acheteur a confirmé.'],
+        'declaree_membre' => ['Déclarée, acheteur membre', 'warning', 'Le vendeur a désigné un membre comme acheteur ; celui-ci n\'a pas encore confirmé.'],
+        'declaree_inconnu' => ['Déclarée, acheteur inconnu', 'gray', 'Seulement la parole du vendeur : acheteur hors Swap\'Îles ou non indiqué. Peut être une annonce simplement retirée.'],
+        'contestee' => ['Contestée par l\'acheteur', 'danger', 'Le membre désigné dit ne pas avoir acheté cet article.'],
+        'echange' => ['Échange déclaré', 'gray', 'Échange déclaré par le vendeur, sans argent.'],
+        'don' => ['Don déclaré', 'gray', 'Don déclaré par le vendeur, sans argent.'],
     ];
 
     protected $casts = [
@@ -76,7 +96,54 @@ class Transaction extends Model
         'auto_review_flagged_at' => 'datetime',
         'relay_deposited_at' => 'datetime',
         'relay_collected_at' => 'datetime',
+        'acheteur_confirme_at' => 'datetime',
+        'acheteur_conteste_at' => 'datetime',
     ];
+
+    /** Ventes dont le paiement est passé par Swap'Îles (pas une simple déclaration). */
+    public function scopeEnLigne($query)
+    {
+        return $query->where(fn ($q) => $q->whereNull('payment_method')->orWhereNotIn('payment_method', self::MODES_DECLARES));
+    }
+
+    /** Ventes seulement déclarées par le vendeur. */
+    public function scopeDeclarees($query)
+    {
+        return $query->whereIn('payment_method', self::MODES_DECLARES);
+    }
+
+    public function estDeclaree(): bool
+    {
+        return in_array($this->payment_method, self::MODES_DECLARES, true);
+    }
+
+    /** Clé de self::FIABILITES. */
+    public function fiabilite(): string
+    {
+        return match (true) {
+            ! $this->estDeclaree() => 'en_ligne',
+            $this->payment_method === 'echange' => 'echange',
+            $this->payment_method === 'don' => 'don',
+            $this->acheteur_conteste_at !== null => 'contestee',
+            $this->acheteur_confirme_at !== null => 'confirmee',
+            $this->buyer_id !== null => 'declaree_membre',
+            default => 'declaree_inconnu',
+        };
+    }
+
+    public function fiabiliteLibelle(): string
+    {
+        return self::FIABILITES[$this->fiabilite()][0];
+    }
+
+    /** L'acheteur désigné peut encore répondre « c'est moi » / « ce n'est pas moi ». */
+    public function attendReponseAcheteur(): bool
+    {
+        return $this->payment_method === 'especes'
+            && $this->buyer_id !== null
+            && $this->acheteur_confirme_at === null
+            && $this->acheteur_conteste_at === null;
+    }
 
     public function relayPoint()
     {

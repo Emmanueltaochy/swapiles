@@ -31,7 +31,7 @@ class PeriodeStats extends StatsOverviewWidget
 
     protected function getColumns(): int
     {
-        return 3;
+        return 4;
     }
 
     protected function getStats(): array
@@ -39,14 +39,20 @@ class PeriodeStats extends StatsOverviewWidget
         $p = TableauDeBord::periode($this->periode());
 
         return [
-            Stat::make('Volume des ventes', TableauDeBord::euros($p['volume']))
-                ->description($p['ventes'] . ' vente(s) payée(s)')
+            Stat::make('Ventes payées en ligne', TableauDeBord::euros($p['volume']))
+                ->description($p['ventes'] . ' vente(s) · certaines')
                 ->icon('heroicon-m-banknotes'),
+            Stat::make('Main propre déclarée', TableauDeBord::euros($p['volume_declare']))
+                ->description($p['ventes_declarees'] . ' déclarée(s) · ' . $p['ventes_declarees_confirmees'] . " confirmée(s) par l'acheteur")
+                ->color('gray')
+                ->icon('heroicon-m-hand-raised')
+                ->url(\App\Filament\Resources\Transactions\TransactionResource::getUrl('index', ['filters' => ['fiabilite' => ['value' => 'declaree_inconnu']]])),
             Stat::make("Revenus Swap'Îles", TableauDeBord::euros($p['revenus']))
                 ->description('Protection acheteur et commissions')
                 ->color('success')
                 ->icon('heroicon-m-currency-euro'),
             Stat::make('Panier moyen', TableauDeBord::euros($p['panier_moyen']))
+                ->description('ventes payées en ligne')
                 ->icon('heroicon-m-shopping-cart'),
             Stat::make('Nouveaux membres', number_format($p['inscriptions'], 0, ',', ' '))
                 ->icon('heroicon-m-user-plus'),

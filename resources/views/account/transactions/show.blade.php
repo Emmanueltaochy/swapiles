@@ -32,6 +32,27 @@
                 </div>
             </div>
 
+            @if($transaction->buyer_id === auth()->id() && $transaction->attendReponseAcheteur())
+                {{-- Vente en main propre déclarée par le vendeur : l'acheteur confirme. --}}
+                <div class="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5" data-confirmation-achat>
+                    <p class="font-extrabold text-gray-900">Avez-vous bien acheté cet article ?</p>
+                    <p class="mt-1 text-sm text-gray-600">
+                        {{ $transaction->seller->name ?? 'Le vendeur' }} indique vous l’avoir vendu en main propre
+                        pour {{ number_format($transaction->amount, 2, ',', ' ') }} €.
+                    </p>
+                    <div class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <form method="POST" action="{{ route('account.transactions.confirm-purchase', $transaction) }}">
+                            @csrf @method('PATCH')
+                            <button class="w-full rounded-xl bg-teal-600 px-5 py-3 font-semibold text-white hover:bg-teal-700">✅ Oui, c’est bien moi</button>
+                        </form>
+                        <form method="POST" action="{{ route('account.transactions.dispute-purchase', $transaction) }}">
+                            @csrf @method('PATCH')
+                            <button class="w-full rounded-xl border-2 border-gray-300 bg-white px-5 py-3 font-semibold text-gray-700 hover:bg-gray-50">Non, ce n’est pas moi</button>
+                        </form>
+                    </div>
+                </div>
+            @endif
+
             <div class="mt-8 grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div class="rounded-2xl p-4 {{ in_array($transaction->status, ['paid','completed']) ? 'bg-teal-50 text-teal-800' : 'bg-gray-100 text-gray-500' }}">
                     <p class="font-extrabold">1. Paiement</p>

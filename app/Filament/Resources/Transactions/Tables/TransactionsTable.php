@@ -48,8 +48,15 @@ class TransactionsTable
                     ->weight('bold'),
                 TextColumn::make('buyer.name')
                     ->label('Acheteur')
-                    ->default('—')
+                    ->default(fn (Transaction $record) => $record->estDeclaree() ? 'Inconnu' : '—')
+                    ->color(fn (Transaction $record) => $record->buyer_id ? null : 'gray')
                     ->searchable(),
+                TextColumn::make('fiabilite')
+                    ->label('Fiabilité')
+                    ->state(fn (Transaction $record) => $record->fiabiliteLibelle())
+                    ->badge()
+                    ->color(fn (Transaction $record) => Transaction::FIABILITES[$record->fiabilite()][1])
+                    ->tooltip(fn (Transaction $record) => Transaction::FIABILITES[$record->fiabilite()][2]),
                 TextColumn::make('seller.name')
                     ->label('Vendeur')
                     ->default('—')
@@ -86,6 +93,10 @@ class TransactionsTable
                     ->sortable(),
             ])
             ->filters([
+                SelectFilter::make('fiabilite')
+                    ->label('Fiabilité')
+                    ->options(array_map(fn ($f) => $f[0], Transaction::FIABILITES))
+                    ->query(fn ($query, array $data) => self::filtrerFiabilite($query, $data['value'] ?? null)),
                 SelectFilter::make('status')
                     ->label('Statut')
                     ->options(self::STATUS_LABELS),
@@ -108,6 +119,21 @@ class TransactionsTable
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /** Même règle que Transaction::fiabilite(), en requête. */
+    public static function filtrerFiabilite($query, ?string $fiabilite)
+    {
+        return match ($fiabilite) {
+            'en_ligne' => $query->enLigne(),
+            'echange' => $query->where('payment_method', 'echange'),
+            'don' => $query->where('payment_method', 'don'),
+            'contestee' => $query->where('payment_method', 'especes')->whereNotNull('acheteur_conteste_at'),
+            'confirmee' => $query->where('payment_method', 'especes')->whereNull('acheteur_conteste_at')->whereNotNull('acheteur_confirme_at'),
+            'declaree_membre' => $query->where('payment_method', 'especes')->whereNull('acheteur_conteste_at')->whereNull('acheteur_confirme_at')->whereNotNull('buyer_id'),
+            'declaree_inconnu' => $query->where('payment_method', 'especes')->whereNull('acheteur_conteste_at')->whereNull('acheteur_confirme_at')->whereNull('buyer_id'),
+            default => $query,
+        };
     }
 
     /**

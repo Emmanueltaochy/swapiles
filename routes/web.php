@@ -277,6 +277,9 @@ Route::post('/offres/{offer}/refuser', [ListingOfferController::class, 'refuse']
 Route::get('/mon-compte/transactions', [TransactionController::class, 'index'])->middleware('auth')->name('account.transactions.index');
 
 Route::get('/mon-compte/transactions/{transaction}', [TransactionDetailController::class, 'show'])->middleware('auth')->name('account.transactions.show');
+// Vente en main propre déclarée par le vendeur : l'acheteur désigné confirme ou conteste.
+Route::patch('/mon-compte/transactions/{transaction}/confirmer-achat', [TransactionDetailController::class, 'confirmerAchat'])->middleware('auth')->name('account.transactions.confirm-purchase');
+Route::patch('/mon-compte/transactions/{transaction}/contester-achat', [TransactionDetailController::class, 'contesterAchat'])->middleware('auth')->name('account.transactions.dispute-purchase');
 
 // Avis mutuels acheteur ↔ vendeur après une transaction terminée.
 Route::post('/mon-compte/transactions/{transaction}/avis', [\App\Http\Controllers\Account\ReviewController::class, 'store'])

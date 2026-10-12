@@ -10,6 +10,11 @@ class ViewTransaction extends ViewRecord
 {
     protected static string $resource = TransactionResource::class;
 
+    public function getTitle(): string
+    {
+        return 'Vente n° ' . $this->record->id . ' · ' . ($this->record->listing->title ?? 'annonce supprimée');
+    }
+
     protected function getHeaderActions(): array
     {
         return [

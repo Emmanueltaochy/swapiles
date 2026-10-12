@@ -39,7 +39,7 @@ class EvolutionChart extends ChartWidget
             'datasets' => [
                 ['label' => 'Inscriptions', 'data' => $e['inscriptions'], 'borderColor' => '#0d9488', 'backgroundColor' => 'rgba(13,148,136,.12)', 'fill' => true, 'tension' => .3],
                 ['label' => 'Annonces', 'data' => $e['annonces'], 'borderColor' => '#3b82f6', 'backgroundColor' => 'rgba(59,130,246,.08)', 'fill' => true, 'tension' => .3],
-                ['label' => 'Ventes', 'data' => $e['ventes'], 'borderColor' => '#f59e0b', 'backgroundColor' => 'rgba(245,158,11,.1)', 'fill' => true, 'tension' => .3],
+                ['label' => 'Ventes payées en ligne', 'data' => $e['ventes'], 'borderColor' => '#f59e0b', 'backgroundColor' => 'rgba(245,158,11,.1)', 'fill' => true, 'tension' => .3],
             ],
         ];
     }

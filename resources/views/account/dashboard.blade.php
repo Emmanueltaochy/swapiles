@@ -242,10 +242,10 @@
                                     @csrf @method('PATCH')
                                     <button class="rounded-lg bg-orange-50 px-3 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-100">Masquer</button>
                                 </form>
-                                <form method="POST" action="{{ route('account.listings.sold', $listing) }}">
-                                    @csrf @method('PATCH')
-                                    <button class="rounded-lg bg-green-50 px-3 py-2 text-sm font-semibold text-green-700 hover:bg-green-100">Vendue</button>
-                                </form>
+                                {{-- Vendue : on passe par la fiche, qui demande à qui (sinon
+                                     impossible de distinguer une vente d'un simple retrait). --}}
+                                <a href="{{ route('listings.show', $listing) }}#fin-annonce"
+                                   class="rounded-lg bg-green-50 px-3 py-2 text-sm font-semibold text-green-700 hover:bg-green-100">Vendue</a>
                             @else
                                 <form method="POST" action="{{ route('account.listings.publish', $listing) }}">
                                     @csrf @method('PATCH')

@@ -425,7 +425,8 @@
                                         Modifier mon annonce
                                     </a>
 
-                                    <div class="grid grid-cols-1 gap-2">
+                                    <div class="grid grid-cols-1 gap-2" id="fin-annonce">
+                                        <p class="text-sm font-semibold text-gray-700">L’article est parti ? Dites-nous comment :</p>
                                         @if($listing->price > 0)
                                             @php $cashCandidates = $listing->cashBuyerCandidates(); @endphp
                                             <form method="POST" action="{{ route('account.listings.cash-paid', $listing) }}" class="space-y-2">
@@ -433,12 +434,12 @@
                                                 @if($cashCandidates->isNotEmpty())
                                                     <label for="cash-buyer" class="block text-sm font-medium text-gray-700">Qui a acheté ? <span class="font-normal text-gray-400">(facultatif)</span></label>
                                                     <select id="cash-buyer" name="buyer_id" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-teal-500 focus:ring-teal-500">
-                                                        <option value="">— Acheteur hors Swap'Îles / inconnu —</option>
+                                                        <option value="">— Quelqu’un hors Swap’Îles —</option>
                                                         @foreach($cashCandidates as $cand)
                                                             <option value="{{ $cand->id }}">{{ $cand->name }}@if($cand->territoire) — {{ $cand->territoire }}@endif</option>
                                                         @endforeach
                                                     </select>
-                                                    <p class="text-xs text-gray-400">Parmi les personnes qui ont mis l'annonce en favori ou t'ont écrit. Sert à garder une trace de la vente.</p>
+                                                    <p class="text-xs text-gray-400">Parmi les personnes qui ont mis l'annonce en favori ou t'ont écrit. L’acheteur recevra une demande de confirmation et pourra te laisser un avis.</p>
                                                 @endif
                                                 <button class="w-full rounded-xl bg-gray-900 px-5 py-3 font-semibold text-white hover:bg-black">💵 Paiement espèces reçu</button>
                                             </form>
@@ -451,6 +452,13 @@
                                             @csrf @method('PATCH')
                                             <button class="w-full rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white hover:bg-emerald-700">🎁 Don remis</button>
                                         </form>
+                                        @if($listing->status === 'published')
+                                            {{-- Pas une vente : l'annonce est seulement retirée (masquée). --}}
+                                            <form method="POST" action="{{ route('account.listings.hide', $listing) }}">
+                                                @csrf @method('PATCH')
+                                                <button class="w-full rounded-xl border-2 border-gray-300 px-5 py-3 font-semibold text-gray-700 hover:bg-gray-50" data-retirer-annonce>🙈 Plus disponible : retirer l’annonce</button>
+                                            </form>
+                                        @endif
                                     </div>
 
                                     <form method="POST" action="{{ route('account.listings.destroy', $listing) }}"

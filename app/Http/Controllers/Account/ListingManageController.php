@@ -405,7 +405,7 @@ class ListingManageController extends Controller
             $buyerId = (int) $chosen;
         }
 
-        \App\Models\Transaction::create([
+        $transaction = \App\Models\Transaction::create([
             'listing_id' => $listing->id,
             'seller_id' => $listing->user_id,
             'buyer_id' => $buyerId,
@@ -426,7 +426,22 @@ class ListingManageController extends Controller
 
         $listing->update(['status' => 'sold']);
 
-        return back()->with('status', 'Paiement en espèces confirmé. L’annonce est marquée comme vendue.');
+        // L'acheteur désigné confirme (ou non) : c'est ce qui distingue une
+        // vraie vente d'une annonce simplement retirée.
+        if ($buyerId) {
+            \App\Models\Notification::create([
+                'user_id' => $buyerId,
+                'type' => 'cash_sale_confirm',
+                'title' => 'Vous avez acheté cet article ?',
+                'message' => ($listing->user->name ?? 'Le vendeur') . ' indique vous avoir vendu « ' . $listing->title
+                    . ' » en main propre. C’est bien vous ? Confirmez-le en un clic.',
+                'url' => route('account.transactions.show', $transaction, absolute: false),
+            ]);
+        }
+
+        return back()->with('status', $buyerId
+            ? 'Vente enregistrée. On demande à l’acheteur de la confirmer.'
+            : 'Paiement en espèces confirmé. L’annonce est marquée comme vendue.');
     }
 
     public function markExchanged(Listing $listing)

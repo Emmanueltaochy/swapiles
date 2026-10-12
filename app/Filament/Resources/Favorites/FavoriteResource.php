@@ -16,7 +16,7 @@ class FavoriteResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-heart';
 
-    protected static ?int $navigationSort = 25;
+    protected static ?int $navigationSort = 4;
 
     public static function table(Table $table): Table
     {
@@ -45,7 +45,7 @@ class FavoriteResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Communauté';
+        return 'Catalogue';
     }
 
     /** Pastille : nombre total de mises en favori. */

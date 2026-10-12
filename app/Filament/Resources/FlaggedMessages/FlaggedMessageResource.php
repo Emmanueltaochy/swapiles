@@ -26,7 +26,7 @@ class FlaggedMessageResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-flag';
 
-    protected static ?int $navigationSort = 21;
+    protected static ?int $navigationSort = 2;
 
     public static function table(Table $table): Table
     {
@@ -159,7 +159,7 @@ class FlaggedMessageResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return 'Signalements';
+        return 'Messages signalés';
     }
 
     public static function getModelLabel(): string
@@ -174,7 +174,7 @@ class FlaggedMessageResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Communauté';
+        return 'Modération';
     }
 
     /** Pastille : nombre de paiements forcés (les plus sensibles) sur 30 jours. */

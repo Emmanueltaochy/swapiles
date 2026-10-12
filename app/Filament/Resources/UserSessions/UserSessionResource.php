@@ -20,7 +20,7 @@ class UserSessionResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-finger-print';
 
-    protected static ?int $navigationSort = 12;
+    protected static ?int $navigationSort = 2;
 
     public static function table(Table $table): Table
     {
@@ -115,7 +115,7 @@ class UserSessionResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Communauté';
+        return 'Membres';
     }
 
     public static function canCreate(): bool

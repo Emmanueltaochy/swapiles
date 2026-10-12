@@ -2,141 +2,66 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\Favorite;
-use App\Models\Listing;
-use App\Models\Message;
-use App\Models\Transaction;
-use App\Models\User;
+use App\Filament\Widgets\Tableau;
+use App\Support\TableauDeBord;
+use Filament\Forms\Components\Select;
 use Filament\Pages\Dashboard as BaseDashboard;
-use Illuminate\Database\Eloquent\Builder;
+use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
+use Filament\Schemas\Schema;
 
+/**
+ * Tableau de bord : d'un coup d'œil, la journée, ce qui attend une action,
+ * puis l'activité sur la période choisie.
+ *
+ * Les chiffres viennent tous de App\Support\TableauDeBord (testés) ; les
+ * widgets ne font que les afficher.
+ */
 class Dashboard extends BaseDashboard
 {
+    use HasFiltersForm;
+
     protected static ?string $navigationLabel = 'Tableau de bord';
-    protected static ?string $title = 'Tableau de bord Swap’Îles';
-    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-chart-bar-square';
+
+    protected static ?string $title = 'Tableau de bord';
+
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-home';
+
     protected static ?int $navigationSort = 1;
 
-    protected string $view = 'filament.pages.dashboard';
-
-    public function getViewData(): array
+    public function getSubheading(): ?string
     {
-        $period = request()->query('period', 'all');
-        $startDate = $this->startDateForPeriod($period);
+        return "Swap'Îles · " . ucfirst(now()->locale('fr')->translatedFormat('l j F Y'));
+    }
 
-        $filter = function (Builder $query) use ($startDate) {
-            return $startDate ? $query->where('created_at', '>=', $startDate) : $query;
-        };
+    public function filtersForm(Schema $schema): Schema
+    {
+        return $schema->components([
+            Select::make('periode')
+                ->label('Période des statistiques')
+                ->options(TableauDeBord::PERIODES)
+                ->default('30j')
+                ->selectablePlaceholder(false)
+                ->native(false),
+        ]);
+    }
 
-        $publishedListings = $filter(Listing::where('status', 'published'));
-        $allListings = $filter(Listing::query());
-        $transactions = $filter(Transaction::query());
-        $paidTransactions = $filter(Transaction::whereIn('status', ['paid', 'completed']));
-
+    public function getWidgets(): array
+    {
         return [
-            'period' => $period,
-            'periodLabel' => $this->periodLabel($period),
-            'periods' => [
-                'today' => 'Aujourd’hui',
-                'week' => 'Cette semaine',
-                '15d' => '15 derniers jours',
-                '30d' => '30 derniers jours',
-                '3m' => '3 mois',
-                'all' => 'Infini',
-            ],
-
-            'usersCount' => $filter(User::query())->count(),
-            'membersTotalCount' => User::count(),
-            // « Annonces en ligne » et « Vues » sont des indicateurs d'état ACTUEL :
-            // ils ne dépendent pas de la période sélectionnée (sinon ils affichent 0
-            // pour une période courte alors que des annonces sont bien en ligne).
-            'publishedListingsCount' => Listing::where('status', 'published')->count(),
-            'totalListingsCount' => Listing::count(),
-            'messagesCount' => $filter(Message::query())->count(),
-            'viewsCount' => (int) Listing::sum('views_count'),
-            'favoritesCount' => $filter(Favorite::query())->count(),
-            'transactionsCount' => (clone $transactions)->count(),
-            'paidTransactionsCount' => (clone $paidTransactions)->count(),
-            'completedAmount' => (float) $filter(Transaction::where('status', 'completed'))->sum('amount'),
-            'commissionAmount' => (float) (clone $paidTransactions)->sum('commission'),
-            'buyerProtectionAmount' => (float) (clone $paidTransactions)->sum('buyer_protection_fee'),
-            'platformRevenueAmount' => (float) (clone $paidTransactions)->sum('commission') + (float) (clone $paidTransactions)->sum('buyer_protection_fee'),
-
-            'todayUsersCount' => User::whereDate('created_at', today())->count(),
-            'todayListingsCount' => Listing::whereDate('created_at', today())->count(),
-            'todayMessagesCount' => Message::whereDate('created_at', today())->count(),
-
-            'territories' => (clone $publishedListings)
-                ->selectRaw('territoire, COUNT(*) as total')
-                ->groupBy('territoire')
-                ->orderByDesc('total')
-                ->get(),
-
-            'topListings' => (clone $publishedListings)
-                ->with('user')
-                ->orderByDesc('views_count')
-                ->limit(8)
-                ->get(),
-
-            'recentTransactions' => (clone $transactions)
-                ->with(['listing', 'buyer', 'seller'])
-                ->latest()
-                ->limit(6)
-                ->get(),
-
-            'evolution' => $this->evolutionSeries($period),
-            'todayConcurrent' => \App\Support\AnalyticsMetrics::todayConcurrent(),
-            'todayHourly' => \App\Support\AnalyticsMetrics::todayHourlyVisitors(),
-            'todayUnique' => \App\Support\AnalyticsMetrics::todayUniqueVisitors(),
+            Tableau\AujourdhuiStats::class,
+            Tableau\ATraiterStats::class,
+            Tableau\PeriodeStats::class,
+            Tableau\EvolutionChart::class,
+            Tableau\VisiteursChart::class,
+            Tableau\AnnoncesParIleChart::class,
+            Tableau\DernieresVentes::class,
+            Tableau\NouveauxMembres::class,
+            Tableau\TopAnnonces::class,
         ];
     }
 
-    /**
-     * Séries journalières (inscriptions, annonces, ventes) pour le graphique
-     * d'évolution en haut du tableau de bord.
-     */
-    private function evolutionSeries(string $period): array
+    public function getColumns(): int | array
     {
-        $days = \App\Support\AnalyticsMetrics::chartDays($period);
-
-        $signups = \App\Support\AnalyticsMetrics::dailySeries(User::class, $days);
-        $listings = \App\Support\AnalyticsMetrics::dailySeries(Listing::class, $days);
-        $sales = \App\Support\AnalyticsMetrics::dailySeries(
-            Transaction::class,
-            $days,
-            fn ($q) => $q->whereIn('status', ['paid', 'completed'])
-        );
-
-        return [
-            'days' => $days,
-            'labels' => $signups['labels'],
-            'signups' => $signups['data'],
-            'listings' => $listings['data'],
-            'sales' => $sales['data'],
-        ];
-    }
-
-    private function startDateForPeriod(string $period): ?\Illuminate\Support\Carbon
-    {
-        return match ($period) {
-            'today' => today(),
-            'week' => now()->startOfWeek(),
-            '15d' => now()->subDays(15),
-            '30d' => now()->subDays(30),
-            '3m' => now()->subMonths(3),
-            default => null,
-        };
-    }
-
-    private function periodLabel(string $period): string
-    {
-        return match ($period) {
-            'today' => 'Aujourd’hui',
-            'week' => 'Cette semaine',
-            '15d' => '15 derniers jours',
-            '30d' => '30 derniers jours',
-            '3m' => '3 mois',
-            default => 'Infini',
-        };
+        return ['default' => 1, 'lg' => 2];
     }
 }

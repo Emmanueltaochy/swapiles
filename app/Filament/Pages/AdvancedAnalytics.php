@@ -10,7 +10,9 @@ class AdvancedAnalytics extends Page
     protected static ?string $navigationLabel = 'Analyse avancée';
     protected static ?string $title = 'Analyse avancée';
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-presentation-chart-line';
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 3;
+
+    protected static string | \UnitEnum | null $navigationGroup = 'Audience';
 
     protected string $view = 'filament.pages.advanced-analytics';
 

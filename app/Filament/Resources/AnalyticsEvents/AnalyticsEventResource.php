@@ -16,7 +16,7 @@ class AnalyticsEventResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-cursor-arrow-ripple';
 
-    protected static ?int $navigationSort = 45;
+    protected static ?int $navigationSort = 2;
 
     public static function table(Table $table): Table
     {
@@ -30,7 +30,7 @@ class AnalyticsEventResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return 'Visites du site';
+        return 'Pages vues';
     }
 
     public static function getModelLabel(): string
@@ -45,7 +45,7 @@ class AnalyticsEventResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Communauté';
+        return 'Audience';
     }
 
     public static function canCreate(): bool

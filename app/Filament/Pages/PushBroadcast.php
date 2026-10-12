@@ -20,7 +20,9 @@ class PushBroadcast extends Page
     protected static ?string $navigationLabel = 'Notifications push';
     protected static ?string $title = 'Notifications push';
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-bell-alert';
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 1;
+
+    protected static string | \UnitEnum | null $navigationGroup = 'Marketing';
 
     protected string $view = 'filament.pages.push-broadcast';
 

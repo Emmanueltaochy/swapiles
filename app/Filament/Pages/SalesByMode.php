@@ -19,7 +19,10 @@ class SalesByMode extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-banknotes';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 2;
+
+
+    protected static string | \UnitEnum | null $navigationGroup = 'Ventes';
 
     protected string $view = 'filament.pages.sales-by-mode';
 

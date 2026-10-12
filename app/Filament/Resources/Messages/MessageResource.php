@@ -16,7 +16,7 @@ class MessageResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-chat-bubble-left-right';
 
-    protected static ?int $navigationSort = 20;
+    protected static ?int $navigationSort = 3;
 
     public static function table(Table $table): Table
     {
@@ -45,7 +45,7 @@ class MessageResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Communauté';
+        return 'Modération';
     }
 
     /** Pastille : nombre de messages non lus (modération). */

@@ -13,7 +13,9 @@ class UsersMap extends Page
     protected static ?string $navigationLabel = 'Carte des membres';
     protected static ?string $title = 'Carte des membres';
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-map';
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 5;
+
+    protected static string | \UnitEnum | null $navigationGroup = 'Audience';
 
     protected string $view = 'filament.pages.users-map';
 

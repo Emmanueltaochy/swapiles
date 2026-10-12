@@ -14,16 +14,16 @@ use Filament\Pages\Page;
  */
 class TopDressingsCongrats extends Page
 {
-    protected static ?string $navigationLabel = 'Féliciter le Top dressings';
+    protected static ?string $navigationLabel = 'Top des dressings';
     protected static ?string $title = 'Féliciter le Top des dressings';
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-trophy';
-    protected static ?int $navigationSort = 32;
+    protected static ?int $navigationSort = 4;
 
     protected string $view = 'filament.pages.top-dressings-congrats';
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Communauté';
+        return 'Marketing';
     }
 
     protected function getHeaderActions(): array

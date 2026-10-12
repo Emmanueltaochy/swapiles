@@ -265,6 +265,19 @@ class DomTomGeo
         return self::geocode($territoire, $city, $postal);
     }
 
+    /**
+     * Comme coords(), mais seulement avec la table des communes : jamais
+     * d'appel réseau (pages rafraîchies toutes les quelques secondes).
+     *
+     * @return array{0:float,1:float}|null
+     */
+    public static function coordsConnues(string $territoire, ?string $city): ?array
+    {
+        $commune = self::COMMUNES[$territoire][self::normalize($city)] ?? null;
+
+        return $commune ? [$commune[0], $commune[1]] : null;
+    }
+
     /** Géocodage BAN mis en cache (90 j). Renvoie [lat, lng] ou null. */
     protected static function geocode(string $territoire, ?string $city, ?string $postal): ?array
     {

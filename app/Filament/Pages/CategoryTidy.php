@@ -23,7 +23,10 @@ class CategoryTidy extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-squares-2x2';
 
-    protected static ?int $navigationSort = 8;
+    protected static ?int $navigationSort = 3;
+
+
+    protected static string | \UnitEnum | null $navigationGroup = 'Catalogue';
 
     protected string $view = 'filament.pages.category-tidy';
 

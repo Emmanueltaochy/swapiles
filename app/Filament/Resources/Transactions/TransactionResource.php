@@ -22,7 +22,7 @@ class TransactionResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-banknotes';
 
-    protected static ?int $navigationSort = 30;
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'id';
 
@@ -43,7 +43,7 @@ class TransactionResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Marketplace';
+        return 'Ventes';
     }
 
     public static function getNavigationBadge(): ?string

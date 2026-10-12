@@ -22,7 +22,7 @@ class ReviewResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-star';
 
-    protected static ?int $navigationSort = 40;
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $recordTitleAttribute = 'comment';
 
@@ -43,7 +43,7 @@ class ReviewResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Communauté';
+        return 'Membres';
     }
 
     public static function getNavigationBadge(): ?string

@@ -6,7 +6,9 @@ use App\Models\User;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
+use App\Support\HistoriqueMembre;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 
 class UserInfolist
@@ -76,6 +78,25 @@ class UserInfolist
                             ->state(fn (User $r) => method_exists($r, 'listings') ? $r->listings()->where('status', 'sold')->count() : 0)
                             ->badge()
                             ->color('gray'),
+                    ]),
+
+                Section::make('Habitudes')
+                    ->description('Sur les ' . HistoriqueMembre::JOURS . ' derniers jours.')
+                    ->icon('heroicon-o-sparkles')
+                    ->columnSpanFull()
+                    ->schema([
+                        View::make('filament.membres.habitudes')
+                            ->viewData(fn (User $record) => ['habitudes' => HistoriqueMembre::habitudes($record)]),
+                    ]),
+
+                Section::make('Historique d\'activité')
+                    ->description('Connexions, annonces, favoris, annonces regardées, recherches, messages, achats, ventes, avis.')
+                    ->icon('heroicon-o-clock')
+                    ->columnSpanFull()
+                    ->collapsible()
+                    ->schema([
+                        View::make('filament.membres.chronologie')
+                            ->viewData(fn (User $record) => ['evenements' => HistoriqueMembre::chronologie($record)]),
                     ]),
 
                 Section::make('Paiements (Stripe Connect)')

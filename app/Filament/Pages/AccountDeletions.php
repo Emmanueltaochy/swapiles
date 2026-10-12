@@ -20,7 +20,10 @@ class AccountDeletions extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-arrow-right-on-rectangle';
 
-    protected static ?int $navigationSort = 8;
+    protected static ?int $navigationSort = 4;
+
+
+    protected static string | \UnitEnum | null $navigationGroup = 'Membres';
 
     protected string $view = 'filament.pages.account-deletions';
 

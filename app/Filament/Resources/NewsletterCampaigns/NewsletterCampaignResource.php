@@ -32,7 +32,7 @@ class NewsletterCampaignResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return 'Stats Newsletter';
+        return 'Statistiques newsletter';
     }
 
     public static function getModelLabel(): string
@@ -47,7 +47,7 @@ class NewsletterCampaignResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Communauté';
+        return 'Marketing';
     }
 
     public static function canCreate(): bool

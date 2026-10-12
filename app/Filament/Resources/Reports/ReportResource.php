@@ -25,7 +25,7 @@ class ReportResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-shield-exclamation';
 
-    protected static ?int $navigationSort = 22;
+    protected static ?int $navigationSort = 1;
 
     public static function table(Table $table): Table
     {
@@ -145,7 +145,7 @@ class ReportResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return 'Signalements membres';
+        return 'Signalements';
     }
 
     public static function getModelLabel(): string
@@ -160,7 +160,7 @@ class ReportResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Communauté';
+        return 'Modération';
     }
 
     /** Pastille : nombre de signalements à traiter. */

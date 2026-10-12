@@ -23,6 +23,8 @@ class CommunityNewsletter extends Page
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-envelope';
     protected static ?int $navigationSort = 2;
 
+    protected static string | \UnitEnum | null $navigationGroup = 'Marketing';
+
     protected string $view = 'filament.pages.community-newsletter';
 
     public ?array $data = [];

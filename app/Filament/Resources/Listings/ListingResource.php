@@ -24,7 +24,7 @@ class ListingResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-shopping-bag';
 
-    protected static ?int $navigationSort = 20;
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'title';
 
@@ -45,7 +45,7 @@ class ListingResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Marketplace';
+        return 'Catalogue';
     }
 
     public static function getNavigationBadge(): ?string

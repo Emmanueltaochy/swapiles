@@ -52,6 +52,22 @@ Route::post('/appli/vue', function (\Illuminate\Http\Request $request) {
     return response()->noContent();
 })->middleware('throttle:30,1')->name('app.seen');
 
+// Présence en direct : le navigateur confirme qu'un humain est sur la page
+// (public/js/presence.js). Sert au compteur « en ligne » de l'administration.
+Route::post('/presence', function (\Illuminate\Http\Request $request) {
+    $donnees = $request->validate([
+        'path' => ['nullable', 'string', 'max:500'],
+        'appli' => ['nullable', 'boolean'],
+        'utm' => ['nullable', 'string', 'max:100'],
+        'ref' => ['nullable', 'string', 'max:500'],
+        'page' => ['nullable', 'boolean'],
+    ]);
+
+    \App\Support\VisiteursEnDirect::enregistrer($request, $donnees);
+
+    return response()->noContent();
+})->middleware('throttle:30,1')->name('presence');
+
 Route::get('/.well-known/assetlinks.json', [\App\Http\Controllers\DeepLinkController::class, 'android'])
     ->name('deeplinks.android');
 Route::get('/.well-known/apple-app-site-association', [\App\Http\Controllers\DeepLinkController::class, 'apple'])

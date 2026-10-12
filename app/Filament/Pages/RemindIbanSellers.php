@@ -16,13 +16,16 @@ use Filament\Pages\Page;
  */
 class RemindIbanSellers extends Page
 {
-    protected static ?string $navigationLabel = 'Relance IBAN';
+    protected static ?string $navigationLabel = 'Vendeurs sans IBAN';
 
     protected static ?string $title = 'Relance des vendeurs sans IBAN';
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-envelope';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 3;
+
+
+    protected static string | \UnitEnum | null $navigationGroup = 'Ventes';
 
     protected string $view = 'filament.pages.remind-iban-sellers';
 

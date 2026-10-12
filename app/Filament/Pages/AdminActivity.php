@@ -19,13 +19,16 @@ use Illuminate\Support\Facades\Schema;
 
 class AdminActivity extends Page
 {
-    protected static ?string $navigationLabel = 'Activité & Emails';
+    protected static ?string $navigationLabel = 'Journal d\'activité';
 
     protected static ?string $title = 'Activité & Emails';
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-bolt';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 1;
+
+
+    protected static string | \UnitEnum | null $navigationGroup = 'Système';
 
     protected string $view = 'filament.pages.admin-activity';
 

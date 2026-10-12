@@ -21,7 +21,7 @@ class BlockedEmailResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-no-symbol';
 
-    protected static ?int $navigationSort = 11;
+    protected static ?int $navigationSort = 5;
 
     protected static ?string $recordTitleAttribute = 'email';
 
@@ -86,7 +86,7 @@ class BlockedEmailResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Communauté';
+        return 'Membres';
     }
 
     public static function getNavigationBadge(): ?string

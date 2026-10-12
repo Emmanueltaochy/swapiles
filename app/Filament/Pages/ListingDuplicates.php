@@ -19,7 +19,10 @@ class ListingDuplicates extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-document-duplicate';
 
-    protected static ?int $navigationSort = 7;
+    protected static ?int $navigationSort = 2;
+
+
+    protected static string | \UnitEnum | null $navigationGroup = 'Catalogue';
 
     protected string $view = 'filament.pages.listing-duplicates';
 

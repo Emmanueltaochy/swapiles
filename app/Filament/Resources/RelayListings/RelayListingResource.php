@@ -23,7 +23,7 @@ class RelayListingResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-map-pin';
 
-    protected static ?int $navigationSort = 31;
+    protected static ?int $navigationSort = 2;
 
     public static function getEloquentQuery(): Builder
     {
@@ -135,7 +135,7 @@ class RelayListingResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Marketplace';
+        return 'Points relais';
     }
 
     public static function getPages(): array

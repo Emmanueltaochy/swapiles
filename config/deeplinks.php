@@ -42,4 +42,12 @@ return [
         'bundle_id' => env('APNS_BUNDLE_ID', 'com.swapiles.app'),
     ],
 
+    // Fiches des stores, pour le bandeau « Télécharger l'appli » du site.
+    // Le paramètre « referrer » permet de compter, dans la Play Console, les
+    // installations venues de ce bandeau.
+    'stores' => [
+        'ios' => env('APP_STORE_URL', 'https://apps.apple.com/app/swap%C3%AEles/id6809002783'),
+        'android' => env('PLAY_STORE_URL', 'https://play.google.com/store/apps/details?id=com.swapiles.app&referrer=utm_source%3Dswapiles.com%26utm_medium%3Dbandeau'),
+    ],
+
 ];

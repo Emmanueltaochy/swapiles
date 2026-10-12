@@ -26,6 +26,20 @@
     }
   } catch (e) { /* sans gravité */ }
 
+  // L'appli est utilisée : on le dit au site (membre connecté), pour qu'il
+  // ne propose plus de la télécharger. Une fois par ouverture de l'appli.
+  try {
+    if (!sessionStorage.getItem('swp_appli_signalee') && document.querySelector('meta[name="swp-connecte"]')) {
+      sessionStorage.setItem('swp_appli_signalee', '1');
+      var jeton = document.querySelector('meta[name="csrf-token"]');
+      fetch('/appli/vue', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-CSRF-TOKEN': jeton ? jeton.getAttribute('content') : '', 'X-Requested-With': 'XMLHttpRequest' },
+      }).catch(function () {});
+    }
+  } catch (e) { /* sans gravité */ }
+
   var Push = cap.Plugins && cap.Plugins.PushNotifications;
   if (!Push) {
     return;

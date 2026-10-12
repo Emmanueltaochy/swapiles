@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @auth<meta name="swp-connecte" content="1">@endauth
     <meta name="google-site-verification" content="jl2dzZ3jQ5JfJg-QrS6qftgcitH7oS6oVXopqLDSW4U">
     <title>@yield('title', "Swap'Îles")</title>
 
@@ -81,7 +82,7 @@
          à l'autre. Le « ?v= » change à chaque modification du fichier : Turbo
          voit alors la différence et recharge complètement la page, pour que
          personne ne garde l'ancienne version. --}}
-    @foreach(['push', 'report', 'share', 'password-eye', 'form-draft', 'favorite', 'follow', 'infinite-scroll'] as $scriptCommun)
+    @foreach(['push', 'report', 'share', 'password-eye', 'form-draft', 'favorite', 'follow', 'infinite-scroll', 'app-banner'] as $scriptCommun)
         <script defer data-turbo-track="reload"
                 src="{{ asset('js/' . $scriptCommun . '.js') }}?v={{ @filemtime(public_path('js/' . $scriptCommun . '.js')) }}"></script>
     @endforeach
@@ -422,6 +423,7 @@ document.addEventListener('turbo:load', function () {
 
 <body class="bg-gray-50 text-gray-900 antialiased overflow-x-hidden">
 <div id="swp-chargement" aria-hidden="true"></div>
+@include('partials.app-banner')
     <header data-entete class="swp-safe-top sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100">
     <div class="max-w-7xl mx-auto px-4 py-3">
         <div class="flex items-center gap-3">

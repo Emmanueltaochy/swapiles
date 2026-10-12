@@ -40,6 +40,18 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 // Fichiers de vérification permettant aux liens swapiles.com d'ouvrir
 // directement l'application quand elle est installée (App Links / Universal
 // Links). Doivent rester accessibles publiquement, sans redirection.
+// L'application signale qu'elle est utilisée par le membre connecté : le
+// site ne lui propose plus de la télécharger (bandeau).
+Route::post('/appli/vue', function (\Illuminate\Http\Request $request) {
+    $membre = $request->user();
+
+    if ($membre && (! $membre->appli_vue_at || $membre->appli_vue_at->lt(now()->subHours(12)))) {
+        $membre->forceFill(['appli_vue_at' => now()])->saveQuietly();
+    }
+
+    return response()->noContent();
+})->middleware('throttle:30,1')->name('app.seen');
+
 Route::get('/.well-known/assetlinks.json', [\App\Http\Controllers\DeepLinkController::class, 'android'])
     ->name('deeplinks.android');
 Route::get('/.well-known/apple-app-site-association', [\App\Http\Controllers\DeepLinkController::class, 'apple'])

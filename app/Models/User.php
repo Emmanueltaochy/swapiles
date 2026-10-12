@@ -115,6 +115,7 @@ class User extends Authenticatable implements FilamentUser
         'email_verified_at' => 'datetime',
         'notification_prefs' => 'array',
         'recommandations_envoyees_at' => 'datetime',
+        'appli_vue_at' => 'datetime',
         'is_pro' => 'boolean',
         'is_banned' => 'boolean',
         'rating' => 'decimal:2',
@@ -226,6 +227,25 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->belongsToMany(User::class, 'seller_follows', 'seller_id', 'follower_id')
             ->withTimestamps();
+    }
+
+    /**
+     * Ce membre utilise-t-il l'application ? (ouverte connectée, ou téléphone
+     * enregistré pour les notifications, ces 90 derniers jours). Sert à ne
+     * pas lui proposer de télécharger une appli qu'il a déjà.
+     */
+    public function utiliseLAppli(): bool
+    {
+        $depuis = now()->subDays(90);
+
+        if ($this->appli_vue_at && $this->appli_vue_at->greaterThanOrEqualTo($depuis)) {
+            return true;
+        }
+
+        return \App\Models\DeviceToken::query()
+            ->where('user_id', $this->id)
+            ->where('last_seen_at', '>=', $depuis)
+            ->exists();
     }
 
     /** Cet utilisateur suit-il le dressing de ce membre ? */

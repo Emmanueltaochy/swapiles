@@ -68,6 +68,19 @@ Route::post('/presence', function (\Illuminate\Http\Request $request) {
     return response()->noContent();
 })->middleware('throttle:30,1')->name('presence');
 
+// L'appli signale chaque lancement (identifiant anonyme tiré au hasard) :
+// nombre réel d'installations iPhone / Android utilisées.
+Route::post('/appli/installation', function (\Illuminate\Http\Request $request) {
+    $donnees = $request->validate([
+        'id' => ['required', 'string', 'regex:/^[A-Za-z0-9-]{16,64}$/'],
+        'plateforme' => ['required', 'in:ios,android'],
+    ]);
+
+    \App\Support\InstallationsAppli::ouverture($donnees['id'], $donnees['plateforme']);
+
+    return response()->noContent();
+})->middleware('throttle:20,1')->name('app.installation');
+
 Route::get('/.well-known/assetlinks.json', [\App\Http\Controllers\DeepLinkController::class, 'android'])
     ->name('deeplinks.android');
 Route::get('/.well-known/apple-app-site-association', [\App\Http\Controllers\DeepLinkController::class, 'apple'])

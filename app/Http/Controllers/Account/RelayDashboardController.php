@@ -59,7 +59,7 @@ class RelayDashboardController extends Controller
         ]);
 
         try {
-            \App\Jobs\SendTransactionStatusEmails::dispatch($transaction->id, 'relay_deposited');
+            \App\Jobs\SendTransactionStatusEmails::dispatch($transaction->id, 'relay_deposited', 'commercant');
         } catch (\Throwable $e) {
             report($e);
         }
@@ -100,7 +100,7 @@ class RelayDashboardController extends Controller
         ]);
 
         try {
-            \App\Jobs\SendTransactionStatusEmails::dispatch($transaction->id, 'received');
+            \App\Jobs\SendTransactionStatusEmails::dispatch($transaction->id, 'received', 'commercant');
         } catch (\Throwable $e) {
             report($e);
         }

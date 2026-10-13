@@ -19,7 +19,9 @@ class SendTransactionStatusEmails implements ShouldQueue
      */
     public function __construct(
         public int $transactionId,
-        public string $event
+        public string $event,
+        // 'commercant' quand l'étape est confirmée par le point relais.
+        public ?string $par = null,
     ) {
     }
 
@@ -29,6 +31,14 @@ class SendTransactionStatusEmails implements ShouldQueue
 
         if (!$t) {
             return;
+        }
+
+        // Notifications dans l'appli (push) : avant les e-mails, et sans
+        // jamais bloquer leur envoi.
+        try {
+            \App\Support\NotificationsVente::apresEtape($t, $this->event, $this->par);
+        } catch (\Throwable $e) {
+            report($e);
         }
 
         $net = number_format($this->netSellerAmount($t), 2, ',', ' ');

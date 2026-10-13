@@ -49,3 +49,8 @@ Schedule::command('push:cleanup-tokens')->weeklyOn(1, '04:00')->withoutOverlappi
 // qu'aux membres pour qui il est 18 h–21 h sur leur île, au plus tous les
 // 4 jours, et seulement si la sélection est pertinente (config/recommandations.php).
 Schedule::command('recommandations:envoyer')->hourlyAt(5)->withoutOverlapping();
+
+// Ventes en cours : « pense à expédier », « tu as reçu ton colis ? »,
+// « ton colis t'attend au point relais ». Deux relances au plus par sujet ;
+// la nuit, elles attendent le matin chez le membre (PushPolicy).
+Schedule::command('ventes:relances')->hourlyAt(20)->withoutOverlapping();

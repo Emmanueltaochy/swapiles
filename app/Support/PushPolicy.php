@@ -45,7 +45,9 @@ class PushPolicy
      *   animation      : incitation — plafond serré
      */
     public const NIVEAUX = [
-        'social' => ['message_received', 'exchange_proposal', 'listing_interest'],
+        'social' => ['message_received', 'exchange_proposal', 'listing_interest', 'message_reminder'],
+        // Relances de vente : pas la nuit, pas plus de 3 par jour.
+        'rappel' => ['seller_ship_reminder', 'buyer_confirm_reminder', 'buyer_handover_reminder', 'relay_pickup_reminder'],
         'animation' => [
             'favorite_added',
             'listing_viewed',
@@ -55,6 +57,8 @@ class PushPolicy
             'account_onboarding',
             'recommandations',
             'top_dressing',
+            'favorite_price_drop',
+            'favorite_reminder',
         ],
     ];
 

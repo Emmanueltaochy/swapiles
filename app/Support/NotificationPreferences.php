@@ -49,6 +49,14 @@ class NotificationPreferences
             'types' => ['listing_viewed'],
             'defaut' => false,
         ],
+        'favoris_suivis' => [
+            'label' => 'Vos favoris',
+            'description' => 'Baisse de prix et rappel sur les articles que vous avez aimés.',
+            'types' => ['favorite_price_drop', 'favorite_reminder'],
+            'defaut' => true,
+            // L'e-mail de rappel des favoris existe à part : ici, le téléphone.
+            'canaux' => ['push'],
+        ],
         'recommandations' => [
             'label' => 'Recommandé pour vous',
             'description' => 'De temps en temps, une sélection d’articles qui ressemblent à ce que vous regardez et aimez.',
@@ -75,6 +83,20 @@ class NotificationPreferences
         'offer_declined',
         'moderation_warning',
         'user_deleted',
+        // Parcours d'une vente (NotificationsVente).
+        'cash_sale_confirm',
+        'relay_incoming',
+        'transaction_shipped',
+        'relay_ready',
+        'relay_deposit_confirmed',
+        'relay_deposit_declared',
+        'transaction_received',
+        'relay_collected',
+        'payout_sent',
+        'seller_ship_reminder',
+        'buyer_confirm_reminder',
+        'buyer_handover_reminder',
+        'relay_pickup_reminder',
     ];
 
     /** Réglages par défaut de chaque catégorie (voir CATEGORIES). */

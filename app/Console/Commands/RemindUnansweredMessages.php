@@ -64,6 +64,7 @@ class RemindUnansweredMessages extends Command
                         $this->line("→ [dry-run] relance #{$m->id} vers user {$m->receiver_id}");
                     } else {
                         SendMessageReminderEmail::dispatch($m->id);
+                        self::notifier($m);
                         $m->forceFill(['reminder_sent_at' => now()])->save();
                     }
                     $sent++;
@@ -75,5 +76,28 @@ class RemindUnansweredMessages extends Command
             : "Relances envoyées : {$sent} (ignorées : {$skipped})");
 
         return self::SUCCESS;
+    }
+
+    /** La même relance, dans l'appli. */
+    private static function notifier(Message $m): void
+    {
+        try {
+            $expediteur = \App\Models\User::find($m->sender_id);
+            $annonce = $m->listing_id ? \App\Models\Listing::find($m->listing_id) : null;
+
+            \App\Models\Notification::create([
+                'user_id' => $m->receiver_id,
+                'type' => 'message_reminder',
+                'title' => '💬 ' . ($expediteur->name ?? 'Un membre') . ' attend ta réponse',
+                'message' => $annonce
+                    ? 'Message à propos de « ' . $annonce->title . ' », resté sans réponse depuis hier.'
+                    : 'Son message est resté sans réponse depuis hier.',
+                'url' => $annonce && $expediteur
+                    ? route('account.messages.show', ['listing' => $annonce, 'user' => $expediteur], absolute: false)
+                    : route('account.messages.index', absolute: false),
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 }

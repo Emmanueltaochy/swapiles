@@ -68,6 +68,13 @@ class RemindFavorites extends Command
 
                 try {
                     $user->notify(new FavoriteReminderNotification($listing));
+                    \App\Models\Notification::create([
+                        'user_id' => $user->id,
+                        'type' => 'favorite_reminder',
+                        'title' => '❤️ Ton coup de cœur est toujours dispo',
+                        'message' => '« ' . $listing->title . ' » à ' . \App\Support\TableauDeBord::euros((float) $listing->price) . ' t’attend encore. Avant qu’un autre ne le prenne ?',
+                        'url' => route('listings.show', $listing, absolute: false),
+                    ]);
                     $this->markReminded($favorite, false);
                     $sent++;
                 } catch (\Throwable $e) {

@@ -244,6 +244,7 @@ class ListingManageController extends Controller
 
         // Était-elle déjà livrable (Colissimo + CB) avant modification ?
         $wasShippable = (bool) ($listing->requires_online_payment && $listing->allows_colissimo);
+        $ancienPrix = (float) $listing->price;
 
         $data = $this->validateListing($request);
 
@@ -337,6 +338,13 @@ class ListingManageController extends Controller
         // d'autres îles qui avaient signalé leur intérêt.
         if (! $wasShippable && $cbEnabled && $allowsColissimo) {
             $this->notifyInterestedBuyers($listing);
+        }
+
+        // Prix en baisse : ceux qui l'ont mise en favori sont prévenus.
+        try {
+            \App\Support\NotificationsVente::baisseDePrix($listing, $ancienPrix);
+        } catch (\Throwable $e) {
+            report($e);
         }
 
         return redirect()->route('account.dashboard')->with('status', 'Annonce mise à jour.');

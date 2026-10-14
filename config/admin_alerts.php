@@ -28,6 +28,7 @@ return [
     'offplatform_payment' => true,   // paiement hors plateforme signalé
     'account_deleted' => true,       // suppression de compte (RGPD)
     'relay_request' => true,         // candidature point relais
+    'relay_point_request' => true,   // un membre demande un point relais près de chez lui
     'refund_review' => true,         // remboursement à valider
 
 ];

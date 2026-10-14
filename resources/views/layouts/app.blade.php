@@ -624,6 +624,7 @@ document.addEventListener('turbo:load', function () {
         <p class="{{ $menuTitre }}">Swap'Îles</p>
         <a href="{{ route('dressings.top') }}" class="{{ $menuLien }}"><span>🏆 Classement des dressings</span></a>
         <a href="{{ route('home') }}#comment-ca-marche" class="{{ $menuLien }}"><span>❓ Comment ça marche</span></a>
+        <a href="{{ route('relay.points') }}" class="{{ $menuLien }}"><span>📍 Nos points relais</span></a>
         <a href="{{ route('relay.partner') }}" class="{{ $menuLien }}"><span>🏪 Devenir point relais</span></a>
         {{-- Conditions generales et Confidentialite ne sont plus dans le menu :
              il servait a naviguer, pas a lire des pages juridiques. Les deux
@@ -768,6 +769,7 @@ document.addEventListener('turbo:load', function () {
                 <a href="{{ route('search') }}" class="block text-gray-500 hover:text-teal-700">Catégories</a>
                 <a href="{{ route('faq') }}" class="block text-gray-500 hover:text-teal-700">FAQ</a>
                 <a href="{{ route('dressings.top') }}" class="block text-gray-500 hover:text-teal-700">🏆 Meilleurs dressings</a>
+                <a href="{{ route('relay.points') }}" class="block text-gray-500 hover:text-teal-700">📍 Nos points relais</a>
                 <a href="{{ route('relay.partner') }}" class="block text-gray-500 hover:text-teal-700">🏪 Devenir point relais</a>
             </div>
 

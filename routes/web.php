@@ -125,6 +125,10 @@ Route::get('/cgv', [\App\Http\Controllers\LegalController::class, 'cgv'])->name(
 Route::get('/confidentialite', [\App\Http\Controllers\LegalController::class, 'confidentialite'])->name('legal.privacy');
 Route::get('/faq', [\App\Http\Controllers\LegalController::class, 'faq'])->name('faq');
 Route::get('/meilleurs-dressings', [\App\Http\Controllers\LeaderboardController::class, 'index'])->name('dressings.top');
+// Nos points relais : la liste, et la demande d'un point relais plus proche.
+Route::get('/points-relais', [\App\Http\Controllers\RelayPointsController::class, 'index'])->name('relay.points');
+Route::post('/points-relais/demande', [\App\Http\Controllers\RelayPointsController::class, 'demander'])
+    ->middleware('throttle:5,1')->name('relay.points.request');
 Route::get('/devenir-point-relais', [\App\Http\Controllers\RelayPartnerController::class, 'show'])->name('relay.partner');
 Route::post('/devenir-point-relais', [\App\Http\Controllers\RelayPartnerController::class, 'submit'])
     ->middleware('throttle:6,1')->name('relay.partner.contact');
@@ -392,6 +396,7 @@ Route::get('/sitemap.xml', function () {
 
     // Page vitrine « Devenir point relais partenaire »
     $urls->push(['loc' => route('relay.partner'), 'priority' => '0.6', 'changefreq' => 'monthly']);
+    $urls->push(['loc' => route('relay.points'), 'priority' => '0.6', 'changefreq' => 'weekly']);
 
     // Classement « Meilleurs dressings »
     $urls->push(['loc' => route('dressings.top'), 'priority' => '0.6', 'changefreq' => 'weekly']);

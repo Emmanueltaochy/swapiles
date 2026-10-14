@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Pages\PushBroadcast;
+use App\Filament\Pages\PushDiagnostic;
 use App\Models\DeviceToken;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -49,7 +49,7 @@ class PushTestButtonTest extends TestCase
         $membres = collect(range(1, 12))->map(fn ($i) => $this->appareil($this->membre("m{$i}@ex.com"), "m{$i}"));
 
         $this->actingAs($admin);
-        Livewire::test(PushBroadcast::class)->call('testerEnvoi');
+        Livewire::test(PushDiagnostic::class)->call('testerEnvoi');
 
         $this->assertNotNull($monTelephone->fresh()->last_sent_at, 'Le téléphone de l’administrateur reçoit le test.');
 
@@ -66,7 +66,7 @@ class PushTestButtonTest extends TestCase
         $appareilMembre = $this->appareil($this->membre('m@ex.com'), 'm');
 
         $this->actingAs($admin);
-        Livewire::test(PushBroadcast::class)
+        Livewire::test(PushDiagnostic::class)
             ->call('testerEnvoi')
             ->assertNotified('Aucun appareil à votre nom');
 
@@ -84,7 +84,7 @@ class PushTestButtonTest extends TestCase
         $autre = $this->appareil($this->membre('autre@ex.com'), 'autre');
 
         $this->actingAs($admin);
-        Livewire::test(PushBroadcast::class)
+        Livewire::test(PushDiagnostic::class)
             ->set('emailTest', '  Testeuse@EX.com ')
             ->call('testerEnvoi');
 
@@ -101,7 +101,7 @@ class PushTestButtonTest extends TestCase
         $monTelephone = $this->appareil($admin, 'admin');
 
         $this->actingAs($admin);
-        Livewire::test(PushBroadcast::class)
+        Livewire::test(PushDiagnostic::class)
             ->set('emailTest', 'inconnu@ex.com')
             ->call('testerEnvoi')
             ->assertNotified('Aucun compte avec cette adresse');

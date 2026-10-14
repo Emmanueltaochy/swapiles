@@ -112,6 +112,28 @@ class RelayPointsPageTest extends TestCase
         $this->assertStringContainsString('📍 Nos points relais', $html);
     }
 
+    public function test_l_email_contient_le_detail_et_le_lien_vers_le_membre(): void
+    {
+        $membre = User::create(['name' => 'Paul', 'email' => 'paul@ex.com', 'password' => bcrypt('secret1234'), 'territoire' => 'La Réunion']);
+        $this->actingAs($membre)->demande(['message' => 'Le tabac est ouvert le dimanche.']);
+
+        $corps = RelayPointRequest::sole()->corpsEmail();
+
+        $this->assertStringContainsString("Détail ajouté : \nLe tabac est ouvert le dimanche.", $corps);
+        $this->assertStringContainsString('Fiche membre (admin) : ' . url('/admin/users/' . $membre->id), $corps);
+        $this->assertStringContainsString('Profil public : ' . route('profiles.show', $membre), $corps);
+        $this->assertStringContainsString('Mondial Relay', $corps);
+    }
+
+    public function test_l_email_d_un_visiteur_sans_compte(): void
+    {
+        $this->demande();
+
+        $corps = RelayPointRequest::sole()->corpsEmail();
+        $this->assertStringContainsString('Détail ajouté : —', $corps);
+        $this->assertStringContainsString('Demande faite sans compte Swap’Îles.', $corps);
+    }
+
     public function test_l_admin_voit_les_demandes(): void
     {
         $this->demande();

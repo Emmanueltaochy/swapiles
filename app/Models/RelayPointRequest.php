@@ -48,4 +48,41 @@ class RelayPointRequest extends Model
     {
         return collect($this->networks ?? [])->map(fn ($r) => self::RESEAUX[$r] ?? $r)->implode(', ');
     }
+
+    /** E-mail envoyé à l'équipe (contact@swapiles.com). */
+    public function corpsEmail(): string
+    {
+        $lignes = [
+            'Nouvelle demande de point relais',
+            '',
+            'Île : ' . $this->territoire,
+            'Ville / quartier : ' . $this->city,
+            'Commerce proposé : ' . ($this->business_name ?: '—'),
+            'Adresse ou repère : ' . ($this->business_address ?: '—'),
+            'Déjà point relais : ' . (self::DEJA_RELAIS[$this->already_relay] ?? '—')
+                . ($this->reseauxLisibles() ? ' (' . $this->reseauxLisibles() . ')' : ''),
+            '',
+            'Détail ajouté : ' . (filled($this->message) ? "\n" . trim($this->message) : '—'),
+            '',
+            'Demandé par : ' . $this->name,
+            'E-mail : ' . $this->email,
+            'Téléphone : ' . ($this->phone ?: '—'),
+        ];
+
+        $membre = $this->user;
+        if ($membre) {
+            $lignes[] = '';
+            $lignes[] = 'Membre Swap’Îles : ' . $membre->name . ' (inscrit le ' . $membre->created_at?->format('d/m/Y') . ')';
+            $lignes[] = 'Fiche membre (admin) : ' . \App\Filament\Resources\Users\UserResource::getUrl('view', ['record' => $membre]);
+            $lignes[] = 'Profil public : ' . route('profiles.show', $membre);
+        } else {
+            $lignes[] = '';
+            $lignes[] = 'Demande faite sans compte Swap’Îles.';
+        }
+
+        $lignes[] = '';
+        $lignes[] = 'Toutes les demandes : ' . \App\Filament\Resources\RelayPointRequests\RelayPointRequestResource::getUrl('index');
+
+        return implode("\n", $lignes) . "\n";
+    }
 }

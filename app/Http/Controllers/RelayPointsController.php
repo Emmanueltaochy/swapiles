@@ -78,14 +78,7 @@ class RelayPointsController extends Controller
 
         try {
             Mail::raw(
-                "Nouvelle demande de point relais :\n\n"
-                . "Île : {$demande->territoire}\nVille / quartier : {$demande->city}\n"
-                . 'Commerce proposé : ' . ($demande->business_name ?: '—') . "\n"
-                . 'Adresse du commerce : ' . ($demande->business_address ?: '—') . "\n"
-                . 'Déjà point relais : ' . RelayPointRequest::DEJA_RELAIS[$demande->already_relay]
-                . ($demande->reseauxLisibles() ? ' (' . $demande->reseauxLisibles() . ')' : '') . "\n\n"
-                . "Demandé par : {$demande->name} — {$demande->email}" . ($demande->phone ? " — {$demande->phone}" : '') . "\n\n"
-                . 'Message : ' . ($demande->message ?: '—') . "\n",
+                $demande->corpsEmail(),
                 function ($mail) use ($demande, $resume) {
                     $mail->from('contact@swapiles.com', "Swap'Îles")
                         ->to('contact@swapiles.com')

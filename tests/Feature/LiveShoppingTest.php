@@ -479,20 +479,20 @@ class LiveShoppingTest extends TestCase
         // Pas encore publié : le vendeur voit le replay, les autres non.
         $this->actingAs($this->admin)->get("/live/{$live->id}")->assertSee('Garder le replay de votre live ?')->assertSee($live->replayUrl(), false);
         $this->actingAs($this->membre)->get("/live/{$live->id}")->assertDontSee($live->replayUrl(), false);
-        $this->actingAs($this->membre)->get('/profil/' . $this->admin->id)->assertDontSee('Replays des lives');
+        $this->actingAs($this->membre)->get('/profil/' . $this->admin->id)->assertDontSee('🎬 Replays');
 
         // Publication.
         $this->actingAs($this->membre)->post("/live/{$live->id}/replay", ['publier' => 1])->assertForbidden();
         $this->actingAs($this->admin)->post("/live/{$live->id}/replay", ['publier' => 1])->assertRedirect();
         $this->actingAs($this->membre)->get("/live/{$live->id}")->assertSee($live->replayUrl(), false);
         // Onglet dédié, après « Annonces ».
-        $this->actingAs($this->membre)->get('/profil/' . $this->admin->id)->assertSee('Replays des lives')->assertSee('tab=replays', false);
-        $this->actingAs($this->membre)->get('/profil/' . $this->admin->id . '?tab=replays')->assertSee('Vide-dressing')->assertSee('1 replay');
+        $this->actingAs($this->membre)->get('/profil/' . $this->admin->id)->assertSee('🎬 Replays')->assertSee('tab=replays', false);
+        $this->actingAs($this->membre)->get('/profil/' . $this->admin->id . '?tab=replays')->assertSee('Vide-dressing')->assertSee('1 replay de live');
         $this->actingAs($this->membre)->get('/live')->assertSee('🎬 Replays');
 
         // Membres sans accès au live : rien sur le profil.
         $autre = $this->user('autre@ex.com', 'Zoé');
-        $this->actingAs($autre)->get('/profil/' . $this->admin->id)->assertDontSee('Replays des lives');
+        $this->actingAs($autre)->get('/profil/' . $this->admin->id)->assertDontSee('🎬 Replays');
     }
 
     public function test_replay_refuse_a_la_fin_est_supprime_et_le_fichier_efface(): void
@@ -534,12 +534,12 @@ class LiveShoppingTest extends TestCase
 
         // Un an plus tard, toujours là.
         Carbon::setTestNow(now()->addYear());
-        $this->actingAs($this->membre)->get('/profil/' . $this->admin->id)->assertSee('Replays des lives');
+        $this->actingAs($this->membre)->get('/profil/' . $this->admin->id)->assertSee('🎬 Replays');
 
         // Seul le vendeur peut le supprimer.
         $this->actingAs($this->membre)->post("/live/{$live->id}/replay/supprimer")->assertForbidden();
         $this->actingAs($this->admin)->post("/live/{$live->id}/replay/supprimer")->assertRedirect();
-        $this->actingAs($this->membre)->get('/profil/' . $this->admin->id)->assertDontSee('Replays des lives');
+        $this->actingAs($this->membre)->get('/profil/' . $this->admin->id)->assertDontSee('🎬 Replays');
         $this->actingAs($this->membre)->get('/live')->assertDontSee('🎬 Replays');
     }
 

@@ -247,14 +247,14 @@
 {{-- Onglets --}}
 <section class="sticky top-0 z-30 border-b border-gray-100 bg-white">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex gap-6 overflow-x-auto no-scrollbar">
-            <a href="{{ route('profiles.show', $user) }}" class="border-b-2 py-4 text-sm font-semibold {{ $activeTab === 'annonces' ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-400 hover:text-gray-600' }}">Annonces</a>
+        <div class="flex gap-5 overflow-x-auto whitespace-nowrap no-scrollbar sm:gap-6">
+            <a href="{{ route('profiles.show', $user) }}" class="shrink-0 whitespace-nowrap border-b-2 py-4 text-sm font-semibold {{ $activeTab === 'annonces' ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-400 hover:text-gray-600' }}">Annonces</a>
             @php $replaysProfil = ($lives ?? collect())->where('statut', 'termine'); @endphp
             @if($replaysProfil->isNotEmpty())
-                <a href="{{ route('profiles.show', ['user' => $user, 'tab' => 'replays']) }}" class="whitespace-nowrap border-b-2 py-4 text-sm font-semibold {{ $activeTab === 'replays' ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-400 hover:text-gray-600' }}">🎬 Replays des lives <span class="ml-0.5 rounded-full bg-gray-100 px-1.5 text-xs text-gray-600">{{ $replaysProfil->count() }}</span></a>
+                <a href="{{ route('profiles.show', ['user' => $user, 'tab' => 'replays']) }}" class="shrink-0 whitespace-nowrap border-b-2 py-4 text-sm font-semibold {{ $activeTab === 'replays' ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-400 hover:text-gray-600' }}">🎬 Replays <span class="text-xs font-bold opacity-70">{{ $replaysProfil->count() }}</span></a>
             @endif
-            <a href="{{ route('profiles.show', ['user' => $user, 'tab' => 'about']) }}" class="border-b-2 py-4 text-sm font-semibold {{ $activeTab === 'about' ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-400 hover:text-gray-600' }}">À propos</a>
-            <a href="{{ route('profiles.show', ['user' => $user, 'tab' => 'reviews']) }}" class="border-b-2 py-4 text-sm font-semibold {{ $activeTab === 'reviews' ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-400 hover:text-gray-600' }}">Avis</a>
+            <a href="{{ route('profiles.show', ['user' => $user, 'tab' => 'about']) }}" class="shrink-0 whitespace-nowrap border-b-2 py-4 text-sm font-semibold {{ $activeTab === 'about' ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-400 hover:text-gray-600' }}">À propos</a>
+            <a href="{{ route('profiles.show', ['user' => $user, 'tab' => 'reviews']) }}" class="shrink-0 whitespace-nowrap border-b-2 py-4 text-sm font-semibold {{ $activeTab === 'reviews' ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-400 hover:text-gray-600' }}">Avis</a>
         </div>
     </div>
 </section>
@@ -298,11 +298,7 @@
             </div>
 
         @elseif($activeTab === 'replays' && $replaysProfil->isNotEmpty())
-            <div class="mb-5">
-                <p class="text-xs font-semibold uppercase tracking-wide text-teal-600">Ventes en direct</p>
-                <h2 class="text-xl sm:text-2xl font-bold text-gray-900">🎬 {{ $replaysProfil->count() }} replay{{ $replaysProfil->count() > 1 ? 's' : '' }}</h2>
-                <p class="mt-1 text-sm text-gray-500">Revois les lives de {{ $user->name }} : le chat, les cœurs et les articles présentés, au moment où ils sont apparus.</p>
-            </div>
+            <h2 class="mb-4 text-lg font-bold text-gray-900">{{ $replaysProfil->count() }} replay{{ $replaysProfil->count() > 1 ? 's' : '' }} de live</h2>
             <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                 @foreach($replaysProfil as $live)
                     @include('live.partials.vignette-replay', ['live' => $live])

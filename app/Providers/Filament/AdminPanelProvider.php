@@ -45,6 +45,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Modération'),
                 NavigationGroup::make('Marketing'),
                 NavigationGroup::make('Points relais'),
+                NavigationGroup::make('Valeur & marché'),
                 NavigationGroup::make('Système')->collapsed(),
             ])
             ->collapsibleNavigationGroups()

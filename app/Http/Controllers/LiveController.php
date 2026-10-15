@@ -16,8 +16,8 @@ class LiveController extends Controller
     public function index(Request $request)
     {
         return view('live.index', [
-            'enDirect' => LiveSession::with('vendeur')->where('statut', 'en_direct')->latest('demarre_at')->get(),
-            'programmes' => LiveSession::with('vendeur')->where('statut', 'programme')
+            'enDirect' => LiveSession::with(['vendeur', 'articles.images'])->where('statut', 'en_direct')->latest('demarre_at')->get(),
+            'programmes' => LiveSession::with(['vendeur', 'articles.images'])->where('statut', 'programme')
                 ->where(fn ($q) => $q->whereNull('debut_prevu_at')->orWhere('debut_prevu_at', '>=', now()->subHours(6)))
                 ->orderBy('debut_prevu_at')->get(),
             'mesLives' => $request->user() ? LiveSession::where('user_id', $request->user()->id)->latest()->limit(10)->get() : collect(),
@@ -61,6 +61,11 @@ class LiveController extends Controller
     public function show(Request $request, LiveSession $live)
     {
         $live->load(['vendeur', 'articles.images']);
+
+        // Pour proposer « Revenir au live » si on va voir ailleurs (paiement…).
+        if ($live->enDirect()) {
+            $request->session()->put('live_retour', $live->id);
+        }
 
         return view('live.show', [
             'live' => $live,
@@ -204,6 +209,7 @@ class LiveController extends Controller
         }
 
         LiveService::message($live, null, '🔥 ' . $request->user()->name . ' est en train d’acheter « ' . $listing->title . ' »', 'vente');
+        $request->session()->put('live_retour', $live->id);
 
         return redirect()->route('checkout.show', $listing);
     }

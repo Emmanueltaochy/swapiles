@@ -252,6 +252,67 @@ class LiveShoppingTest extends TestCase
         $this->assertStringContainsString('camera=()', $this->get('/')->headers->get('Permissions-Policy'));
     }
 
+    public function test_page_du_live_chargee_en_entier_et_plein_ecran(): void
+    {
+        $live = $this->live($this->admin, [$this->article($this->admin, 'Sac en cuir')]);
+
+        $this->actingAs($this->admin)->get("/live/{$live->id}")->assertOk()
+            // Chargement complet : la vidéo démarre et la caméra est autorisée.
+            ->assertSee('<meta name="turbo-visit-control" content="reload">', false)
+            ->assertSee('fixed inset-0 z-[60]', false)
+            ->assertSee('data-coeurs-zone', false)
+            ->assertSee('Sac en cuir');
+    }
+
+    public function test_revenir_au_live_apres_l_avoir_quitte(): void
+    {
+        config(['live.testeurs' => ['membre@ex.com']]);
+        $robe = $this->article($this->admin);
+        $live = $this->live($this->admin, [$robe]);
+
+        $this->actingAs($this->membre)->get('/')->assertDontSee('Revenir au live');
+
+        // Achat depuis le live : la page de paiement propose d'y revenir.
+        $this->actingAs($this->membre)->post("/live/{$live->id}/acheter/{$robe->id}");
+        $this->assertSame($live->id, session('live_retour'));
+        $this->actingAs($this->membre)->get('/')->assertSee('Revenir au live')->assertSee('/live/' . $live->id, false);
+
+        // Pas sur le live lui-même.
+        $this->actingAs($this->membre)->get("/live/{$live->id}")->assertDontSee('Revenir au live');
+
+        // Live terminé : le bouton disparaît.
+        $live->update(['statut' => 'termine']);
+        $this->actingAs($this->membre)->get('/')->assertDontSee('Revenir au live');
+        $this->assertNull(session('live_retour'));
+    }
+
+    public function test_en_arrivant_on_voit_les_derniers_messages(): void
+    {
+        $live = $this->live($this->admin, [$this->article($this->admin)]);
+        for ($i = 1; $i <= 40; $i++) {
+            LiveService::message($live, $this->admin, "Message {$i}");
+        }
+
+        $messages = $this->actingAs($this->admin)->getJson("/live/{$live->id}/etat")->json('messages');
+        $this->assertCount(30, $messages);
+        $this->assertSame('Message 11', $messages[0]['texte']);
+        $this->assertSame('Message 40', $messages[29]['texte']);
+
+        $suite = $this->actingAs($this->admin)->getJson("/live/{$live->id}/etat?apres=" . $messages[9]['id'])->json('messages');
+        $this->assertCount(20, $suite);
+        $this->assertSame('Message 21', $suite[0]['texte']);
+    }
+
+    public function test_liste_des_lives_en_vignettes(): void
+    {
+        $this->live($this->admin, [$this->article($this->admin)]);
+
+        $this->actingAs($this->admin)->get('/live')->assertOk()
+            ->assertSee('Vide-dressing')
+            ->assertSee('aspect-[3/4]', false)
+            ->assertSee('LIVE');
+    }
+
     // --- Admin --------------------------------------------------------------------
 
     public function test_l_admin_peut_couper_un_live(): void

@@ -125,7 +125,9 @@ class LiveService
         $messages = LiveMessage::query()->with('user:id,name')
             ->where('live_session_id', $live->id)->where('masque', false)
             ->where('id', '>', $apresMessage)
-            ->orderBy('id')->limit(50)->get()
+            // À l'arrivée : les derniers messages ; ensuite, la suite.
+            ->when($apresMessage === 0, fn ($q) => $q->orderByDesc('id')->limit(30), fn ($q) => $q->orderBy('id')->limit(50))
+            ->get()->sortBy('id')->values()
             ->map(fn (LiveMessage $m) => [
                 'id' => $m->id,
                 'auteur' => $m->type === 'message' ? ($m->user->name ?? 'Membre') : null,

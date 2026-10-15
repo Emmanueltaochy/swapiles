@@ -722,6 +722,8 @@ document.addEventListener('turbo:load', function () {
         @yield('content')
     </main>
 
+    @include('partials.live-retour')
+
     <nav data-barre-bas class="swp-safe-bottom lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-t border-gray-200">
         <div class="grid grid-cols-5 h-[74px] text-[11px] font-bold">
             <a href="{{ route('home') }}" data-onglet class="flex flex-col items-center justify-center gap-1 {{ request()->routeIs('home') ? 'text-teal-700' : 'text-gray-500' }}">

@@ -16,6 +16,13 @@ return [
     // Minutes pendant lesquelles un article reste réservé à l'acheteur du live.
     'reservation_minutes' => (int) env('LIVE_RESERVATION_MINUTES', 5),
 
+    // Service vidéo (LiveKit Cloud). Clés dans les secrets GitHub, jamais dans le code.
+    'livekit' => [
+        'url' => env('LIVEKIT_URL'),
+        'key' => env('LIVEKIT_API_KEY'),
+        'secret' => env('LIVEKIT_API_SECRET'),
+    ],
+
     // Spectateur compté « présent » s'il a donné signe de vie depuis N secondes.
     'presence_secondes' => 30,
 ];

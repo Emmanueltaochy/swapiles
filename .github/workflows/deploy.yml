@@ -31,7 +31,7 @@ jobs:
           #   APNS_KEY_B64 : la meme cle encodee en base64 (ancienne methode)
           #   APNS_KEY_ID / APNS_TEAM_ID : identifiants de cette cle
           #   MAIL_*       : identifiants SMTP du fournisseur d'e-mails
-          envs: FCM_SA_B64,APNS_KEY_P8,APNS_KEY_B64,APNS_KEY_ID,APNS_TEAM_ID,ANDROID_SHA256_FINGERPRINT,SESSION_LIFETIME,MAIL_HOST,MAIL_PORT,MAIL_USERNAME,MAIL_PASSWORD,MAIL_SCHEME,MAIL_FROM_ADDRESS,MAIL_FROM_NAME
+          envs: FCM_SA_B64,APNS_KEY_P8,APNS_KEY_B64,APNS_KEY_ID,APNS_TEAM_ID,ANDROID_SHA256_FINGERPRINT,SESSION_LIFETIME,MAIL_HOST,MAIL_PORT,MAIL_USERNAME,MAIL_PASSWORD,MAIL_SCHEME,MAIL_FROM_ADDRESS,MAIL_FROM_NAME,LIVEKIT_URL,LIVEKIT_API_KEY,LIVEKIT_API_SECRET,LIVE_TESTEURS,LIVE_OUVERT
           script: |
             set -e
             cd "${{ secrets.VPS_PATH }}"
@@ -92,6 +92,12 @@ jobs:
               [ -n "${MAIL_FROM_ADDRESS:-}" ] && ./scripts/set-env.sh MAIL_FROM_ADDRESS "$MAIL_FROM_ADDRESS"
               [ -n "${MAIL_FROM_NAME:-}" ] && ./scripts/set-env.sh MAIL_FROM_NAME "$MAIL_FROM_NAME"
             fi
+            # Vente en direct : service vidéo LiveKit, testeurs et ouverture à tous.
+            [ -n "${LIVEKIT_URL:-}" ] && ./scripts/set-env.sh LIVEKIT_URL "$LIVEKIT_URL"
+            [ -n "${LIVEKIT_API_KEY:-}" ] && ./scripts/set-env.sh LIVEKIT_API_KEY "$LIVEKIT_API_KEY"
+            [ -n "${LIVEKIT_API_SECRET:-}" ] && ./scripts/set-env.sh LIVEKIT_API_SECRET "$LIVEKIT_API_SECRET"
+            ./scripts/set-env.sh LIVE_TESTEURS "${LIVE_TESTEURS:-}"
+            ./scripts/set-env.sh LIVE_OUVERT "${LIVE_OUVERT:-false}"
             chmod +x scripts/deploy.sh
             ./scripts/deploy.sh
         env:
@@ -109,3 +115,8 @@ jobs:
           MAIL_SCHEME: ${{ secrets.MAIL_SCHEME }}
           MAIL_FROM_ADDRESS: ${{ secrets.MAIL_FROM_ADDRESS }}
           MAIL_FROM_NAME: ${{ secrets.MAIL_FROM_NAME }}
+          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+          LIVE_TESTEURS: ${{ secrets.LIVE_TESTEURS }}
+          LIVE_OUVERT: ${{ secrets.LIVE_OUVERT }}

@@ -131,6 +131,7 @@ Route::prefix('live')->middleware(\App\Http\Middleware\LiveVisible::class)->name
     Route::get('/', [\App\Http\Controllers\LiveController::class, 'index'])->name('index');
     Route::get('/{live}/etat', [\App\Http\Controllers\LiveController::class, 'etat'])->whereNumber('live')->middleware('throttle:120,1')->name('etat');
     Route::post('/{live}/coeur', [\App\Http\Controllers\LiveController::class, 'coeur'])->whereNumber('live')->middleware('throttle:60,1')->name('coeur');
+    Route::get('/{live}/jeton', [\App\Http\Controllers\LiveController::class, 'jeton'])->whereNumber('live')->middleware('throttle:30,1')->name('jeton');
 
     Route::middleware('auth')->group(function () {
         Route::get('/nouveau', [\App\Http\Controllers\LiveController::class, 'create'])->name('create');

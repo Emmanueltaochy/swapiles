@@ -195,6 +195,63 @@ class LiveShoppingTest extends TestCase
         $this->assertContains('🔥 Paul est en train d’acheter « Robe »', LiveMessage::pluck('body')->all());
     }
 
+    // --- Vidéo (LiveKit) -----------------------------------------------------------
+
+    private function decoder(string $jeton): array
+    {
+        [$entete, $corps, $signature] = explode('.', $jeton);
+        $attendue = rtrim(strtr(base64_encode(hash_hmac('sha256', $entete . '.' . $corps, 'secret-de-test', true)), '+/', '-_'), '=');
+        $this->assertSame($attendue, $signature, 'Signature HS256 valide.');
+
+        return json_decode(base64_decode(strtr($corps, '-_', '+/')), true);
+    }
+
+    public function test_acces_video_vendeur_et_spectateur(): void
+    {
+        config(['live.livekit' => ['url' => 'wss://swapiles.livekit.cloud', 'key' => 'APIcle', 'secret' => 'secret-de-test'], 'live.testeurs' => ['membre@ex.com']]);
+        $live = $this->live($this->admin, [$this->article($this->admin)]);
+
+        $vendeur = $this->actingAs($this->admin)->getJson("/live/{$live->id}/jeton")->assertOk()->json();
+        $this->assertTrue($vendeur['publier']);
+        $this->assertSame('wss://swapiles.livekit.cloud', $vendeur['url']);
+        $grants = $this->decoder($vendeur['jeton']);
+        $this->assertSame('APIcle', $grants['iss']);
+        $this->assertSame('membre-' . $this->admin->id, $grants['sub']);
+        $this->assertSame('swapiles-live-' . $live->id, $grants['video']['room']);
+        $this->assertTrue($grants['video']['canPublish']);
+
+        $spectateur = $this->actingAs($this->membre)->getJson("/live/{$live->id}/jeton")->assertOk()->json();
+        $this->assertFalse($spectateur['publier']);
+        $grants = $this->decoder($spectateur['jeton']);
+        $this->assertFalse($grants['video']['canPublish'], 'Un spectateur ne peut pas filmer.');
+        $this->assertTrue($grants['video']['hidden']);
+        $this->assertGreaterThan(time(), $grants['exp']);
+    }
+
+    public function test_pas_de_video_hors_direct_ni_sans_configuration(): void
+    {
+        $live = $this->live($this->admin, [$this->article($this->admin)], 'programme');
+
+        config(['live.livekit' => ['url' => null, 'key' => null, 'secret' => null]]);
+        $this->actingAs($this->admin)->getJson("/live/{$live->id}/jeton")->assertStatus(503);
+
+        config(['live.livekit' => ['url' => 'wss://x', 'key' => 'k', 'secret' => 's']]);
+        $this->actingAs($this->admin)->getJson("/live/{$live->id}/jeton")->assertStatus(409);
+        auth()->logout();
+        $this->getJson("/live/{$live->id}/jeton")->assertNotFound();
+    }
+
+    public function test_camera_et_micro_autorises_seulement_sur_le_live(): void
+    {
+        $live = $this->live($this->admin, [$this->article($this->admin)]);
+
+        $page = $this->actingAs($this->admin)->get("/live/{$live->id}")->assertOk();
+        $this->assertStringContainsString('camera=(self)', $page->headers->get('Permissions-Policy'));
+        $page->assertSee('livekit-client@2.5.7', false)->assertSee('Activer ma caméra');
+
+        $this->assertStringContainsString('camera=()', $this->get('/')->headers->get('Permissions-Policy'));
+    }
+
     // --- Admin --------------------------------------------------------------------
 
     public function test_l_admin_peut_couper_un_live(): void

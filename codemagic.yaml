@@ -81,6 +81,7 @@ workflows:
           # Cookies de connexion écrits sur le disque au passage en arrière-plan
           # (sinon : déconnexion si l'appli est fermée juste après la connexion).
           python3 scripts/android-cookies-flush.py
+          python3 scripts/android-live-permissions.py
       - name: Build APK debug (non signé)
         script: |
           export JAVA_HOME=$(/usr/libexec/java_home -v 21)
@@ -165,6 +166,10 @@ workflows:
           # l'échappement des apostrophes ne lui survit pas.
           /usr/libexec/PlistBuddy -c "Delete :NSCameraUsageDescription" "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string Swap Iles utilise votre appareil photo pour vous permettre de photographier les articles que vous mettez en vente." "$PLIST"
+
+          # Vente en direct : le vendeur se filme et parle à ses spectateurs.
+          /usr/libexec/PlistBuddy -c "Delete :NSMicrophoneUsageDescription" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string Swap Iles utilise votre micro pendant vos ventes en direct, pour que vos spectateurs vous entendent." "$PLIST"
 
           /usr/libexec/PlistBuddy -c "Delete :NSPhotoLibraryUsageDescription" "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string Swap Iles accede a vos photos pour vous permettre de choisir les images de vos annonces." "$PLIST"
@@ -333,6 +338,7 @@ workflows:
           # Cookies de connexion écrits sur le disque au passage en arrière-plan
           # (sinon : déconnexion si l'appli est fermée juste après la connexion).
           python3 scripts/android-cookies-flush.py
+          python3 scripts/android-live-permissions.py
       - name: Injecter signature + versionCode unique dans build.gradle
         script: |
           cd mobile

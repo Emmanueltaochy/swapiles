@@ -149,6 +149,28 @@ class LiveController extends Controller
         return response()->json(LiveService::etat($live, $request->user(), (int) $request->query('apres', 0)));
     }
 
+    /** Accès à la vidéo : le vendeur filme, les autres regardent. */
+    public function jeton(Request $request, LiveSession $live)
+    {
+        if (! \App\Support\LiveKit::configure()) {
+            return response()->json(['erreur' => 'video_non_configuree'], 503);
+        }
+        if (! $live->enDirect()) {
+            return response()->json(['erreur' => 'pas_en_direct'], 409);
+        }
+        if (LiveService::estExclu($live, $request->user(), $this->cle($request))) {
+            return response()->json(['erreur' => 'exclu'], 403);
+        }
+
+        $publier = $live->estVendeur($request->user());
+
+        return response()->json([
+            'url' => config('live.livekit.url'),
+            'jeton' => \App\Support\LiveKit::jeton($live, $request->user(), $publier),
+            'publier' => $publier,
+        ]);
+    }
+
     public function envoyerMessage(Request $request, LiveSession $live)
     {
         abort_unless($request->user(), 401);

@@ -18,7 +18,10 @@ class SecurityHeaders
             'X-Content-Type-Options' => 'nosniff',           // anti MIME-sniffing
             'Referrer-Policy' => 'strict-origin-when-cross-origin',
             'X-XSS-Protection' => '0',
-            'Permissions-Policy' => 'geolocation=(), microphone=(), camera=()',
+            // Caméra et micro : seulement sur les pages de vente en direct.
+            'Permissions-Policy' => $request->is('live/*')
+                ? 'geolocation=(), microphone=(self), camera=(self)'
+                : 'geolocation=(), microphone=(), camera=()',
         ];
 
         foreach ($headers as $key => $value) {

@@ -24,11 +24,31 @@
     <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,420px)_1fr] gap-0 lg:gap-6">
         {{-- Vidéo --}}
         <div class="relative bg-gray-900 lg:rounded-3xl overflow-hidden" style="aspect-ratio:9/14;max-height:72vh;">
+            <video data-video playsinline autoplay muted class="absolute inset-0 h-full w-full object-cover hidden"></video>
             <div class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-white" data-zone-video>
-                <p class="text-5xl">🎥</p>
-                <p class="mt-3 font-bold">La vidéo arrive à la prochaine étape</p>
-                <p class="mt-1 text-sm text-white/70">Le chat, l’article mis en avant et l’achat fonctionnent déjà.</p>
+                @if($live->statut === 'termine')
+                    <p class="text-5xl">🌴</p>
+                    <p class="mt-3 font-bold">Ce live est terminé</p>
+                @elseif(! $live->enDirect())
+                    <p class="text-5xl">📅</p>
+                    <p class="mt-3 font-bold">Le live n’a pas encore commencé</p>
+                    @if($live->debut_prevu_at)<p class="mt-1 text-sm text-white/70">Prévu {{ $live->debut_prevu_at->locale('fr')->translatedFormat('l j F à H\hi') }}</p>@endif
+                @elseif($estVendeur)
+                    <p class="text-5xl">📹</p>
+                    <p class="mt-3 font-bold">Vos spectateurs vous attendent</p>
+                    <button type="button" data-camera class="mt-4 rounded-2xl bg-red-600 px-6 py-3 font-extrabold text-white">Activer ma caméra</button>
+                @else
+                    <p class="text-5xl">⏳</p>
+                    <p class="mt-3 font-bold" data-video-message>Connexion à la vidéo…</p>
+                @endif
             </div>
+            <button type="button" data-son class="absolute inset-x-0 bottom-20 mx-auto hidden w-max rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-gray-900 shadow-lg">🔊 Activer le son</button>
+            @if($estVendeur && $live->enDirect())
+                <div data-outils-camera class="absolute bottom-3 left-3 hidden gap-2">
+                    <button type="button" data-retourner class="rounded-full bg-black/50 px-3 py-2 text-xs font-bold text-white">🔄 Caméra</button>
+                    <button type="button" data-micro class="rounded-full bg-black/50 px-3 py-2 text-xs font-bold text-white">🎙️ Micro activé</button>
+                </div>
+            @endif
 
             <div class="absolute left-3 top-3 flex items-center gap-2">
                 <span data-pastille-statut class="rounded-full px-2.5 py-1 text-xs font-extrabold {{ $live->enDirect() ? 'bg-red-600 text-white' : 'bg-white/90 text-gray-800' }}">
@@ -111,6 +131,114 @@
         </div>
     </div>
 </section>
+
+@if($live->enDirect())
+<script src="https://cdn.jsdelivr.net/npm/livekit-client@2.5.7/dist/livekit-client.umd.min.js"></script>
+<script>
+(function () {
+    var racine = document.querySelector('[data-live]');
+    if (!racine || typeof LivekitClient === 'undefined') return;
+    var LK = LivekitClient;
+    var video = racine.querySelector('[data-video]');
+    var zone = racine.querySelector('[data-zone-video]');
+    var boutonSon = racine.querySelector('[data-son]');
+    var vendeur = racine.dataset.vendeur === '1';
+    var salle = null;
+
+    function message(texte) {
+        var m = zone.querySelector('[data-video-message]');
+        if (m) m.textContent = texte; else zone.innerHTML = '<p class="font-bold">' + texte + '</p>';
+        zone.classList.remove('hidden');
+    }
+
+    function afficherVideo(piste, miroir) {
+        piste.attach(video);
+        video.classList.remove('hidden');
+        video.style.transform = miroir ? 'scaleX(-1)' : '';
+        zone.classList.add('hidden');
+    }
+
+    function jeton() {
+        return fetch('{{ route('live.jeton', $live, false) }}', { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.json().then(function (j) { j.statut = r.status; return j; }); });
+    }
+
+    function connecter(acces) {
+        salle = new LK.Room({ adaptiveStream: true, dynacast: true });
+        salle.on(LK.RoomEvent.TrackSubscribed, function (piste) {
+            if (piste.kind === 'video') afficherVideo(piste, false);
+            if (piste.kind === 'audio') {
+                var el = piste.attach(); el.style.display = 'none'; document.body.appendChild(el);
+            }
+        });
+        salle.on(LK.RoomEvent.TrackUnsubscribed, function (piste) {
+            piste.detach();
+            if (piste.kind === 'video' && !vendeur) { video.classList.add('hidden'); message('Le vendeur a coupé sa caméra…'); }
+        });
+        salle.on(LK.RoomEvent.AudioPlaybackStatusChanged, function () {
+            boutonSon.classList.toggle('hidden', salle.canPlaybackAudio);
+        });
+        salle.on(LK.RoomEvent.Disconnected, function () {
+            if (!vendeur) message('Vidéo interrompue. Rechargez la page.');
+        });
+        return salle.connect(acces.url, acces.jeton).then(function () {
+            boutonSon.classList.toggle('hidden', salle.canPlaybackAudio);
+            if (!vendeur && !video.srcObject) message('Le vendeur se prépare…');
+        });
+    }
+
+    boutonSon.addEventListener('click', function () {
+        if (salle) salle.startAudio().then(function () { boutonSon.classList.add('hidden'); });
+    });
+
+    if (!vendeur) {
+        jeton().then(function (acces) {
+            if (acces.statut === 503) { message('La vidéo arrive très bientôt 🎥'); return; }
+            if (acces.statut !== 200) { message('Vidéo indisponible.'); return; }
+            return connecter(acces);
+        }).catch(function () { message('Vidéo indisponible. Vérifiez votre connexion.'); });
+        return;
+    }
+
+    // Vendeur : la caméra démarre sur un geste (exigé par iPhone).
+    var bouton = racine.querySelector('[data-camera]');
+    if (!bouton) return;
+    var avant = false;
+    bouton.addEventListener('click', function () {
+        bouton.disabled = true;
+        bouton.textContent = 'Démarrage…';
+        jeton().then(function (acces) {
+            if (acces.statut === 503) throw new Error('La vidéo n’est pas encore configurée sur le serveur.');
+            if (acces.statut !== 200) throw new Error('Accès vidéo refusé.');
+            return connecter(acces);
+        }).then(function () {
+            return LK.createLocalTracks({ audio: true, video: { facingMode: 'environment', resolution: LK.VideoPresets.h720.resolution } });
+        }).then(function (pistes) {
+            pistes.forEach(function (p) {
+                salle.localParticipant.publishTrack(p);
+                if (p.kind === 'video') afficherVideo(p, false);
+            });
+            var outils = racine.querySelector('[data-outils-camera]');
+            outils.classList.remove('hidden'); outils.classList.add('flex');
+            outils.querySelector('[data-retourner]').onclick = function () {
+                avant = !avant;
+                var pv = pistes.find(function (p) { return p.kind === 'video'; });
+                pv.restartTrack({ facingMode: avant ? 'user' : 'environment' }).then(function () { video.style.transform = avant ? 'scaleX(-1)' : ''; });
+            };
+            var micro = outils.querySelector('[data-micro]');
+            micro.onclick = function () {
+                var actif = salle.localParticipant.isMicrophoneEnabled;
+                salle.localParticipant.setMicrophoneEnabled(!actif).then(function () { micro.textContent = actif ? '🔇 Micro coupé' : '🎙️ Micro activé'; });
+            };
+        }).catch(function (e) {
+            bouton.disabled = false;
+            bouton.textContent = 'Réessayer';
+            alert((e && e.message) ? e.message : 'Impossible d’activer la caméra. Autorisez la caméra et le micro pour ce site.');
+        });
+    });
+})();
+</script>
+@endif
 
 <script>
 (function () {

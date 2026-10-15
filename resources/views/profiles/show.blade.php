@@ -81,6 +81,9 @@
                         @if($profileComplete)
                             <span class="rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-2.5 py-1 font-bold text-white shadow-sm">🏆 Profil complet</span>
                         @endif
+                        @if($user->ambassadeur_at && \App\Support\ParrainageService::actifPour($user))
+                            <span class="rounded-full bg-emerald-600 px-2.5 py-1 font-bold text-white shadow-sm" title="A fait découvrir Swap’Îles à au moins {{ config('referral.palier_ambassadeur') }} membres">💚 Ambassadeur</span>
+                        @endif
                         <span class="rounded-full bg-teal-50 px-2.5 py-1 text-teal-700">✅ Membre vérifié</span>
                         @if($user->territoire)
                             <span class="rounded-full bg-gray-100 px-2.5 py-1 text-gray-600">📍 {{ $user->territoire }}</span>

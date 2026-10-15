@@ -624,6 +624,9 @@ document.addEventListener('turbo:load', function () {
         <p class="{{ $menuTitre }}">Swap'Îles</p>
         <a href="{{ route('dressings.top') }}" class="{{ $menuLien }}"><span>🏆 Classement des dressings</span></a>
         <a href="{{ route('home') }}#comment-ca-marche" class="{{ $menuLien }}"><span>❓ Comment ça marche</span></a>
+        @if(auth()->check() && \App\Support\ParrainageService::actifPour(auth()->user()))
+            <a href="{{ route('parrainage.index') }}" class="{{ $menuLien }}"><span>💚 Inviter des amis{{ config('referral.enabled') ? '' : ' (test)' }}</span></a>
+        @endif
         @if(\App\Support\LiveAcces::visible(auth()->user()))
             <a href="{{ route('live.index') }}" class="{{ $menuLien }}"><span>🔴 Ventes en direct{{ config('live.ouvert_a_tous') ? '' : ' (test)' }}</span></a>
         @endif

@@ -79,7 +79,7 @@ class AccountSettingsTest extends TestCase
 
         foreach (\App\Support\NotificationPreferences::CATEGORIES as $cle => $categorie) {
             // Ventes en direct : réglage caché tant que le live est en test.
-            $cle === 'lives'
+            in_array($cle, ['lives', 'parrainage'], true)
                 ? $reponse->assertDontSee($categorie['label'], false)
                 : $reponse->assertSee($categorie['label'], false);
         }

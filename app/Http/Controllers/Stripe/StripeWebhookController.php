@@ -87,12 +87,17 @@ class StripeWebhookController extends Controller
 
                 $paymentIntent = $event->data->object;
 
+                $concernees = Transaction::where('stripe_payment_intent_id', $paymentIntent->id)->pluck('id');
+
                 Transaction::where(
                     'stripe_payment_intent_id',
                     $paymentIntent->id
                 )->update([
                     'status' => 'cancelled',
                 ]);
+
+                // Parrainage : le crédit éventuellement utilisé est rendu.
+                Transaction::whereIn('id', $concernees)->get()->each(fn ($t) => \App\Support\ParrainageService::surStatut($t));
 
                 break;
 
@@ -102,12 +107,17 @@ class StripeWebhookController extends Controller
 
                 if (!empty($charge->payment_intent)) {
 
+                    $concernees = Transaction::where('stripe_payment_intent_id', $charge->payment_intent)->pluck('id');
+
                     Transaction::where(
                         'stripe_payment_intent_id',
                         $charge->payment_intent
                     )->update([
                         'status' => 'refunded',
                     ]);
+
+                    // Parrainage : crédit rendu, pas de récompense.
+                    Transaction::whereIn('id', $concernees)->get()->each(fn ($t) => \App\Support\ParrainageService::surStatut($t));
                 }
 
                 break;

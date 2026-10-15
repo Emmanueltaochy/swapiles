@@ -18,8 +18,8 @@ class InstallationsAppli
 {
     public const PLATEFORMES = ['ios' => 'iPhone / iPad', 'android' => 'Android'];
 
-    /** Enregistre une ouverture de l'appli. */
-    public static function ouverture(string $installId, string $plateforme): void
+    /** Enregistre une ouverture de l'appli. Renvoie true pour une nouvelle installation. */
+    public static function ouverture(string $installId, string $plateforme): bool
     {
         $maintenant = now();
 
@@ -30,14 +30,16 @@ class InstallationsAppli
         ]);
 
         if ($maj === 0) {
-            DB::table('app_installations')->insertOrIgnore([
+            return DB::table('app_installations')->insertOrIgnore([
                 'install_id' => $installId,
                 'platform' => $plateforme,
                 'ouvertures' => 1,
                 'premiere_ouverture_at' => $maintenant,
                 'derniere_ouverture_at' => $maintenant,
-            ]);
+            ]) > 0;
         }
+
+        return false;
     }
 
     /**

@@ -377,10 +377,12 @@ class AnalyticsMetrics
 
         // ============ REVENU / MARKETPLACE ============
         $paid = $inPeriod(Transaction::whereIn('status', ['paid', 'completed']));
-        $gmv = (float) (clone $paid)->sum('amount');
+        // Volume = payé par carte + crédit Swap'Îles utilisé (parrainage).
+        $credit = (float) (clone $paid)->sum('credit_utilise');
+        $gmv = (float) (clone $paid)->sum('amount') + $credit;
         $commission = (float) (clone $paid)->sum('commission');
         $protection = (float) (clone $paid)->sum('buyer_protection_fee');
-        $netRevenue = $commission + $protection;
+        $netRevenue = $commission + $protection - $credit;
         $paidCount = (clone $paid)->count();
         $aov = $paidCount > 0 ? $gmv / $paidCount : 0.0;
         $takeRate = $gmv > 0 ? $netRevenue / $gmv * 100 : 0.0;

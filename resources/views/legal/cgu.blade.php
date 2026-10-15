@@ -52,6 +52,11 @@
                 articles incombe aux membres vendeurs.
             </p>
 
+            @if(config('referral.enabled') || \App\Support\ParrainageService::actifPour(auth()->user()))
+                <h2 class="text-xl font-bold text-gray-900 pt-4">6 bis. Parrainage</h2>
+                <p>Le programme de parrainage est régi par ses <a href="{{ route('parrainage.conditions') }}" class="font-semibold text-teal-700">conditions particulières</a>, qui font partie des présentes CGU.</p>
+            @endif
+
             <h2 class="text-xl font-bold text-gray-900 pt-4">7. Résiliation</h2>
             <p>Vous pouvez fermer votre compte à tout moment. Swap'Îles peut suspendre un compte en cas de non-respect des CGU.</p>
 

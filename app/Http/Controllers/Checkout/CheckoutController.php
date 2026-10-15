@@ -77,6 +77,9 @@ class CheckoutController extends Controller
                 'offer' => $offer,
                 'itemAmount' => $offer ? (int) $offer->amount : (int) $listing->price,
                 'relayPoints' => $relayPoints,
+                // Parrainage : protection offerte au filleul, crédit du portefeuille.
+                'protectionOfferte' => \App\Support\ParrainageService::protectionOfferte(Auth::user()),
+                'creditDisponible' => \App\Support\Portefeuille::solde(Auth::user()),
             ]);
         }
 
@@ -196,16 +199,44 @@ class CheckoutController extends Controller
         }
 
         $pricing = OrderPricing::fromEuros($itemAmount, $shippingEuros, $relayFeeEuros);
+        $buyer = Auth::user();
+
+        // Parrainage : 1er achat d'un filleul → protection acheteur offerte.
+        if (\App\Support\ParrainageService::protectionOfferte($buyer)) {
+            $pricing = $pricing->sansProtection();
+        }
+
+        // Crédit du portefeuille (coché par défaut). Un crédit réservé par un
+        // paiement abandonné depuis plus de 15 min est d'abord libéré.
+        $piService = app(StripePaymentIntentService::class);
+        if ($request->boolean('utiliser_credit', true)) {
+            Transaction::where('buyer_id', $buyer->id)->where('status', 'pending')->where('credit_utilise', '>', 0)
+                ->where('created_at', '<', now()->subMinutes(15))->get()
+                ->each(function (Transaction $ancienne) use ($piService) {
+                    if ($ancienne->stripe_payment_intent_id) {
+                        $piService->annuler($ancienne->stripe_payment_intent_id);
+                    }
+                    $ancienne->update(['status' => 'cancelled']); // rend le crédit
+                });
+
+            $solde = \App\Support\Portefeuille::solde($buyer);
+            if ($solde > 0) {
+                $pricing = $pricing->avecCredit($solde);
+            }
+        }
 
         $transaction = Transaction::create([
             'listing_id' => $listing->id,
             'listing_offer_id' => $offer?->id,
             'seller_id' => $listing->user_id,
             'buyer_id' => Auth::id(),
-            'amount' => $pricing->totalEuros(),
+            // Montant débité sur la carte (total − crédit éventuel).
+            'amount' => $pricing->aPayerEuros(),
             'commission' => 0,
             'platform_commission' => 0,
             'buyer_protection_fee' => $pricing->protectionEuros(),
+            'protection_offerte' => $pricing->protectionOfferteEuros(),
+            'credit_utilise' => $pricing->creditEuros(),
             'shipping_fee' => $pricing->shippingEuros(),
             'seller_amount' => $pricing->sellerEuros(),
             'currency' => 'EUR',
@@ -249,13 +280,24 @@ class CheckoutController extends Controller
             $metadata['relay_point_id'] = $relayPoint->id;
         }
 
-        // Montant Stripe = total exact en centimes entiers (== total affiché).
-        // Item 9 : Customer réutilisé + reçu e-mail à l'acheteur, carte + Link.
-        $buyer = Auth::user();
-        $piService = app(StripePaymentIntentService::class);
+        // Crédit : réservé maintenant (rendu si la commande est annulée).
+        if ($pricing->creditCents() > 0) {
+            $utilise = \App\Support\Portefeuille::utiliser($buyer, $pricing->creditCents(), $transaction);
+            if ($utilise !== $pricing->creditCents()) {
+                // Le solde a bougé entre-temps : on recalcule avec ce qui a été pris.
+                $pricing = OrderPricing::fromEuros($itemAmount, $shippingEuros, $relayFeeEuros);
+                if ($transaction->protection_offerte > 0) {
+                    $pricing = $pricing->sansProtection();
+                }
+                $pricing = $pricing->avecCredit($utilise);
+                $transaction->update(['amount' => $pricing->aPayerEuros(), 'credit_utilise' => $pricing->creditEuros()]);
+            }
+        }
 
+        // Montant Stripe = montant exact à payer en centimes entiers (== affiché).
+        // Item 9 : Customer réutilisé + reçu e-mail à l'acheteur, carte + Link.
         $paymentIntent = $piService->create(
-            $pricing->totalCents(),
+            $pricing->aPayerCents(),
             $metadata,
             [
                 'customer' => $piService->resolveCustomerId($buyer),
@@ -278,6 +320,8 @@ class CheckoutController extends Controller
             'protection_eur' => $pricing->protectionEuros(),
             'shipping_eur' => $pricing->shippingEuros(),
             'total_eur' => $pricing->totalEuros(),
+            'credit_eur' => $pricing->creditEuros(),
+            'a_payer_eur' => $pricing->aPayerEuros(),
             'delivery_method' => $deliveryMethod,
             'buyer_id' => $buyer->id,
         ]);
@@ -290,9 +334,11 @@ class CheckoutController extends Controller
             'buyerProtectionFee' => $pricing->protectionEuros(),
             'shippingFee' => $pricing->shippingEuros(),
             'relayFee' => $pricing->relayFeeEuros(),
-            'totalAmount' => $pricing->totalEuros(),
+            'totalAmount' => $pricing->aPayerEuros(),
             'sellerAmount' => $pricing->sellerEuros(),
             'deliveryMethod' => $deliveryMethod,
+            'protectionOfferte' => $pricing->protectionOfferteEuros(),
+            'creditUtilise' => $pricing->creditEuros(),
         ]);
     }
 

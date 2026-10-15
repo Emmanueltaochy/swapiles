@@ -45,6 +45,13 @@ class User extends Authenticatable implements FilamentUser
 
     protected static function booted(): void
     {
+        // Chaque compte a son code de parrainage dès sa création (LEA974…).
+        static::creating(function ($user) {
+            if (empty($user->code_parrainage)) {
+                $user->code_parrainage = \App\Support\CodeParrainage::generer((string) $user->name, $user->territoire);
+            }
+        });
+
         static::created(function ($user) {
             AdminEvent::notify(
                 'Nouvel utilisateur inscrit',

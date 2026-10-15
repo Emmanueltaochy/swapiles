@@ -46,6 +46,7 @@
             @foreach(\App\Support\NotificationPreferences::CATEGORIES as $cle => $categorie)
                 {{-- Ventes en direct : seulement pour ceux qui y ont accès (phase de test). --}}
                 @continue($cle === 'lives' && ! \App\Support\LiveAcces::visible(auth()->user()))
+                @continue($cle === 'parrainage' && ! \App\Support\ParrainageService::actifPour(auth()->user()))
                 <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-4">
                     <input type="hidden" name="notification_prefs[{{ $cle }}][affiche]" value="1">
                     <div class="min-w-0">

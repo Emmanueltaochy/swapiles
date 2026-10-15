@@ -48,6 +48,9 @@ class TransactionPayment
 
         self::createOnSiteNotifications($fresh);
 
+        // Parrainage (mise à jour directe en base : pas d'événement du modèle).
+        \App\Support\ParrainageService::surStatut($fresh);
+
         // E-mails fiables (Mail::raw) à l'acheteur ET au vendeur — même
         // mécanisme que les autres étapes (« expédié », « reçu »…), qui, lui,
         // fonctionne bien en prod.

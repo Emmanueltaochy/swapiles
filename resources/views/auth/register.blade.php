@@ -28,6 +28,12 @@
                 </div>
             @endif
 
+            @if($parrainInvitant ?? null)
+                <div class="mt-5 rounded-xl border border-teal-100 bg-teal-50 p-4 text-sm text-teal-900">
+                    🎁 <strong>{{ $parrainInvitant }}</strong> t’invite sur Swap’Îles : tes frais de protection seront <strong>offerts</strong> sur ton 1er achat !
+                </div>
+            @endif
+
             <form method="POST" action="{{ route('register.store') }}" class="mt-6 space-y-4">
                 @csrf
                 <input type="hidden" name="device_fingerprint" value="">
@@ -138,6 +144,17 @@
                         document.getElementById('comment_connu_autre_wrap').style.display = (value === 'Autre') ? 'block' : 'none';
                     }
                 </script>
+
+                @if($parrainageVisible ?? false)
+                    <div>
+                        <label for="code_parrainage" class="mb-1 block text-sm font-semibold text-gray-700">Code de parrainage <span class="font-normal text-gray-400">(facultatif)</span></label>
+                        <input id="code_parrainage" type="text" name="code_parrainage" value="{{ old('code_parrainage', $codeParrainage ?? '') }}" maxlength="20" autocomplete="off" autocapitalize="characters"
+                               placeholder="Ex : LEA974"
+                               class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 uppercase outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100 @error('code_parrainage') border-red-300 @enderror">
+                        @error('code_parrainage')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                        <p class="mt-1 text-xs text-gray-500">Un ami t’a invité ? Avec son code, ta protection acheteur est offerte sur ton 1er achat.</p>
+                    </div>
+                @endif
 
                 <button class="w-full rounded-xl bg-teal-600 px-5 py-3 font-semibold text-white transition hover:bg-teal-700 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
                     Créer mon compte

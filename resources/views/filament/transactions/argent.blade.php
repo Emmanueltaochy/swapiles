@@ -13,9 +13,15 @@
 <div class="tx-lignes">
     <div class="tx-ligne"><span>Prix de l'article</span><span>{{ $e($a['prix_article']) }}</span></div>
     <div class="tx-ligne"><span>Protection acheteur</span><span>{{ $e($a['protection']) }}</span></div>
+    @if(($a['protection_offerte'] ?? 0) > 0)
+        <div class="tx-ligne"><span>🎁 Protection offerte (parrainage)</span><span>{{ $e($a['protection_offerte']) }} non facturés</span></div>
+    @endif
     <div class="tx-ligne"><span>Livraison</span><span>{{ $e($a['livraison']) }}</span></div>
     @if($a['frais_relais'] > 0)
         <div class="tx-ligne"><span>Frais point relais</span><span>{{ $e($a['frais_relais']) }}</span></div>
+    @endif
+    @if(($a['credit_utilise'] ?? 0) > 0)
+        <div class="tx-ligne"><span>💚 Crédit Swap'Îles utilisé (payé par Swap'Îles)</span><span>− {{ $e($a['credit_utilise']) }}</span></div>
     @endif
     <div class="tx-ligne" style="font-size:.95rem;"><span style="opacity:1;font-weight:800;">Payé par l'acheteur</span><span style="font-weight:800;">{{ $e($a['total_acheteur']) }}</span></div>
 </div>

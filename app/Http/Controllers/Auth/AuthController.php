@@ -24,8 +24,18 @@ class AuthController extends Controller
     {
         $this->rememberIntendedFrom($request);
 
+        // Parrainage : code capté par un lien d'invitation (ou le lien différé).
+        $capte = \App\Support\ParrainageService::codeCapte($request);
+        $parrain = $capte['code'] ? \App\Support\ParrainageService::parrainDuCode($capte['code']) : null;
+        if ($parrain && ! \App\Support\ParrainageService::actifPour($parrain)) {
+            $parrain = null;
+        }
+
         return view('auth.register', [
             'territoirePreselect' => TerritoireContext::resolve($request),
+            'parrainageVisible' => config('referral.enabled') || $parrain !== null,
+            'codeParrainage' => $parrain?->code_parrainage,
+            'parrainInvitant' => $parrain ? \App\Support\ParrainageService::prenom($parrain) : null,
         ]);
     }
 
@@ -137,6 +147,12 @@ class AuthController extends Controller
             'reseaux' => ['nullable', 'array'],
             'reseaux.*' => ['string', 'max:50'],
             'territoire' => ['required', 'string', 'in:La Réunion,Martinique,Guadeloupe,Guyane,Mayotte'],
+            'code_parrainage' => ['nullable', 'string', 'max:20', function ($attribute, $value, $fail) {
+                $parrain = \App\Support\ParrainageService::parrainDuCode($value);
+                if (! $parrain || ! \App\Support\ParrainageService::actifPour($parrain)) {
+                    $fail('Ce code de parrainage n’existe pas. Vérifie-le ou laisse le champ vide.');
+                }
+            }],
         ]);
 
         $commentConnu = $data['comment_connu'] ?? null;
@@ -170,6 +186,22 @@ class AuthController extends Controller
 
         \App\Models\UserSession::record($user->id, $request, 'registration');
 
+        // Parrainage : rattachement au parrain (jamais bloquant pour l'inscription).
+        $parrainageGa = null;
+        if (! empty($data['code_parrainage'])) {
+            try {
+                $capte = \App\Support\ParrainageService::codeCapte($request);
+                $source = $capte['code'] === \App\Support\CodeParrainage::normaliser($data['code_parrainage']) ? $capte['source'] : 'saisie';
+                if (\App\Support\ParrainageService::attacher($user, $data['code_parrainage'], $source) === null) {
+                    $parrainageGa = ['event' => 'referral_signup', 'params' => ['source' => $source]];
+                }
+                $request->session()->forget(['parrainage_code', 'parrainage_source']);
+                \Illuminate\Support\Facades\Cookie::queue(\Illuminate\Support\Facades\Cookie::forget(config('referral.cookie')));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
         try {
             // Deux e-mails distincts, volontairement : la confirmation d'adresse
             // part seule (texte + HTML, un seul lien) pour arriver à coup sûr,
@@ -185,6 +217,7 @@ class AuthController extends Controller
         return redirect()->intended(route('account.dashboard'))
             ->with('status', "Bienvenue sur Swap'Îles ! Un e-mail de bienvenue vient de vous être envoyé.")
             ->with('pixel_event', ['event' => 'CompleteRegistration', 'params' => []])
+            ->with('ga_event', $parrainageGa)
             ->withCookie(TerritoireContext::cookie($data['territoire']));
     }
 

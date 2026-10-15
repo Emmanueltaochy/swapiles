@@ -45,7 +45,11 @@
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-500">Protection acheteur 🛡️</span>
-                                <span class="font-semibold text-teal-700">{{ number_format($buyerProtectionFee ?? 0, 2, ',', ' ') }} €</span>
+                                @if(($protectionOfferte ?? 0) > 0)
+                                    <span class="text-right font-semibold text-emerald-700"><span class="mr-1 text-xs text-gray-400 line-through">{{ number_format($protectionOfferte, 2, ',', ' ') }} €</span> offerte (parrainage) 🎁</span>
+                                @else
+                                    <span class="font-semibold text-teal-700">{{ number_format($buyerProtectionFee ?? 0, 2, ',', ' ') }} €</span>
+                                @endif
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-500">
@@ -69,6 +73,12 @@
                                     <span class="font-semibold text-gray-900">{{ number_format($shippingFee ?? 0, 2, ',', ' ') }} €</span>
                                 @endif
                             </div>
+                            @if(($creditUtilise ?? 0) > 0)
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500">Crédit Swap’Îles 💚</span>
+                                    <span class="font-semibold text-emerald-700">− {{ number_format($creditUtilise, 2, ',', ' ') }} €</span>
+                                </div>
+                            @endif
                             <div class="flex items-center justify-between border-t border-gray-100 pt-3">
                                 <span class="text-base font-bold text-gray-900">Total à payer</span>
                                 <span class="text-2xl font-bold text-teal-700">{{ number_format($totalAmount ?? $listing->price, 2, ',', ' ') }} €</span>

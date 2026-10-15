@@ -290,6 +290,12 @@
         @php
             $mesAbonnes = $user->followers()->count();
             $conceptEntrees = array_values(array_filter([
+                \App\Support\ParrainageService::actifPour($user) ? [
+                    'url' => route('parrainage.index'),
+                    'icone' => '💚',
+                    'label' => 'Inviter des amis',
+                    'aide' => 'Leur protection acheteur est offerte, et toi tu gagnes du crédit',
+                ] : null,
                 [
                     'url' => route('profiles.show', $user),
                     'icone' => '📣',

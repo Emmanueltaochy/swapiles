@@ -60,6 +60,29 @@
                 refuser, ou modifier votre choix en supprimant les cookies du site dans votre navigateur.
             </p>
 
+            @if(config('referral.enabled') || \App\Support\ParrainageService::actifPour(auth()->user()))
+                <h2 class="text-xl font-bold text-gray-900 pt-4">8. Programme de parrainage</h2>
+                <p>
+                    Si vous invitez un proche ou êtes invité, nous traitons : votre <strong>code de parrainage</strong>, le lien
+                    entre parrain et filleul, l'avancement du filleul (inscription, 1er achat terminé) et les crédits de votre
+                    portefeuille. Base légale : l'exécution du programme auquel vous participez (<a href="{{ route('parrainage.conditions') }}" class="font-semibold text-teal-700">conditions du parrainage</a>).
+                </p>
+                <p>
+                    <strong>Lien d'invitation.</strong> Quand un lien d'invitation est ouvert, nous enregistrons l'adresse IP sous
+                    une forme <strong>chiffrée et irréversible</strong>, le type d'appareil et la date, uniquement pour retrouver le
+                    code si l'application est installée juste après. Ces données sont <strong>effacées automatiquement après 7 jours</strong>.
+                    Un cookie garde le code de parrainage pendant 30 jours au plus, jusqu'à l'inscription.
+                </p>
+                <p>
+                    <strong>Prévention de la fraude.</strong> Avant de verser une récompense, nous vérifions que parrain et filleul
+                    sont deux personnes différentes : identifiant d'appareil, empreinte de la carte bancaire fournie par notre
+                    prestataire de paiement Stripe (jamais le numéro de carte), adresse e-mail et numéro de téléphone. Ces
+                    contrôles sont automatiques ; une récompense refusée peut être réexaminée sur simple demande à
+                    <a href="mailto:contact@swapiles.com" class="font-semibold text-teal-700">contact@swapiles.com</a>.
+                    Le parrain ne voit de son filleul que son prénom, l'initiale de son nom et l'étape atteinte.
+                </p>
+            @endif
+
         </div>
     </div>
 </section>

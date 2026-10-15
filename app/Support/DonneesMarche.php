@@ -73,7 +73,8 @@ class DonneesMarche
     private static function revenus($ventes): float
     {
         return (float) (clone $ventes)->sum('buyer_protection_fee') + (float) (clone $ventes)->sum('commission')
-            + max(0.0, (float) (clone $ventes)->sum('relay_fee') - (float) (clone $ventes)->sum('relay_merchant_fee'));
+            + max(0.0, (float) (clone $ventes)->sum('relay_fee') - (float) (clone $ventes)->sum('relay_merchant_fee'))
+            - (float) (clone $ventes)->sum('credit_utilise');
     }
 
     /** Jours moyens entre la mise en ligne et la vente (toutes ventes conclues). */

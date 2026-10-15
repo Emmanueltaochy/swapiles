@@ -24,7 +24,63 @@ class OrderPricing
         public readonly int $protectionCents,
         public readonly int $shippingCents,
         public readonly int $relayFeeCents = 0,
+        // Parrainage : protection acheteur offerte (montant non facturé).
+        public readonly int $protectionOfferteCents = 0,
+        // Crédit du portefeuille déduit du total (payé par Swap'Îles).
+        public readonly int $creditCents = 0,
     ) {
+    }
+
+    /**
+     * Parrainage : la protection acheteur est offerte au filleul. Le montant
+     * offert est gardé pour l'affichage et le suivi.
+     */
+    public function sansProtection(): self
+    {
+        return new self($this->itemCents, 0, $this->shippingCents, $this->relayFeeCents, $this->protectionCents + $this->protectionOfferteCents, 0);
+    }
+
+    /**
+     * Crédit du portefeuille, plafonné pour laisser au moins le minimum
+     * accepté par Stripe (0,50 €) à payer par carte.
+     */
+    public function avecCredit(int $disponibleCents): self
+    {
+        $minimum = (int) config('referral.paiement_minimum_centimes', 50);
+        $credit = max(0, min($disponibleCents, $this->totalCents() - $minimum));
+
+        return new self($this->itemCents, $this->protectionCents, $this->shippingCents, $this->relayFeeCents, $this->protectionOfferteCents, $credit);
+    }
+
+    public function protectionOfferteCents(): int
+    {
+        return $this->protectionOfferteCents;
+    }
+
+    public function creditCents(): int
+    {
+        return $this->creditCents;
+    }
+
+    /** Montant réellement débité sur la carte (total − crédit). */
+    public function aPayerCents(): int
+    {
+        return $this->totalCents() - $this->creditCents;
+    }
+
+    public function protectionOfferteEuros(): float
+    {
+        return $this->protectionOfferteCents / 100;
+    }
+
+    public function creditEuros(): float
+    {
+        return $this->creditCents / 100;
+    }
+
+    public function aPayerEuros(): float
+    {
+        return $this->aPayerCents() / 100;
     }
 
     /** Construit depuis des montants en CENTIMES. */

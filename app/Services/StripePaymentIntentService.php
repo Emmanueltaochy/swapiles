@@ -49,6 +49,34 @@ class StripePaymentIntentService
         return $this->client()->paymentIntents->create($params);
     }
 
+    /** Empreinte de la carte utilisée (même carte = même personne), ou null. */
+    public function carteEmpreinte(string $paymentIntentId): ?string
+    {
+        if (blank(env('STRIPE_SECRET'))) {
+            return null;
+        }
+
+        $pi = $this->client()->paymentIntents->retrieve($paymentIntentId, ['expand' => ['payment_method']]);
+
+        return $pi->payment_method->card->fingerprint ?? null;
+    }
+
+    /** Annule un paiement en attente (ignoré si Stripe n'est pas configuré). */
+    public function annuler(string $paymentIntentId): void
+    {
+        if (blank(env('STRIPE_SECRET'))) {
+            return;
+        }
+
+        try {
+            $this->client()->paymentIntents->cancel($paymentIntentId);
+        } catch (\Throwable $e) {
+            // Déjà annulé, ou payé entre-temps : le webhook « payé » ne
+            // trouvera plus la commande en attente ; on le signale à l'admin.
+            report($e);
+        }
+    }
+
     /**
      * Renvoie l'id du Customer Stripe de l'acheteur, en le créant au besoin puis
      * en le mémorisant sur le user pour réutilisation. Renvoie null si Stripe

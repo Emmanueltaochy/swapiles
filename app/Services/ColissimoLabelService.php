@@ -97,11 +97,12 @@ class ColissimoLabelService
         $isOverseas = str_starts_with($senderZip, '97') || str_starts_with((string) $buyerZip, '97');
 
         if ($isOverseas) {
+            // Prix de l'article (un crédit de parrainage ne change rien au contenu).
             $itemValue = max(
                 1,
-                (float) $transaction->amount
-                - (float) $transaction->buyer_protection_fee
-                - (float) $transaction->shipping_fee
+                (float) $transaction->seller_amount > 0
+                    ? (float) $transaction->seller_amount
+                    : (float) $transaction->amount - (float) $transaction->buyer_protection_fee - (float) $transaction->shipping_fee
             );
 
             $payload['letter']['customsDeclarations'] = [

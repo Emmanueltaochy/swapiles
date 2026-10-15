@@ -184,8 +184,10 @@ class TableauDeBord
         // les revenus se calculent sur toutes les ventes, sans risque de gonfler.
         // Revenus = protection + commission + part Swap'Îles des frais de point
         // relais (le reste va au commerçant) ; même règle que FicheTransaction.
+        // Moins le crédit de parrainage utilisé par les acheteurs (payé par Swap'Îles).
         $revenus = (float) (clone $vendues)->sum('buyer_protection_fee') + (float) (clone $vendues)->sum('commission')
-            + max(0.0, (float) (clone $vendues)->sum('relay_fee') - (float) (clone $vendues)->sum('relay_merchant_fee'));
+            + max(0.0, (float) (clone $vendues)->sum('relay_fee') - (float) (clone $vendues)->sum('relay_merchant_fee'))
+            - (float) (clone $vendues)->sum('credit_utilise');
         $especes = (clone $vendues)->where('payment_method', 'especes')->whereNull('acheteur_conteste_at');
 
         return [

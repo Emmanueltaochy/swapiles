@@ -25,6 +25,10 @@ class Transaction extends Model
         'seller_amount',
         'shipping_fee',
         'buyer_protection_fee',
+        // Parrainage : protection offerte, crédit utilisé, empreinte de carte (anti-fraude).
+        'protection_offerte',
+        'credit_utilise',
+        'carte_empreinte',
         'delivery_method',
         'pickup_type',
         'pickup_country',
@@ -228,6 +232,12 @@ class Transaction extends Model
 
         static::updated(function (Transaction $transaction) {
             $transaction->sendSellerPaidEmailIfNeeded();
+
+            // Parrainage : 1er achat payé, terminé (récompense) ou annulé
+            // (crédit rendu). Ne bloque jamais la commande.
+            if ($transaction->wasChanged('status')) {
+                \App\Support\ParrainageService::surStatut($transaction);
+            }
         });
     }
 

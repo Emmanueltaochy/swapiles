@@ -37,6 +37,12 @@ class NotificationPreferences
             'types' => ['seller_published_listing', 'listing_available_colissimo'],
             'defaut' => true,
         ],
+        'parrainage' => [
+            'label' => 'Parrainage',
+            'description' => 'Quand un ami s’inscrit avec ton lien, ta récompense, et avant qu’un crédit expire.',
+            'types' => ['referral_joined', 'referral_welcome', 'referral_reward', 'wallet_expiring'],
+            'defaut' => true,
+        ],
         'lives' => [
             'label' => 'Ventes en direct',
             'description' => 'Quand un live que vous attendez commence, ou qu’un dressing que vous suivez lance un live.',

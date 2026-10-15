@@ -44,15 +44,18 @@ class FicheTransaction
         $relais = $c($t->relay_fee);
         $partCommercant = min($relais, $c($t->relay_merchant_fee));
         $partRelaisSwapiles = $relais - $partCommercant;
+        // Parrainage : crédit déduit du total (payé par Swap'Îles) et protection offerte.
+        $credit = $c($t->credit_utilise ?? 0);
+        $protectionOfferte = $c($t->protection_offerte ?? 0);
 
-        $revenu = $protection + $commission + $partRelaisSwapiles;
+        $revenu = $protection + $commission + $partRelaisSwapiles - $credit;
         $enLigne = ! $t->estDeclaree();
         $fraisStripe = $enLigne && $total > 0
             ? (int) round($total * self::FRAIS_STRIPE_POURCENT + self::FRAIS_STRIPE_FIXE * 100)
             : 0;
 
         // Ce que l'acheteur aurait dû payer d'après le détail enregistré.
-        $attendu = $vendeur + $commission + $protection + $livraison + $relais;
+        $attendu = $vendeur + $commission + $protection + $livraison + $relais - $credit;
 
         $e = fn (int $centimes): float => round($centimes / 100, 2);
 
@@ -66,6 +69,8 @@ class FicheTransaction
             'frais_relais' => $e($relais),
             'part_commercant' => $e($partCommercant),
             'part_relais_swapiles' => $e($partRelaisSwapiles),
+            'credit_utilise' => $e($credit),
+            'protection_offerte' => $e($protectionOfferte),
             'revenu_swapiles' => $e($revenu),
             'frais_stripe_estimes' => $e($fraisStripe),
             'marge_estimee' => $e($revenu - $fraisStripe),

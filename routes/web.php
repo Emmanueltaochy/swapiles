@@ -76,7 +76,17 @@ Route::post('/appli/installation', function (\Illuminate\Http\Request $request) 
         'plateforme' => ['required', 'in:ios,android'],
     ]);
 
-    \App\Support\InstallationsAppli::ouverture($donnees['id'], $donnees['plateforme']);
+    $nouvelle = \App\Support\InstallationsAppli::ouverture($donnees['id'], $donnees['plateforme']);
+
+    // Parrainage, lien différé : l'appli vient d'être installée après un
+    // clic sur un lien d'invitation (même connexion) → code pré-rempli.
+    if ($nouvelle) {
+        try {
+            \App\Support\ParrainageService::apparierInstallation($request, $donnees['plateforme']);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
 
     return response()->noContent();
 })->middleware('throttle:20,1')->name('app.installation');
@@ -125,6 +135,18 @@ Route::get('/cgv', [\App\Http\Controllers\LegalController::class, 'cgv'])->name(
 Route::get('/confidentialite', [\App\Http\Controllers\LegalController::class, 'confidentialite'])->name('legal.privacy');
 Route::get('/faq', [\App\Http\Controllers\LegalController::class, 'faq'])->name('faq');
 Route::get('/meilleurs-dressings', [\App\Http\Controllers\LeaderboardController::class, 'index'])->name('dressings.top');
+// Parrainage (désactivé par défaut : REFERRAL_ENABLED ; admins et testeurs en avance).
+Route::get('/invite/{code}', [\App\Http\Controllers\ParrainageController::class, 'invite'])
+    ->where('code', '[A-Za-z0-9]{2,20}')->middleware('throttle:60,1')->name('parrainage.invite');
+Route::get('/conditions-parrainage', [\App\Http\Controllers\ParrainageController::class, 'conditions'])->name('parrainage.conditions');
+Route::middleware('auth')->group(function () {
+    Route::get('/mon-compte/parrainage', [\App\Http\Controllers\ParrainageController::class, 'index'])->name('parrainage.index');
+    Route::post('/mon-compte/parrainage/code', [\App\Http\Controllers\ParrainageController::class, 'saisir'])->middleware('throttle:10,1')->name('parrainage.saisir');
+    Route::post('/mon-compte/parrainage/personnaliser', [\App\Http\Controllers\ParrainageController::class, 'personnaliser'])->middleware('throttle:10,1')->name('parrainage.personnaliser');
+    Route::post('/mon-compte/parrainage/partage', [\App\Http\Controllers\ParrainageController::class, 'partage'])->middleware('throttle:30,1')->name('parrainage.partage');
+    Route::get('/mon-compte/portefeuille', [\App\Http\Controllers\ParrainageController::class, 'portefeuille'])->name('parrainage.portefeuille');
+});
+
 // Vente en direct (live shopping). Phase de test : réservé aux admins et
 // testeurs (LiveVisible), introuvable pour tous les autres.
 Route::prefix('live')->middleware(\App\Http\Middleware\LiveVisible::class)->name('live.')->group(function () {

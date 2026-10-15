@@ -72,7 +72,15 @@
                                 <span class="text-gray-500">Prix article</span>
                                 <span class="font-semibold text-gray-900">{{ number_format($itemAmount, 0, ',', ' ') }} €</span>
                             </div>
-                            <p class="text-xs text-gray-400">Protection acheteur et livraison calculées à l'étape suivante.</p>
+                            @if($protectionOfferte ?? false)
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500">Protection acheteur 🛡️</span>
+                                    <span class="font-semibold text-emerald-700">offerte (parrainage) 🎁</span>
+                                </div>
+                                <p class="text-xs text-gray-400">Livraison calculée à l'étape suivante.</p>
+                            @else
+                                <p class="text-xs text-gray-400">Protection acheteur et livraison calculées à l'étape suivante.</p>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -307,6 +315,15 @@
                                     <input type="hidden" name="shipping_country" value="France">
                                 </div>
                             </div>
+                        @endif
+
+                        @if(($creditDisponible ?? 0) > 0)
+                            <label class="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+                                <input type="hidden" name="utiliser_credit" value="0">
+                                <input type="checkbox" name="utiliser_credit" value="1" checked class="mt-0.5 h-5 w-5 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500">
+                                <span><strong>Utiliser mon crédit Swap’Îles 💚</strong> ({{ number_format($creditDisponible / 100, 2, ',', ' ') }} € disponibles)<br>
+                                    <span class="text-xs text-emerald-800">Déduit du total ; il reste au minimum 0,50 € à payer par carte.</span></span>
+                            </label>
                         @endif
 
                         <button class="w-full rounded-xl bg-teal-600 px-6 py-4 font-semibold text-white shadow-sm transition hover:bg-teal-700 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">

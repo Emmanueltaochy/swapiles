@@ -104,7 +104,8 @@ class PushNotificationTest extends TestCase
         Queue::assertPushed(SendPushBroadcast::class, function (SendPushBroadcast $job) use ($user) {
             return $job->userId === $user->id
                 && $job->title === 'Nouveau message 💬'
-                && $job->url === '/messages';
+                // Lien suivi : « ?pn= » permet de compter le clic (journal admin).
+                && $job->url === '/messages?pn=' . $job->envoiId;
         });
     }
 

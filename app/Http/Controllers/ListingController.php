@@ -37,7 +37,7 @@ class ListingController extends Controller
             \App\Support\Recommandations::noterConsultation($request->user(), $listing);
         }
 
-        $listing->loadCount('favoritedBy');
+        $listing->loadCount(['favorisRecus as favorited_by_count']);
         $listing->load(['images' => fn($q) => $q->orderBy('order')]);
 
         return view('listings.show', [

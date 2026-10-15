@@ -63,9 +63,11 @@ class Recommandations
         $poidsParAnnonce = [];
 
         DB::table('favorites')
-            ->where('user_id', $membre->id)
-            ->where('created_at', '>=', $depuis)
-            ->pluck('listing_id')
+            ->where('favorites.user_id', $membre->id)
+            ->where('favorites.created_at', '>=', $depuis)
+            // Ses propres annonces en favori ne disent rien de ses goûts.
+            ->whereNotIn('favorites.listing_id', fn ($q) => $q->select('id')->from('listings')->where('user_id', $membre->id))
+            ->pluck('favorites.listing_id')
             ->each(function ($id) use (&$poidsParAnnonce) {
                 $poidsParAnnonce[$id] = ($poidsParAnnonce[$id] ?? 0) + self::POIDS_FAVORI;
             });
@@ -156,7 +158,7 @@ class Recommandations
 
         $requete = Listing::query()
             ->with(['images', 'user'])
-            ->withCount('favoritedBy')
+            ->withCount(['favorisRecus as favorited_by_count'])
             ->where('status', 'published')
             ->where('user_id', '!=', $membre->id)
             ->whereHas('images')

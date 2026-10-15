@@ -42,7 +42,26 @@ class Notification extends Model
             // Sans ce garde-fou, le seul moyen d'arrêter les notifications
             // était de supprimer son compte.
             $destinataire = $notification->user;
+            $url = $notification->clickUrl();
+            $url = $url === '#' ? null : $url;
+
+            // Journal des notifications push (admin) : chaque décision y est
+            // notée, y compris celles qui ne partent pas.
+            $journal = fn (string $statut, ?string $raison = null, $prevu = null) => \App\Support\PushSuivi::journaliser([
+                'user_id' => $notification->user_id,
+                'notification_id' => $notification->id,
+                'type' => $notification->type,
+                'titre' => $notification->title ?: "Swap'Îles",
+                'message' => (string) $notification->message,
+                'url' => $url,
+                'statut' => $statut,
+                'raison' => $raison,
+                'prevu_at' => $prevu,
+            ]);
+
             if ($destinataire && ! $destinataire->accepteNotification($notification->type, 'push')) {
+                $journal('coupe', 'Catégorie désactivée dans ses réglages');
+
                 return;
             }
 
@@ -53,16 +72,21 @@ class Notification extends Model
             if ($decision['action'] === 'ignorer') {
                 // La notification reste consultable dans l'app : seul le signal
                 // sonore est supprimé.
+                $journal('ignore', $decision['raison']);
+
                 return;
             }
 
-            $url = $notification->clickUrl();
+            $suivi = $decision['action'] === 'differer'
+                ? $journal('differe', $decision['raison'], $decision['envoi_a'])
+                : $journal('en_file');
 
             $envoi = \App\Jobs\SendPushBroadcast::dispatch(
                 title: $notification->title ?: "Swap'Îles",
                 body: (string) $notification->message,
-                url: $url === '#' ? null : $url,
+                url: \App\Support\PushSuivi::lien($url, $suivi->id),
                 userId: $notification->user_id,
+                envoiId: $suivi->id,
             );
 
             if ($decision['action'] === 'differer' && $decision['envoi_a']) {

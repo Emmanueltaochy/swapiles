@@ -20,7 +20,7 @@ class TopAnnonces extends TableWidget
     public function table(Table $table): Table
     {
         return $table
-            ->query(Listing::query()->with('user')->withCount('favoritedBy')->where('status', 'published')->orderByDesc('views_count')->limit(8))
+            ->query(Listing::query()->with('user')->withCount(['favorisRecus as favorited_by_count'])->where('status', 'published')->orderByDesc('views_count')->limit(8))
             ->paginated(false)
             ->recordUrl(fn (Listing $l) => ListingResource::getUrl('view', ['record' => $l]))
             ->columns([

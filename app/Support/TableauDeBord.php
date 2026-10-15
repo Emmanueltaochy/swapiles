@@ -162,8 +162,19 @@ class TableauDeBord
     /** @return array<string,float|int> */
     public static function periode(?string $periode): array
     {
-        $debut = self::debut($periode);
-        $depuis = fn ($q) => $debut ? $q->where('created_at', '>=', $debut) : $q;
+        return self::entre(self::debut($periode), null)
+            + ['annonces_en_ligne' => Listing::where('status', 'published')->count()];
+    }
+
+    /**
+     * Chiffres entre deux dates (bornes facultatives) : même calcul pour la
+     * période du tableau de bord et pour une journée du calendrier.
+     */
+    public static function entre(?Carbon $debut, ?Carbon $fin): array
+    {
+        $depuis = fn ($q) => $q
+            ->when($debut, fn ($q) => $q->where('created_at', '>=', $debut))
+            ->when($fin, fn ($q) => $q->where('created_at', '<', $fin));
 
         $vendues = $depuis(Transaction::query()->whereIn('status', self::STATUTS_VENDUS));
         $ventes = (clone $vendues)->enLigne();
@@ -180,7 +191,6 @@ class TableauDeBord
         return [
             'inscriptions' => $depuis(User::query())->count(),
             'annonces' => $depuis(Listing::query())->count(),
-            'annonces_en_ligne' => Listing::where('status', 'published')->count(),
             'ventes' => $nbVentes,
             'volume' => $volume,
             'revenus' => $revenus,

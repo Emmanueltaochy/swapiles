@@ -188,6 +188,21 @@ class Listing extends Model
     }
 
     /**
+     * Favoris venant des AUTRES membres. Beaucoup de vendeurs mettent leurs
+     * propres annonces en favori pour les retrouver : c'est permis, mais ça
+     * ne doit gonfler ni le compteur ❤️ affiché, ni les statistiques.
+     *
+     * À utiliser dans withCount() / loadCount() (la condition compare avec
+     * la table listings de la requête principale) :
+     *   ->withCount(['favorisRecus as favorited_by_count'])
+     */
+    public function favorisRecus()
+    {
+        return $this->belongsToMany(User::class, 'favorites')
+            ->whereColumn('favorites.user_id', '!=', 'listings.user_id');
+    }
+
+    /**
      * Point 18 — acheteurs plausibles pour une vente en espèces : les personnes
      * qui ont mis l'annonce en favori OU qui ont échangé des messages à son
      * sujet, hors vendeur. Sert à capter QUI a acheté sur une vente cash.

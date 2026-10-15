@@ -19,7 +19,7 @@ class RecommendationController extends Controller
 
         $envoyees = Listing::query()
             ->with(['images', 'user'])
-            ->withCount('favoritedBy')
+            ->withCount(['favorisRecus as favorited_by_count'])
             ->where('status', 'published')
             ->whereIn('id', fn ($q) => $q->select('listing_id')
                 ->from('recommandations')

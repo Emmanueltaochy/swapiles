@@ -48,6 +48,8 @@ class DressingLeaderboard
         $favorites = DB::table('favorites')
             ->join('listings', 'favorites.listing_id', '=', 'listings.id')
             ->whereIn('listings.user_id', $sellerIds)
+            // Ses propres annonces mises en favori ne comptent pas.
+            ->whereColumn('favorites.user_id', '!=', 'listings.user_id')
             ->groupBy('listings.user_id')
             ->selectRaw('listings.user_id as uid, COUNT(*) as c')
             ->pluck('c', 'uid');

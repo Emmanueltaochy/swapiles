@@ -30,7 +30,9 @@ class RemindFavorites extends Command
             ->where('created_at', '<=', $olderThan)
             ->where('created_at', '>=', $notBefore)
             // L'article doit toujours exister et être en ligne (ni vendu, ni masqué).
-            ->whereHas('listing', fn ($q) => $q->where('status', 'published'));
+            ->whereHas('listing', fn ($q) => $q->where('status', 'published'))
+            // Pas de rappel sur sa propre annonce (mise en favori pour la retrouver).
+            ->whereNotIn('listing_id', fn ($q) => $q->select('id')->from('listings')->whereColumn('listings.user_id', 'favorites.user_id'));
 
         $total = (clone $query)->count();
         $this->info("Favoris éligibles au rappel : {$total}");

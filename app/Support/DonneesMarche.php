@@ -134,6 +134,7 @@ class DonneesMarche
 
         $favoris = DB::table('favorites')->join('listings', 'listings.id', '=', 'favorites.listing_id')
             ->whereNotNull('listings.category_level1')
+            ->whereColumn('favorites.user_id', '!=', 'listings.user_id')
             ->selectRaw('listings.category_level1 as cat, COUNT(*) as n')->groupBy('cat')->pluck('n', 'cat');
 
         $ventes = Transaction::query()->whereIn('transactions.status', self::STATUTS_CONCLUS)

@@ -201,77 +201,77 @@
                 </a>
             </div>
 
-            <div class="divide-y divide-gray-100">
-                @forelse($listings as $listing)
-                    <div class="flex flex-col sm:flex-row gap-4 sm:items-center p-4">
-                        <a href="{{ route('listings.show', $listing) }}"
-                           class="block w-full sm:w-20 h-44 sm:h-20 shrink-0 overflow-hidden rounded-xl bg-gray-100">
-                            @if($listing->images->first())
-                                <img src="{{ $listing->images->first()->url }}" alt="{{ $listing->title }}"
-                                     class="h-full w-full object-cover" loading="lazy" decoding="async">
-                            @else
-                                <div class="grid h-full w-full place-items-center text-2xl text-gray-300" aria-hidden="true">📦</div>
-                            @endif
-                        </a>
-
-                        <div class="flex-1 min-w-0">
-                            <p class="font-semibold text-gray-900 truncate">{{ $listing->title }}</p>
-                            <p class="mt-1 text-sm text-gray-500">
-                                {{ $listing->price > 0 ? number_format($listing->price, 0, ',', ' ') . ' €' : 'Gratuit' }}
-                                · 👀 {{ (int) $listing->views_count }}
-                                · ❤️ {{ (int) ($listing->favorited_by_count ?? 0) }}
-                            </p>
-                            <span class="mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold
-                                @if($listing->status === 'published') bg-teal-50 text-teal-700
-                                @elseif($listing->status === 'sold') bg-gray-100 text-gray-600
-                                @else bg-amber-50 text-amber-700 @endif">
-                                @if($listing->status === 'published') En ligne
-                                @elseif($listing->status === 'sold') Vendue
-                                @else Brouillon @endif
-                            </span>
-                        </div>
-
-                        <div class="flex flex-wrap gap-2 sm:justify-end">
-                            <a href="{{ route('account.listings.edit', $listing) }}"
-                               class="rounded-lg bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200">
-                                Modifier
+            @if($listings->isEmpty())
+                <div class="p-10 text-center">
+                    <div class="text-3xl" aria-hidden="true">🌴</div>
+                    <h3 class="mt-3 text-lg font-semibold text-gray-900">Aucune annonce pour le moment</h3>
+                    <p class="mt-1 text-gray-500">Déposez votre première annonce, c'est gratuit.</p>
+                    <a href="{{ route('account.listings.create') }}"
+                       class="mt-5 inline-flex rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-700">
+                        Déposer une annonce
+                    </a>
+                </div>
+            @else
+                {{-- Deux annonces par ligne sur téléphone, comme une vitrine. --}}
+                <div class="grid grid-cols-2 gap-3 p-3 sm:grid-cols-3 sm:gap-4 sm:p-4 lg:grid-cols-4">
+                    @foreach($listings as $listing)
+                        <div class="flex flex-col rounded-2xl border border-gray-100 bg-white shadow-sm">
+                            <a href="{{ route('listings.show', $listing) }}" class="relative block aspect-[3/4] overflow-hidden rounded-t-2xl bg-gray-100">
+                                @if($listing->images->first())
+                                    <img src="{{ $listing->images->first()->url }}" alt="{{ $listing->title }}"
+                                         class="h-full w-full object-cover" loading="lazy" decoding="async">
+                                @else
+                                    <div class="grid h-full w-full place-items-center text-3xl text-gray-300" aria-hidden="true">📦</div>
+                                @endif
+                                <span class="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[11px] font-bold shadow-sm
+                                    @if($listing->status === 'published') bg-teal-600 text-white
+                                    @elseif($listing->status === 'sold') bg-gray-800 text-white
+                                    @else bg-amber-400 text-amber-950 @endif">
+                                    @if($listing->status === 'published') En ligne
+                                    @elseif($listing->status === 'sold') Vendue
+                                    @else Brouillon @endif
+                                </span>
                             </a>
 
-                            @if($listing->status === 'published')
-                                <form method="POST" action="{{ route('account.listings.hide', $listing) }}">
-                                    @csrf @method('PATCH')
-                                    <button class="rounded-lg bg-orange-50 px-3 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-100">Masquer</button>
-                                </form>
-                                {{-- Vendue : on passe par la fiche, qui demande à qui (sinon
-                                     impossible de distinguer une vente d'un simple retrait). --}}
-                                <a href="{{ route('listings.show', $listing) }}#fin-annonce"
-                                   class="rounded-lg bg-green-50 px-3 py-2 text-sm font-semibold text-green-700 hover:bg-green-100">Vendue</a>
-                            @else
-                                <form method="POST" action="{{ route('account.listings.publish', $listing) }}">
-                                    @csrf @method('PATCH')
-                                    <button class="rounded-lg bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-700 hover:bg-teal-100">Publier</button>
-                                </form>
-                            @endif
+                            <div class="flex flex-1 flex-col p-2.5">
+                                <p class="truncate text-sm font-semibold text-gray-900">{{ $listing->title }}</p>
+                                <p class="text-sm font-extrabold text-gray-900">{{ $listing->price > 0 ? number_format($listing->price, 0, ',', ' ') . ' €' : 'Gratuit' }}</p>
+                                <p class="mt-0.5 text-xs text-gray-500">👀 {{ (int) $listing->views_count }} · ❤️ {{ (int) ($listing->favorited_by_count ?? 0) }}</p>
 
-                            <form method="POST" action="{{ route('account.listings.destroy', $listing) }}"
-                                  onsubmit="return confirm('Supprimer cette annonce ?');">
-                                @csrf @method('DELETE')
-                                <button class="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">Supprimer</button>
-                            </form>
+                                <div class="mt-2.5 flex items-center gap-1.5">
+                                    <a href="{{ route('account.listings.edit', $listing) }}"
+                                       class="flex-1 rounded-lg bg-gray-100 px-2 py-2 text-center text-xs font-bold text-gray-800 hover:bg-gray-200">Modifier</a>
+                                    {{-- « account-menu » : se referme au toucher ailleurs (layout). --}}
+                                    <details class="account-menu relative">
+                                        <summary class="grid h-8 w-9 cursor-pointer list-none place-items-center rounded-lg bg-gray-100 text-sm font-bold text-gray-700 hover:bg-gray-200 [&::-webkit-details-marker]:hidden" aria-label="Plus d’actions">•••</summary>
+                                        <div class="absolute bottom-10 right-0 z-20 w-40 overflow-hidden rounded-xl border border-gray-100 bg-white text-sm shadow-xl">
+                                            @if($listing->status === 'published')
+                                                {{-- Vendue : on passe par la fiche, qui demande à qui (sinon
+                                                     impossible de distinguer une vente d'un simple retrait). --}}
+                                                <a href="{{ route('listings.show', $listing) }}#fin-annonce" class="block px-3 py-2.5 font-semibold text-green-700 hover:bg-green-50">✅ Vendue</a>
+                                                <form method="POST" action="{{ route('account.listings.hide', $listing) }}">
+                                                    @csrf @method('PATCH')
+                                                    <button class="block w-full px-3 py-2.5 text-left font-semibold text-orange-700 hover:bg-orange-50">🙈 Masquer</button>
+                                                </form>
+                                            @else
+                                                <form method="POST" action="{{ route('account.listings.publish', $listing) }}">
+                                                    @csrf @method('PATCH')
+                                                    <button class="block w-full px-3 py-2.5 text-left font-semibold text-teal-700 hover:bg-teal-50">🚀 Publier</button>
+                                                </form>
+                                            @endif
+                                            <form method="POST" action="{{ route('account.listings.destroy', $listing) }}"
+                                                  onsubmit="return confirm('Supprimer cette annonce ?');">
+                                                @csrf @method('DELETE')
+                                                <button class="block w-full border-t border-gray-100 px-3 py-2.5 text-left font-semibold text-red-700 hover:bg-red-50">🗑 Supprimer</button>
+                                            </form>
+                                        </div>
+                                    </details>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                @empty
-                    <div class="p-10 text-center">
-                        <div class="text-3xl" aria-hidden="true">🌴</div>
-                        <h3 class="mt-3 text-lg font-semibold text-gray-900">Aucune annonce pour le moment</h3>
-                        <p class="mt-1 text-gray-500">Déposez votre première annonce, c'est gratuit.</p>
-                        <a href="{{ route('account.listings.create') }}"
-                           class="mt-5 inline-flex rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-700">
-                            Déposer une annonce
-                        </a>
-                    </div>
-                @endforelse
-            </div>
+                    @endforeach
+                </div>
+            @endif
 
             @if($listings->hasPages())
                 <div class="p-4 border-t border-gray-100">

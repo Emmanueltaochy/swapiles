@@ -29,6 +29,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Après EnsureNotBanned : un compte suspendu n'est jamais prolongé.
         $middleware->appendToGroup('web', \App\Http\Middleware\KeepMemberSignedIn::class);
         $middleware->appendToGroup('web', \App\Http\Middleware\SecurityHeaders::class);
+        // Clic sur une notification push : noté dans le journal (admin).
+        $middleware->appendToGroup('web', \App\Http\Middleware\SuiviClicPush::class);
         $middleware->validateCsrfTokens(except: [
             'stripe/webhook',
         ]);

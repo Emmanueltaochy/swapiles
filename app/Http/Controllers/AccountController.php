@@ -14,10 +14,10 @@ class AccountController extends Controller
     {
         $user = Auth::user();
 
-        $listings = Listing::with('images')->withCount('favoritedBy')
+        $listings = Listing::with('images')->withCount(['favorisRecus as favorited_by_count'])
             ->where('user_id', $user->id)
             ->latest()
-            ->paginate(12);
+            ->paginate(24);
 
         $sales = Transaction::with(['listing.images', 'buyer'])
             ->where('seller_id', $user->id)
@@ -73,7 +73,7 @@ class AccountController extends Controller
         $favoritesReceivedCount = Favorite::whereIn(
             'listing_id',
             $listings->pluck('id')
-        )->count();
+        )->where('user_id', '!=', $user->id)->count();
 
         $totalListingViews = Listing::where('user_id', $user->id)
             ->sum('views_count');

@@ -29,6 +29,8 @@ class SendPushBroadcast implements ShouldQueue
         public string $body,
         public ?string $url = null,
         public ?int $userId = null,
+        // Ligne du journal des notifications (admin), mise à jour après envoi.
+        public ?int $envoiId = null,
     ) {}
 
     public function handle(FcmService $fcm, ApnsService $apns): void
@@ -43,17 +45,24 @@ class SendPushBroadcast implements ShouldQueue
             ? max(1, \App\Models\Notification::where('user_id', $this->userId)->whereNull('read_at')->count())
             : null;
 
+        $appareils = 0;
+        $ok = 0;
+
         DeviceToken::query()
             ->when($this->userId, fn ($q) => $q->where('user_id', $this->userId))
-            ->chunkById(200, function ($tokens) use ($fcm, $apns, $pastille) {
+            ->chunkById(200, function ($tokens) use ($fcm, $apns, $pastille, &$appareils, &$ok) {
                 foreach ($tokens as $device) {
                     $result = self::envoyerVers($device, $this->title, $this->body, $this->url, $fcm, $apns, $pastille);
+                    $appareils++;
+                    $ok += $result['status'] === 'ok' ? 1 : 0;
 
                     if ($result['status'] === 'invalid') {
                         $device->delete();
                     }
                 }
             });
+
+        \App\Support\PushSuivi::resultat($this->envoiId, $appareils, $ok);
     }
 
     /**

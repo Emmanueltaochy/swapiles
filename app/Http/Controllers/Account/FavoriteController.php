@@ -142,7 +142,7 @@ class FavoriteController extends Controller
             }
         }
 
-        $count = $listing->favoritedBy()->count();
+        $count = $listing->favoritedBy()->where('users.id', '!=', $listing->user_id)->count();
 
         if (request()->expectsJson()) {
             return response()->json([

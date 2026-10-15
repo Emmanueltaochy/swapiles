@@ -140,7 +140,7 @@ class ListingInfolist
                             ->color('info'),
                         TextEntry::make('favorites_total')
                             ->label('Favoris')
-                            ->state(fn (Listing $r) => method_exists($r, 'favoritedBy') ? $r->favoritedBy()->count() : 0)
+                            ->state(fn (Listing $r) => method_exists($r, 'favoritedBy') ? $r->favoritedBy()->where('users.id', '!=', $r->user_id)->count() : 0)
                             ->badge()
                             ->color('danger'),
                         TextEntry::make('created_at')

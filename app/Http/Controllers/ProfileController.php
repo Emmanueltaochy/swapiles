@@ -12,7 +12,7 @@ class ProfileController extends Controller
     {
         $listings = $user->listings()
             ->with('images')
-            ->withCount('favoritedBy')
+            ->withCount(['favorisRecus as favorited_by_count'])
             ->where('status', 'published')
             ->latest()
             ->orderByDesc('id') // ordre stable d'une page à l'autre
@@ -39,7 +39,7 @@ class ProfileController extends Controller
 
         $totalFavoritesCount = (int) $user->listings()
             ->where('status', 'published')
-            ->withCount('favoritedBy')
+            ->withCount(['favorisRecus as favorited_by_count'])
             ->get()
             ->sum('favorited_by_count');
 

@@ -129,10 +129,21 @@ class PushBroadcast extends Page
             return;
         }
 
+        $suivi = \App\Support\PushSuivi::journaliser([
+            'origine' => 'manuel',
+            'type' => 'diffusion',
+            'titre' => (string) $state['title'],
+            'message' => (string) $state['body'],
+            'url' => $state['url'] ?? null,
+            'statut' => 'en_file',
+            'appareils' => $count,
+        ]);
+
         SendPushBroadcast::dispatch(
             title: (string) $state['title'],
             body: (string) $state['body'],
-            url: $state['url'] ?? null,
+            url: \App\Support\PushSuivi::lien($state['url'] ?? null, $suivi->id),
+            envoiId: $suivi->id,
         );
 
         FilamentNotification::make()

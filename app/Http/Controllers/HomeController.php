@@ -42,7 +42,7 @@ class HomeController extends Controller
         // d'abord celles achetables depuis l'île choisie (locale en main propre
         // OU expédiables Colissimo), puis les autres îles (à faire expédier).
         $listingsQuery = Listing::query()
-            ->with(['images', 'user'])->withCount('favoritedBy')
+            ->with(['images', 'user'])->withCount(['favorisRecus as favorited_by_count'])
             ->where('status', 'published');
         $this->applyBuyableOrdering($listingsQuery, $selectedTerritoire, $alsoColExists);
         $listings = $listingsQuery->paginate(24);
@@ -64,7 +64,7 @@ class HomeController extends Controller
             ->count();
 
         $globalShippableListings = Listing::query()
-            ->with(['images', 'user'])->withCount('favoritedBy')
+            ->with(['images', 'user'])->withCount(['favorisRecus as favorited_by_count'])
             ->where('status', 'published')
             ->where('requires_online_payment', true)
             ->where('allows_colissimo', true)
@@ -73,7 +73,7 @@ class HomeController extends Controller
             ->get();
 
         $popularListings = Listing::query()
-            ->with(['images', 'user'])->withCount('favoritedBy')
+            ->with(['images', 'user'])->withCount(['favorisRecus as favorited_by_count'])
             ->where('status', 'published')
             ->where($territoireFilter)
             ->orderByDesc('views_count')
@@ -105,7 +105,7 @@ class HomeController extends Controller
                 'flag' => $meta['flag'],
                 'count' => (int) ($territoryCounts[$meta['label']] ?? 0),
                 'listings' => Listing::query()
-                    ->with(['images', 'user'])->withCount('favoritedBy')
+                    ->with(['images', 'user'])->withCount(['favorisRecus as favorited_by_count'])
                     ->where('status', 'published')
                     ->where('territoire', $meta['label'])
                     ->where('requires_online_payment', true)
@@ -210,7 +210,7 @@ class HomeController extends Controller
         }
 
         $query = Listing::query()
-            ->with(['images', 'user'])->withCount('favoritedBy')
+            ->with(['images', 'user'])->withCount(['favorisRecus as favorited_by_count'])
             ->where('status', 'published');
 
         if ($request->filled('q')) {

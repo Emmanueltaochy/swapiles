@@ -75,7 +75,8 @@ class LiveEnregistrement
             return false;
         }
 
-        $live->forceFill(['enregistrement_id' => $id, 'replay_chemin' => $chemin])->saveQuietly();
+        // Début de la vidéo : sert à replacer chat et cœurs dans le replay.
+        $live->forceFill(['enregistrement_id' => $id, 'replay_chemin' => $chemin, 'enregistrement_debut_at' => now()])->saveQuietly();
 
         return true;
     }

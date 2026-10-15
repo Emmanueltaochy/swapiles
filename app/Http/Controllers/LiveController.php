@@ -149,7 +149,7 @@ class LiveController extends Controller
         $live->articles()->updateExistingPivot($listing->id, ['visible' => $visible]);
 
         if ($visible && ! $article->pivot->visible && $live->enDirect()) {
-            LiveService::message($live, null, '🛍️ Nouvel article : ' . $listing->title . ' — ' . \App\Support\TableauDeBord::euros((float) $listing->price), 'epingle');
+            LiveService::message($live, null, '🛍️ Nouvel article : ' . $listing->title . ' — ' . \App\Support\TableauDeBord::euros((float) $listing->price), 'nouveau', $listing->id);
         }
         if (! $visible && (int) $live->article_epingle_id === (int) $listing->id) {
             $live->update(['article_epingle_id' => null]);
@@ -221,7 +221,7 @@ class LiveController extends Controller
         // Mis en avant = forcément visible dans la liste.
         $live->articles()->updateExistingPivot($data['listing_id'], ['visible' => true]);
         $article = Listing::find($data['listing_id']);
-        LiveService::message($live, null, '📌 ' . $article->title . ' — ' . \App\Support\TableauDeBord::euros((float) $article->price), 'epingle');
+        LiveService::message($live, null, '📌 ' . $article->title . ' — ' . \App\Support\TableauDeBord::euros((float) $article->price), 'epingle', $article->id);
 
         return response()->noContent();
     }
@@ -304,6 +304,15 @@ class LiveController extends Controller
     {
         $live->increment('coeurs');
 
+        // Horodatés à la seconde : ils s'envolent aussi dans le replay.
+        if ($live->enDirect()) {
+            $instant = now()->startOfSecond();
+            $maj = \Illuminate\Support\Facades\DB::table('live_coeurs')->where('live_session_id', $live->id)->where('instant', $instant)->increment('n');
+            if (! $maj) {
+                \Illuminate\Support\Facades\DB::table('live_coeurs')->insertOrIgnore(['live_session_id' => $live->id, 'instant' => $instant, 'n' => 1]);
+            }
+        }
+
         return response()->noContent();
     }
 
@@ -324,7 +333,7 @@ class LiveController extends Controller
                 : 'Quelqu’un est déjà en train de l’acheter. S’il ne finalise pas, il sera de nouveau disponible dans quelques minutes.');
         }
 
-        LiveService::message($live, null, '🔥 ' . $request->user()->name . ' est en train d’acheter « ' . $listing->title . ' »', 'vente');
+        LiveService::message($live, null, '🔥 ' . $request->user()->name . ' est en train d’acheter « ' . $listing->title . ' »', 'vente', $listing->id);
         $request->session()->put('live_retour', $live->id);
 
         return redirect()->route('checkout.show', $listing);

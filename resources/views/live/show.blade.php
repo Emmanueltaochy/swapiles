@@ -45,6 +45,7 @@
          data-message-url="{{ auth()->check() ? route('live.message', $live, false) : '' }}"
          data-coeur-url="{{ route('live.coeur', $live, false) }}"
          data-statut="{{ $live->statut }}"
+         data-replay="{{ $replay ? '1' : '0' }}"
          data-partage-url="{{ $lienPartage }}"
          data-partage-texte="{{ $textePartage }}"
          data-enregistrer-url="{{ $estVendeur ? route('live.enregistrer', $live, false) : '' }}"
@@ -57,7 +58,12 @@
         {{-- Vidéo plein écran --}}
         <video data-video playsinline autoplay muted class="absolute inset-0 hidden h-full w-full object-cover"></video>
         @if($replay)
-            <video data-replay src="{{ $replay }}" playsinline controls preload="metadata" class="absolute inset-x-0 bottom-0 top-24 z-[5] h-[calc(100%-6rem)] w-full bg-black object-contain"></video>
+            {{-- Replay plein écran : le chat, les cœurs et l'article présenté
+                 réapparaissent au moment où ils sont arrivés pendant le live. --}}
+            <video data-replay-video src="{{ $replay }}" playsinline preload="metadata" class="absolute inset-0 z-[5] h-full w-full bg-black object-cover"></video>
+            <button type="button" data-replay-play class="absolute left-1/2 top-1/2 z-20 grid h-20 w-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/50 pl-1 text-4xl text-white backdrop-blur active:scale-95" aria-label="Lire le replay">▶</button>
+            <p data-replay-erreur class="absolute inset-x-6 top-1/2 z-20 hidden -translate-y-1/2 rounded-2xl bg-black/70 p-4 text-center text-sm font-semibold text-white">Le replay est en cours de préparation. Reviens dans quelques minutes 🎬</p>
+            <script type="application/json" data-replay-donnees>@json(\App\Support\LiveService::donneesReplay($live))</script>
         @endif
 
         {{-- Écran d'attente (avant / pendant la connexion / après) --}}
@@ -116,7 +122,7 @@
                     <p class="truncate text-xs text-white/85 drop-shadow">{{ $live->titre }}</p>
                 </div>
                 <span data-pastille-statut class="shrink-0 rounded-md px-2 py-1 text-[11px] font-extrabold tracking-wide {{ $live->enDirect() ? 'bg-red-600 text-white' : 'bg-white/90 text-gray-800' }}">
-                    {{ $live->enDirect() ? 'LIVE' : \App\Models\LiveSession::STATUTS[$live->statut] }}
+                    {{ $live->enDirect() ? 'LIVE' : ($replay ? '▶ REPLAY' : \App\Models\LiveSession::STATUTS[$live->statut]) }}
                 </span>
                 <span class="shrink-0 rounded-md bg-black/40 px-2 py-1 text-[11px] font-bold">👁 <span data-spectateurs>{{ $etatInitial['spectateurs'] }}</span></span>
                 <a href="{{ route('live.index') }}" class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black/40 text-lg font-bold" aria-label="Quitter le live">✕</a>
@@ -130,7 +136,7 @@
             @endif
             @if($estVendeur && $live->enDirect())
                 <div class="mt-2 flex items-center gap-2">
-                    <form method="POST" action="{{ route('live.terminer', $live) }}" onsubmit="return confirm('Terminer le live pour tout le monde ?');">@csrf
+                    <form method="POST" action="{{ route('live.terminer', $live) }}" data-confirmer="Terminer le live pour tout le monde ?" data-confirmer-oui="Terminer le live">@csrf
                         <button class="rounded-full bg-black/50 px-3 py-1.5 text-xs font-bold ring-1 ring-white/40">⏹ Terminer le live</button>
                     </form>
                     <span data-rec class="{{ $live->enregistrement_id ? '' : 'hidden' }} rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-extrabold text-red-400">⏺ Enregistré</span>
@@ -149,7 +155,7 @@
                                 <input type="hidden" name="publier" value="1">
                                 <button class="w-full rounded-xl bg-teal-600 px-3 py-2.5 text-sm font-extrabold text-white">✅ Oui, le publier</button>
                             </form>
-                            <form method="POST" action="{{ route('live.replay.supprimer', $live) }}" class="flex-1" onsubmit="return confirm('Supprimer définitivement le replay ?');">@csrf
+                            <form method="POST" action="{{ route('live.replay.supprimer', $live) }}" class="flex-1" data-confirmer="Supprimer définitivement le replay ?" data-confirmer-oui="Supprimer">@csrf
                                 <button class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm font-extrabold text-gray-700">🗑 Non, supprimer</button>
                             </form>
                         </div>
@@ -158,7 +164,7 @@
                         <p class="mt-0.5 text-xs text-gray-600">Il y reste tant que vous ne le supprimez pas. La vidéo peut mettre quelques minutes à être prête.</p>
                         <div class="mt-2.5 flex items-center gap-2">
                             <button type="button" data-partager class="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-extrabold text-white"><svg viewBox="0 0 24 24" class="h-4 w-4" fill="currentColor" aria-hidden="true"><path d="M13 5.5V2l9 8-9 8v-3.6c-5.6 0-9.4 1.7-12 5.6 1-5.6 4.3-11.2 12-14.5Z"/></svg> Partager le replay</button>
-                            <form method="POST" action="{{ route('live.replay.supprimer', $live) }}" onsubmit="return confirm('Supprimer définitivement le replay ? Il disparaîtra de votre profil.');">@csrf
+                            <form method="POST" action="{{ route('live.replay.supprimer', $live) }}" data-confirmer="Supprimer définitivement le replay ? Il disparaîtra de votre profil." data-confirmer-oui="Supprimer">@csrf
                                 <button class="rounded-xl border border-gray-300 px-3 py-2.5 text-sm font-bold text-gray-600" aria-label="Supprimer le replay">🗑</button>
                             </form>
                         </div>
@@ -193,8 +199,27 @@
         </div>
 
         {{-- Bas : chat, article mis en avant, saisie --}}
-        <div class="{{ $replay ? 'hidden' : '' }} absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 pt-16" style="padding-bottom:max(12px, env(safe-area-inset-bottom))">
-            <div data-chat class="{{ $replay ? 'hidden' : '' }} mb-2 max-h-[30vh] w-[78%] space-y-1.5 overflow-y-auto overscroll-contain pt-10 text-sm" aria-live="polite"></div>
+        <div class="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 pt-16" style="padding-bottom:max(12px, env(safe-area-inset-bottom))">
+            <div data-chat class="mb-2 max-h-[30vh] w-[78%] space-y-1.5 overflow-y-auto overscroll-contain pt-10 text-sm" aria-live="polite"></div>
+
+            @if($replay)
+                <div data-replay-epingle class="mb-2 mr-16 hidden rounded-2xl bg-white p-2 text-gray-900 shadow-xl">
+                    <div class="flex items-center gap-2.5">
+                        <img data-replay-photo src="" alt="" class="h-14 w-14 shrink-0 rounded-xl bg-gray-100 object-cover">
+                        <div class="min-w-0 flex-1">
+                            <p class="truncate text-xs font-extrabold text-red-600">📌 Présenté à ce moment</p>
+                            <p data-replay-titre class="truncate text-sm font-bold"></p>
+                            <p data-replay-prix class="text-base font-extrabold"></p>
+                        </div>
+                        <a data-replay-lien href="#" class="shrink-0 rounded-xl bg-teal-600 px-3.5 py-3 text-sm font-extrabold text-white active:scale-95">Voir</a>
+                    </div>
+                </div>
+                <div class="mr-16 flex items-center gap-2 text-xs font-semibold tabular-nums text-white">
+                    <span data-replay-temps>0:00</span>
+                    <input type="range" data-replay-barre min="0" max="1000" value="0" class="h-1 min-w-0 flex-1 accent-teal-400" aria-label="Avancer dans le replay">
+                    <span data-replay-duree>0:00</span>
+                </div>
+            @endif
 
             <div data-epingle class="{{ $etatInitial['epingle'] ? '' : 'hidden' }} mb-2 mr-16 rounded-2xl bg-white p-2 text-gray-900 shadow-xl">
                 <div class="flex items-center gap-2.5">
@@ -226,6 +251,18 @@
             @elseif(! $termine)
                 <a href="{{ route('login') }}" class="mr-16 block rounded-full bg-white/20 px-4 py-2.5 text-center text-sm font-semibold backdrop-blur">Connectez-vous pour discuter et acheter</a>
             @endauth
+        </div>
+    </div>
+
+    {{-- Confirmation dans la page : la fenêtre native de l'iPhone met la
+         caméra en pause (image figée jusqu'au changement de caméra). --}}
+    <div data-dialogue class="fixed inset-0 z-[90] hidden items-end justify-center bg-black/50 p-4 sm:items-center" role="alertdialog" aria-modal="true">
+        <div class="w-full max-w-sm rounded-2xl bg-white p-5 text-gray-900 shadow-2xl" style="margin-bottom:env(safe-area-inset-bottom)">
+            <p data-dialogue-texte class="text-base font-bold"></p>
+            <div class="mt-4 flex gap-2">
+                <button type="button" data-dialogue-non class="flex-1 rounded-xl border border-gray-300 px-4 py-3 font-bold text-gray-800">Annuler</button>
+                <button type="button" data-dialogue-oui class="flex-1 rounded-xl bg-red-600 px-4 py-3 font-bold text-white">Confirmer</button>
+            </div>
         </div>
     </div>
 
@@ -281,6 +318,8 @@
     var dernier = 0;
     var coeursConnus = parseInt(racine.dataset.coeursInitial || '0', 10);
     var actif = true;
+    var modeReplay = racine.dataset.replay === '1';
+    if (modeReplay) vendeur = false; // pas d'outils de modération sur un replay
 
     // Page de live : rien ne défile derrière.
     document.documentElement.style.overflow = 'hidden';
@@ -291,6 +330,34 @@
     }
     document.addEventListener('turbo:before-render', quitter, { once: true });
     window.addEventListener('pagehide', quitter, { once: true });
+
+    // Confirmation dans la page (jamais window.confirm : elle fige la caméra sur iPhone).
+    var dialogue = racine.querySelector('[data-dialogue]');
+    function demander(texte, libelleOui) {
+        return new Promise(function (resoudre) {
+            dialogue.querySelector('[data-dialogue-texte]').textContent = texte;
+            dialogue.querySelector('[data-dialogue-oui]').textContent = libelleOui || 'Confirmer';
+            dialogue.classList.remove('hidden'); dialogue.classList.add('flex');
+            function fin(ok) {
+                dialogue.classList.add('hidden'); dialogue.classList.remove('flex');
+                dialogue.querySelector('[data-dialogue-oui]').onclick = null;
+                dialogue.querySelector('[data-dialogue-non]').onclick = null;
+                if (window.swpReprendreVideo) window.swpReprendreVideo();
+                resoudre(ok);
+            }
+            dialogue.querySelector('[data-dialogue-oui]').onclick = function () { fin(true); };
+            dialogue.querySelector('[data-dialogue-non]').onclick = function () { fin(false); };
+        });
+    }
+    racine.querySelectorAll('form[data-confirmer]').forEach(function (f) {
+        f.addEventListener('submit', function (ev) {
+            if (f.dataset.confirme === '1') return;
+            ev.preventDefault();
+            demander(f.dataset.confirmer, f.dataset.confirmerOui).then(function (ok) {
+                if (ok) { f.dataset.confirme = '1'; f.submit(); }
+            });
+        });
+    });
 
     function poster(url, donnees) {
         return fetch(url, {
@@ -370,7 +437,9 @@
                 outils.innerHTML = '<button type="button" data-masquer class="text-white/60 underline">masquer</button> · <button type="button" data-exclure class="text-red-300 underline">exclure</button>';
                 outils.querySelector('[data-masquer]').onclick = function () { poster(location.pathname + '/messages/' + m.id + '/masquer').then(function () { ligne.remove(); }); };
                 outils.querySelector('[data-exclure]').onclick = function () {
-                    if (confirm('Exclure ce membre du live ?')) poster(location.pathname + '/messages/' + m.id + '/exclure').then(function () { ligne.remove(); });
+                    demander('Exclure ce membre du live ?', 'Exclure').then(function (ok) {
+                        if (ok) poster(location.pathname + '/messages/' + m.id + '/exclure').then(function () { ligne.remove(); });
+                    });
                 };
                 ligne.appendChild(outils);
             }
@@ -494,7 +563,84 @@
             .catch(function () {})
             .finally(function () { if (actif) setTimeout(rafraichir, 2500); });
     }
-    rafraichir();
+    if (!modeReplay) rafraichir();
+
+    // --- Replay : chat, cœurs et article présenté rejoués au bon moment -----------
+    if (modeReplay) {
+        var donnees = JSON.parse(racine.querySelector('[data-replay-donnees]').textContent || '{}');
+        var msgs = donnees.messages || [], coeursR = donnees.coeurs || [], articles = donnees.articles || {};
+        var v = racine.querySelector('[data-replay-video]');
+        var boutonLecture = racine.querySelector('[data-replay-play]');
+        var barre = racine.querySelector('[data-replay-barre]');
+        var tempsEl = racine.querySelector('[data-replay-temps]');
+        var dureeEl = racine.querySelector('[data-replay-duree]');
+        var carte = racine.querySelector('[data-replay-epingle]');
+        var iMsg = 0, iCoeur = 0, tPrec = 0, glisse = false;
+
+        function fmt(sec) { sec = Math.max(0, Math.floor(sec || 0)); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); }
+        function versChat(m, i) { return { id: 'r' + i, auteur: m.auteur, vendeur: m.vendeur, texte: m.texte, type: m.type }; }
+
+        function majCarte(t) {
+            var article = null;
+            for (var i = msgs.length - 1; i >= 0; i--) {
+                if (msgs[i].t <= t && msgs[i].type === 'epingle' && msgs[i].article && articles[msgs[i].article]) { article = msgs[i].article; break; }
+            }
+            if (!article) { carte.classList.add('hidden'); return; }
+            var a = articles[article];
+            carte.classList.remove('hidden');
+            var photo = racine.querySelector('[data-replay-photo]');
+            if (photo.getAttribute('src') !== (a.photo || '')) photo.src = a.photo || '';
+            racine.querySelector('[data-replay-titre]').textContent = a.titre;
+            racine.querySelector('[data-replay-prix]').textContent = a.prix;
+            var lien = racine.querySelector('[data-replay-lien]');
+            lien.href = a.lien;
+            lien.textContent = a.vendu ? 'Vendu' : 'Voir';
+            lien.classList.toggle('bg-gray-400', !!a.vendu);
+        }
+
+        // Retour en arrière ou saut : on reconstruit le chat jusqu'à cet instant.
+        function reconstruire(t) {
+            chat.innerHTML = '';
+            iMsg = 0;
+            while (iMsg < msgs.length && msgs[iMsg].t <= t) { ajouterMessage(versChat(msgs[iMsg], iMsg)); iMsg++; }
+            iCoeur = 0;
+            while (iCoeur < coeursR.length && coeursR[iCoeur].t <= t) iCoeur++;
+            chat.scrollTop = chat.scrollHeight;
+            majCarte(t);
+            tPrec = t;
+        }
+
+        function avancer() {
+            var t = v.currentTime;
+            if (t < tPrec - 1 || t > tPrec + 5) { reconstruire(t); return; }
+            while (iMsg < msgs.length && msgs[iMsg].t <= t) { ajouterMessage(versChat(msgs[iMsg], iMsg)); iMsg++; }
+            while (iCoeur < coeursR.length && coeursR[iCoeur].t <= t) {
+                for (var k = 0; k < Math.min(coeursR[iCoeur].n, 6); k++) envolerCoeur(k * 180);
+                iCoeur++;
+            }
+            majCarte(t);
+            tPrec = t;
+            tempsEl.textContent = fmt(t);
+            if (!glisse && v.duration) barre.value = Math.round(t / v.duration * 1000);
+        }
+
+        v.addEventListener('timeupdate', avancer);
+        v.addEventListener('seeked', function () { reconstruire(v.currentTime); });
+        v.addEventListener('loadedmetadata', function () { dureeEl.textContent = fmt(v.duration); });
+        v.addEventListener('play', function () { boutonLecture.classList.add('hidden'); });
+        v.addEventListener('pause', function () { boutonLecture.classList.remove('hidden'); boutonLecture.textContent = '▶'; });
+        v.addEventListener('ended', function () { boutonLecture.classList.remove('hidden'); boutonLecture.textContent = '↻'; });
+        v.addEventListener('error', function () {
+            boutonLecture.classList.add('hidden');
+            racine.querySelector('[data-replay-erreur]').classList.remove('hidden');
+        });
+        boutonLecture.addEventListener('click', function () { v.play().catch(function () {}); });
+        v.addEventListener('click', function () { v.paused ? v.play().catch(function () {}) : v.pause(); });
+        barre.addEventListener('input', function () { glisse = true; if (v.duration) tempsEl.textContent = fmt(barre.value / 1000 * v.duration); });
+        barre.addEventListener('change', function () { glisse = false; if (v.duration) v.currentTime = barre.value / 1000 * v.duration; });
+
+        reconstruire(0);
+    }
 })();
 </script>
 
@@ -533,6 +679,14 @@
         video.classList.add('hidden');
         zone.classList.remove('hidden');
     }
+
+    // Reprise de l'image après une interruption (appel, fenêtre système,
+    // retour dans l'appli) : sans ça, l'image restait figée.
+    window.swpReprendreVideo = function () {
+        if (video.srcObject && video.paused) video.play().catch(function () {});
+    };
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) window.swpReprendreVideo(); });
+    window.addEventListener('focus', window.swpReprendreVideo);
 
     function afficherVideo(piste, miroir) {
         piste.attach(video);

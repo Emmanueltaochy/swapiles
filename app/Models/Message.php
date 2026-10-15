@@ -12,6 +12,7 @@ class Message extends Model
         'sender_id',
         'receiver_id',
         'body',
+        'reply_to_id',
         'attachment_path',
         'attachment_type',
         'attachment_mime',
@@ -69,5 +70,11 @@ class Message extends Model
     public function receiver()
     {
         return $this->belongsTo(User::class, 'receiver_id');
+    }
+
+    /** Message auquel celui-ci répond (citation affichée au-dessus). */
+    public function replyTo(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(self::class, 'reply_to_id');
     }
 }

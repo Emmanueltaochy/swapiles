@@ -485,7 +485,9 @@ class LiveShoppingTest extends TestCase
         $this->actingAs($this->membre)->post("/live/{$live->id}/replay", ['publier' => 1])->assertForbidden();
         $this->actingAs($this->admin)->post("/live/{$live->id}/replay", ['publier' => 1])->assertRedirect();
         $this->actingAs($this->membre)->get("/live/{$live->id}")->assertSee($live->replayUrl(), false);
-        $this->actingAs($this->membre)->get('/profil/' . $this->admin->id)->assertSee('Replays des lives')->assertSee('Vide-dressing');
+        // Onglet dédié, après « Annonces ».
+        $this->actingAs($this->membre)->get('/profil/' . $this->admin->id)->assertSee('Replays des lives')->assertSee('tab=replays', false);
+        $this->actingAs($this->membre)->get('/profil/' . $this->admin->id . '?tab=replays')->assertSee('Vide-dressing')->assertSee('1 replay');
         $this->actingAs($this->membre)->get('/live')->assertSee('🎬 Replays');
 
         // Membres sans accès au live : rien sur le profil.
@@ -555,6 +557,50 @@ class LiveShoppingTest extends TestCase
             'AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20130524/us-east-1/s3/aws4_request, SignedHeaders=host;range;x-amz-content-sha256;x-amz-date, Signature=f0e8bdb87c964420e857bd35b5d6ed310bd44f0170aba48dd91039c6036bdb41',
             $autorisation
         );
+    }
+
+    public function test_replay_rejoue_chat_coeurs_et_article_au_bon_moment(): void
+    {
+        $this->configurerReplay();
+        config(['live.testeurs' => ['membre@ex.com'], 'live.replay_decalage_secondes' => 3]);
+        \Illuminate\Support\Facades\Http::fake(['*' => \Illuminate\Support\Facades\Http::response(['egress_id' => 'EG_1'])]);
+        $robe = $this->article($this->admin, 'Robe rouge', 20);
+        $live = $this->live($this->admin, [$robe]);
+
+        Carbon::setTestNow('2026-10-18 18:00:00');
+        $this->actingAs($this->admin)->postJson("/live/{$live->id}/enregistrer")->assertOk();
+
+        Carbon::setTestNow('2026-10-18 18:00:13'); // 10 s de vidéo (13 − 3 de démarrage)
+        $this->actingAs($this->membre)->postJson("/live/{$live->id}/messages", ['texte' => 'Elle taille comment ?'])->assertNoContent();
+        $this->postJson("/live/{$live->id}/coeur");
+        $this->postJson("/live/{$live->id}/coeur");
+
+        Carbon::setTestNow('2026-10-18 18:01:03'); // 60 s
+        $this->actingAs($this->admin)->postJson("/live/{$live->id}/epingler", ['listing_id' => $robe->id])->assertNoContent();
+        $this->actingAs($this->admin)->post("/live/{$live->id}/terminer");
+        $live->refresh()->update(['replay_publie_at' => now()]);
+
+        $d = LiveService::donneesReplay($live->fresh());
+        $question = collect($d['messages'])->firstWhere('texte', 'Elle taille comment ?');
+        $this->assertSame(10, $question['t']);
+        $epingle = collect($d['messages'])->firstWhere('type', 'epingle');
+        $this->assertSame(60, $epingle['t']);
+        $this->assertSame($robe->id, $epingle['article']);
+        $this->assertSame([['t' => 10, 'n' => 2]], $d['coeurs']);
+        $this->assertSame('Robe rouge', $d['articles'][$robe->id]['titre']);
+
+        $this->actingAs($this->membre)->get("/live/{$live->id}")->assertOk()
+            ->assertSee('▶ REPLAY', false)->assertSee('data-replay-video', false)
+            ->assertSee('data-replay-donnees', false)->assertSee('Elle taille comment', false);
+    }
+
+    public function test_plus_de_confirmation_native_sur_le_live(): void
+    {
+        $live = $this->live($this->admin, [$this->article($this->admin)]);
+
+        $page = $this->actingAs($this->admin)->get("/live/{$live->id}")->assertOk()->getContent();
+        $this->assertStringNotContainsString('confirm(', $page, 'window.confirm fige la caméra sur iPhone.');
+        $this->assertStringContainsString('data-confirmer="Terminer le live pour tout le monde ?"', $page);
     }
 
     public function test_sans_stockage_rien_n_est_enregistre(): void

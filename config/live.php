@@ -36,6 +36,10 @@ return [
         'url_publique' => env('LIVE_REPLAY_URL'),
     ],
 
+    // Le replay commence quelques secondes après la demande d'enregistrement :
+    // décalage appliqué pour que le chat tombe pile au bon moment.
+    'replay_decalage_secondes' => (int) env('LIVE_REPLAY_DECALAGE', 3),
+
     // Rappel « le live commence dans N minutes » aux membres inscrits.
     'rappel_minutes' => 15,
 

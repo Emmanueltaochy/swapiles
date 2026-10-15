@@ -65,7 +65,7 @@ class MessageController extends Controller
             ->update(['read_at' => now()]);
 
         $messages = Message::query()
-            ->with(['sender', 'receiver'])
+            ->with(['sender', 'receiver', 'replyTo.sender'])
             ->where('listing_id', $listing->id)
             ->where(function ($q) use ($authId, $user) {
                 $q->where(function ($sub) use ($authId, $user) {
@@ -110,7 +110,7 @@ class MessageController extends Controller
             ->update(['read_at' => now()]);
 
         $messages = Message::query()
-            ->with(['sender', 'receiver'])
+            ->with(['sender', 'receiver', 'replyTo.sender'])
             ->whereNull('listing_id')
             ->where(function ($q) use ($authId, $user) {
                 $q->where(function ($sub) use ($authId, $user) {
@@ -255,6 +255,7 @@ class MessageController extends Controller
     {
         return [
             'body' => ['nullable', 'required_without:attachment', 'string', 'max:3000'],
+            'reply_to_id' => ['nullable', 'integer'],
             'attachment' => [
                 'nullable', 'required_without:body', 'file',
                 'mimetypes:image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,video/mp4,video/quicktime,video/webm,video/3gpp',
@@ -287,11 +288,23 @@ class MessageController extends Controller
             $path = $file->store('messages', 'public');
         }
 
+        // Réponse à un message : seulement un message de CETTE conversation.
+        $replyTo = null;
+        if ($request->filled('reply_to_id')) {
+            $replyTo = Message::query()->whereKey((int) $request->input('reply_to_id'))
+                ->where(fn ($q) => $listingId ? $q->where('listing_id', $listingId) : $q->whereNull('listing_id'))
+                ->where(fn ($q) => $q
+                    ->where(fn ($s) => $s->where('sender_id', Auth::id())->where('receiver_id', $receiverId))
+                    ->orWhere(fn ($s) => $s->where('sender_id', $receiverId)->where('receiver_id', Auth::id())))
+                ->value('id');
+        }
+
         return Message::create([
             'listing_id' => $listingId,
             'sender_id' => Auth::id(),
             'receiver_id' => $receiverId,
             'body' => $request->input('body'),
+            'reply_to_id' => $replyTo,
             'attachment_path' => $path,
             'attachment_type' => $type,
             'attachment_mime' => $mime,

@@ -9,7 +9,7 @@ class LiveMessage extends Model
 {
     public $timestamps = false;
 
-    protected $fillable = ['live_session_id', 'user_id', 'body', 'type', 'masque', 'created_at'];
+    protected $fillable = ['live_session_id', 'user_id', 'listing_id', 'body', 'type', 'masque', 'created_at'];
 
     protected $casts = ['masque' => 'boolean', 'created_at' => 'datetime'];
 

@@ -20,7 +20,7 @@ class LiveSession extends Model
         'user_id', 'titre', 'description', 'statut', 'debut_prevu_at', 'demarre_at',
         'termine_at', 'article_epingle_id', 'spectateurs_max', 'coeurs', 'coupe_raison',
         'rappel_envoye_at', 'enregistrement_id', 'replay_chemin', 'replay_publie_at',
-        'replay_supprime_at', 'replay_fichier_efface_at',
+        'replay_supprime_at', 'replay_fichier_efface_at', 'enregistrement_debut_at',
     ];
 
     protected $casts = [
@@ -29,6 +29,7 @@ class LiveSession extends Model
         'termine_at' => 'datetime',
         'rappel_envoye_at' => 'datetime',
         'replay_publie_at' => 'datetime',
+        'enregistrement_debut_at' => 'datetime',
         'replay_supprime_at' => 'datetime',
         'replay_fichier_efface_at' => 'datetime',
     ];

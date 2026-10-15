@@ -1,5 +1,5 @@
 {{-- Lives du vendeur sur son profil : en direct, à venir, replays. --}}
-@if($lives->isNotEmpty())
+@if($lives->whereIn('statut', ['en_direct', 'programme'])->isNotEmpty())
     @php
         $enCours = $lives->firstWhere('statut', 'en_direct');
         $aVenir = $lives->where('statut', 'programme');
@@ -26,13 +26,6 @@
                 <span class="shrink-0 text-sm font-extrabold text-teal-700">🔔 Me prévenir</span>
             </a>
         @endforeach
-        @if($replays->isNotEmpty())
-            <p class="mb-3 mt-2 text-xs font-semibold uppercase tracking-wide text-teal-600">🎬 Replays des lives</p>
-            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                @foreach($replays as $live)
-                    @include('live.partials.vignette-replay', ['live' => $live])
-                @endforeach
-            </div>
-        @endif
+        {{-- Les replays ont leur propre onglet (« 🎬 Replays des lives »). --}}
     </div>
 @endif

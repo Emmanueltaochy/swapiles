@@ -55,11 +55,13 @@ class LiveService
             ->exists();
     }
 
-    public static function message(LiveSession $live, ?User $user, string $texte, string $type = 'message'): LiveMessage
+    public static function message(LiveSession $live, ?User $user, string $texte, string $type = 'message', ?int $listingId = null): LiveMessage
     {
         return LiveMessage::create([
             'live_session_id' => $live->id,
             'user_id' => $user?->id,
+            // Article concerné (mise en avant, nouvel article, achat) : rejoué dans le replay.
+            'listing_id' => $listingId,
             'body' => mb_substr(trim($texte), 0, 300),
             'type' => $type,
             'created_at' => now(),
@@ -112,6 +114,48 @@ class LiveService
 
             return true;
         });
+    }
+
+    // --- Replay interactif ------------------------------------------------------------
+
+    /**
+     * Ce que le replay rejoue, placé sur la ligne de temps de la vidéo (en
+     * secondes depuis le début de l'enregistrement) : messages du chat,
+     * articles mis en avant, achats, cœurs.
+     *
+     * @return array{messages:array,coeurs:array,articles:array}
+     */
+    public static function donneesReplay(LiveSession $live): array
+    {
+        $debut = $live->enregistrement_debut_at ?? $live->demarre_at ?? $live->created_at;
+        // L'enregistreur met quelques secondes à démarrer après la demande.
+        $decalage = (int) config('live.replay_decalage_secondes', 3);
+        $t = fn ($date) => max(0, \Illuminate\Support\Carbon::parse($date)->getTimestamp() - $debut->getTimestamp() - $decalage);
+
+        $messages = LiveMessage::query()->with('user:id,name')
+            ->where('live_session_id', $live->id)->where('masque', false)
+            ->orderBy('id')->limit(3000)->get()
+            ->map(fn (LiveMessage $m) => [
+                't' => $t($m->created_at),
+                'auteur' => $m->type === 'message' ? ($m->user->name ?? 'Membre') : null,
+                'vendeur' => (int) $m->user_id === (int) $live->user_id,
+                'texte' => $m->body,
+                'type' => $m->type,
+                'article' => $m->listing_id,
+            ])->values()->all();
+
+        $coeurs = DB::table('live_coeurs')->where('live_session_id', $live->id)->orderBy('instant')
+            ->get(['instant', 'n'])->map(fn ($c) => ['t' => $t($c->instant), 'n' => (int) $c->n])->values()->all();
+
+        $articles = $live->articles()->with('images')->get()->mapWithKeys(fn (Listing $a) => [$a->id => [
+            'titre' => $a->title,
+            'prix' => TableauDeBord::euros((float) $a->price),
+            'photo' => $a->images->sortBy('order')->first()?->url,
+            'vendu' => $a->status === 'sold',
+            'lien' => route('listings.show', $a, absolute: false),
+        ]])->all();
+
+        return ['messages' => $messages, 'coeurs' => $coeurs, 'articles' => $articles];
     }
 
     // --- État envoyé à la page (toutes les 2-3 secondes) ---------------------------

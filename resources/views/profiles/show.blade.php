@@ -308,6 +308,7 @@
             </div>
 
         @else
+            @include('live.partials.profil', ['lives' => $lives])
             <div class="mb-5">
                 <p class="text-xs font-semibold uppercase tracking-wide text-teal-600">Dressing</p>
                 <h2 class="text-xl sm:text-2xl font-bold text-gray-900">{{ number_format($listings->total(), 0, ',', ' ') }} annonce{{ $listings->total() > 1 ? 's' : '' }} en ligne</h2>

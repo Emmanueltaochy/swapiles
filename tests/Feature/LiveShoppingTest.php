@@ -50,11 +50,11 @@ class LiveShoppingTest extends TestCase
         ]);
     }
 
-    private function live(User $vendeur, array $articles, string $statut = 'en_direct'): LiveSession
+    private function live(User $vendeur, array $articles, string $statut = 'en_direct', bool $visibles = true): LiveSession
     {
         $live = LiveSession::create(['user_id' => $vendeur->id, 'titre' => 'Vide-dressing', 'statut' => $statut]);
         foreach ($articles as $i => $a) {
-            $live->articles()->attach($a->id, ['ordre' => $i]);
+            $live->articles()->attach($a->id, ['ordre' => $i, 'visible' => $visibles]);
         }
 
         return $live;
@@ -311,6 +311,199 @@ class LiveShoppingTest extends TestCase
             ->assertSee('Vide-dressing')
             ->assertSee('aspect-[3/4]', false)
             ->assertSee('LIVE');
+    }
+
+    // --- Articles masqués puis dévoilés -------------------------------------------
+
+    public function test_articles_masques_puis_devoiles_par_le_vendeur(): void
+    {
+        config(['live.testeurs' => ['membre@ex.com']]);
+        $robe = $this->article($this->admin, 'Robe rouge', 20);
+        $sac = $this->article($this->admin, 'Sac', 30);
+
+        // Un nouveau live : tout est masqué au départ.
+        $this->actingAs($this->admin)->post('/live', ['titre' => 'Mon live', 'articles' => [$robe->id, $sac->id]]);
+        $live = LiveSession::sole();
+        $live->update(['statut' => 'en_direct']);
+
+        $this->assertSame([], $this->actingAs($this->membre)->getJson("/live/{$live->id}/etat")->json('articles'));
+        $this->actingAs($this->membre)->post("/live/{$live->id}/acheter/{$robe->id}")->assertNotFound();
+
+        // Le vendeur dévoile la robe : elle apparaît, avec un message dans le chat.
+        $this->actingAs($this->membre)->postJson("/live/{$live->id}/articles/{$robe->id}/visibilite", ['visible' => true])->assertForbidden();
+        $this->actingAs($this->admin)->postJson("/live/{$live->id}/articles/{$robe->id}/visibilite", ['visible' => true])->assertOk();
+
+        $etat = $this->actingAs($this->membre)->getJson("/live/{$live->id}/etat")->json();
+        $this->assertSame(['Robe rouge'], array_column($etat['articles'], 'titre'));
+        $this->assertContains('🛍️ Nouvel article : Robe rouge — 20,00 €', array_column($etat['messages'], 'texte'));
+        $this->actingAs($this->membre)->post("/live/{$live->id}/acheter/{$robe->id}")->assertRedirect(route('checkout.show', $robe));
+
+        // Mettre le sac en avant le rend visible aussi.
+        $this->actingAs($this->admin)->postJson("/live/{$live->id}/epingler", ['listing_id' => $sac->id])->assertNoContent();
+        $this->assertCount(2, $this->actingAs($this->membre)->getJson("/live/{$live->id}/etat")->json('articles'));
+
+        // Le cacher à nouveau retire aussi la mise en avant.
+        $this->actingAs($this->admin)->postJson("/live/{$live->id}/articles/{$sac->id}/visibilite", ['visible' => false])->assertOk();
+        $this->assertNull($live->fresh()->article_epingle_id);
+    }
+
+    // --- Partage ---------------------------------------------------------------------
+
+    public function test_partage_avec_lien_d_invitation(): void
+    {
+        config(['live.testeurs' => ['membre@ex.com']]);
+        $live = $this->live($this->admin, [$this->article($this->admin)]);
+
+        $this->actingAs($this->membre)->get("/live/{$live->id}")->assertOk()
+            ->assertSee('data-partager', false)
+            ->assertSee('?de=' . $this->membre->id, false);
+
+        // Un ami arrive par le lien du membre : on le salue une seule fois.
+        config(['live.ouvert_a_tous' => true]);
+        auth()->logout();
+        $this->get("/live/{$live->id}?de={$this->membre->id}");
+        $this->get("/live/{$live->id}?de={$this->membre->id}");
+        $this->assertSame(1, LiveMessage::where('body', '👋 Un invité de Paul vient de rejoindre le live')->count());
+    }
+
+    // --- « Me prévenir » et notifications ---------------------------------------------
+
+    public function test_me_prevenir_puis_rappel_et_demarrage(): void
+    {
+        config(['live.testeurs' => ['membre@ex.com']]);
+        \Illuminate\Support\Facades\Notification::fake();
+        $suiveur = $this->user('suiveur@ex.com', 'Lina');
+        $curieux = $this->user('curieux@ex.com', 'Hugo');
+        \Illuminate\Support\Facades\DB::table('seller_follows')->insert([
+            ['follower_id' => $suiveur->id, 'seller_id' => $this->admin->id, 'created_at' => now(), 'updated_at' => now()],
+            ['follower_id' => $this->membre->id, 'seller_id' => $this->admin->id, 'created_at' => now(), 'updated_at' => now()],
+        ]);
+        $live = $this->live($this->admin, [$this->article($this->admin)], 'programme');
+        $live->update(['debut_prevu_at' => now()->addHour()]);
+
+        // Le membre demande à être prévenu.
+        $this->actingAs($this->membre)->get('/live')->assertSee('Me prévenir du début du live');
+        $this->actingAs($this->membre)->post("/live/{$live->id}/rappel")->assertRedirect();
+        $this->assertTrue($live->abonnes()->whereKey($this->membre->id)->exists());
+        $this->actingAs($this->admin)->post("/live/{$live->id}/rappel")->assertForbidden();
+
+        // Trop tôt : pas de rappel.
+        $this->assertSame(0, \App\Support\LiveNotifications::envoyerRappels());
+
+        // 15 min avant : un rappel, une seule fois.
+        Carbon::setTestNow(now()->addMinutes(46));
+        $this->artisan('live:rappels')->assertSuccessful();
+        $this->artisan('live:rappels')->assertSuccessful();
+        $this->assertSame(1, \App\Models\Notification::where('type', 'live_soon')->count());
+        $this->assertSame($this->membre->id, \App\Models\Notification::where('type', 'live_soon')->value('user_id'));
+
+        // Démarrage : l'inscrit (notification + e-mail). Le suiveur, en phase de
+        // test, n'a pas accès au live : rien. Le curieux non plus.
+        $this->actingAs($this->admin)->post("/live/{$live->id}/demarrer");
+        $this->assertSame(1, \App\Models\Notification::where('type', 'live_started')->where('user_id', $this->membre->id)->count());
+        \Illuminate\Support\Facades\Notification::assertSentTo($this->membre, \App\Notifications\LiveCommenceNotification::class);
+        $this->assertSame(0, \App\Models\Notification::whereIn('user_id', [$suiveur->id, $curieux->id])->count());
+        // Pas de double notification pour l'inscrit qui suit aussi le dressing.
+        $this->assertSame(0, \App\Models\Notification::where('type', 'live_started_suivi')->where('user_id', $this->membre->id)->count());
+
+        // Live ouvert à tous : le suiveur est prévenu (sans e-mail).
+        config(['live.ouvert_a_tous' => true]);
+        $autre = $this->live($this->admin, [$this->article($this->admin, 'Jupe')], 'programme');
+        $this->actingAs($this->admin)->post("/live/{$autre->id}/demarrer");
+        $this->assertSame(1, \App\Models\Notification::where('type', 'live_started_suivi')->where('user_id', $suiveur->id)->count());
+        \Illuminate\Support\Facades\Notification::assertNotSentTo($suiveur, \App\Notifications\LiveCommenceNotification::class);
+    }
+
+    public function test_notification_de_live_jamais_retardee_au_matin(): void
+    {
+        config(['push.silence.debut' => 22, 'push.silence.fin' => 8]);
+        $nuit = Carbon::parse('2026-10-15 23:30', 'Indian/Reunion');
+
+        $this->assertSame('ignorer', \App\Support\PushPolicy::decider($this->membre, 'live_started', $nuit)['action']);
+        $this->assertSame('differer', \App\Support\PushPolicy::decider($this->membre, 'favorite_reminder', $nuit)['action']);
+        $this->assertSame('envoyer', \App\Support\PushPolicy::decider($this->membre, 'live_started', Carbon::parse('2026-10-15 18:00', 'Indian/Reunion'))['action']);
+    }
+
+    public function test_reglage_live_cache_aux_membres_sans_acces_n_est_pas_coupe(): void
+    {
+        $propre = \App\Support\NotificationPreferences::nettoyer([
+            'messages' => ['affiche' => '1', 'push' => '1'],
+            'conseils' => ['affiche' => '1'],
+        ]);
+
+        $this->assertTrue($propre['lives']['push'], 'Catégorie non affichée : réglage par défaut conservé.');
+        $this->assertFalse($propre['conseils']['push'], 'Catégorie affichée et décochée : coupée.');
+    }
+
+    // --- Enregistrement et replay -----------------------------------------------------
+
+    private function configurerReplay(): void
+    {
+        config([
+            'live.livekit' => ['url' => 'wss://swapiles.livekit.cloud', 'key' => 'APIcle', 'secret' => 'secret-de-test'],
+            'live.replay' => ['cle' => 'k', 'secret' => 's', 'bucket' => 'lives', 'region' => 'auto', 'endpoint' => 'https://r2.exemple', 'url_publique' => 'https://replays.exemple'],
+        ]);
+    }
+
+    public function test_enregistrement_puis_replay_publie_sur_le_profil(): void
+    {
+        $this->configurerReplay();
+        config(['live.testeurs' => ['membre@ex.com']]);
+        \Illuminate\Support\Facades\Http::fake([
+            '*/twirp/livekit.Egress/StartRoomCompositeEgress' => \Illuminate\Support\Facades\Http::response(['egress_id' => 'EG_abc123']),
+            '*/twirp/livekit.Egress/StopEgress' => \Illuminate\Support\Facades\Http::response(['egress_id' => 'EG_abc123']),
+        ]);
+        $live = $this->live($this->admin, [$this->article($this->admin)]);
+
+        $this->actingAs($this->membre)->postJson("/live/{$live->id}/enregistrer")->assertForbidden();
+        $this->actingAs($this->admin)->postJson("/live/{$live->id}/enregistrer")->assertOk()->assertJson(['enregistre' => true]);
+        $this->actingAs($this->admin)->postJson("/live/{$live->id}/enregistrer")->assertOk();
+
+        \Illuminate\Support\Facades\Http::assertSentCount(1);
+        \Illuminate\Support\Facades\Http::assertSent(function ($requete) use ($live) {
+            return str_starts_with($requete->url(), 'https://swapiles.livekit.cloud/twirp/')
+                && $requete['room_name'] === 'swapiles-live-' . $live->id
+                && $requete['preset'] === 'PORTRAIT_H264_720P_30'
+                && $requete['file_outputs'][0]['s3']['bucket'] === 'lives'
+                && str_starts_with($requete->header('Authorization')[0], 'Bearer ');
+        });
+
+        $live->refresh();
+        $this->assertSame('EG_abc123', $live->enregistrement_id);
+        $this->assertStringStartsWith('https://replays.exemple/lives/live-' . $live->id . '-', $live->replayUrl());
+
+        // Fin du live : l'enregistrement est arrêté.
+        $this->actingAs($this->admin)->post("/live/{$live->id}/terminer");
+        \Illuminate\Support\Facades\Http::assertSent(fn ($r) => str_ends_with($r->url(), 'StopEgress') && $r['egress_id'] === 'EG_abc123');
+
+        // Pas encore publié : le vendeur voit le replay, les autres non.
+        $this->actingAs($this->admin)->get("/live/{$live->id}")->assertSee('Publier sur mon profil')->assertSee($live->replayUrl(), false);
+        $this->actingAs($this->membre)->get("/live/{$live->id}")->assertDontSee($live->replayUrl(), false);
+        $this->actingAs($this->membre)->get('/profil/' . $this->admin->id)->assertDontSee('Replays des lives');
+
+        // Publication.
+        $this->actingAs($this->membre)->post("/live/{$live->id}/replay", ['publier' => 1])->assertForbidden();
+        $this->actingAs($this->admin)->post("/live/{$live->id}/replay", ['publier' => 1])->assertRedirect();
+        $this->actingAs($this->membre)->get("/live/{$live->id}")->assertSee($live->replayUrl(), false);
+        $this->actingAs($this->membre)->get('/profil/' . $this->admin->id)->assertSee('Replays des lives')->assertSee('Vide-dressing');
+        $this->actingAs($this->membre)->get('/live')->assertSee('🎬 Replays');
+
+        // Membres sans accès au live : rien sur le profil.
+        $autre = $this->user('autre@ex.com', 'Zoé');
+        $this->actingAs($autre)->get('/profil/' . $this->admin->id)->assertDontSee('Replays des lives');
+    }
+
+    public function test_sans_stockage_rien_n_est_enregistre(): void
+    {
+        \Illuminate\Support\Facades\Http::fake();
+        config(['live.livekit' => ['url' => 'wss://x', 'key' => 'k', 'secret' => 's'], 'live.replay.cle' => null]);
+        $live = $this->live($this->admin, [$this->article($this->admin)]);
+
+        $this->actingAs($this->admin)->postJson("/live/{$live->id}/enregistrer")->assertOk()->assertJson(['enregistre' => false]);
+        \Illuminate\Support\Facades\Http::assertNothingSent();
+
+        $this->actingAs($this->admin)->post("/live/{$live->id}/terminer");
+        $this->actingAs($this->admin)->get("/live/{$live->id}")->assertSee('pas été enregistré');
     }
 
     // --- Admin --------------------------------------------------------------------

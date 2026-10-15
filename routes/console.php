@@ -54,3 +54,7 @@ Schedule::command('recommandations:envoyer')->hourlyAt(5)->withoutOverlapping();
 // « ton colis t'attend au point relais ». Deux relances au plus par sujet ;
 // la nuit, elles attendent le matin chez le membre (PushPolicy).
 Schedule::command('ventes:relances')->hourlyAt(20)->withoutOverlapping();
+
+// Ventes en direct : « le live commence dans 15 min » aux membres qui ont
+// appuyé sur « Me prévenir ». Une seule fois par live.
+Schedule::command('live:rappels')->everyMinute()->withoutOverlapping();

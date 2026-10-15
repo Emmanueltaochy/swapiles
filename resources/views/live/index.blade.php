@@ -54,7 +54,8 @@
 
     <h2 class="mt-10 mb-3 text-lg font-extrabold text-gray-900">À venir</h2>
     @forelse($programmes as $live)
-        <a href="{{ route('live.show', $live) }}" class="mb-3 flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-2.5 shadow-sm">
+        <div class="mb-3 flex items-center gap-2 rounded-2xl border border-gray-100 bg-white p-2.5 shadow-sm">
+        <a href="{{ route('live.show', $live) }}" class="flex min-w-0 flex-1 items-center gap-3">
             @if($image = $couverture($live))
                 <img src="{{ $image }}" alt="" class="h-16 w-16 shrink-0 rounded-xl bg-gray-100 object-cover">
             @else
@@ -68,9 +69,30 @@
                 @endif
             </span>
         </a>
+        @if(auth()->id() !== $live->user_id)
+            @php $inscrit = in_array($live->id, $mesRappels); @endphp
+            @auth
+                <form method="POST" action="{{ route('live.rappel', $live) }}" class="shrink-0">@csrf
+                    <button class="grid h-11 w-11 place-items-center rounded-full text-lg {{ $inscrit ? 'bg-teal-600 text-white' : 'border border-gray-200 bg-white' }}"
+                            aria-label="{{ $inscrit ? 'Ne plus être prévenu' : 'Me prévenir du début du live' }}" title="{{ $inscrit ? 'Vous serez prévenu' : 'Me prévenir' }}">{{ $inscrit ? '🔔' : '🔕' }}</button>
+                </form>
+            @else
+                <a href="{{ route('login') }}" class="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-gray-200 text-lg" aria-label="Me prévenir du début du live">🔕</a>
+            @endauth
+        @endif
+        </div>
     @empty
         <p class="text-sm text-gray-500">Aucun live programmé.</p>
     @endforelse
+
+    @if($replays->isNotEmpty())
+        <h2 class="mt-10 mb-3 text-lg font-extrabold text-gray-900">🎬 Replays</h2>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            @foreach($replays as $live)
+                @include('live.partials.vignette-replay', ['live' => $live])
+            @endforeach
+        </div>
+    @endif
 
     @if($mesLives->isNotEmpty())
         <h2 class="mt-10 mb-3 text-lg font-extrabold text-gray-900">Mes lives</h2>

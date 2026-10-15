@@ -45,7 +45,7 @@ class PushPolicy
      *   animation      : incitation — plafond serré
      */
     public const NIVEAUX = [
-        'social' => ['message_received', 'exchange_proposal', 'listing_interest', 'message_reminder'],
+        'social' => ['message_received', 'exchange_proposal', 'listing_interest', 'message_reminder', 'live_soon', 'live_started'],
         // Relances de vente : pas la nuit, pas plus de 3 par jour.
         'rappel' => ['seller_ship_reminder', 'buyer_confirm_reminder', 'buyer_handover_reminder', 'relay_pickup_reminder'],
         'animation' => [
@@ -59,8 +59,16 @@ class PushPolicy
             'top_dressing',
             'favorite_price_drop',
             'favorite_reminder',
+            'live_started_suivi',
         ],
     ];
+
+    /**
+     * Notifications qui n'ont de sens que sur le moment (un live qui
+     * commence) : pendant les heures de silence, on ne les garde pas pour le
+     * matin, elles seraient périmées.
+     */
+    public const PERISSABLES = ['live_soon', 'live_started', 'live_started_suivi'];
 
     /** Niveau d'un type de notification. */
     public static function niveau(?string $type): string
@@ -116,6 +124,10 @@ class PushPolicy
 
         // --- Heures de silence, dans le fuseau du membre -------------------
         $reveil = self::prochainCreneau($user, $maintenant);
+
+        if ($reveil !== null && in_array($type, self::PERISSABLES, true)) {
+            return ['action' => 'ignorer', 'envoi_a' => null, 'raison' => 'périmée au réveil du membre'];
+        }
 
         if ($reveil !== null) {
             return [

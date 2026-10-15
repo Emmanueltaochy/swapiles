@@ -143,6 +143,10 @@ Route::prefix('live')->middleware(\App\Http\Middleware\LiveVisible::class)->name
         Route::post('/{live}/messages/{message}/masquer', [\App\Http\Controllers\LiveController::class, 'masquerMessage'])->name('masquer');
         Route::post('/{live}/messages/{message}/exclure', [\App\Http\Controllers\LiveController::class, 'exclure'])->name('exclure');
         Route::post('/{live}/acheter/{listing}', [\App\Http\Controllers\LiveController::class, 'acheter'])->name('acheter');
+        Route::post('/{live}/articles/{listing}/visibilite', [\App\Http\Controllers\LiveController::class, 'visibilite'])->name('visibilite');
+        Route::post('/{live}/enregistrer', [\App\Http\Controllers\LiveController::class, 'enregistrer'])->middleware('throttle:10,1')->name('enregistrer');
+        Route::post('/{live}/replay', [\App\Http\Controllers\LiveController::class, 'publierReplay'])->name('replay');
+        Route::post('/{live}/rappel', [\App\Http\Controllers\LiveController::class, 'rappel'])->middleware('throttle:30,1')->name('rappel');
     });
 
     Route::get('/{live}', [\App\Http\Controllers\LiveController::class, 'show'])->whereNumber('live')->name('show');

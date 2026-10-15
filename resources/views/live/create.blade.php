@@ -6,7 +6,7 @@
 <section class="max-w-3xl mx-auto px-4 py-6 sm:py-10">
     <a href="{{ route('live.index') }}" class="text-sm font-bold text-teal-700">← Lives</a>
     <h1 class="mt-3 text-2xl font-extrabold text-gray-900">Créer un live</h1>
-    <p class="mt-1 text-gray-600">Choisissez les articles que vous allez présenter. Pendant le live, vous les mettez en avant un par un et les spectateurs les achètent en un clic.</p>
+    <p class="mt-1 text-gray-600">Choisissez les articles que vous allez présenter. Ils restent <b>cachés</b> aux spectateurs : pendant le live, vous les dévoilez un par un (ou les mettez en avant à l’écran), et ils s’achètent en un clic.</p>
 
     <form method="POST" action="{{ route('live.store') }}" class="mt-6 space-y-5">
         @csrf

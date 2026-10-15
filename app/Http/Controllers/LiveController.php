@@ -21,6 +21,10 @@ class LiveController extends Controller
                 ->where(fn ($q) => $q->whereNull('debut_prevu_at')->orWhere('debut_prevu_at', '>=', now()->subHours(6)))
                 ->orderBy('debut_prevu_at')->get(),
             'mesLives' => $request->user() ? LiveSession::where('user_id', $request->user()->id)->latest()->limit(10)->get() : collect(),
+            'replays' => LiveSession::with(['vendeur', 'articles.images'])->where('statut', 'termine')
+                ->whereNotNull('replay_publie_at')->whereNotNull('replay_chemin')
+                ->latest('replay_publie_at')->limit(12)->get(),
+            'mesRappels' => $request->user() ? \Illuminate\Support\Facades\DB::table('live_rappels')->where('user_id', $request->user()->id)->pluck('live_session_id')->all() : [],
         ]);
     }
 
@@ -65,12 +69,39 @@ class LiveController extends Controller
         // Pour proposer « Revenir au live » si on va voir ailleurs (paiement…).
         if ($live->enDirect()) {
             $request->session()->put('live_retour', $live->id);
+            $this->arriveeParInvitation($request, $live);
         }
 
         return view('live.show', [
             'live' => $live,
             'estVendeur' => $live->estVendeur($request->user()),
+            'inscrit' => $request->user() ? $live->abonnes()->whereKey($request->user()->id)->exists() : false,
+            'nbInscrits' => $live->abonnes()->count(),
         ]);
+    }
+
+    /**
+     * Lien partagé (« ?de=12 ») : on salue l'arrivée dans le chat, une seule
+     * fois par visiteur. Ça montre au vendeur et au public que le partage
+     * marche, et donne envie de partager à son tour.
+     */
+    private function arriveeParInvitation(Request $request, LiveSession $live): void
+    {
+        $de = (int) $request->query('de');
+        $cle = 'live_invite_' . $live->id;
+
+        if ($de <= 0 || $request->session()->has($cle) || $request->user()?->id === $de) {
+            return;
+        }
+
+        $parrain = \App\Models\User::find($de);
+        if (! $parrain) {
+            return;
+        }
+
+        $request->session()->put($cle, true);
+        $prenom = \Illuminate\Support\Str::of($parrain->name)->trim()->explode(' ')->first();
+        LiveService::message($live, null, '👋 Un invité de ' . $prenom . ' vient de rejoindre le live', 'systeme');
     }
 
     // --- Vendeur ----------------------------------------------------------------
@@ -85,8 +116,13 @@ class LiveController extends Controller
         $this->vendeurSeulement($request, $live);
         abort_if($live->statut === 'termine', 403);
 
+        $premiereFois = $live->statut === 'programme';
         $live->update(['statut' => 'en_direct', 'demarre_at' => $live->demarre_at ?? now()]);
         LiveService::message($live, null, '🔴 Le live commence !', 'systeme');
+
+        if ($premiereFois) {
+            \App\Support\LiveNotifications::demarrage($live);
+        }
 
         return back();
     }
@@ -97,8 +133,65 @@ class LiveController extends Controller
 
         $live->update(['statut' => 'termine', 'termine_at' => now(), 'article_epingle_id' => null]);
         LiveService::message($live, null, 'Le live est terminé. Merci à tous ! 🌴', 'systeme');
+        \App\Support\LiveEnregistrement::arreter($live);
 
-        return redirect()->route('live.show', $live)->with('status', 'Live terminé.');
+        return redirect()->route('live.show', $live)->with('status', 'Live terminé. Merci !');
+    }
+
+    /** Le vendeur montre ou cache un article dans la liste des spectateurs. */
+    public function visibilite(Request $request, LiveSession $live, Listing $listing)
+    {
+        $this->vendeurSeulement($request, $live);
+        $article = $live->articles()->whereKey($listing->id)->first();
+        abort_unless($article, 404);
+
+        $visible = $request->boolean('visible');
+        $live->articles()->updateExistingPivot($listing->id, ['visible' => $visible]);
+
+        if ($visible && ! $article->pivot->visible && $live->enDirect()) {
+            LiveService::message($live, null, '🛍️ Nouvel article : ' . $listing->title . ' — ' . \App\Support\TableauDeBord::euros((float) $listing->price), 'epingle');
+        }
+        if (! $visible && (int) $live->article_epingle_id === (int) $listing->id) {
+            $live->update(['article_epingle_id' => null]);
+        }
+
+        return response()->json(['visible' => $visible]);
+    }
+
+    /** Lancement de l'enregistrement, quand la caméra du vendeur tourne. */
+    public function enregistrer(Request $request, LiveSession $live)
+    {
+        $this->vendeurSeulement($request, $live);
+
+        return response()->json(['enregistre' => \App\Support\LiveEnregistrement::demarrer($live)]);
+    }
+
+    /** Le vendeur publie (ou retire) le replay sur son profil. */
+    public function publierReplay(Request $request, LiveSession $live)
+    {
+        $this->vendeurSeulement($request, $live);
+        abort_unless($live->statut === 'termine' && $live->replayUrl(), 404);
+
+        $publier = $request->boolean('publier');
+        $live->update(['replay_publie_at' => $publier ? now() : null]);
+
+        return back()->with('status', $publier ? '🎬 Replay publié sur votre profil.' : 'Replay retiré de votre profil.');
+    }
+
+    /** « Me prévenir » : inscription (ou désinscription) au début du live. */
+    public function rappel(Request $request, LiveSession $live)
+    {
+        abort_if($live->statut === 'termine', 404);
+        abort_if($live->estVendeur($request->user()), 403);
+
+        $deja = $live->abonnes()->whereKey($request->user()->id)->exists();
+        $deja ? $live->abonnes()->detach($request->user()->id) : $live->abonnes()->attach($request->user()->id);
+
+        if ($request->expectsJson()) {
+            return response()->json(['inscrit' => ! $deja, 'inscrits' => $live->abonnes()->count()]);
+        }
+
+        return back()->with('status', $deja ? 'Vous ne serez plus prévenu de ce live.' : '🔔 C’est noté ! On vous prévient 15 min avant et au début du live.');
     }
 
     public function epingler(Request $request, LiveSession $live)
@@ -108,6 +201,8 @@ class LiveController extends Controller
         abort_unless($live->articles()->whereKey($data['listing_id'])->exists(), 422);
 
         $live->update(['article_epingle_id' => $data['listing_id']]);
+        // Mis en avant = forcément visible dans la liste.
+        $live->articles()->updateExistingPivot($data['listing_id'], ['visible' => true]);
         $article = Listing::find($data['listing_id']);
         LiveService::message($live, null, '📌 ' . $article->title . ' — ' . \App\Support\TableauDeBord::euros((float) $article->price), 'epingle');
 
@@ -200,7 +295,11 @@ class LiveController extends Controller
         if (! $request->user()) {
             return redirect()->guest(route('login'));
         }
-        abort_unless($live->articles()->whereKey($listing->id)->exists(), 404);
+        // Seulement les articles que le vendeur a déjà montrés.
+        abort_unless(
+            $live->articlesVisibles()->whereKey($listing->id)->exists() || (int) $live->article_epingle_id === (int) $listing->id,
+            404
+        );
 
         if (! LiveService::reserver($live, $listing, $request->user())) {
             return back()->with('status', $listing->status === 'sold'

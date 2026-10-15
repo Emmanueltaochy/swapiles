@@ -44,7 +44,10 @@
             </div>
 
             @foreach(\App\Support\NotificationPreferences::CATEGORIES as $cle => $categorie)
+                {{-- Ventes en direct : seulement pour ceux qui y ont accès (phase de test). --}}
+                @continue($cle === 'lives' && ! \App\Support\LiveAcces::visible(auth()->user()))
                 <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-4">
+                    <input type="hidden" name="notification_prefs[{{ $cle }}][affiche]" value="1">
                     <div class="min-w-0">
                         <p class="font-semibold text-gray-900">{{ $categorie['label'] }}</p>
                         <p class="mt-0.5 text-sm text-gray-500">{{ $categorie['description'] }}</p>

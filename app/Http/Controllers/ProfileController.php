@@ -59,7 +59,17 @@ class ProfileController extends Controller
             $dressingRank = null;
         }
 
+        // Ventes en direct du vendeur : live en cours, à venir et replays
+        // publiés (seulement pour ceux qui ont accès au live).
+        $lives = \App\Support\LiveAcces::visible($request->user())
+            ? \App\Models\LiveSession::with(['vendeur', 'articles.images'])->where('user_id', $user->id)
+                ->where(fn ($q) => $q->whereIn('statut', ['en_direct', 'programme'])
+                    ->orWhere(fn ($q) => $q->where('statut', 'termine')->whereNotNull('replay_publie_at')->whereNotNull('replay_chemin')))
+                ->latest()->limit(12)->get()
+            : collect();
+
         return view('profiles.show', compact(
+            'lives',
             'user',
             'listings',
             'reviews',

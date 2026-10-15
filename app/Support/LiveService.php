@@ -136,8 +136,20 @@ class LiveService
                 'type' => $m->type,
             ]);
 
+        // Articles déjà dévoilés par le vendeur (liste « 🛍️ » des spectateurs).
+        $articles = $live->articlesVisibles()->with('images')->get()->map(fn (Listing $a) => [
+            'id' => $a->id,
+            'titre' => $a->title,
+            'prix' => TableauDeBord::euros((float) $a->price),
+            'photo' => $a->images->sortBy('order')->first()?->url,
+            'vendu' => $a->status === 'sold',
+            'achetable' => $a->status === 'published' && $a->isOnlinePayable(),
+            'lien' => route('listings.show', $a, absolute: false),
+        ])->values()->all();
+
         return [
             'statut' => $live->statut,
+            'articles' => $articles,
             'spectateurs' => self::spectateurs($live),
             'coeurs' => $live->coeurs,
             'messages' => $messages->all(),

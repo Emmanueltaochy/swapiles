@@ -37,6 +37,12 @@ class NotificationPreferences
             'types' => ['seller_published_listing', 'listing_available_colissimo'],
             'defaut' => true,
         ],
+        'lives' => [
+            'label' => 'Ventes en direct',
+            'description' => 'Quand un live que vous attendez commence, ou qu’un dressing que vous suivez lance un live.',
+            'types' => ['live_soon', 'live_started', 'live_started_suivi'],
+            'defaut' => true,
+        ],
         'favoris' => [
             'label' => 'Mises en favori',
             'description' => 'Quand quelqu’un ajoute une de vos annonces à ses favoris.',
@@ -152,7 +158,18 @@ class NotificationPreferences
         $valeurs = is_array($valeurs) ? $valeurs : [];
         $propre = [];
 
+        // Le formulaire marque chaque ligne affichée. Une catégorie non
+        // proposée au membre (ventes en direct en phase de test) garde son
+        // réglage par défaut au lieu d'être enregistrée comme « décochée ».
+        $marque = collect($valeurs)->contains(fn ($v) => is_array($v) && isset($v['affiche']));
+
         foreach (array_keys(self::CATEGORIES) as $cle) {
+            if ($marque && ! isset($valeurs[$cle]['affiche'])) {
+                $propre[$cle] = ['push' => self::parDefaut($cle), 'email' => self::parDefaut($cle)];
+
+                continue;
+            }
+
             $propre[$cle] = [
                 'push' => (bool) ($valeurs[$cle]['push'] ?? false),
                 'email' => (bool) ($valeurs[$cle]['email'] ?? false),

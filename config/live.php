@@ -23,6 +23,22 @@ return [
         'secret' => env('LIVEKIT_API_SECRET'),
     ],
 
+    // Enregistrement des lives (replay) : la vidéo est déposée par LiveKit
+    // dans un espace de stockage compatible S3 (Cloudflare R2, Scaleway…).
+    // Sans ces réglages, rien n'est enregistré.
+    'replay' => [
+        'cle' => env('LIVE_S3_KEY'),
+        'secret' => env('LIVE_S3_SECRET'),
+        'bucket' => env('LIVE_S3_BUCKET'),
+        'region' => env('LIVE_S3_REGION', 'auto'),
+        'endpoint' => env('LIVE_S3_ENDPOINT'),
+        // Adresse publique des fichiers (ex. https://pub-xxxx.r2.dev).
+        'url_publique' => env('LIVE_REPLAY_URL'),
+    ],
+
+    // Rappel « le live commence dans N minutes » aux membres inscrits.
+    'rappel_minutes' => 15,
+
     // Spectateur compté « présent » s'il a donné signe de vie depuis N secondes.
     'presence_secondes' => 30,
 ];

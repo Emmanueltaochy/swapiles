@@ -54,6 +54,7 @@ class LiveSessionResource extends Resource
                     ->schema([TextInput::make('raison')->label('Raison (visible dans l’admin)')->required()->maxLength(255)])
                     ->action(function (LiveSession $r, array $data) {
                         $r->update(['statut' => 'termine', 'termine_at' => now(), 'coupe_raison' => $data['raison'], 'article_epingle_id' => null]);
+                        \App\Support\LiveEnregistrement::arreter($r);
                         LiveService::message($r, null, 'Ce live a été interrompu par l’équipe Swap’Îles.', 'systeme');
                     }),
             ]);

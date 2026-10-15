@@ -174,6 +174,15 @@ class TableauDeBordTest extends TestCase
         }
     }
 
+    public function test_les_badges_d_etat_sont_traduits_et_non_vides(): void
+    {
+        $this->vente('completed', 35.50, 1.78, 2.19);
+        $this->actingAs($this->membre('cabinet@taochyconsulting.fr'));
+
+        // Un paramètre de closure mal nommé ($s au lieu de $state) donnait des badges vides.
+        \Livewire\Livewire::test(\App\Filament\Widgets\Tableau\DernieresVentes::class)->assertSee('Terminée');
+    }
+
     public function test_chaque_widget_s_affiche(): void
     {
         $this->vente('completed', 35.50, 1.78, 2.19);

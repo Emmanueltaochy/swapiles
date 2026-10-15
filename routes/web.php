@@ -125,6 +125,28 @@ Route::get('/cgv', [\App\Http\Controllers\LegalController::class, 'cgv'])->name(
 Route::get('/confidentialite', [\App\Http\Controllers\LegalController::class, 'confidentialite'])->name('legal.privacy');
 Route::get('/faq', [\App\Http\Controllers\LegalController::class, 'faq'])->name('faq');
 Route::get('/meilleurs-dressings', [\App\Http\Controllers\LeaderboardController::class, 'index'])->name('dressings.top');
+// Vente en direct (live shopping). Phase de test : réservé aux admins et
+// testeurs (LiveVisible), introuvable pour tous les autres.
+Route::prefix('live')->middleware(\App\Http\Middleware\LiveVisible::class)->name('live.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\LiveController::class, 'index'])->name('index');
+    Route::get('/{live}/etat', [\App\Http\Controllers\LiveController::class, 'etat'])->whereNumber('live')->middleware('throttle:120,1')->name('etat');
+    Route::post('/{live}/coeur', [\App\Http\Controllers\LiveController::class, 'coeur'])->whereNumber('live')->middleware('throttle:60,1')->name('coeur');
+
+    Route::middleware('auth')->group(function () {
+        Route::get('/nouveau', [\App\Http\Controllers\LiveController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\LiveController::class, 'store'])->name('store');
+        Route::post('/{live}/demarrer', [\App\Http\Controllers\LiveController::class, 'demarrer'])->name('demarrer');
+        Route::post('/{live}/terminer', [\App\Http\Controllers\LiveController::class, 'terminer'])->name('terminer');
+        Route::post('/{live}/epingler', [\App\Http\Controllers\LiveController::class, 'epingler'])->name('epingler');
+        Route::post('/{live}/messages', [\App\Http\Controllers\LiveController::class, 'envoyerMessage'])->middleware('throttle:20,1')->name('message');
+        Route::post('/{live}/messages/{message}/masquer', [\App\Http\Controllers\LiveController::class, 'masquerMessage'])->name('masquer');
+        Route::post('/{live}/messages/{message}/exclure', [\App\Http\Controllers\LiveController::class, 'exclure'])->name('exclure');
+        Route::post('/{live}/acheter/{listing}', [\App\Http\Controllers\LiveController::class, 'acheter'])->name('acheter');
+    });
+
+    Route::get('/{live}', [\App\Http\Controllers\LiveController::class, 'show'])->whereNumber('live')->name('show');
+});
+
 // Nos points relais : la liste, et la demande d'un point relais plus proche.
 Route::get('/points-relais', [\App\Http\Controllers\RelayPointsController::class, 'index'])->name('relay.points');
 Route::post('/points-relais/demande', [\App\Http\Controllers\RelayPointsController::class, 'demander'])

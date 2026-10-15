@@ -35,6 +35,12 @@ class CheckoutController extends Controller
                 ->with('status', "Cet article vient d'être vendu. 😔");
         }
 
+        // Vente en direct : un autre spectateur est en train de payer cet article.
+        if (\App\Support\LiveService::reservePourUnAutre($listing, Auth::user())) {
+            return redirect()->route('listings.show', $listing)
+                ->with('status', 'Cet article est réservé quelques minutes par un acheteur du live. Revenez un peu plus tard.');
+        }
+
         // Achat en ligne possible pour une vente classique ou à prix négociable.
         abort_unless(in_array($listing->listing_type, ['achat', 'negoce-prix'], true), 403);
         abort_if($listing->price <= 0, 403);

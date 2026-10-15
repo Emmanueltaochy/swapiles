@@ -56,13 +56,13 @@ class ListingInfolist
                         TextEntry::make('listing_type')
                             ->label('Type')
                             ->badge()
-                            ->formatStateUsing(fn (?string $s) => self::TYPE_LABELS[$s] ?? $s)
+                            ->formatStateUsing(fn (?string $state) => self::TYPE_LABELS[$state] ?? $state)
                             ->color('info'),
                         TextEntry::make('status')
                             ->label('Statut')
                             ->badge()
-                            ->formatStateUsing(fn (?string $s) => self::STATUS_LABELS[$s] ?? $s)
-                            ->color(fn (?string $s) => match ($s) {
+                            ->formatStateUsing(fn (?string $state) => self::STATUS_LABELS[$state] ?? $state)
+                            ->color(fn (?string $state) => match ($state) {
                                 'published' => 'success',
                                 'sold' => 'warning',
                                 default => 'gray',

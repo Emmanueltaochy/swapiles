@@ -42,13 +42,13 @@ class ReportResource extends Resource
                 TextColumn::make('status')
                     ->label('État')
                     ->badge()
-                    ->formatStateUsing(fn (?string $s) => match ($s) {
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
                         'open' => 'À traiter',
                         'reviewed' => 'Traité',
                         'dismissed' => 'Rejeté',
-                        default => $s ?: '—',
+                        default => $state ?: '—',
                     })
-                    ->color(fn (?string $s) => match ($s) {
+                    ->color(fn (?string $state) => match ($state) {
                         'open' => 'danger',
                         'reviewed' => 'success',
                         default => 'gray',
@@ -57,7 +57,7 @@ class ReportResource extends Resource
                 TextColumn::make('reason')
                     ->label('Motif')
                     ->badge()
-                    ->formatStateUsing(fn (?string $s) => Report::REASONS[$s] ?? $s ?? '—')
+                    ->formatStateUsing(fn (?string $state) => Report::REASONS[$state] ?? $state ?? '—')
                     ->color('warning'),
 
                 TextColumn::make('reportable_type')

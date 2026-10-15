@@ -30,11 +30,11 @@ class DernieresVentes extends TableWidget
                     ->color(fn (Transaction $t) => Transaction::FIABILITES[$t->fiabilite()][1]),
                 TextColumn::make('amount')->label('Montant')->money('EUR', locale: 'fr'),
                 TextColumn::make('status')->label('État')->badge()
-                    ->formatStateUsing(fn (?string $s) => match ($s) {
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
                         'pending' => 'En attente', 'paid' => 'Payée', 'completed' => 'Terminée',
-                        'refunded' => 'Remboursée', 'cancelled' => 'Annulée', default => (string) $s,
+                        'refunded' => 'Remboursée', 'cancelled' => 'Annulée', default => (string) $state,
                     })
-                    ->color(fn (?string $s) => match ($s) {
+                    ->color(fn (?string $state) => match ($state) {
                         'paid' => 'warning', 'completed' => 'success', 'refunded', 'cancelled' => 'danger', default => 'gray',
                     }),
                 TextColumn::make('created_at')->label('Date')->since(),

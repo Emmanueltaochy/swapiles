@@ -20,7 +20,7 @@ class NewsletterCampaignInfolist
                     ->schema([
                         TextEntry::make('subject')->label('Objet')->weight('bold')->size('lg')->columnSpanFull(),
                         TextEntry::make('created_at')->label('Envoyée le')->dateTime('d/m/Y à H:i')->since(),
-                        TextEntry::make('format')->label('Format')->badge()->formatStateUsing(fn ($s) => strtoupper((string) $s)),
+                        TextEntry::make('format')->label('Format')->badge()->formatStateUsing(fn ($state) => strtoupper((string) $state)),
                         TextEntry::make('audience')->label('Audience')->badge()->placeholder('—'),
                     ]),
 
@@ -31,7 +31,7 @@ class NewsletterCampaignInfolist
                         TextEntry::make('sent_count')
                             ->label('E-mails envoyés')
                             ->badge()->color('gray')
-                            ->formatStateUsing(fn ($s, NewsletterCampaign $r) => $s . ($r->failed_count ? ' (' . $r->failed_count . ' échec)' : '')),
+                            ->formatStateUsing(fn ($state, NewsletterCampaign $r) => $state . ($r->failed_count ? ' (' . $r->failed_count . ' échec)' : '')),
 
                         TextEntry::make('open_rate')
                             ->label("Taux d'ouverture")

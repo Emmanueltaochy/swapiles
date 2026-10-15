@@ -46,18 +46,18 @@ class RelayPointRequestResource extends Resource
                 TextColumn::make('business_name')->label('Commerce proposé')->placeholder('—')->searchable()
                     ->description(fn (RelayPointRequest $r) => $r->business_address),
                 TextColumn::make('already_relay')->label('Déjà point relais ?')->badge()
-                    ->formatStateUsing(fn (?string $s) => RelayPointRequest::DEJA_RELAIS[$s] ?? $s)
-                    ->color(fn (?string $s) => $s === 'oui' ? 'success' : 'gray')
+                    ->formatStateUsing(fn (?string $state) => RelayPointRequest::DEJA_RELAIS[$state] ?? $state)
+                    ->color(fn (?string $state) => $state === 'oui' ? 'success' : 'gray')
                     ->description(fn (RelayPointRequest $r) => $r->reseauxLisibles() ?: null),
                 TextColumn::make('name')->label('Demandé par')->searchable()
-                    ->formatStateUsing(fn (?string $s, RelayPointRequest $r) => $r->user_id ? $s . ' 👤' : $s)
+                    ->formatStateUsing(fn (?string $state, RelayPointRequest $r) => $r->user_id ? $state . ' 👤' : $state)
                     ->url(fn (RelayPointRequest $r) => $r->user_id ? \App\Filament\Resources\Users\UserResource::getUrl('view', ['record' => $r->user_id]) : null)
                     ->color(fn (RelayPointRequest $r) => $r->user_id ? 'primary' : null)
                     ->description(fn (RelayPointRequest $r) => $r->email . ($r->phone ? ' · ' . $r->phone : '')),
                 TextColumn::make('message')->label('Détail ajouté')->limit(80)->wrap()->placeholder('—')->toggleable(),
                 TextColumn::make('status')->label('Suivi')->badge()
-                    ->formatStateUsing(fn (?string $s) => RelayPointRequest::STATUTS[$s] ?? $s)
-                    ->color(fn (?string $s) => match ($s) {
+                    ->formatStateUsing(fn (?string $state) => RelayPointRequest::STATUTS[$state] ?? $state)
+                    ->color(fn (?string $state) => match ($state) {
                         'nouvelle' => 'warning', 'contactee' => 'info', 'ouverte' => 'success', default => 'gray',
                     }),
             ])

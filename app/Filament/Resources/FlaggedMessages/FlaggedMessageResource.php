@@ -43,12 +43,12 @@ class FlaggedMessageResource extends Resource
                 TextColumn::make('flag_kind')
                     ->label('Type')
                     ->badge()
-                    ->formatStateUsing(fn (?string $s) => match ($s) {
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
                         'payment_forced' => 'Paiement forcé',
                         'phone' => 'Numéro',
-                        default => $s ?: '—',
+                        default => $state ?: '—',
                     })
-                    ->color(fn (?string $s) => $s === 'payment_forced' ? 'danger' : 'warning'),
+                    ->color(fn (?string $state) => $state === 'payment_forced' ? 'danger' : 'warning'),
 
                 TextColumn::make('sender.name')
                     ->label('Expéditeur')
@@ -108,7 +108,7 @@ class FlaggedMessageResource extends Resource
                         }
 
                         return $query->where(function (Builder $q) use ($who) {
-                            $q->whereHas('sender', fn (Builder $s) => $s->where('name', 'like', "%{$who}%")->orWhere('email', 'like', "%{$who}%"))
+                            $q->whereHas('sender', fn (Builder $state) => $state->where('name', 'like', "%{$who}%")->orWhere('email', 'like', "%{$who}%"))
                                 ->orWhereHas('receiver', fn (Builder $r) => $r->where('name', 'like', "%{$who}%")->orWhere('email', 'like', "%{$who}%"));
                         });
                     }),

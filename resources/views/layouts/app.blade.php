@@ -624,6 +624,9 @@ document.addEventListener('turbo:load', function () {
         <p class="{{ $menuTitre }}">Swap'Îles</p>
         <a href="{{ route('dressings.top') }}" class="{{ $menuLien }}"><span>🏆 Classement des dressings</span></a>
         <a href="{{ route('home') }}#comment-ca-marche" class="{{ $menuLien }}"><span>❓ Comment ça marche</span></a>
+        @if(\App\Support\LiveAcces::visible(auth()->user()))
+            <a href="{{ route('live.index') }}" class="{{ $menuLien }}"><span>🔴 Ventes en direct{{ config('live.ouvert_a_tous') ? '' : ' (test)' }}</span></a>
+        @endif
         <a href="{{ route('relay.points') }}" class="{{ $menuLien }}"><span>📍 Nos points relais</span></a>
         <a href="{{ route('relay.partner') }}" class="{{ $menuLien }}"><span>🏪 Devenir point relais</span></a>
         {{-- Conditions generales et Confidentialite ne sont plus dans le menu :

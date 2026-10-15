@@ -76,12 +76,12 @@ class RelayListingResource extends Resource
                 TextColumn::make('status')
                     ->label('Statut')
                     ->badge()
-                    ->formatStateUsing(fn (?string $s) => match ($s) {
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
                         'published' => 'En ligne',
                         'sold' => 'Vendu',
-                        default => $s ?: '—',
+                        default => $state ?: '—',
                     })
-                    ->color(fn (?string $s) => $s === 'sold' ? 'gray' : 'success')
+                    ->color(fn (?string $state) => $state === 'sold' ? 'gray' : 'success')
                     ->sortable(),
 
                 TextColumn::make('created_at')

@@ -35,12 +35,18 @@ class SalesByMode extends Page
             && (int) $t->created_at->year === (int) $now->year
             && (int) $t->created_at->month === (int) $now->month);
 
-        $modes = ['online', 'cash', 'gift', 'exchange', 'other'];
+        $modes = ['online', 'card_off', 'cash', 'gift', 'exchange', 'other'];
         $rows = [];
 
+        // Une vente « carte » sans paiement Stripe n'est pas sécurisée : elle a
+        // sa propre ligne, sinon le tableau ne colle pas avec « Sécurisé ».
+        $modeDe = fn (Transaction $t) => SellerWallet::mode($t) === 'online' && ! SellerWallet::isSecured($t)
+            ? 'card_off'
+            : SellerWallet::mode($t);
+
         foreach ($modes as $m) {
-            $allOfMode = $sales->filter(fn (Transaction $t) => SellerWallet::mode($t) === $m);
-            $monthOfMode = $month->filter(fn (Transaction $t) => SellerWallet::mode($t) === $m);
+            $allOfMode = $sales->filter(fn (Transaction $t) => $modeDe($t) === $m);
+            $monthOfMode = $month->filter(fn (Transaction $t) => $modeDe($t) === $m);
 
             // On masque les modes jamais utilisés (ex. « Autre » à 0).
             if ($allOfMode->isEmpty()) {
@@ -49,7 +55,11 @@ class SalesByMode extends Page
 
             $rows[] = [
                 'mode' => $m,
-                'label' => SellerWallet::modeLabel($m),
+                'label' => match ($m) {
+                    'online' => 'CB (paiement en ligne)',
+                    'card_off' => 'CB déclarée, hors paiement en ligne',
+                    default => SellerWallet::modeLabel($m),
+                },
                 'count_all' => $allOfMode->count(),
                 'total_all' => round($allOfMode->sum(fn (Transaction $t) => SellerWallet::net($t)), 2),
                 'count_month' => $monthOfMode->count(),

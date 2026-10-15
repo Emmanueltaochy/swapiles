@@ -376,14 +376,17 @@ class AnalyticsMetrics
         $sellers = $inPeriod(Transaction::whereIn('status', ['paid', 'completed']))->distinct()->count('seller_id');
 
         // ============ REVENU / MARKETPLACE ============
-        $paid = $inPeriod(Transaction::whereIn('status', ['paid', 'completed']));
-        // Volume = payé par carte + crédit Swap'Îles utilisé (parrainage).
+        // Même calcul que le tableau de bord (TableauDeBord::entre) : ventes
+        // payées dans l'appli seulement, revenus = protection + commission +
+        // part Swap'Îles des frais relais − crédit de parrainage utilisé.
+        $paid = $inPeriod(Transaction::whereIn('status', ['paid', 'completed'])->enLigne());
+        $chiffres = \App\Support\TableauDeBord::entre($start, $end?->copy()->addSecond());
         $credit = (float) (clone $paid)->sum('credit_utilise');
-        $gmv = (float) (clone $paid)->sum('amount') + $credit;
+        $gmv = (float) $chiffres['volume'] + $credit;
         $commission = (float) (clone $paid)->sum('commission');
         $protection = (float) (clone $paid)->sum('buyer_protection_fee');
-        $netRevenue = $commission + $protection - $credit;
-        $paidCount = (clone $paid)->count();
+        $netRevenue = (float) $chiffres['revenus'];
+        $paidCount = (int) $chiffres['ventes'];
         $aov = $paidCount > 0 ? $gmv / $paidCount : 0.0;
         $takeRate = $gmv > 0 ? $netRevenue / $gmv * 100 : 0.0;
 

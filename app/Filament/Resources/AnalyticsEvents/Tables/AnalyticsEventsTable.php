@@ -33,6 +33,8 @@ class AnalyticsEventsTable
                 TextColumn::make('page_name')
                     ->label('Page')
                     ->default('—')
+                    // Les anciennes visites gardent le nom technique de la route.
+                    ->formatStateUsing(fn (?string $state) => \App\Http\Middleware\TrackAnalyticsPageView::libelleRoute($state) ?? $state)
                     ->searchable(),
                 TextColumn::make('path')
                     ->label('URL')
@@ -42,7 +44,8 @@ class AnalyticsEventsTable
                 TextColumn::make('device')
                     ->label('Appareil')
                     ->badge()
-                    ->color(fn (?string $state) => $state === 'Mobile' ? 'info' : 'gray')
+                    ->formatStateUsing(fn (?string $state) => ucfirst((string) $state))
+                    ->color(fn (?string $state) => strtolower((string) $state) === 'mobile' ? 'info' : 'gray')
                     ->toggleable(),
                 TextColumn::make('browser')
                     ->label('Navigateur')
@@ -84,9 +87,9 @@ class AnalyticsEventsTable
                 SelectFilter::make('device')
                     ->label('Appareil')
                     ->options([
-                        'Mobile' => 'Mobile',
-                        'Desktop' => 'Desktop',
-                        'Tablet' => 'Tablette',
+                        'mobile' => 'Mobile',
+                        'desktop' => 'Ordinateur',
+                        'tablette' => 'Tablette',
                     ]),
             ]);
     }

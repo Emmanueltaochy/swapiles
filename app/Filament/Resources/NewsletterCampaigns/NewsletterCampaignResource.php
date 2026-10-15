@@ -14,6 +14,8 @@ use Filament\Tables\Table;
 
 class NewsletterCampaignResource extends Resource
 {
+    use \App\Filament\Concerns\TitresEnFrancais;
+
     protected static ?string $model = NewsletterCampaign::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-chart-pie';

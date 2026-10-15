@@ -136,16 +136,16 @@ class UserInfolist
                     ->icon('heroicon-o-shield-check')
                     ->columns(3)
                     ->schema([
-                        IconEntry::make('is_pro')
-                            ->label('Compte Pro')
-                            ->boolean(),
-                        IconEntry::make('is_banned')
-                            ->label('Banni')
-                            ->boolean()
-                            ->trueIcon('heroicon-o-no-symbol')
-                            ->trueColor('danger')
-                            ->falseIcon('heroicon-o-check-circle')
-                            ->falseColor('success'),
+                        TextEntry::make('is_pro')
+                            ->label('Type de compte')
+                            ->badge()
+                            ->formatStateUsing(fn ($state) => $state ? 'Pro' : 'Particulier')
+                            ->color(fn ($state) => $state ? 'info' : 'gray'),
+                        TextEntry::make('is_banned')
+                            ->label('Accès')
+                            ->badge()
+                            ->formatStateUsing(fn ($state) => $state ? '⛔ Banni' : 'Actif')
+                            ->color(fn ($state) => $state ? 'danger' : 'success'),
                         TextEntry::make('comment_connu')
                             ->label('Comment nous a connu')
                             ->placeholder('Non renseigné')

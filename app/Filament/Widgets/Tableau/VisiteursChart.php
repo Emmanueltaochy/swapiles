@@ -24,6 +24,15 @@ class VisiteursChart extends ChartWidget
 
     protected static bool $isDiscovered = false;
 
+    /** Dates lisibles : une étiquette sur deux ou trois au lieu de toutes collées. */
+    protected function getOptions(): array
+    {
+        return [
+            'scales' => ['x' => ['ticks' => ['autoSkip' => true, 'maxTicksLimit' => 10, 'maxRotation' => 0]]],
+            'plugins' => ['legend' => ['position' => 'bottom']],
+        ];
+    }
+
     protected function getType(): string
     {
         return 'bar';

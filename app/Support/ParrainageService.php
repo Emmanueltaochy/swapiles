@@ -178,7 +178,7 @@ class ParrainageService
         };
 
         if ($erreur) {
-            self::journal('referral_code_rejected', $filleul->id, motif: Str::limit(Str::slug($erreur, '_'), 40, ''), donnees: ['code' => CodeParrainage::normaliser($code)]);
+            self::journal('referral_code_rejected', $filleul->id, motif: Str::limit(Str::slug($erreur, '_'), 40, ''), donnees: ['code' => CodeParrainage::normaliser($code), 'erreur' => $erreur]);
 
             return $erreur;
         }

@@ -91,7 +91,7 @@ class AdminActivity extends Page
                 'at' => $t->created_at,
                 'icon' => '💳',
                 'color' => 'text-emerald-700',
-                'text' => 'Transaction #' . $t->id . ' — ' . number_format((float) $t->amount, 2, ',', ' ') . ' € · ' . $t->status
+                'text' => 'Transaction #' . $t->id . ' — ' . number_format((float) $t->amount, 2, ',', ' ') . ' € · ' . (['inquiry' => 'demande', 'pending' => 'en attente', 'paid' => 'payée', 'completed' => 'terminée', 'cancelled' => 'annulée', 'refunded' => 'remboursée'][$t->status] ?? $t->status)
                     . ($t->listing ? ' · ' . $t->listing->title : ''),
                 'url' => TransactionResource::getUrl('view', ['record' => $t->id]),
             ]);
@@ -145,7 +145,7 @@ class AdminActivity extends Page
         return $items
             ->filter(fn ($i) => $i['at'] !== null)
             ->sortByDesc(fn ($i) => $i['at']->timestamp)
-            ->take(120)
+            ->take(100)
             ->values();
     }
 }

@@ -37,30 +37,23 @@ class TransactionsTable
     {
         return $table
             ->defaultSort('created_at', 'desc')
+            ->modifyQueryUsing(fn (\Illuminate\Database\Eloquent\Builder $query) => $query->with(['listing:id,title', 'seller:id,name', 'buyer:id,name']))
             ->columns([
-                TextColumn::make('id')
-                    ->label('#')
+                TextColumn::make('created_at')
+                    ->label('Date')
+                    ->date('d/m/Y')
+                    ->description(fn (Transaction $record) => $record->created_at?->format('H:i'))
                     ->sortable(),
                 TextColumn::make('listing.title')
                     ->label('Annonce')
-                    ->limit(28)
-                    ->searchable()
-                    ->weight('bold'),
-                TextColumn::make('buyer.name')
-                    ->label('Acheteur')
-                    ->default(fn (Transaction $record) => $record->estDeclaree() ? 'Inconnu' : '—')
-                    ->color(fn (Transaction $record) => $record->buyer_id ? null : 'gray')
-                    ->searchable(),
-                TextColumn::make('fiabilite')
-                    ->label('Fiabilité')
-                    ->state(fn (Transaction $record) => $record->fiabiliteLibelle())
-                    ->badge()
-                    ->color(fn (Transaction $record) => Transaction::FIABILITES[$record->fiabilite()][1])
-                    ->tooltip(fn (Transaction $record) => Transaction::FIABILITES[$record->fiabilite()][2]),
-                TextColumn::make('seller.name')
-                    ->label('Vendeur')
-                    ->default('—')
-                    ->searchable(),
+                    ->limit(30)
+                    ->weight('bold')
+                    // Une seule recherche : article, vendeur ou acheteur.
+                    ->searchable(query: fn ($query, string $search) => $query->where(fn ($q) => $q
+                        ->whereHas('listing', fn ($l) => $l->where('title', 'like', "%{$search}%"))
+                        ->orWhereHas('seller', fn ($u) => $u->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"))
+                        ->orWhereHas('buyer', fn ($u) => $u->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"))))
+                    ->description(fn (Transaction $record) => ($record->seller->name ?? '?') . ' → ' . ($record->buyer->name ?? ($record->estDeclaree() ? 'acheteur inconnu' : '?'))),
                 TextColumn::make('amount')
                     ->label('Montant')
                     ->formatStateUsing(fn ($state) => number_format((float) $state, 2, ',', ' ') . ' €')
@@ -75,22 +68,29 @@ class TransactionsTable
                         'refunded' => 'danger',
                         'cancelled' => 'gray',
                         default => 'warning',
+                    })
+                    ->description(fn (Transaction $record) => match ($record->delivery_method) {
+                        'colissimo' => '📦 Colissimo',
+                        'relay' => '🏪 Point relais',
+                        'hand_delivery' => '🤝 Main propre',
+                        default => $record->delivery_method,
                     }),
+                TextColumn::make('fiabilite')
+                    ->label('Fiabilité')
+                    ->state(fn (Transaction $record) => $record->fiabiliteLibelle())
+                    ->badge()
+                    ->color(fn (Transaction $record) => Transaction::FIABILITES[$record->fiabilite()][1])
+                    ->tooltip(fn (Transaction $record) => Transaction::FIABILITES[$record->fiabilite()][2]),
                 TextColumn::make('shipping_status')
                     ->label('Livraison')
                     ->badge()
                     ->formatStateUsing(fn (?string $state) => self::SHIPPING_LABELS[$state] ?? $state)
                     ->color('gray')
-                    ->toggleable(),
-                TextColumn::make('delivery_method')
-                    ->label('Mode')
-                    ->badge()
-                    ->formatStateUsing(fn (?string $state) => $state === 'colissimo' ? '📦 Colissimo' : ($state === 'hand_delivery' ? '🤝 Main propre' : $state))
-                    ->toggleable(),
-                TextColumn::make('created_at')
-                    ->label('Date')
-                    ->date('d/m/Y')
-                    ->sortable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('id')
+                    ->label('N°')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('fiabilite')

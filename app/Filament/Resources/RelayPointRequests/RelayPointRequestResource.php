@@ -17,6 +17,8 @@ use Filament\Resources\Resource;
 /** Demandes de membres : « un point relais près de chez moi ». */
 class RelayPointRequestResource extends Resource
 {
+    use \App\Filament\Concerns\TitresEnFrancais;
+
     protected static ?string $model = RelayPointRequest::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-map-pin';

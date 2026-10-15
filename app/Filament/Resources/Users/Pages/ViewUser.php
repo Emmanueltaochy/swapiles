@@ -10,10 +10,15 @@ class ViewUser extends ViewRecord
 {
     protected static string $resource = UserResource::class;
 
+    public function getTitle(): string
+    {
+        return $this->record->name ?: 'Membre n° ' . $this->record->id;
+    }
+
     protected function getHeaderActions(): array
     {
         return [
-            EditAction::make(),
+            EditAction::make()->color('gray'),
         ];
     }
 }

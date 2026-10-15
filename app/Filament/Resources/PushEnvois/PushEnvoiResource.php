@@ -22,9 +22,11 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class PushEnvoiResource extends Resource
 {
+    use \App\Filament\Concerns\TitresEnFrancais;
+
     protected static ?string $model = PushEnvoi::class;
 
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-bell-alert';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-paper-airplane';
 
     protected static ?string $navigationLabel = 'Notifications envoyées';
 

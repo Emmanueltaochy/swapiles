@@ -35,7 +35,7 @@
 
         {{-- Filtre de période --}}
         <x-filament::section>
-            <x-slot name="heading">📈 Analyse avancée — vue produit</x-slot>
+            <x-slot name="heading">📅 Période analysée</x-slot>
             <x-slot name="description">Toutes les métriques clés de la marketplace · {{ $periodLabel }}</x-slot>
 
             <div style="display:flex;flex-wrap:wrap;gap:.4rem;">
@@ -145,12 +145,12 @@
             <div class="swp-kpi">
                 <div class="l">💰 Volume d'affaires (GMV)</div>
                 <div class="v">{{ $eur($gmv) }}</div>
-                <div class="s">{{ $num($paidCount) }} ventes · panier moyen {{ $eur($aov) }}</div>
+                <div class="s">{{ $num($paidCount) }} ventes payées en ligne · panier moyen {{ $eur($aov) }}</div>
             </div>
             <div class="swp-kpi">
                 <div class="l">🏦 Revenu net Swap’Îles</div>
                 <div class="v">{{ $eur($netRevenue) }}</div>
-                <div class="s">Take rate {{ number_format($takeRate, 1, ',', ' ') }}% · dont {{ $eur($commission) }} commission</div>
+                <div class="s">{{ number_format($takeRate, 1, ',', ' ') }} % du volume · protection, part relais, crédit déduit</div>
             </div>
         </div>
 
@@ -323,7 +323,7 @@
                 <div class="swp-kpi">
                     <div class="l">💵 Revenu / acheteur (ARPU)</div>
                     <div class="v">{{ $eur($arpu) }}</div>
-                    <div class="s">protection acheteur {{ $eur($protection) }}</div>
+                    <div class="s">revenus de la période ÷ acheteurs</div>
                 </div>
             </div>
         </x-filament::section>

@@ -48,7 +48,7 @@ class PeriodeStats extends StatsOverviewWidget
                 ->icon('heroicon-m-hand-raised')
                 ->url(\App\Filament\Resources\Transactions\TransactionResource::getUrl('index', ['filters' => ['fiabilite' => ['value' => 'declaree_inconnu']]])),
             Stat::make("Revenus Swap'Îles", TableauDeBord::euros($p['revenus']))
-                ->description('Protection acheteur et commissions')
+                ->description('Protection + part relais, crédit parrainage déduit')
                 ->color('success')
                 ->icon('heroicon-m-currency-euro'),
             Stat::make('Panier moyen', TableauDeBord::euros($p['panier_moyen']))

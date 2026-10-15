@@ -26,7 +26,7 @@ class NouveauxMembres extends TableWidget
                 TextColumn::make('name')->label('Membre')->limit(22),
                 TextColumn::make('territoire')->label('Île')->placeholder('—'),
                 TextColumn::make('listings_count')->label('Annonces'),
-                TextColumn::make('created_at')->label('Inscrit')->since(),
+                TextColumn::make('created_at')->label('Inscrit')->date('d/m')->tooltip(fn ($record) => $record->created_at?->diffForHumans()),
             ]);
     }
 }

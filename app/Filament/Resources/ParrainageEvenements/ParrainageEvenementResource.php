@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Builder;
 /** Journal du parrainage : chaque tentative (acceptée / refusée + motif) et la mesure. */
 class ParrainageEvenementResource extends Resource
 {
+    use \App\Filament\Concerns\TitresEnFrancais;
+
     protected static ?string $model = ParrainageEvenement::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-list';
@@ -46,9 +48,15 @@ class ParrainageEvenementResource extends Resource
                 TextColumn::make('user.name')->label('Membre')->placeholder('—')->searchable()
                     ->description(fn (ParrainageEvenement $r) => $r->user?->email),
                 TextColumn::make('motif')->label('Motif')->placeholder('—')
-                    ->formatStateUsing(fn (?string $state) => Parrainage::MOTIFS[$state] ?? $state),
-                TextColumn::make('canal')->label('Canal')->placeholder('—'),
-                TextColumn::make('transaction_id')->label('Commande')->placeholder('—')->formatStateUsing(fn ($state) => '#' . $state),
+                    // Code refusé : le message d'erreur montré au membre, en clair.
+                    ->formatStateUsing(fn (?string $state, ParrainageEvenement $r) => Parrainage::MOTIFS[$state]
+                        ?? ($r->donnees['erreur'] ?? ucfirst(str_replace('_', ' ', (string) $state)) . '…'))
+                    ->limit(50)
+                    ->wrap()
+                    ->description(fn (ParrainageEvenement $r) => collect([
+                        $r->canal ? 'via ' . $r->canal : null,
+                        $r->transaction_id ? 'commande #' . $r->transaction_id : null,
+                    ])->filter()->implode(' · ') ?: null),
             ])
             ->filters([
                 SelectFilter::make('evenement')->label('Événement')->options(ParrainageEvenement::LIBELLES),

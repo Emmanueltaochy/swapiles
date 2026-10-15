@@ -133,7 +133,54 @@ class TrackAnalyticsPageView
             return 'Déposer une annonce';
         }
 
-        return $routeName ?: $path;
+        return self::libelleRoute($routeName) ?? ($routeName ?: $path);
+    }
+
+    /**
+     * Libellé lisible d'un nom de route (« territoire.switch » → « Choix de
+     * l'île »). Sert aussi à l'admin pour les visites déjà enregistrées.
+     */
+    public static function libelleRoute(?string $nom): ?string
+    {
+        if (! $nom) {
+            return null;
+        }
+
+        $exacts = [
+            'territoire.switch' => 'Choix de l’île',
+            'catalog.territoire' => 'Catalogue d’une île',
+            'home' => 'Accueil',
+        ];
+
+        if (isset($exacts[$nom])) {
+            return $exacts[$nom];
+        }
+
+        $prefixes = [
+            'account' => 'Mon compte',
+            'activity' => 'Activité',
+            'catalog' => 'Catalogue',
+            'checkout' => 'Checkout',
+            'dressings' => 'Dressings',
+            'exchange' => 'Échanges',
+            'faq' => 'Aide / FAQ',
+            'favorite-alerts' => 'Alertes favoris',
+            'legal' => 'Pages légales',
+            'listings' => 'Page annonce',
+            'live' => 'Lives',
+            'login' => 'Connexion',
+            'magic' => 'Connexion',
+            'password' => 'Mot de passe',
+            'newsletter' => 'Newsletter',
+            'parrainage' => 'Parrainage',
+            'profiles' => 'Profil vendeur',
+            'register' => 'Inscription',
+            'relay' => 'Points relais',
+            'search' => 'Recherche produits',
+            'verification' => 'Vérification e-mail',
+        ];
+
+        return $prefixes[strtok($nom, '.')] ?? null;
     }
 
     private function device(string $userAgent): string

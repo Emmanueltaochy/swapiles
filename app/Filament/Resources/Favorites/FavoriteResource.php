@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class FavoriteResource extends Resource
 {
+    use \App\Filament\Concerns\TitresEnFrancais;
+
     protected static ?string $model = Favorite::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-heart';
@@ -58,7 +60,7 @@ class FavoriteResource extends Resource
 
     public static function getNavigationBadgeColor(): ?string
     {
-        return 'danger';
+        return 'gray';
     }
 
     public static function canCreate(): bool

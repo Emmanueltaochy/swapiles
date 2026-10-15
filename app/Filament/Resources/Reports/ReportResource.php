@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class ReportResource extends Resource
 {
+    use \App\Filament\Concerns\TitresEnFrancais;
+
     protected static ?string $model = Report::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-shield-exclamation';
@@ -65,7 +67,9 @@ class ReportResource extends Resource
                     ->formatStateUsing(fn (Report $r) => static::targetLabel($r))
                     ->url(fn (Report $r) => static::targetUrl($r))
                     ->color('primary')
-                    ->wrap(),
+                    ->limit(40)
+                    ->tooltip(fn (Report $r) => static::targetLabel($r))
+                    ->description(fn (Report $r) => $r->details ? \Illuminate\Support\Str::limit($r->details, 60) : null),
 
                 TextColumn::make('reporter.name')
                     ->label('Signalé par')
@@ -74,13 +78,6 @@ class ReportResource extends Resource
                     ->searchable()
                     ->url(fn (Report $r) => $r->reporter_id ? UserResource::getUrl('view', ['record' => $r->reporter_id]) : null),
 
-                TextColumn::make('details')
-                    ->label('Détails')
-                    ->default('—')
-                    ->limit(60)
-                    ->tooltip(fn (Report $r) => $r->details)
-                    ->wrap()
-                    ->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('status')
@@ -99,6 +96,8 @@ class ReportResource extends Resource
             ->recordActions([
                 Action::make('reviewed')
                     ->label('Marquer traité')
+                    ->tooltip('Marquer traité')
+                    ->iconButton()
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->visible(fn (Report $r) => $r->status !== 'reviewed')
@@ -106,6 +105,8 @@ class ReportResource extends Resource
 
                 Action::make('dismissed')
                     ->label('Rejeter')
+                    ->tooltip('Rejeter le signalement')
+                    ->iconButton()
                     ->icon('heroicon-o-x-circle')
                     ->color('gray')
                     ->visible(fn (Report $r) => $r->status !== 'dismissed')

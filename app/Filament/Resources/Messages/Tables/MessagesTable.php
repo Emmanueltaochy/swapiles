@@ -6,7 +6,6 @@ use App\Filament\Resources\Users\UserResource;
 use App\Models\Message;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -21,11 +20,11 @@ class MessagesTable
         return $table
             ->defaultSort('created_at', 'desc')
             ->paginated([25, 50, 100, 200])
-            ->defaultPaginationPageOption(50)
+            ->defaultPaginationPageOption(25)
             // Une LIGNE PAR CONVERSATION (mêmes participants + même annonce),
             // représentée par son dernier message. Le fil complet reste
             // accessible via l'action « Voir le fil ».
-            ->modifyQueryUsing(fn (Builder $query) => $query->whereIn('id', static::latestPerConversationIds()))
+            ->modifyQueryUsing(fn (Builder $query) => $query->whereIn('id', static::latestPerConversationIds())->with(['sender', 'receiver', 'listing']))
             ->columns([
                 TextColumn::make('created_at')
                     ->label('Dernière activité')
@@ -33,33 +32,22 @@ class MessagesTable
                     ->description(fn (Message $record) => optional($record->created_at)->diffForHumans())
                     ->sortable(),
 
-                TextColumn::make('thread_count')
-                    ->label('Messages')
-                    ->badge()
-                    ->color('gray')
-                    ->getStateUsing(fn (Message $record) => static::threadCountFor($record)),
-
                 TextColumn::make('sender.name')
-                    ->label('Expéditeur')
+                    ->label('Entre')
                     ->default('—')
-                    ->description(fn (Message $record) => $record->sender?->email)
-                    ->searchable()
+                    ->description(fn (Message $record) => '→ ' . ($record->receiver?->name ?? '—'))
+                    ->searchable(query: fn (Builder $query, string $search) => $query->where(fn (Builder $query) => $query
+                        ->whereHas('sender', fn (Builder $query) => $query->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"))
+                        ->orWhereHas('receiver', fn (Builder $query) => $query->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"))))
                     ->weight('bold')
                     ->color('primary')
+                    ->tooltip(fn (Message $record) => trim(($record->sender?->email ?? '') . ' → ' . ($record->receiver?->email ?? '')))
                     ->url(fn (Message $record) => $record->sender_id ? UserResource::getUrl('view', ['record' => $record->sender_id]) : null),
-
-                TextColumn::make('receiver.name')
-                    ->label('Destinataire')
-                    ->default('—')
-                    ->description(fn (Message $record) => $record->receiver?->email)
-                    ->searchable()
-                    ->color('primary')
-                    ->url(fn (Message $record) => $record->receiver_id ? UserResource::getUrl('view', ['record' => $record->receiver_id]) : null),
 
                 TextColumn::make('listing.title')
                     ->label('Annonce')
-                    ->default('— (conversation générale)')
-                    ->limit(30)
+                    ->default('— (générale)')
+                    ->limit(24)
                     ->tooltip(fn (Message $record) => $record->listing?->title)
                     ->searchable()
                     ->color(fn (Message $record) => $record->listing_id ? 'primary' : 'gray')
@@ -69,15 +57,15 @@ class MessagesTable
 
                 TextColumn::make('body')
                     ->label('Dernier message')
-                    ->limit(60)
+                    ->limit(70)
                     ->tooltip(fn (Message $record) => $record->body)
+                    ->description(function (Message $record) {
+                        $n = static::threadCountFor($record);
+
+                        return $n . ' message' . ($n > 1 ? 's' : '') . ' · ' . ($record->read_at ? '✓ lu' : '● non lu');
+                    })
                     ->searchable()
                     ->wrap(),
-
-                IconColumn::make('read_at')
-                    ->label('Lu')
-                    ->boolean()
-                    ->getStateUsing(fn (Message $record) => ! is_null($record->read_at)),
             ])
             ->filters([
                 TernaryFilter::make('unread')

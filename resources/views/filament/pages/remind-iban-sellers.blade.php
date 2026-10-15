@@ -4,7 +4,7 @@
             <p class="font-bold text-red-800 dark:text-red-200">⛔ Délivrabilité d'abord</p>
             <p class="mt-1 text-red-800 dark:text-red-200">
                 N'envoie PAS cette campagne tant que <strong>SPF / DKIM / DMARC</strong> ne sont pas validés en prod.
-                Si DKIM est cassé, l'e-mail part en spam chez tes 15 vendeurs — et tu grilles ta seule liste de relance.
+                Si DKIM est cassé, l'e-mail part en spam chez tes {{ $targets->count() }} vendeur{{ $targets->count() > 1 ? 's' : '' }} — et tu grilles ta seule liste de relance.
                 Vérifie les DNS, envoie-toi un test, puis seulement lance la campagne.
             </p>
         </div>
@@ -34,7 +34,7 @@ L'équipe Swap'îles</pre>
             <div class="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <table class="w-full text-sm">
                     <thead class="bg-gray-50 dark:bg-gray-800 text-left">
-                        <tr><th class="p-3">User</th><th class="p-3">Nom</th><th class="p-3">E-mail</th></tr>
+                        <tr><th class="p-3">N°</th><th class="p-3">Nom</th><th class="p-3">E-mail</th></tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                         @forelse($targets as $t)

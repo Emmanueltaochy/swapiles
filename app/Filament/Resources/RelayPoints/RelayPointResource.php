@@ -29,6 +29,8 @@ use Filament\Tables\Table;
  */
 class RelayPointResource extends Resource
 {
+    use \App\Filament\Concerns\TitresEnFrancais;
+
     protected static ?string $model = RelayPoint::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-building-storefront';
@@ -101,22 +103,17 @@ class RelayPointResource extends Resource
                 TextColumn::make('name')
                     ->label('Point relais')
                     ->weight('bold')
-                    ->searchable(),
+                    ->description(fn ($record) => $record->city)
+                    ->searchable(['name', 'city']),
                 TextColumn::make('territoire')
                     ->label('Territoire')
                     ->badge()
                     ->sortable(),
-                TextColumn::make('city')
-                    ->label('Ville')
-                    ->default('—')
-                    ->searchable(),
                 TextColumn::make('manager.email')
-                    ->label('Gérant')
+                    ->label('Contact')
                     ->default('—')
+                    ->description(fn ($record) => $record->contact_phone)
                     ->searchable(),
-                TextColumn::make('contact_phone')
-                    ->label('Téléphone')
-                    ->default('—'),
                 IconColumn::make('is_active')
                     ->label('Actif')
                     ->boolean(),
@@ -128,7 +125,8 @@ class RelayPointResource extends Resource
                 TextColumn::make('created_at')
                     ->label('Créé le')
                     ->dateTime('d/m/Y')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('territoire')
@@ -138,8 +136,8 @@ class RelayPointResource extends Resource
                     ->label('Actif'),
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()->iconButton()->tooltip('Modifier'),
+                DeleteAction::make()->iconButton()->tooltip('Supprimer'),
             ]);
     }
 

@@ -19,6 +19,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class RelayListingResource extends Resource
 {
+    use \App\Filament\Concerns\TitresEnFrancais;
+
     protected static ?string $model = Listing::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-map-pin';
@@ -130,7 +132,7 @@ class RelayListingResource extends Resource
 
     public static function getPluralModelLabel(): string
     {
-        return 'annonces point relais';
+        return 'produits par relais';
     }
 
     public static function getNavigationGroup(): ?string

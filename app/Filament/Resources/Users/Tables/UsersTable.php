@@ -9,7 +9,6 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification as FilamentNotification;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
@@ -22,6 +21,9 @@ class UsersTable
     {
         return $table
             ->defaultSort('created_at', 'desc')
+            ->modifyQueryUsing(fn (\Illuminate\Database\Eloquent\Builder $query) => $query
+                ->withCount(['sales as ventes_count' => fn ($q) => $q->whereIn('status', ['paid', 'completed'])])
+                ->withAvg('reviewsReceived', 'rating'))
             ->columns([
                 TextColumn::make('name')
                     ->label('Nom')
@@ -33,10 +35,6 @@ class UsersTable
                     ->badge()
                     ->color('info')
                     ->toggleable(),
-                IconColumn::make('is_pro')
-                    ->label('Pro')
-                    ->boolean()
-                    ->toggleable(),
                 TextColumn::make('stripe_status')
                     ->label('Paiements')
                     ->badge()
@@ -47,21 +45,20 @@ class UsersTable
                         && $record->stripe_details_submitted
                     ) ? 'IBAN OK' : 'Non configuré')
                     ->color(fn (string $state) => $state === 'IBAN OK' ? 'success' : 'gray'),
-                TextColumn::make('rating')
-                    ->label('Note')
-                    ->numeric(decimalPlaces: 1)
-                    ->sortable(),
-                TextColumn::make('transactions_count')
+                // Vrais chiffres (les anciennes colonnes rating / transactions_count n'étaient plus tenues à jour).
+                TextColumn::make('ventes_count')
                     ->label('Ventes')
-                    ->numeric()
-                    ->sortable(),
-                IconColumn::make('is_banned')
-                    ->label('Banni')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-no-symbol')
-                    ->trueColor('danger')
-                    ->falseIcon('heroicon-o-check-circle')
-                    ->falseColor('gray'),
+                    ->sortable()
+                    ->formatStateUsing(fn ($state) => (int) $state ?: '—'),
+                TextColumn::make('reviews_received_avg_rating')
+                    ->label('Note')
+                    ->sortable()
+                    ->formatStateUsing(fn ($state) => $state ? '★ ' . number_format((float) $state, 1, ',', '') : '—'),
+                TextColumn::make('statut_membre')
+                    ->label('')
+                    ->badge()
+                    ->getStateUsing(fn (User $record) => $record->is_banned ? 'Banni' : ($record->is_pro ? 'Pro' : null))
+                    ->color(fn (?string $state) => $state === 'Banni' ? 'danger' : 'warning'),
                 TextColumn::make('created_at')
                     ->label('Inscrit le')
                     ->date('d/m/Y')

@@ -19,9 +19,10 @@ class FavoritesTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['user', 'listing.user', 'listing.images']))
             ->defaultSort('created_at', 'desc')
             ->paginated([25, 50, 100, 200])
-            ->defaultPaginationPageOption(50)
+            ->defaultPaginationPageOption(25)
             ->columns([
                 TextColumn::make('created_at')
                     ->label('Mis en favori le')
@@ -31,7 +32,7 @@ class FavoritesTable
 
                 ImageColumn::make('listing_cover')
                     ->label('Photo')
-                    ->getStateUsing(fn (Favorite $record) => \App\Support\ImageUrl::absolute(optional($record->listing?->images()->orderBy('order')->first())->url))
+                    ->getStateUsing(fn (Favorite $record) => \App\Support\ImageUrl::absolute($record->listing?->images->sortBy('order')->first()?->url))
                     ->checkFileExistence(false)
                     ->square()
                     ->size(48),
@@ -39,35 +40,25 @@ class FavoritesTable
                 TextColumn::make('listing.title')
                     ->label('Produit')
                     ->default('— (annonce supprimée)')
-                    ->limit(32)
+                    ->limit(28)
                     ->tooltip(fn (Favorite $record) => $record->listing?->title)
-                    ->searchable()
+                    ->description(fn (Favorite $record) => $record->listing
+                        ? number_format((float) $record->listing->price, 2, ',', ' ') . ' € · ' . ($record->listing->user?->name ?? '—')
+                        : null)
+                    ->searchable(query: fn (Builder $query, string $search) => $query->whereHas('listing', fn (Builder $query) => $query
+                        ->where('title', 'like', "%{$search}%")
+                        ->orWhereHas('user', fn (Builder $query) => $query->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"))))
                     ->weight('bold')
                     ->color(fn (Favorite $record) => $record->listing_id ? 'primary' : 'gray')
                     ->url(fn (Favorite $record) => $record->listing_id
                         ? ListingResource::getUrl('view', ['record' => $record->listing_id])
                         : null),
 
-                TextColumn::make('listing.price')
-                    ->label('Prix')
-                    ->formatStateUsing(fn ($state) => $state !== null ? number_format((float) $state, 2, ',', ' ') . ' €' : '—')
-                    ->sortable(),
-
-                TextColumn::make('listing.user.name')
-                    ->label('Appartient à (vendeur)')
-                    ->default('—')
-                    ->description(fn (Favorite $record) => $record->listing?->user?->email)
-                    ->searchable()
-                    ->color('primary')
-                    ->url(fn (Favorite $record) => $record->listing?->user_id
-                        ? UserResource::getUrl('view', ['record' => $record->listing->user_id])
-                        : null),
-
                 TextColumn::make('user.name')
-                    ->label('Ajouté en favori par')
+                    ->label('Ajouté par')
                     ->default('—')
                     ->description(fn (Favorite $record) => $record->user?->email)
-                    ->searchable()
+                    ->searchable(['name', 'email'])
                     ->weight('bold')
                     ->color('primary')
                     ->url(fn (Favorite $record) => $record->user_id
@@ -80,14 +71,15 @@ class FavoritesTable
                     ->getStateUsing(fn (Favorite $record) => \App\Models\ListingInterest::where('buyer_id', $record->user_id)
                         ->where('listing_id', $record->listing_id)
                         ->exists() ? 'livraison' : 'favori')
-                    ->formatStateUsing(fn (string $state) => $state === 'livraison' ? '📩 Demande de livraison' : '⭐ Favori')
+                    ->formatStateUsing(fn (string $state) => $state === 'livraison' ? '📩 Livraison' : '⭐ Favori')
+                    ->tooltip(fn (string $state) => $state === 'livraison' ? 'Ajouté via une demande de livraison' : 'Ajouté avec le cœur')
                     ->color(fn (string $state) => $state === 'livraison' ? 'warning' : 'gray'),
 
                 TextColumn::make('listing.territoire')
                     ->label('Île')
                     ->badge()
                     ->default('—')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('range')

@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class UserSessionResource extends Resource
 {
+    use \App\Filament\Concerns\TitresEnFrancais;
+
     protected static ?string $model = UserSession::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-finger-print';

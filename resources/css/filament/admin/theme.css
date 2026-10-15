@@ -1,0 +1,9 @@
+/*
+ * Thème de l'admin : la feuille de Filament + les classes Tailwind utilisées
+ * dans nos pages et vues personnalisées (sans ce fichier, elles n'existent
+ * pas dans le CSS précompilé de Filament et ces pages s'affichent sans style).
+ */
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';

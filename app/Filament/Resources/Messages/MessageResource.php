@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class MessageResource extends Resource
 {
+    use \App\Filament\Concerns\TitresEnFrancais;
+
     protected static ?string $model = Message::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-chat-bubble-left-right';

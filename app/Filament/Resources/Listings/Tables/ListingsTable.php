@@ -55,12 +55,9 @@ class ListingsTable
                 TextColumn::make('price')
                     ->label('Prix')
                     ->formatStateUsing(fn ($state) => number_format((float) $state, 2, ',', ' ') . ' €')
+                    // Type sous le prix : une colonne de moins, le tableau tient à l'écran.
+                    ->description(fn ($record) => self::TYPE_LABELS[$record->listing_type] ?? $record->listing_type)
                     ->sortable(),
-                TextColumn::make('listing_type')
-                    ->label('Type')
-                    ->badge()
-                    ->formatStateUsing(fn (?string $state) => self::TYPE_LABELS[$state] ?? $state)
-                    ->color('info'),
                 TextColumn::make('status')
                     ->label('Statut')
                     ->badge()
@@ -80,7 +77,7 @@ class ListingsTable
                     ->formatStateUsing(fn ($state) => $state !== null ? number_format((float) $state * 1000, 0, ',', ' ') . ' g' : '—')
                     ->color(fn ($state) => $state !== null && (float) $state > 2 ? 'danger' : null)
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('views_count')
                     ->label('Vues')
                     ->numeric()

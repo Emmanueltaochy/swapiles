@@ -50,6 +50,7 @@ class RemindIbanSellers extends Page
                 ->label('Envoyer la relance IBAN')
                 ->icon('heroicon-o-paper-airplane')
                 ->color('warning')
+                ->disabled(fn () => self::targets()->isEmpty())
                 ->requiresConfirmation()
                 ->modalHeading('Envoyer la relance IBAN ?')
                 ->modalDescription(fn () => 'DKIM / SPF / DMARC validés en prod ? Sinon ces '

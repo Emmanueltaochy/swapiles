@@ -22,6 +22,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class FlaggedMessageResource extends Resource
 {
+    use \App\Filament\Concerns\TitresEnFrancais;
+
     protected static ?string $model = Message::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-flag';
@@ -164,12 +166,12 @@ class FlaggedMessageResource extends Resource
 
     public static function getModelLabel(): string
     {
-        return 'signalement';
+        return 'message signalé';
     }
 
     public static function getPluralModelLabel(): string
     {
-        return 'signalements';
+        return 'messages signalés';
     }
 
     public static function getNavigationGroup(): ?string

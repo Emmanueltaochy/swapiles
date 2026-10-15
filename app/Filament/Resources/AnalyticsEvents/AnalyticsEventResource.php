@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class AnalyticsEventResource extends Resource
 {
+    use \App\Filament\Concerns\TitresEnFrancais;
+
     protected static ?string $model = AnalyticsEvent::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-cursor-arrow-ripple';
@@ -40,7 +42,7 @@ class AnalyticsEventResource extends Resource
 
     public static function getPluralModelLabel(): string
     {
-        return 'visites';
+        return 'pages vues';
     }
 
     public static function getNavigationGroup(): ?string

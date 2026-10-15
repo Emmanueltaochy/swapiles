@@ -18,6 +18,8 @@ use Filament\Tables\Table;
 
 class UserResource extends Resource
 {
+    use \App\Filament\Concerns\TitresEnFrancais;
+
     protected static ?string $model = User::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-users';

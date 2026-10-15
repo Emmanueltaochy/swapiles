@@ -18,6 +18,8 @@ use Filament\Tables\Table;
 
 class TransactionResource extends Resource
 {
+    use \App\Filament\Concerns\TitresEnFrancais;
+
     protected static ?string $model = Transaction::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-banknotes';
@@ -76,6 +78,12 @@ class TransactionResource extends Resource
         return [
             //
         ];
+    }
+
+    /** Une vente ou un avis naît d'un vrai paiement / d'une vraie transaction, jamais à la main. */
+    public static function canCreate(): bool
+    {
+        return false;
     }
 
     public static function getPages(): array

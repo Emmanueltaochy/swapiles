@@ -20,6 +20,8 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ListingResource extends Resource
 {
+    use \App\Filament\Concerns\TitresEnFrancais;
+
     protected static ?string $model = Listing::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-shopping-bag';

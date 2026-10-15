@@ -26,6 +26,11 @@ class AppServiceProvider extends ServiceProvider
     {
         Transaction::observe(TransactionObserver::class);
 
+        // Admin : « Rien pour l'instant » plutôt que « Aucun(e) signalements ».
+        \Filament\Tables\Table::configureUsing(fn (\Filament\Tables\Table $table) => $table
+            ->emptyStateHeading('Rien pour l’instant')
+            ->emptyStateDescription('Les lignes apparaîtront ici dès qu’il y aura des données.'));
+
         // Journalise chaque e-mail envoyé (pour l'onglet Admin > Activité > Emails).
         Event::listen(MessageSent::class, LogSentEmail::class);
 

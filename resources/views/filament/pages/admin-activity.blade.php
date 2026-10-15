@@ -16,9 +16,17 @@
     @if($tab === 'activity')
         <x-filament::section>
             <x-slot name="heading">Dernières actions sur le site</x-slot>
-            <x-slot name="description">Inscriptions, annonces, transactions, demandes de livraison, favoris, avis, messages — les 120 plus récentes.</x-slot>
+            <x-slot name="description">Inscriptions, annonces, transactions, demandes de livraison, favoris, avis, messages — les 100 plus récentes, regroupées par jour.</x-slot>
 
+            @php $jourPrecedent = null; @endphp
             @forelse($activities as $item)
+                @php
+                    $jour = $item['at']->isToday() ? 'Aujourd’hui' : ($item['at']->isYesterday() ? 'Hier' : ucfirst($item['at']->locale('fr')->translatedFormat('l j F')));
+                @endphp
+                @if($jour !== $jourPrecedent)
+                    <div style="margin-top:{{ $jourPrecedent ? '1rem' : '0' }};padding:.35rem 0;font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;opacity:.6;">{{ $jour }}</div>
+                    @php $jourPrecedent = $jour; @endphp
+                @endif
                 <div style="display:flex;gap:.8rem;align-items:flex-start;padding:.6rem 0;border-bottom:1px solid rgba(148,163,184,.15);">
                     <span style="font-size:1.15rem;line-height:1.4;">{{ $item['icon'] }}</span>
                     <div style="flex:1;min-width:0;">
@@ -30,7 +38,7 @@
                             @endif
                         </div>
                         <div style="font-size:.75rem;opacity:.55;margin-top:.15rem;">
-                            {{ optional($item['at'])->format('d/m/Y H:i') }} · {{ optional($item['at'])->diffForHumans() }}
+                            {{ optional($item['at'])->format('H:i') }} · {{ optional($item['at'])->diffForHumans() }}
                         </div>
                     </div>
                 </div>

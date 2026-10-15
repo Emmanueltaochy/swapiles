@@ -58,3 +58,7 @@ Schedule::command('ventes:relances')->hourlyAt(20)->withoutOverlapping();
 // Ventes en direct : « le live commence dans 15 min » aux membres qui ont
 // appuyé sur « Me prévenir ». Une seule fois par live.
 Schedule::command('live:rappels')->everyMinute()->withoutOverlapping();
+
+// Replays supprimés par leur vendeur : la vidéo est effacée du stockage
+// (plusieurs passages, LiveKit pouvant finir l'envoi après la fin du live).
+Schedule::command('live:nettoyer-replays')->everyTenMinutes()->withoutOverlapping();

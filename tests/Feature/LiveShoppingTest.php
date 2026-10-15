@@ -477,7 +477,7 @@ class LiveShoppingTest extends TestCase
         \Illuminate\Support\Facades\Http::assertSent(fn ($r) => str_ends_with($r->url(), 'StopEgress') && $r['egress_id'] === 'EG_abc123');
 
         // Pas encore publié : le vendeur voit le replay, les autres non.
-        $this->actingAs($this->admin)->get("/live/{$live->id}")->assertSee('Publier sur mon profil')->assertSee($live->replayUrl(), false);
+        $this->actingAs($this->admin)->get("/live/{$live->id}")->assertSee('Garder le replay de votre live ?')->assertSee($live->replayUrl(), false);
         $this->actingAs($this->membre)->get("/live/{$live->id}")->assertDontSee($live->replayUrl(), false);
         $this->actingAs($this->membre)->get('/profil/' . $this->admin->id)->assertDontSee('Replays des lives');
 
@@ -491,6 +491,70 @@ class LiveShoppingTest extends TestCase
         // Membres sans accès au live : rien sur le profil.
         $autre = $this->user('autre@ex.com', 'Zoé');
         $this->actingAs($autre)->get('/profil/' . $this->admin->id)->assertDontSee('Replays des lives');
+    }
+
+    public function test_replay_refuse_a_la_fin_est_supprime_et_le_fichier_efface(): void
+    {
+        $this->configurerReplay();
+        \Illuminate\Support\Facades\Http::fake(['*' => \Illuminate\Support\Facades\Http::response('', 204)]);
+        $live = $this->live($this->admin, [$this->article($this->admin)], 'termine');
+        $live->update(['enregistrement_id' => 'EG_1', 'replay_chemin' => 'lives/live-1-abc.mp4']);
+
+        // « Non, supprimer » : le replay disparaît tout de suite.
+        $this->actingAs($this->admin)->post("/live/{$live->id}/replay", ['publier' => 0])->assertRedirect();
+        $live->refresh();
+        $this->assertNotNull($live->replay_supprime_at);
+        $this->assertNull($live->replayUrl());
+        $this->actingAs($this->admin)->get("/live/{$live->id}")->assertSee('supprimé définitivement')->assertDontSee('lives/live-1-abc.mp4', false);
+
+        // Le fichier est effacé du stockage (requête DELETE signée).
+        \Illuminate\Support\Facades\Http::assertSent(fn ($r) => $r->method() === 'DELETE'
+            && $r->url() === 'https://r2.exemple/lives/lives/live-1-abc.mp4'
+            && str_starts_with($r->header('Authorization')[0], 'AWS4-HMAC-SHA256 Credential=k/'));
+
+        // On repasse pendant 30 min (LiveKit peut finir l'envoi après), puis c'est terminé.
+        $this->artisan('live:nettoyer-replays')->assertSuccessful();
+        $this->assertNull($live->fresh()->replay_fichier_efface_at);
+        Carbon::setTestNow(now()->addMinutes(31));
+        $this->artisan('live:nettoyer-replays')->assertSuccessful();
+        $this->assertNotNull($live->fresh()->replay_fichier_efface_at);
+    }
+
+    public function test_replay_garde_a_vie_sauf_suppression_par_le_vendeur(): void
+    {
+        $this->configurerReplay();
+        config(['live.testeurs' => ['membre@ex.com']]);
+        \Illuminate\Support\Facades\Http::fake(['*' => \Illuminate\Support\Facades\Http::response('', 204)]);
+        $live = $this->live($this->admin, [$this->article($this->admin)], 'termine');
+        $live->update(['replay_chemin' => 'lives/live-2.mp4']);
+
+        $this->actingAs($this->admin)->post("/live/{$live->id}/replay", ['publier' => 1]);
+
+        // Un an plus tard, toujours là.
+        Carbon::setTestNow(now()->addYear());
+        $this->actingAs($this->membre)->get('/profil/' . $this->admin->id)->assertSee('Replays des lives');
+
+        // Seul le vendeur peut le supprimer.
+        $this->actingAs($this->membre)->post("/live/{$live->id}/replay/supprimer")->assertForbidden();
+        $this->actingAs($this->admin)->post("/live/{$live->id}/replay/supprimer")->assertRedirect();
+        $this->actingAs($this->membre)->get('/profil/' . $this->admin->id)->assertDontSee('Replays des lives');
+        $this->actingAs($this->membre)->get('/live')->assertDontSee('🎬 Replays');
+    }
+
+    public function test_signature_s3_conforme_a_l_exemple_officiel_aws(): void
+    {
+        // Exemple « GET Object » de la documentation AWS Signature v4 (S3).
+        $autorisation = \App\Support\LiveEnregistrement::signatureS3('GET', '/test.txt', [
+            'host' => 'examplebucket.s3.amazonaws.com',
+            'range' => 'bytes=0-9',
+            'x-amz-content-sha256' => 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+            'x-amz-date' => '20130524T000000Z',
+        ], 'AKIAIOSFODNN7EXAMPLE', 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY', 'us-east-1', '20130524T000000Z');
+
+        $this->assertSame(
+            'AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20130524/us-east-1/s3/aws4_request, SignedHeaders=host;range;x-amz-content-sha256;x-amz-date, Signature=f0e8bdb87c964420e857bd35b5d6ed310bd44f0170aba48dd91039c6036bdb41',
+            $autorisation
+        );
     }
 
     public function test_sans_stockage_rien_n_est_enregistre(): void

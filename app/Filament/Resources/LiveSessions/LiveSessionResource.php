@@ -57,6 +57,14 @@ class LiveSessionResource extends Resource
                         \App\Support\LiveEnregistrement::arreter($r);
                         LiveService::message($r, null, 'Ce live a été interrompu par l’équipe Swap’Îles.', 'systeme');
                     }),
+                Action::make('supprimerReplay')
+                    ->label('Supprimer le replay')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->visible(fn (LiveSession $r) => $r->replayUrl() !== null)
+                    ->requiresConfirmation()
+                    ->modalDescription('La vidéo est retirée du site et effacée du stockage. Action définitive.')
+                    ->action(fn (LiveSession $r) => \App\Support\LiveEnregistrement::supprimerReplay($r)),
             ]);
     }
 

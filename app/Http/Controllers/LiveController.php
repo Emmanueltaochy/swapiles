@@ -22,7 +22,7 @@ class LiveController extends Controller
                 ->orderBy('debut_prevu_at')->get(),
             'mesLives' => $request->user() ? LiveSession::where('user_id', $request->user()->id)->latest()->limit(10)->get() : collect(),
             'replays' => LiveSession::with(['vendeur', 'articles.images'])->where('statut', 'termine')
-                ->whereNotNull('replay_publie_at')->whereNotNull('replay_chemin')
+                ->whereNotNull('replay_publie_at')->whereNotNull('replay_chemin')->whereNull('replay_supprime_at')
                 ->latest('replay_publie_at')->limit(12)->get(),
             'mesRappels' => $request->user() ? \Illuminate\Support\Facades\DB::table('live_rappels')->where('user_id', $request->user()->id)->pluck('live_session_id')->all() : [],
         ]);
@@ -166,16 +166,33 @@ class LiveController extends Controller
         return response()->json(['enregistre' => \App\Support\LiveEnregistrement::demarrer($live)]);
     }
 
-    /** Le vendeur publie (ou retire) le replay sur son profil. */
+    /**
+     * Fin du live : « Garder le replay ? »
+     * Oui : publié sur le profil, à vie. Non : la vidéo est supprimée.
+     */
     public function publierReplay(Request $request, LiveSession $live)
     {
         $this->vendeurSeulement($request, $live);
         abort_unless($live->statut === 'termine' && $live->replayUrl(), 404);
 
-        $publier = $request->boolean('publier');
-        $live->update(['replay_publie_at' => $publier ? now() : null]);
+        if (! $request->boolean('publier')) {
+            return $this->supprimerReplay($request, $live);
+        }
 
-        return back()->with('status', $publier ? '🎬 Replay publié sur votre profil.' : 'Replay retiré de votre profil.');
+        $live->update(['replay_publie_at' => $live->replay_publie_at ?? now()]);
+
+        return back()->with('status', '🎬 Replay publié sur votre profil.');
+    }
+
+    /** Le vendeur supprime son replay, à la fin du live ou plus tard. */
+    public function supprimerReplay(Request $request, LiveSession $live)
+    {
+        $this->vendeurSeulement($request, $live);
+        abort_unless($live->statut === 'termine' && $live->replay_chemin, 404);
+
+        \App\Support\LiveEnregistrement::supprimerReplay($live);
+
+        return redirect()->route('live.show', $live)->with('status', '🗑 Replay supprimé définitivement.');
     }
 
     /** « Me prévenir » : inscription (ou désinscription) au début du live. */

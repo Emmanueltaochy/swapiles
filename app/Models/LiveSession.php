@@ -20,6 +20,7 @@ class LiveSession extends Model
         'user_id', 'titre', 'description', 'statut', 'debut_prevu_at', 'demarre_at',
         'termine_at', 'article_epingle_id', 'spectateurs_max', 'coeurs', 'coupe_raison',
         'rappel_envoye_at', 'enregistrement_id', 'replay_chemin', 'replay_publie_at',
+        'replay_supprime_at', 'replay_fichier_efface_at',
     ];
 
     protected $casts = [
@@ -28,6 +29,8 @@ class LiveSession extends Model
         'termine_at' => 'datetime',
         'rappel_envoye_at' => 'datetime',
         'replay_publie_at' => 'datetime',
+        'replay_supprime_at' => 'datetime',
+        'replay_fichier_efface_at' => 'datetime',
     ];
 
     public function vendeur(): BelongsTo
@@ -57,7 +60,11 @@ class LiveSession extends Model
     {
         $base = rtrim((string) config('live.replay.url_publique'), '/');
 
-        return $this->replay_chemin && $base !== '' ? $base . '/' . $this->replay_chemin : null;
+        if (! $this->replay_chemin || $this->replay_supprime_at || $base === '') {
+            return null;
+        }
+
+        return $base . '/' . $this->replay_chemin;
     }
 
     public function replayPublie(): bool

@@ -64,7 +64,7 @@ class ProfileController extends Controller
         $lives = \App\Support\LiveAcces::visible($request->user())
             ? \App\Models\LiveSession::with(['vendeur', 'articles.images'])->where('user_id', $user->id)
                 ->where(fn ($q) => $q->whereIn('statut', ['en_direct', 'programme'])
-                    ->orWhere(fn ($q) => $q->where('statut', 'termine')->whereNotNull('replay_publie_at')->whereNotNull('replay_chemin')))
+                    ->orWhere(fn ($q) => $q->where('statut', 'termine')->whereNotNull('replay_publie_at')->whereNotNull('replay_chemin')->whereNull('replay_supprime_at')))
                 ->latest()->limit(12)->get()
             : collect();
 

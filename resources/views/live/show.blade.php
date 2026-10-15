@@ -138,15 +138,29 @@
             @endif
             @if($estVendeur && $termine)
                 <div class="mt-3 rounded-2xl bg-white p-3 text-gray-900 shadow-xl">
-                    @if($live->replayUrl())
-                        <p class="text-sm font-extrabold">🎬 Le replay de votre live</p>
-                        <p class="mt-0.5 text-xs text-gray-600">{{ $live->replayPublie() ? 'Visible sur votre profil et dans la page des lives.' : 'Publiez-le sur votre profil : vos articles continuent d’être vus.' }} La vidéo peut mettre quelques minutes à être prête.</p>
+                    @if($live->replay_supprime_at)
+                        <p class="text-sm font-extrabold">Live terminé 🌴</p>
+                        <p class="mt-0.5 text-xs text-gray-600">Le replay a été supprimé définitivement.</p>
+                    @elseif($live->replayUrl() && ! $live->replayPublie())
+                        <p class="text-sm font-extrabold">🎬 Garder le replay de votre live ?</p>
+                        <p class="mt-0.5 text-xs text-gray-600"><b>Oui</b> : il reste sur votre profil, vos articles continuent d’être vus. <b>Non</b> : la vidéo est supprimée définitivement.</p>
                         <div class="mt-2.5 flex gap-2">
                             <form method="POST" action="{{ route('live.replay', $live) }}" class="flex-1">@csrf
-                                <input type="hidden" name="publier" value="{{ $live->replayPublie() ? '0' : '1' }}">
-                                <button class="w-full rounded-xl px-3 py-2.5 text-sm font-extrabold {{ $live->replayPublie() ? 'border border-gray-300 text-gray-700' : 'bg-teal-600 text-white' }}">{{ $live->replayPublie() ? 'Retirer du profil' : 'Publier sur mon profil' }}</button>
+                                <input type="hidden" name="publier" value="1">
+                                <button class="w-full rounded-xl bg-teal-600 px-3 py-2.5 text-sm font-extrabold text-white">✅ Oui, le publier</button>
                             </form>
-                            <button type="button" data-partager class="flex items-center gap-1.5 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-extrabold text-white"><svg viewBox="0 0 24 24" class="h-4 w-4" fill="currentColor" aria-hidden="true"><path d="M13 5.5V2l9 8-9 8v-3.6c-5.6 0-9.4 1.7-12 5.6 1-5.6 4.3-11.2 12-14.5Z"/></svg> Partager</button>
+                            <form method="POST" action="{{ route('live.replay.supprimer', $live) }}" class="flex-1" onsubmit="return confirm('Supprimer définitivement le replay ?');">@csrf
+                                <button class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm font-extrabold text-gray-700">🗑 Non, supprimer</button>
+                            </form>
+                        </div>
+                    @elseif($live->replayPublie())
+                        <p class="text-sm font-extrabold">✅ Replay publié sur votre profil</p>
+                        <p class="mt-0.5 text-xs text-gray-600">Il y reste tant que vous ne le supprimez pas. La vidéo peut mettre quelques minutes à être prête.</p>
+                        <div class="mt-2.5 flex items-center gap-2">
+                            <button type="button" data-partager class="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-extrabold text-white"><svg viewBox="0 0 24 24" class="h-4 w-4" fill="currentColor" aria-hidden="true"><path d="M13 5.5V2l9 8-9 8v-3.6c-5.6 0-9.4 1.7-12 5.6 1-5.6 4.3-11.2 12-14.5Z"/></svg> Partager le replay</button>
+                            <form method="POST" action="{{ route('live.replay.supprimer', $live) }}" onsubmit="return confirm('Supprimer définitivement le replay ? Il disparaîtra de votre profil.');">@csrf
+                                <button class="rounded-xl border border-gray-300 px-3 py-2.5 text-sm font-bold text-gray-600" aria-label="Supprimer le replay">🗑</button>
+                            </form>
                         </div>
                     @else
                         <p class="text-sm font-extrabold">Live terminé 🌴</p>

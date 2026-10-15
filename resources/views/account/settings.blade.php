@@ -23,6 +23,15 @@
                     'aide' => 'Nom, photo, téléphone, île',
                 ],
                 [
+                    // Une seule adresse sert aux bordereaux Colissimo (ventes)
+                    // et à la livraison des achats : une seule entrée.
+                    'url' => route('account.addresses.edit'),
+                    'icone' => '📮',
+                    'label' => 'Mon adresse',
+                    'aide' => 'Pour mes envois Colissimo et mes colis',
+                    'alerte' => $adresseComplete ? null : 'À compléter',
+                ],
+                [
                     'url' => route('account.profile.edit') . '#mot-de-passe',
                     'icone' => '🔒',
                     'label' => 'Mot de passe',
@@ -48,26 +57,8 @@
             ],
         ],
         [
-            'titre' => 'Acheter',
-            'entrees' => [
-                [
-                    'url' => route('account.addresses.edit'),
-                    'icone' => '📮',
-                    'label' => 'Mes adresses de livraison',
-                    'aide' => 'Où je me fais livrer mes achats',
-                ],
-            ],
-        ],
-        [
             'titre' => 'Vendre',
             'entrees' => array_values(array_filter([
-                [
-                    'url' => route('account.profile.edit') . '#expedition',
-                    'icone' => '📦',
-                    'label' => 'Adresse d\'expédition',
-                    'aide' => 'Sert à générer mes bordereaux Colissimo',
-                    'alerte' => $adresseComplete ? null : 'À compléter',
-                ],
                 config('features.relay_points') ? [
                     'url' => route('account.profile.edit') . '#points-relais',
                     'icone' => '🏪',

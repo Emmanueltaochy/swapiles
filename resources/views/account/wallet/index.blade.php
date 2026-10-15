@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Mon wallet — Swap\'Îles')
+@section('title', 'Mon argent — Swap\'Îles')
 
 @section('content')
 @php
@@ -14,33 +14,30 @@
 <section class="bg-gray-50 min-h-screen py-8">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
+        <a href="{{ route('account.dashboard') }}" class="mb-3 inline-block text-sm font-semibold text-teal-700 hover:text-teal-900">← Mon compte</a>
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <h1 class="text-3xl font-extrabold text-gray-900">Mon wallet</h1>
+                <h1 class="text-3xl font-extrabold text-gray-900">Mon argent</h1>
                 <p class="text-gray-500 mt-2">Suivez vos ventes, vos virements et votre argent disponible.</p>
             </div>
-
-            <a href="{{ route('account.dashboard') }}" class="inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold px-5 py-3 rounded-2xl transition">
-                ← Retour à mon compte
-            </a>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
             <div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
                 <p class="text-sm text-gray-500">En attente</p>
-                <p class="text-3xl font-extrabold text-gray-900 mt-2">{{ number_format($pendingAmount, 0, ',', ' ') }} €</p>
+                <p class="text-3xl font-extrabold text-gray-900 mt-2">{{ number_format($pendingAmount, 2, ',', ' ') }} €</p>
                 <p class="text-xs text-gray-400 mt-1">Paiement reçu, réception non confirmée.</p>
             </div>
 
             <div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
                 <p class="text-sm text-gray-500">Virement en cours</p>
-                <p class="text-3xl font-extrabold text-yellow-700 mt-2">{{ number_format($processingAmount, 0, ',', ' ') }} €</p>
+                <p class="text-3xl font-extrabold text-yellow-700 mt-2">{{ number_format($processingAmount, 2, ',', ' ') }} €</p>
                 <p class="text-xs text-gray-400 mt-1">Délai estimé : 1 à 3 jours ouvrés.</p>
             </div>
 
             <div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
                 <p class="text-sm text-gray-500">Déjà versé</p>
-                <p class="text-3xl font-extrabold text-green-700 mt-2">{{ number_format($paidAmount, 0, ',', ' ') }} €</p>
+                <p class="text-3xl font-extrabold text-green-700 mt-2">{{ number_format($paidAmount, 2, ',', ' ') }} €</p>
                 <p class="text-xs text-gray-400 mt-1">Argent envoyé sur votre compte bancaire.</p>
             </div>
         </div>
@@ -149,38 +146,36 @@
                         </div>
 
                         <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <p class="font-bold text-gray-900 truncate">{{ $sale->listing->title ?? 'Annonce supprimée' }}</p>
-                                @php($badge = [
-                                    'online' => 'bg-teal-100 text-teal-800',
-                                    'cash' => 'bg-amber-100 text-amber-800',
-                                    'gift' => 'bg-pink-100 text-pink-800',
-                                    'exchange' => 'bg-indigo-100 text-indigo-800',
-                                ][$mode] ?? 'bg-gray-100 text-gray-700')
-                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full {{ $badge }}">{{ $sale->payment_mode_label }}</span>
-                            </div>
-                            <p class="text-sm text-gray-500">Acheteur : {{ $sale->buyer->name ?? 'Utilisateur' }}</p>
-                            <p class="text-xs text-gray-400 mt-0.5">{{ $sale->created_at?->format('d/m/Y') }}</p>
-                            <p class="text-sm font-extrabold text-gray-900 mt-1">
-                                {{ number_format(\App\Support\SellerWallet::net($sale), 0, ',', ' ') }} €
-                                @if($sale->is_secured)
-                                    <span class="text-teal-700">net vendeur</span>
-                                @else
-                                    <span class="text-gray-400 font-medium">hors plateforme</span>
-                                @endif
+                            @php($badge = [
+                                'online' => 'bg-teal-100 text-teal-800',
+                                'cash' => 'bg-amber-100 text-amber-800',
+                                'gift' => 'bg-pink-100 text-pink-800',
+                                'exchange' => 'bg-indigo-100 text-indigo-800',
+                            ][$mode] ?? 'bg-gray-100 text-gray-700')
+                            <p class="font-bold text-gray-900 truncate">{{ $sale->listing->title ?? 'Annonce supprimée' }}</p>
+                            <p class="mt-0.5 flex items-center gap-1.5 text-sm text-gray-500 min-w-0">
+                                <span class="shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full {{ $badge }}">{{ $sale->payment_mode_label }}</span>
+                                <span class="truncate">{{ $sale->buyer->name ?? 'Utilisateur' }} · {{ $sale->created_at?->format('d/m') }}</span>
                             </p>
-                        </div>
-
-                        <div class="text-right">
-                            @if($sale->wallet_status === 'paid')
-                                <span class="text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-800">Virement envoyé</span>
-                            @elseif($sale->wallet_status === 'processing')
-                                <span class="text-xs font-bold px-3 py-1 rounded-full bg-yellow-100 text-yellow-800">Virement en cours</span>
-                            @elseif($sale->is_secured && $sale->status === 'paid')
-                                <span class="text-xs font-bold px-3 py-1 rounded-full bg-gray-100 text-gray-700">En attente réception</span>
-                            @else
-                                <span class="text-xs font-bold px-3 py-1 rounded-full bg-gray-100 text-gray-700">{{ ['paid'=>'Payé','pending'=>'En attente','completed'=>'Terminée','cancelled'=>'Annulée','refunded'=>'Remboursée'][$sale->status] ?? $sale->status }}</span>
-                            @endif
+                            <div class="mt-1.5 flex items-center justify-between gap-2">
+                                <p class="text-sm font-extrabold text-gray-900 whitespace-nowrap">
+                                    {{ number_format(\App\Support\SellerWallet::net($sale), 2, ',', ' ') }} €
+                                    @if($sale->is_secured)
+                                        <span class="text-xs font-semibold text-teal-700">net</span>
+                                    @else
+                                        <span class="text-xs font-medium text-gray-400">hors appli</span>
+                                    @endif
+                                </p>
+                                @if($sale->wallet_status === 'paid')
+                                    <span class="shrink-0 whitespace-nowrap text-xs font-bold px-2.5 py-1 rounded-full bg-green-100 text-green-800">Virement envoyé</span>
+                                @elseif($sale->wallet_status === 'processing')
+                                    <span class="shrink-0 whitespace-nowrap text-xs font-bold px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-800">Virement en cours</span>
+                                @elseif($sale->is_secured && $sale->status === 'paid')
+                                    <span class="shrink-0 whitespace-nowrap text-xs font-bold px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">Attente réception</span>
+                                @else
+                                    <span class="shrink-0 whitespace-nowrap text-xs font-bold px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">{{ ['paid'=>'Payée','pending'=>'En attente','completed'=>'Terminée','cancelled'=>'Annulée','refunded'=>'Remboursée'][$sale->status] ?? $sale->status }}</span>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 @empty

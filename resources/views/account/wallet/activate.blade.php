@@ -14,7 +14,7 @@
     <div class="max-w-2xl mx-auto px-4 sm:px-6">
 
         <div class="mb-6">
-            <a href="{{ route('account.wallet.index') }}" class="text-sm font-semibold text-teal-700 hover:text-teal-900">← Retour à mon wallet</a>
+            <a href="{{ route('account.wallet.index') }}" class="text-sm font-semibold text-teal-700 hover:text-teal-900">← Mon argent</a>
         </div>
 
         <div class="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm">

@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
-@section('title', 'Mes adresses — Swap\'Îles')
+@section('title', 'Mon adresse — Swap\'Îles')
 
 @section('content')
 <section class="bg-gray-50 min-h-screen py-8">
     <div class="max-w-2xl mx-auto px-4">
         <div class="mb-6">
-            <a href="{{ route('account.dashboard') }}" class="text-sm font-bold text-teal-700">← Retour à mon compte</a>
-            <h1 class="text-3xl font-extrabold text-gray-900 mt-3">Mes adresses</h1>
-            <p class="text-gray-500 mt-2">Cette adresse sera utilisée pour générer les bordereaux Colissimo.</p>
+            <a href="{{ route('account.settings') }}" class="text-sm font-semibold text-teal-700 hover:text-teal-900">← Réglages</a>
+            <h1 class="text-3xl font-extrabold text-gray-900 mt-3">Mon adresse</h1>
+            <p class="text-gray-500 mt-2">Elle sert à vos bordereaux Colissimo quand vous vendez, et à la livraison de vos achats.</p>
         </div>
 
         @if(session('status'))

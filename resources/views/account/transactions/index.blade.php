@@ -42,15 +42,12 @@
             </div>
         @endif
 
+        <a href="{{ route('account.dashboard') }}" class="mb-3 inline-block text-sm font-semibold text-teal-700 hover:text-teal-900">← Mon compte</a>
         <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
             <div>
                 <h1 class="text-3xl font-extrabold text-gray-900">Mes transactions</h1>
                 <p class="text-gray-500 mt-2">Suivez vos achats, ventes, expéditions et paiements en un coup d'œil.</p>
             </div>
-
-            <a href="{{ route('account.dashboard') }}" class="inline-flex items-center gap-2 bg-white border border-gray-100 text-gray-800 font-bold px-5 py-3 rounded-2xl shadow-sm hover:bg-gray-50 transition">
-                ← Retour au compte
-            </a>
         </div>
 
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">

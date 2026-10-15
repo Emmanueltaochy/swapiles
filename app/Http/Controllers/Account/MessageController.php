@@ -31,17 +31,18 @@ class MessageController extends Controller
                 $otherId = $message->sender_id === $userId ? $message->receiver_id : $message->sender_id;
                 return $message->listing_id . '-' . $otherId;
             })
-            ->map(function ($items) {
-                return $items->sortByDesc('created_at')->first();
+            ->map(function ($items) use ($userId) {
+                $dernier = $items->sortByDesc('created_at')->first();
+                // Messages reçus pas encore lus dans CETTE conversation.
+                $dernier->non_lus = $items->where('receiver_id', $userId)->whereNull('read_at')->count();
+
+                return $dernier;
             })
             ->sortByDesc('created_at');
 
-
-        \App\Models\Message::where('receiver_id', auth()->id())
-            ->whereNull('read_at')
-            ->update([
-                'read_at' => now()
-            ]);
+        // On ne marque plus tout comme lu en ouvrant la liste : chaque
+        // conversation passe en « lue » quand on l'ouvre (comme Instagram),
+        // sinon les non-lus disparaissaient sans avoir été vus.
 
         return view('account.messages.index', compact('conversations'));
 

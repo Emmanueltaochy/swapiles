@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Messages — Swap Îles')
+@section('title', 'Messages — Swap\'Îles')
 
 {{-- Page à scripts lourds (paiement, photos, messagerie) : toujours ouverte
      par un rechargement complet, même si l'on y arrive sans recharger
@@ -22,7 +22,10 @@
             @forelse($conversations as $conversation)
                 @php
                     $other = $conversation->sender_id === auth()->id() ? $conversation->receiver : $conversation->sender;
-                    $isUnread = $conversation->receiver_id === auth()->id() && is_null($conversation->read_at);
+                    $nonLus = (int) ($conversation->non_lus ?? 0);
+                    $isUnread = $nonLus > 0;
+                    $quand = $conversation->created_at;
+                    $heure = ! $quand ? '' : ($quand->isToday() ? $quand->format('H:i') : ($quand->isYesterday() ? 'Hier' : ($quand->gt(now()->subWeek()) ? ucfirst($quand->locale('fr')->translatedFormat('D')) : $quand->format('d/m'))));
                     $url = $conversation->listing
                         ? route('account.messages.show', ['listing' => $conversation->listing, 'user' => $other])
                         : route('account.messages.show.general', ['user' => $other]);
@@ -39,13 +42,16 @@
 
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center justify-between gap-3">
-                            <p class="truncate font-semibold text-gray-900">{{ $other->name ?? 'Utilisateur' }}</p>
-                            @if($isUnread)
-                                <span class="h-2.5 w-2.5 shrink-0 rounded-full bg-red-500" aria-label="Non lu"></span>
-                            @endif
+                            <p class="truncate {{ $isUnread ? 'font-extrabold' : 'font-semibold' }} text-gray-900">{{ $other->name ?? 'Utilisateur' }}</p>
+                            <span class="shrink-0 text-xs {{ $isUnread ? 'font-bold text-teal-700' : 'text-gray-400' }}">{{ $heure }}</span>
                         </div>
                         <p class="mt-0.5 truncate text-sm font-medium text-gray-600">{{ $conversation->listing?->title ?? 'Conversation directe' }}</p>
-                        <p class="mt-0.5 truncate text-sm text-gray-400">{{ filled($conversation->body) ? $conversation->body : ($conversation->attachment_type === 'video' ? '📎 Vidéo' : '📎 Photo') }}</p>
+                        <div class="mt-0.5 flex items-center justify-between gap-3">
+                            <p class="truncate text-sm {{ $isUnread ? 'font-semibold text-gray-900' : 'text-gray-400' }}">{{ $conversation->sender_id === auth()->id() ? 'Vous : ' : '' }}{{ filled($conversation->body) ? $conversation->body : ($conversation->attachment_type === 'video' ? '📎 Vidéo' : '📎 Photo') }}</p>
+                            @if($isUnread)
+                                <span class="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-teal-600 px-1.5 text-[11px] font-bold text-white" aria-label="{{ $nonLus }} non lu{{ $nonLus > 1 ? 's' : '' }}">{{ $nonLus }}</span>
+                            @endif
+                        </div>
                     </div>
                 </a>
             @empty

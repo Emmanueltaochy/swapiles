@@ -14,10 +14,25 @@ class AccountController extends Controller
     {
         $user = Auth::user();
 
-        $listings = Listing::with('images')->withCount(['favorisRecus as favorited_by_count'])
+        // Aperçu de 6 annonces ; « Voir toutes » affiche la liste complète,
+        // filtrable par état, sans allonger la page de compte.
+        $toutesLesAnnonces = request('annonces') === 'toutes';
+        $filtreAnnonces = in_array(request('etat'), ['published', 'draft', 'sold'], true) ? request('etat') : null;
+
+        $listingsQuery = Listing::with('images')->withCount(['favorisRecus as favorited_by_count'])
             ->where('user_id', $user->id)
-            ->latest()
-            ->paginate(24);
+            ->when($filtreAnnonces, fn ($query) => $query->where('status', $filtreAnnonces))
+            ->latest();
+
+        $listings = $toutesLesAnnonces
+            ? $listingsQuery->paginate(24)->withQueryString()->fragment('mes-annonces')
+            : $listingsQuery->take(6)->get();
+
+        // Compteurs sur TOUTES les annonces (et non la page affichée).
+        $annoncesParEtat = Listing::where('user_id', $user->id)
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
 
         $sales = Transaction::with(['listing.images', 'buyer'])
             ->where('seller_id', $user->id)
@@ -72,7 +87,7 @@ class AccountController extends Controller
 
         $favoritesReceivedCount = Favorite::whereIn(
             'listing_id',
-            $listings->pluck('id')
+            Listing::where('user_id', $user->id)->select('id')
         )->where('user_id', '!=', $user->id)->count();
 
         $totalListingViews = Listing::where('user_id', $user->id)
@@ -90,6 +105,9 @@ class AccountController extends Controller
         return view('account.dashboard', compact(
             'user',
             'listings',
+            'annoncesParEtat',
+            'toutesLesAnnonces',
+            'filtreAnnonces',
             'sales',
             'realSales',
             'pendingCheckouts',

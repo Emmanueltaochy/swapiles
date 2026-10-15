@@ -4,10 +4,11 @@
 
 @section('content')
 @php
-    $listingsCollection = $listings ?? collect();
-    $activeListingsCount = $listingsCollection->where('status', 'published')->count();
-    $draftListingsCount  = $listingsCollection->where('status', 'draft')->count();
-    $soldListingsCount   = $listingsCollection->where('status', 'sold')->count();
+    $annoncesParEtat = $annoncesParEtat ?? collect();
+    $activeListingsCount = (int) ($annoncesParEtat['published'] ?? 0);
+    $draftListingsCount  = (int) ($annoncesParEtat['draft'] ?? 0);
+    $soldListingsCount   = (int) ($annoncesParEtat['sold'] ?? 0);
+    $totalAnnonces       = (int) $annoncesParEtat->sum();
 
     $salesToShipCount = ($sales ?? collect())
         ->where('status', 'paid')->where('shipping_status', 'pending')->count();
@@ -230,13 +231,24 @@
                         · {{ $soldListingsCount }} vendue{{ $soldListingsCount > 1 ? 's' : '' }}
                     </p>
                 </div>
-                <a href="{{ route('account.listings.create') }}"
-                   class="rounded-xl bg-teal-600 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-teal-700">
-                    Ajouter une annonce
-                </a>
+                @if($toutesLesAnnonces ?? false)
+                    <a href="{{ route('account.dashboard') }}#mes-annonces" class="text-sm font-semibold text-teal-700 hover:text-teal-900">Réduire</a>
+                @endif
             </div>
 
-            @if($listings->isEmpty())
+            @if(($toutesLesAnnonces ?? false) && $totalAnnonces > 0)
+                {{-- Filtre par état, seulement dans la liste complète. --}}
+                <div class="flex gap-2 overflow-x-auto border-b border-gray-100 px-3 py-2.5 sm:px-4">
+                    @foreach([null => 'Toutes · ' . $totalAnnonces, 'published' => 'En ligne · ' . $activeListingsCount, 'draft' => 'Brouillons · ' . $draftListingsCount, 'sold' => 'Vendues · ' . $soldListingsCount] as $etat => $libelle)
+                        <a href="{{ route('account.dashboard', array_filter(['annonces' => 'toutes', 'etat' => $etat ?: null])) }}#mes-annonces"
+                           class="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-bold {{ ($filtreAnnonces ?? null) === ($etat ?: null) ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">{{ $libelle }}</a>
+                    @endforeach
+                </div>
+            @endif
+
+            @if($listings->isEmpty() && ($filtreAnnonces ?? null))
+                <p class="p-8 text-center text-sm text-gray-500">Aucune annonce dans cet état.</p>
+            @elseif($listings->isEmpty())
                 <div class="p-10 text-center">
                     <div class="text-3xl" aria-hidden="true">🌴</div>
                     <h3 class="mt-3 text-lg font-semibold text-gray-900">Aucune annonce pour le moment</h3>
@@ -308,10 +320,15 @@
                 </div>
             @endif
 
-            @if($listings->hasPages())
+            @if(method_exists($listings, 'hasPages') && $listings->hasPages())
                 <div class="p-4 border-t border-gray-100">
                     {{ $listings->links() }}
                 </div>
+            @elseif(! ($toutesLesAnnonces ?? false) && $totalAnnonces > $listings->count())
+                <a href="{{ route('account.dashboard', ['annonces' => 'toutes']) }}#mes-annonces"
+                   class="block border-t border-gray-100 px-5 py-3.5 text-center text-sm font-bold text-teal-700 hover:bg-teal-50">
+                    Voir mes {{ $totalAnnonces }} annonces →
+                </a>
             @endif
         </section>
 
@@ -341,7 +358,7 @@
                     'url' => route('account.relay.dashboard'),
                     'icone' => '🏪',
                     'label' => 'Mon espace relais',
-                    'aide' => 'Colis a receptionner et a remettre',
+                    'aide' => 'Colis à réceptionner et à remettre',
                 ] : null,
                 [
                     'url' => route('relay.partner'),
@@ -353,13 +370,13 @@
                     'url' => route('dressings.top'),
                     'icone' => '🏆',
                     'label' => 'Classement des dressings',
-                    'aide' => 'Les vendeurs les plus actifs de mon ile',
+                    'aide' => 'Les vendeurs les plus actifs de mon île',
                 ],
                 [
                     'url' => route('home') . '#comment-ca-marche',
                     'icone' => '❓',
-                    'label' => 'Comment ca marche',
-                    'aide' => 'Paiement protege, livraison, inter-iles',
+                    'label' => 'Comment ça marche',
+                    'aide' => 'Paiement protégé, livraison, inter-îles',
                 ],
             ]));
         @endphp

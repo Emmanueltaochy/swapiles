@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
-@section('title', 'Profil & expédition — Swap\'Îles')
+@section('title', 'Mon profil — Swap\'Îles')
 
 @section('content')
 <section class="bg-gray-50 min-h-screen py-8">
     <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <a href="{{ route('account.settings') }}" class="text-sm font-semibold text-teal-700 hover:text-teal-900">← Réglages</a>
-        <h1 class="mt-2 text-3xl font-extrabold text-gray-900">Profil & expédition</h1>
-        <p class="text-gray-500 mt-2">Mettez à jour votre profil et vos informations d’expédition.</p>
+        <h1 class="mt-2 text-3xl font-extrabold text-gray-900">Mon profil</h1>
+        <p class="text-gray-500 mt-2">Votre nom, votre photo et votre île, tels que les membres les voient.</p>
 
         @if(session('status'))
             <div class="mt-6 bg-teal-50 text-teal-800 rounded-2xl p-4 text-sm font-semibold">
@@ -36,8 +36,13 @@
                 </div>
 
                 <div class="flex-1">
-                    <label class="block text-sm font-bold text-gray-800 mb-2">Photo de profil</label>
-                    <input type="file" name="avatar" accept="image/*" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 text-sm">
+                    <p class="block text-sm font-bold text-gray-800 mb-2">Photo de profil</p>
+                    {{-- Bouton en français (le champ fichier natif affiche « Choose File »). --}}
+                    <label class="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-gray-100 px-4 py-3 text-sm font-bold text-gray-800 hover:bg-gray-200">
+                        📷 <span data-nom-photo>{{ $user->avatar ? 'Changer la photo' : 'Choisir une photo' }}</span>
+                        <input type="file" name="avatar" accept="image/*" class="sr-only"
+                               onchange="this.previousElementSibling.textContent = this.files[0] ? this.files[0].name : 'Choisir une photo'">
+                    </label>
                 </div>
             </div>
 
@@ -63,34 +68,10 @@
                 </select>
             </div>
 
-            <div id="expedition" class="scroll-mt-24 border-t border-gray-100 pt-5">
-                <h2 class="text-lg font-extrabold text-gray-900">📦 Adresse d’expédition</h2>
-                <p class="text-sm text-gray-500 mt-1">Utilisée pour générer vos bordereaux Colissimo.</p>
-            </div>
-
-            <div>
-                <label class="block text-sm font-bold text-gray-800 mb-2">Adresse</label>
-                <input type="text" name="address_line1" value="{{ old('address_line1', $user->address_line1) }}" placeholder="Ex : 10 rue de Rivoli" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-            </div>
-
-            <div>
-                <label class="block text-sm font-bold text-gray-800 mb-2">Complément</label>
-                <input type="text" name="address_line2" value="{{ old('address_line2', $user->address_line2) }}" placeholder="Bâtiment, appartement..." class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-bold text-gray-800 mb-2">Code postal</label>
-                    <input type="text" name="postal_code" value="{{ old('postal_code', $user->postal_code) }}" placeholder="97410" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-bold text-gray-800 mb-2">Ville</label>
-                    <input type="text" name="city" value="{{ old('city', $user->city) }}" placeholder="Saint-Pierre" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
-                </div>
-            </div>
-
-            <input type="hidden" name="country_code" value="FR">
+            <a href="{{ route('account.addresses.edit') }}" class="flex items-center justify-between rounded-2xl bg-gray-50 px-4 py-3 text-sm hover:bg-gray-100">
+                <span><span class="font-bold text-gray-900">📮 Mon adresse</span><span class="block text-gray-500">{{ $user->address_line1 ? $user->address_line1 . ', ' . $user->postal_code . ' ' . $user->city : 'À compléter pour vendre avec Colissimo' }}</span></span>
+                <span class="text-gray-400" aria-hidden="true">›</span>
+            </a>
 
             <div id="mot-de-passe" class="scroll-mt-24 border-t border-gray-100 pt-5">
                 <h2 class="font-extrabold text-gray-900 mb-3">Changer le mot de passe</h2>

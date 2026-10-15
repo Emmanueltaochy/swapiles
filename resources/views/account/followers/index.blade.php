@@ -6,17 +6,13 @@
 <section class="bg-gray-50 min-h-screen py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
+        <a href="{{ route('account.dashboard') }}" class="mb-3 inline-block text-sm font-semibold text-teal-700 hover:text-teal-900">← Mon compte</a>
         <div class="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
             <div>
                 <p class="text-sm font-black uppercase tracking-wide text-teal-700">Communauté</p>
                 <h1 class="text-3xl sm:text-4xl font-black text-gray-950">Mes abonnés</h1>
                 <p class="text-gray-500 mt-2">Les membres qui suivent votre dressing.</p>
             </div>
-
-            <a href="{{ route('account.dashboard') }}"
-               class="bg-white border border-gray-100 shadow-sm rounded-2xl px-5 py-3 font-black text-gray-700">
-                ← Mon compte
-            </a>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

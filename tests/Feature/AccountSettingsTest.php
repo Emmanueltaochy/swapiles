@@ -43,8 +43,7 @@ class AccountSettingsTest extends TestCase
             ->assertSee('Identité et photo')
             ->assertSee('Mot de passe')
             ->assertSee('Préférences de notification')
-            ->assertSee('Mes adresses de livraison')
-            ->assertSee("Adresse d'expédition")
+            ->assertSee('Mon adresse')
             ->assertSee('Recevoir mes paiements')
             ->assertSee('Supprimer mon compte');
     }
@@ -54,7 +53,7 @@ class AccountSettingsTest extends TestCase
         $html = $this->actingAs($this->membre())->get(route('account.settings'))
             ->assertOk()->getContent();
 
-        // Adresse d'expédition vide et virements non activés : deux alertes.
+        // Adresse vide et virements non activés : deux alertes.
         $this->assertSame(2, substr_count($html, 'À compléter') + substr_count($html, 'À activer'));
     }
 
@@ -127,9 +126,9 @@ class AccountSettingsTest extends TestCase
         $this->assertStringNotContainsString('notification_prefs_submitted', $html);
         $this->assertStringContainsString(route('account.notifications.preferences'), $html);
 
-        // Les ancres permettent d'arriver directement sur la bonne section.
-        foreach (['id="expedition"', 'id="mot-de-passe"'] as $ancre) {
-            $this->assertStringContainsString($ancre, $html, "Ancre manquante : {$ancre}");
-        }
+        // L'ancre du mot de passe ; l'adresse a sa page à elle (un seul formulaire).
+        $this->assertStringContainsString('id="mot-de-passe"', $html);
+        $this->assertStringNotContainsString('name="address_line1"', $html);
+        $this->assertStringContainsString(route('account.addresses.edit'), $html);
     }
 }

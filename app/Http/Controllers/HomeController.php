@@ -72,14 +72,12 @@ class HomeController extends Controller
             ->take(12)
             ->get();
 
-        $popularListings = Listing::query()
-            ->with(['images', 'user'])->withCount(['favorisRecus as favorited_by_count'])
-            ->where('status', 'published')
-            ->where($territoireFilter)
-            ->orderByDesc('views_count')
-            ->latest()
-            ->take(8)
-            ->get();
+        // Populaires CES JOURS-CI, et une sélection qui tourne (voir Tendances).
+        $popularListings = \App\Support\Tendances::populaires(
+            $territoireFilter,
+            $request->user(),
+            \App\Support\Tendances::graine((string) ($request->user()?->id ?? $request->session()->getId())),
+        );
 
         $securePaymentListingsCount = Listing::query()
             ->where('status', 'published')

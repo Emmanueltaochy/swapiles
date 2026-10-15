@@ -199,7 +199,7 @@
         <div>
             <p class="text-sm font-bold uppercase tracking-wide text-rose-600">Tendance</p>
             <h2 class="text-xl sm:text-3xl md:text-4xl font-bold text-gray-950">🔥 Les annonces populaires</h2>
-            <p class="text-gray-500 mt-2">Les articles les plus regardés à {{ $selectedDisplay }}.</p>
+            <p class="text-gray-500 mt-2">Les articles les plus regardés ces derniers jours à {{ $selectedDisplay }}. La sélection change au fil de la journée.</p>
         </div>
 
         <a href="{{ route('search', ['territoire' => $selectedTerritoire]) }}"

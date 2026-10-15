@@ -66,3 +66,6 @@ Schedule::command('live:nettoyer-replays')->everyTenMinutes()->withoutOverlappin
 // Parrainage : purge RGPD des invitations (7 jours), expiration des crédits,
 // rappel « ton crédit expire dans 7 jours ».
 Schedule::command('parrainage:entretien')->dailyAt('09:12')->withoutOverlapping();
+
+// Accueil « populaires » : on ne garde que 30 jours de vues par jour.
+Schedule::call(fn () => \App\Support\Tendances::nettoyer())->dailyAt('04:20')->name('tendances:nettoyer')->withoutOverlapping();

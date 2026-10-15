@@ -35,6 +35,7 @@ class ListingController extends Controller
             $listing->increment('views_count');
             $this->notifySellerOfView($request, $listing);
             \App\Support\Recommandations::noterConsultation($request->user(), $listing);
+            \App\Support\Tendances::noterVue($listing);
         }
 
         $listing->loadCount(['favorisRecus as favorited_by_count']);
@@ -56,6 +57,7 @@ class ListingController extends Controller
             $listing->increment('views_count');
             $this->notifySellerOfView($request, $listing);
             \App\Support\Recommandations::noterConsultation($request->user(), $listing);
+            \App\Support\Tendances::noterVue($listing);
         }
 
         return response()->noContent();

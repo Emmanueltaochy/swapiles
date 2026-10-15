@@ -149,6 +149,41 @@
             </section>
         @endif
 
+        {{-- Parrainage : mis en avant, avec la récompense en clair. --}}
+        @if(\App\Support\ParrainageService::actifPour($user))
+            @php
+                $recompenseParrainage = (float) config('referral.reward_amount', 0);
+                $mesFilleuls = \App\Models\Parrainage::where('parrain_id', $user->id)->count();
+                $monCredit = \App\Support\Portefeuille::solde($user);
+            @endphp
+            <a href="{{ route('parrainage.index') }}"
+               class="relative block overflow-hidden rounded-2xl bg-gradient-to-br from-teal-700 via-teal-600 to-emerald-500 p-5 text-white shadow-lg shadow-teal-900/10 transition hover:shadow-xl sm:p-6">
+                <span class="pointer-events-none absolute -right-6 -top-8 text-[110px] leading-none opacity-15" aria-hidden="true">🎁</span>
+                <span class="relative block">
+                    <span class="inline-block rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide">Parrainage</span>
+                    <span class="mt-2 block text-xl font-extrabold leading-tight sm:text-2xl">
+                        @if($recompenseParrainage > 0)
+                            Gagne {{ \App\Support\ParrainageService::montantCourt($recompenseParrainage) }} pour chaque ami invité 🌴
+                        @else
+                            Invite tes amis sur Swap’Îles 🌴
+                        @endif
+                    </span>
+                    <span class="mt-1.5 block text-sm text-white/90">
+                        Ton ami a sa <strong>protection acheteur offerte</strong> sur son 1er achat
+                        @if($recompenseParrainage > 0), et toi tu reçois <strong>{{ number_format($recompenseParrainage, 2, ',', ' ') }} € de crédit</strong> dès qu’il a reçu son article.@else.@endif
+                    </span>
+                    <span class="mt-4 flex flex-wrap items-center gap-3">
+                        <span class="rounded-xl bg-white px-4 py-2.5 text-sm font-extrabold text-teal-800 shadow-sm">Inviter mes amis →</span>
+                        @if($mesFilleuls > 0 || $monCredit > 0)
+                            <span class="text-sm font-semibold text-white/90">
+                                💚 {{ $mesFilleuls }} ami{{ $mesFilleuls > 1 ? 's' : '' }} invité{{ $mesFilleuls > 1 ? 's' : '' }}@if($monCredit > 0) · {{ number_format($monCredit / 100, 2, ',', ' ') }} € de crédit @endif
+                            </span>
+                        @endif
+                    </span>
+                </span>
+            </a>
+        @endif
+
         {{-- 3. Mon argent --}}
         <section aria-labelledby="wallet-title" class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
             <div class="flex items-center justify-between gap-4">
@@ -293,7 +328,7 @@
                 \App\Support\ParrainageService::actifPour($user) ? [
                     'url' => route('parrainage.index'),
                     'icone' => '💚',
-                    'label' => 'Inviter des amis',
+                    'label' => 'Inviter des amis' . ((float) config('referral.reward_amount') > 0 ? ' · ' . \App\Support\ParrainageService::montantCourt((float) config('referral.reward_amount')) . ' par ami' : ''),
                     'aide' => 'Leur protection acheteur est offerte, et toi tu gagnes du crédit',
                 ] : null,
                 [

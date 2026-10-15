@@ -525,6 +525,22 @@ class ParrainageTest extends TestCase
         $this->assertSame('whatsapp', ParrainageEvenement::where('evenement', 'referral_link_shared')->value('canal'));
     }
 
+    public function test_mon_compte_met_le_parrainage_en_avant(): void
+    {
+        config(['referral.reward_amount' => 3]);
+        $lea = $this->membre('Léa', 'lea@ex.com');
+
+        $this->actingAs($lea)->get('/mon-compte')->assertOk()
+            ->assertSee('Gagne 3 € pour chaque ami invité', false)
+            ->assertSee('Inviter mes amis')
+            ->assertSee('💚 Inviter des amis · 3 € offerts', false);
+        $this->actingAs($lea)->get('/mon-compte/parrainage')->assertSee('Gagne 3 € par ami invité', false);
+        $this->assertSame('2,50 €', ParrainageService::montantCourt(2.5));
+
+        config(['referral.enabled' => false]);
+        $this->actingAs($this->membre('Tom', 'tom@ex.com'))->get('/mon-compte')->assertDontSee('Inviter mes amis');
+    }
+
     public function test_admin_annule_une_recompense_et_exporte(): void
     {
         [$lea, $tom] = $this->couple();

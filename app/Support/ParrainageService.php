@@ -216,6 +216,12 @@ class ParrainageService
         return null;
     }
 
+    /** Montant court pour les accroches : « 3 € », « 2,50 € ». */
+    public static function montantCourt(float $euros): string
+    {
+        return (fmod($euros, 1.0) == 0.0 ? number_format($euros, 0, ',', ' ') : number_format($euros, 2, ',', ' ')) . ' €';
+    }
+
     public static function prenom(?User $user): string
     {
         $mots = preg_split('/\s+/', trim((string) $user?->name)) ?: [];

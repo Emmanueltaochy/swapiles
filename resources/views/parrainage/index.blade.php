@@ -15,7 +15,7 @@
     ];
 @endphp
 <section class="mx-auto max-w-2xl px-4 py-6 sm:py-10" data-parrainage data-partage-url="{{ route('parrainage.partage', absolute: false) }}">
-    <h1 class="text-2xl font-extrabold text-gray-900 sm:text-3xl">💚 Invite tes amis</h1>
+    <h1 class="text-2xl font-extrabold text-gray-900 sm:text-3xl">💚 {{ $recompense > 0 ? 'Gagne ' . \App\Support\ParrainageService::montantCourt($recompense) . ' par ami invité' : 'Invite tes amis' }}</h1>
     @unless(config('referral.enabled'))
         <p class="mt-2 inline-block rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800">🧪 Mode test : visible seulement par vous</p>
     @endunless

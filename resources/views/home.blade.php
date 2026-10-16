@@ -201,7 +201,7 @@
     $populairesToujours = $populairesToujours ?? collect();
     $vues = fn ($n) => number_format((int) $n, 0, ',', ' ') . ' vue' . ((int) $n > 1 ? 's' : '');
 @endphp
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" data-populaires>
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 pb-8 sm:pt-8" data-populaires>
     <div class="flex items-end justify-between mb-4">
         <div>
             <p class="text-sm font-bold uppercase tracking-wide text-rose-600">Tendance</p>

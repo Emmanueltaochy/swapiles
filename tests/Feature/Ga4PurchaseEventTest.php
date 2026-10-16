@@ -34,6 +34,14 @@ class Ga4PurchaseEventTest extends TestCase
             'payment_method' => 'cb', 'status' => 'pending', 'stripe_payment_intent_id' => 'pi_test',
         ]);
 
+        // Stripe confirme le paiement (la page vérifie désormais auprès de Stripe).
+        $this->app->instance(\App\Services\StripePaymentIntentService::class, new class extends \App\Services\StripePaymentIntentService {
+            public function paiementReussi(string $paymentIntentId, int $montantCents): bool
+            {
+                return true;
+            }
+        });
+
         $response = $this->actingAs($buyer)->get(route('checkout.success', $tx));
 
         $response->assertSessionHas('ga_event');

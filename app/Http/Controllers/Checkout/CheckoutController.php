@@ -375,7 +375,9 @@ class CheckoutController extends Controller
             // Transition « payé » unique et idempotente : si le webhook Stripe
             // a déjà traité ce paiement, markPaidOnce renvoie false et ne
             // recrée NI notification NI e-mail (fin du doublon de notification).
-            $justClaimed = TransactionPayment::markPaidOnce($transaction);
+            // On vérifie auprès de Stripe que le paiement a bien réussi : la
+            // simple ouverture de cette page ne prouve rien.
+            $justClaimed = TransactionPayment::confirmerAupresDeStripe($transaction);
 
             if ($justClaimed) {
                 $freshTransaction = $transaction->fresh(['listing', 'seller', 'buyer']);
@@ -391,9 +393,12 @@ class CheckoutController extends Controller
             report($e);
         }
 
+        $paye = in_array($transaction->fresh()->status, ['paid', 'completed'], true);
         $redirect = redirect()
             ->route('account.transactions.show', $transaction)
-            ->with('status', 'Paiement confirmé. Votre achat est bien enregistré.');
+            ->with('status', $paye
+                ? 'Paiement confirmé. Votre achat est bien enregistré.'
+                : 'Paiement en cours de confirmation par la banque. Vous serez prévenu dès qu’il est validé.');
 
         // Événement de conversion Pixel/GA : côté ACHETEUR, une seule fois par
         // session, indépendamment de qui (page succès ou webhook) a marqué payé.

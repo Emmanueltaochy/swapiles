@@ -32,6 +32,14 @@ class StripeWebhookController extends Controller
             return response('Invalid signature', 400);
         }
 
+        // Sans clé de signature, n'importe qui peut envoyer un faux message :
+        // on n'accepte alors que « paiement réussi », revérifié auprès de Stripe.
+        if (! $secret && ($event->type ?? null) !== 'payment_intent.succeeded') {
+            Log::warning('Stripe webhook non signé ignoré', ['type' => $event->type ?? null]);
+
+            return response('ok', 200);
+        }
+
         switch ($event->type) {
 
             case 'payment_intent.succeeded':
@@ -45,7 +53,13 @@ class StripeWebhookController extends Controller
 
                 // Transition unique et idempotente (partagée avec la page de
                 // succès) : crée notifications + e-mails une seule fois.
-                if ($transaction && TransactionPayment::markPaidOnce($transaction)) {
+                // Message signé : Stripe l'a envoyé. Sinon, on revérifie le
+                // paiement directement auprès de Stripe avant d'y croire.
+                $claimed = $transaction && ($secret
+                    ? TransactionPayment::markPaidOnce($transaction)
+                    : TransactionPayment::confirmerAupresDeStripe($transaction));
+
+                if ($claimed) {
                     $fresh = $transaction->fresh(['listing']);
 
                     AdminEvent::notify(

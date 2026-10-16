@@ -49,6 +49,28 @@ class StripePaymentIntentService
         return $this->client()->paymentIntents->create($params);
     }
 
+    /**
+     * Le paiement a-t-il VRAIMENT réussi chez Stripe, pour au moins ce montant ?
+     * On ne croit jamais la page de retour ni un message non signé sur parole.
+     */
+    public function paiementReussi(string $paymentIntentId, int $montantCents): bool
+    {
+        if (blank(env('STRIPE_SECRET'))) {
+            return false;
+        }
+
+        try {
+            $pi = $this->client()->paymentIntents->retrieve($paymentIntentId);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return false;
+        }
+
+        return ($pi->status ?? null) === 'succeeded'
+            && (int) ($pi->amount_received ?? 0) >= $montantCents;
+    }
+
     /** Empreinte de la carte utilisée (même carte = même personne), ou null. */
     public function carteEmpreinte(string $paymentIntentId): ?string
     {

@@ -22,6 +22,28 @@ use App\Models\Transaction;
 class TransactionPayment
 {
     /**
+     * Passe la transaction à « payé » SEULEMENT si Stripe confirme que le
+     * paiement a réussi, pour le bon montant. Sans cette vérification, il
+     * suffisait d'ouvrir la page de retour (ou d'envoyer un faux message au
+     * webhook) pour « payer » sans débourser un centime.
+     */
+    public static function confirmerAupresDeStripe(Transaction $transaction): bool
+    {
+        if ($transaction->status !== 'pending' || blank($transaction->stripe_payment_intent_id)) {
+            return false;
+        }
+
+        $attendu = (int) round((float) $transaction->amount * 100);
+        $stripe = app(\App\Services\StripePaymentIntentService::class);
+
+        if (! $stripe->paiementReussi($transaction->stripe_payment_intent_id, $attendu)) {
+            return false;
+        }
+
+        return self::markPaidOnce($transaction);
+    }
+
+    /**
      * @return bool  true seulement si CET appel a fait passer la transaction à
      *               « paid » (et a donc créé les notifications + e-mails).
      */

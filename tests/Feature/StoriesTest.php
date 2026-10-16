@@ -134,4 +134,24 @@ class StoriesTest extends TestCase
         DB::table('listings')->update(['created_at' => now()->subDays(8)]);
         $this->get('/')->assertOk()->assertDontSee('Nouveautés des dressings');
     }
+
+    public function test_le_rond_montre_le_dernier_article_et_le_vendeur_en_pastille(): void
+    {
+        Carbon::setTestNow('2026-10-20 10:00');
+        $lea = $this->membre('Lea');
+        $this->annonce($lea)->images()->create(['url' => '/storage/listings/ancienne.jpg', 'order' => 0]);
+        Carbon::setTestNow('2026-10-20 11:00');
+        $derniere = $this->annonce($lea);
+        $derniere->images()->create(['url' => '/storage/listings/derniere-2.jpg', 'order' => 1]);
+        $derniere->images()->create(['url' => '/storage/listings/derniere-1.jpg', 'order' => 0]);
+        $tom = $this->membre('Tom');
+        $this->annonce($tom); // sans photo
+
+        $ronds = Stories::pour(null, 'La Réunion')->keyBy('vendeur.id');
+        $this->assertStringEndsWith('/storage/listings/derniere-1.jpg', $ronds[$lea->id]['image'], 'Première photo du dernier article.');
+        $this->assertNull($ronds[$tom->id]['image']);
+
+        $this->withCookie('territoire', 'reunion')->get('/')->assertOk()
+            ->assertSee('derniere-1.jpg', false);
+    }
 }

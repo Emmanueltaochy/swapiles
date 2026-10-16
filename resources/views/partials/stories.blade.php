@@ -1,6 +1,7 @@
 {{--
     Stories automatiques de l'accueil : un rond par dressing qui a publié ces
-    7 derniers jours. Vert = nouveautés pas encore vues, gris = déjà vues.
+    7 derniers jours, illustré par son DERNIER ARTICLE (la photo de profil
+    est en pastille). Vert = nouveautés pas encore vues, gris = déjà vues.
     On touche : les nouveaux articles défilent en plein écran (5 s chacun),
     puis le dressing suivant. Le vendeur n'a rien à faire : ses annonces
     sont sa story.
@@ -19,17 +20,27 @@
                         data-story-dernier="{{ $story['dernier']->timestamp }}"
                         data-story-vu="{{ $story['vu'] ? '1' : '0' }}"
                         aria-label="Nouveautés de {{ $vendeur->name }} ({{ $story['nombre'] }} article{{ $story['nombre'] > 1 ? 's' : '' }})">
-                    <span class="mx-auto block h-[68px] w-[68px] rounded-full p-[3px] transition
-                                 bg-gradient-to-tr from-emerald-400 via-teal-500 to-teal-700
-                                 group-data-[story-vu=1]:bg-none group-data-[story-vu=1]:bg-gray-300 group-data-[story-vu=1]:p-[2px]">
-                        <span class="block h-full w-full rounded-full bg-white p-[2px]">
-                            <span class="grid h-full w-full place-items-center overflow-hidden rounded-full bg-teal-100 text-xl font-extrabold text-teal-800">
-                                @if($vendeur->avatar)
-                                    <img src="{{ $vendeur->avatar }}" alt="" class="h-full w-full object-cover" loading="lazy">
-                                @else
-                                    {{ mb_strtoupper(mb_substr($vendeur->name ?? '?', 0, 1)) }}
-                                @endif
+                    {{-- Grand rond : la photo du dernier article publié ; petite pastille : le vendeur. --}}
+                    <span class="relative mx-auto block h-[68px] w-[68px]">
+                        <span class="block h-full w-full rounded-full p-[3px] transition
+                                     bg-gradient-to-tr from-emerald-400 via-teal-500 to-teal-700
+                                     group-data-[story-vu=1]:bg-none group-data-[story-vu=1]:bg-gray-300 group-data-[story-vu=1]:p-[2px]">
+                            <span class="block h-full w-full rounded-full bg-white p-[2px]">
+                                <span class="grid h-full w-full place-items-center overflow-hidden rounded-full bg-gray-100 text-2xl">
+                                    @if($story['image'])
+                                        <img src="{{ $story['image'] }}" alt="" class="h-full w-full object-cover" loading="lazy">
+                                    @else
+                                        📦
+                                    @endif
+                                </span>
                             </span>
+                        </span>
+                        <span class="absolute -bottom-0.5 -right-0.5 grid h-6 w-6 place-items-center overflow-hidden rounded-full bg-teal-600 text-[10px] font-extrabold text-white ring-2 ring-white">
+                            @if($vendeur->avatar)
+                                <img src="{{ $vendeur->avatar }}" alt="" class="h-full w-full object-cover" loading="lazy">
+                            @else
+                                {{ mb_strtoupper(mb_substr($vendeur->name ?? '?', 0, 1)) }}
+                            @endif
                         </span>
                     </span>
                     <span class="mt-1 block truncate text-xs font-semibold text-gray-800 group-data-[story-vu=1]:font-normal group-data-[story-vu=1]:text-gray-500">{{ $vendeur->name }}</span>

@@ -31,7 +31,7 @@ class Stories
     }
 
     /**
-     * @return Collection<int, array{vendeur: User, dernier: Carbon, nombre: int, vu: bool, suivi: bool}>
+     * @return Collection<int, array{vendeur: User, dernier: Carbon, nombre: int, vu: bool, suivi: bool, image: ?string}>
      */
     public static function pour(?User $moi, string $territoire): Collection
     {
@@ -69,7 +69,7 @@ class Stories
             ? DB::table('story_vues')->where('user_id', $moi->id)->pluck('vu_jusqu_a', 'vendeur_id')
             : collect();
 
-        return $activite
+        $ronds = $activite
             ->filter(fn ($ligne) => $vendeurs->has($ligne->user_id))
             ->map(function ($ligne) use ($vendeurs, $vus, $suivis) {
                 $dernier = Carbon::parse($ligne->dernier);
@@ -87,6 +87,40 @@ class Stories
             ->sortBy(fn ($s) => [$s['vu'] ? 1 : 0, $s['suivi'] ? 0 : 1, -$s['dernier']->timestamp])
             ->take(self::MAX_RONDS)
             ->values();
+
+        // Le rond montre la photo du dernier article publié (plus parlant
+        // qu'un profil souvent sans photo) ; une seule requête pour tous.
+        $images = self::dernieresImages($ronds->pluck('vendeur.id')->all());
+
+        return $ronds->map(fn ($s) => $s + ['image' => $images[$s['vendeur']->id] ?? null]);
+    }
+
+    /** @return array<int, string> photo du dernier article publié, par vendeur */
+    private static function dernieresImages(array $vendeurs): array
+    {
+        if ($vendeurs === []) {
+            return [];
+        }
+
+        $images = [];
+        Listing::query()
+            ->with('images')
+            ->whereIn('user_id', $vendeurs)
+            ->where('status', 'published')
+            ->where('created_at', '>=', self::depuis())
+            ->latest()
+            ->get(['id', 'user_id', 'created_at'])
+            ->each(function ($annonce) use (&$images) {
+                if (isset($images[$annonce->user_id])) {
+                    return;
+                }
+                $photo = $annonce->images->sortBy('order')->first();
+                if ($photo) {
+                    $images[$annonce->user_id] = \App\Support\ImageUrl::absolute($photo->url);
+                }
+            });
+
+        return $images;
     }
 
     /** Les nouveaux articles d'un dressing, du plus récent au plus ancien. */

@@ -159,6 +159,7 @@ class ListingOfferController extends Controller
             'amount' => $data['amount'],
             'status' => 'accepted',
             'message' => $data['message'] ?? null,
+            'source' => 'contre_offre',
         ]);
 
         Message::create([

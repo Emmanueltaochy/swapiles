@@ -24,11 +24,11 @@
     // Raccourcis de navigation du compte
     $shortcuts = [
         ['route' => 'account.transactions.index',      'icon' => '📦', 'label' => 'Ventes & achats'],
-        ['route' => 'account.messages.index',          'icon' => '💬', 'label' => 'Messages'],
+        ['route' => 'account.messages.index',          'icon' => '💬', 'label' => 'Messages', 'badge' => \App\Models\Message::where('receiver_id', $user->id)->whereNull('read_at')->count()],
         ['route' => 'account.favorites.index',         'icon' => '❤️', 'label' => 'Favoris'],
         ['route' => 'account.followed-sellers.index',  'icon' => '👥', 'label' => 'Vendeurs suivis'],
         ['route' => 'account.followers.index',         'icon' => '🙋', 'label' => 'Mes abonnés'],
-        ['route' => 'account.notifications.index',     'icon' => '🔔', 'label' => 'Notifications'],
+        ['route' => 'account.notifications.index',     'icon' => '🔔', 'label' => 'Notifications', 'badge' => \App\Models\Notification::where('user_id', $user->id)->whereNull('read_at')->count()],
     ];
 @endphp
 
@@ -281,7 +281,10 @@
         <section aria-label="Raccourcis" class="grid grid-cols-3 sm:grid-cols-6 gap-3">
             @foreach($shortcuts as $item)
                 <a href="{{ route($item['route']) }}"
-                   class="flex flex-col items-center gap-2 rounded-2xl border border-gray-100 bg-white p-4 text-center shadow-sm hover:bg-gray-50">
+                   class="relative flex flex-col items-center gap-2 rounded-2xl border border-gray-100 bg-white p-4 text-center shadow-sm hover:bg-gray-50">
+                    @if(($item['badge'] ?? 0) > 0)
+                        <span class="absolute right-2 top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[11px] font-bold text-white" aria-label="{{ $item['badge'] }} non lu(s)">{{ $item['badge'] > 9 ? '9+' : $item['badge'] }}</span>
+                    @endif
                     <span class="text-2xl" aria-hidden="true">{{ $item['icon'] }}</span>
                     <span class="text-xs font-semibold text-gray-700 leading-tight">{{ $item['label'] }}</span>
                 </a>

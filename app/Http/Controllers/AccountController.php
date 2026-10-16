@@ -98,9 +98,8 @@ class AccountController extends Controller
             ->take(5)
             ->get();
 
-        Notification::where('user_id', $user->id)
-            ->whereNull('read_at')
-            ->update(['read_at' => now()]);
+        // Les notifications restent « non lues » (pastille rouge) jusqu'à ce que
+        // le membre ouvre la page Notifications : ouvrir Mon compte ne suffit pas.
 
         return view('account.dashboard', compact(
             'user',

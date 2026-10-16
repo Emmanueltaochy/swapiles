@@ -7,7 +7,8 @@
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
 
         @php
-            $unreadCount = \App\Models\Notification::where('user_id', auth()->id())->whereNull('read_at')->count();
+            // Nouvelles depuis la dernière visite (la page les marque vues en s'ouvrant).
+            $unreadCount = $notifications->getCollection()->whereNull('read_at')->count();
         @endphp
 
         <div class="flex items-center justify-between gap-4 mb-6">
@@ -15,20 +16,12 @@
                 <h1 class="text-3xl font-extrabold text-gray-900 flex items-center gap-2">
                     🔔 Notifications
                     @if($unreadCount > 0)
-                        <span class="bg-red-600 text-white text-xs font-extrabold rounded-full px-2.5 py-1">{{ $unreadCount }}</span>
+                        <span class="bg-red-600 text-white text-xs font-extrabold rounded-full px-2.5 py-1">{{ $unreadCount }} nouvelle{{ $unreadCount > 1 ? 's' : '' }}</span>
                     @endif
                 </h1>
                 <p class="text-gray-500 mt-2">Suivez vos ventes, achats, messages et paiements.</p>
             </div>
 
-            @if($unreadCount > 0)
-                <form method="POST" action="{{ route('account.notifications.read') }}">
-                    @csrf
-                    <button class="bg-gray-900 hover:bg-black text-white font-bold px-4 py-3 rounded-2xl text-sm transition">
-                        Tout marquer comme lu
-                    </button>
-                </form>
-            @endif
         </div>
 
         @if(session('status'))

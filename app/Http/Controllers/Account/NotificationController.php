@@ -13,6 +13,13 @@ class NotificationController extends Controller
             ->latest()
             ->paginate(20);
 
+        // Ouvrir la page Notifications = les avoir vues : la pastille rouge
+        // disparaît. Les nouvelles restent surlignées sur cette page (la liste
+        // est chargée avant), puis apparaissent comme lues la fois suivante.
+        Notification::where('user_id', auth()->id())
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
         return view('account.notifications.index', compact('notifications'));
     }
 

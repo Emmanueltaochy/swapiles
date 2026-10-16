@@ -24,6 +24,11 @@ class ListingOfferController extends Controller
                 ->with('status', "Cet article n'est plus disponible.");
         }
 
+        if ($listing->status === \App\Support\Vacances::STATUT) {
+            return redirect()->route('listings.show', $listing)
+                ->with('status', 'Le vendeur est en vacances : vous pourrez faire une offre à son retour.');
+        }
+
         $data = $request->validate([
             'amount' => ['required', 'integer', 'min:1'],
             'message' => ['nullable', 'string', 'max:500'],

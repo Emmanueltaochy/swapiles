@@ -41,7 +41,8 @@ class ListingForm
                     ->default('achat')
                     ->required(),
                 Select::make('status')
-                    ->options(['draft' => 'Draft', 'published' => 'Published', 'closed' => 'Closed', 'sold' => 'Sold'])
+                    ->options(['draft' => 'Draft',
+                        'vacances' => 'En pause (vacances)', 'published' => 'Published', 'closed' => 'Closed', 'sold' => 'Sold'])
                     ->default('draft')
                     ->required(),
                 TextInput::make('territoire')

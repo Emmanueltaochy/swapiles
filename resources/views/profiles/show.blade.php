@@ -95,12 +95,20 @@
                     @if($user->bio)
                         <p class="mt-1 max-w-xl whitespace-pre-line break-words text-sm text-gray-700">{{ $user->bio }}</p>
                     @endif
+                    @if(\App\Support\Vacances::enVacances($user))
+                        <p class="mt-2 inline-block rounded-xl bg-amber-50 px-3 py-1.5 text-sm text-amber-900 ring-1 ring-amber-200">
+                            🌴 <strong>En vacances</strong> · de retour le {{ \App\Support\Vacances::retour($user) }}
+                            @if($user->vacances_message)<span class="block text-xs italic">« {{ $user->vacances_message }} »</span>@endif
+                        </p>
+                    @endif
 
                     <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
                         <span>⭐ {{ number_format((float) $user->rating, 1, ',', ' ') }}</span>
                         <span>· {{ $reviewsCount }} avis</span>
                         <span>· {{ number_format($soldListingsCount, 0, ',', ' ') }} vendue{{ $soldListingsCount > 1 ? 's' : '' }}</span>
                     </div>
+
+                    <div class="mt-1.5">@include('partials.badge-reponse', ['vendeur' => $user])</div>
 
                     <p class="mt-1 text-sm font-semibold text-gray-900">
                         👥 <span data-abonnes-de="{{ $user->id }}">{{ number_format($followersCount, 0, ',', ' ') }} abonné{{ $followersCount > 1 ? 's' : '' }}</span>

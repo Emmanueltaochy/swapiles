@@ -32,6 +32,7 @@ class ListingsTable
     protected const STATUS_LABELS = [
         'published' => 'En ligne',
         'draft' => 'Masquée',
+                        'vacances' => 'En pause (vacances)',
         'sold' => 'Vendue',
     ];
 
@@ -66,6 +67,7 @@ class ListingsTable
                         'published' => 'success',
                         'sold' => 'warning',
                         'draft' => 'gray',
+                        'vacances' => 'info',
                         default => 'gray',
                     }),
                 TextColumn::make('territoire')

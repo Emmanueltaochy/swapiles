@@ -98,6 +98,13 @@
         </a>
     @endif
 
+    @if(\App\Support\Vacances::enVacances($user))
+        {{-- L'autre membre est en vacances : on le dit avant qu'on attende sa réponse. --}}
+        <p class="shrink-0 border-b border-amber-100 bg-amber-50 px-4 py-2 text-xs text-amber-900">
+            🌴 <strong>{{ $user->name }} est en vacances</strong> jusqu’au {{ \App\Support\Vacances::retour($user) }} : la réponse peut tarder.
+        </p>
+    @endif
+
     {{-- Messages : la seule zone qui défile --}}
     <div data-fil class="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-white px-3 py-4">
         @php $jourPrecedent = null; @endphp

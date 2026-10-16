@@ -69,3 +69,9 @@ Schedule::command('parrainage:entretien')->dailyAt('09:12')->withoutOverlapping(
 
 // Accueil « populaires » : on ne garde que 30 jours de vues par jour.
 Schedule::call(fn () => \App\Support\Tendances::nettoyer())->dailyAt('04:20')->name('tendances:nettoyer')->withoutOverlapping();
+
+// Mode vacances : le jour du retour, le dressing rouvre tout seul.
+Schedule::call(fn () => \App\Support\Vacances::terminerLesRetours())->hourlyAt(2)->name('vacances:retours')->withoutOverlapping();
+
+// Badge « Répond vite » : délai de réponse habituel recalculé chaque nuit.
+Schedule::call(fn () => \App\Support\TempsReponse::recalculerTout())->dailyAt('03:35')->name('vendeurs:temps-reponse')->withoutOverlapping();

@@ -216,6 +216,9 @@ Route::middleware('auth')->group(function () {
     Route::put('/mon-profil/modifier', [ProfileSettingsController::class, 'update'])->name('account.profile.update');
     Route::post('/mon-profil/photo', [ProfileSettingsController::class, 'photo'])->name('account.profile.photo');
     Route::patch('/mon-profil/bio', [ProfileSettingsController::class, 'bio'])->name('account.profile.bio');
+    Route::get('/mon-compte/vacances', [\App\Http\Controllers\Account\VacancesController::class, 'edit'])->name('account.vacances.edit');
+    Route::post('/mon-compte/vacances', [\App\Http\Controllers\Account\VacancesController::class, 'activer'])->name('account.vacances.activer');
+    Route::delete('/mon-compte/vacances', [\App\Http\Controllers\Account\VacancesController::class, 'terminer'])->name('account.vacances.terminer');
 
     Route::get('/deposer-une-annonce', [ListingManageController::class, 'create'])->name('account.listings.create');
     Route::post('/deposer-une-annonce', [ListingManageController::class, 'store'])->name('account.listings.store');

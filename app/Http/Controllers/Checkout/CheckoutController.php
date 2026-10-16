@@ -35,6 +35,12 @@ class CheckoutController extends Controller
                 ->with('status', "Cet article vient d'être vendu. 😔");
         }
 
+        // Vendeur en vacances : pas d'achat avant son retour.
+        if ($listing->status === \App\Support\Vacances::STATUT) {
+            return redirect()->route('listings.show', $listing)
+                ->with('status', 'Le vendeur est en vacances : l’article sera de nouveau disponible à son retour.');
+        }
+
         // Vente en direct : un autre spectateur est en train de payer cet article.
         if (\App\Support\LiveService::reservePourUnAutre($listing, Auth::user())) {
             return redirect()->route('listings.show', $listing)

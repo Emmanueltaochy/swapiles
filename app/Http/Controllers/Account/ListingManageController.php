@@ -159,7 +159,7 @@ class ListingManageController extends Controller
                 'listing_type' => $data['listing_type'],
                 'allows_offers' => $request->boolean('payment_negociable') || $data['listing_type'] === 'negoce-prix',
                 'allows_exchange' => $request->boolean('payment_exchange') || $data['listing_type'] === 'echange-produits',
-                'status' => 'published',
+                'status' => \App\Support\Vacances::enVacances($request->user()) ? \App\Support\Vacances::STATUT : 'published',
                 'territoire' => $data['territoire'],
                 'also_territoires' => $alsoTerritoires ?: null,
                 'category_level1' => $data['category_level1'],
@@ -199,6 +199,13 @@ class ListingManageController extends Controller
         // Point 19 — provisionne le compte Connect en arrière-plan si le vendeur
         // active la CB sans encore avoir de compte (KYC différé à la vente).
         $this->provisionConnectAccountIfNeeded($cbEnabled);
+
+        // En vacances, l'annonce attend le retour : on ne prévient personne d'un
+        // article encore invisible.
+        if ($listing->status === \App\Support\Vacances::STATUT) {
+            return redirect()->route('listings.show', $listing)
+                ->with('status', 'Annonce enregistrée. Votre dressing est en pause : elle sera en ligne à votre retour.');
+        }
 
         $this->notifyFollowersNewListing($listing);
 
@@ -513,6 +520,13 @@ class ListingManageController extends Controller
         $this->authorizeOwner($listing);
 
         $wasPublished = $listing->status === 'published';
+
+        // En vacances : l'annonce attend le retour (elle repartira avec les autres).
+        if (\App\Support\Vacances::enVacances(auth()->user())) {
+            $listing->update(['status' => \App\Support\Vacances::STATUT]);
+
+            return back()->with('status', 'Votre dressing est en pause : cette annonce sera en ligne à votre retour.');
+        }
 
         $listing->update(['status' => 'published']);
 

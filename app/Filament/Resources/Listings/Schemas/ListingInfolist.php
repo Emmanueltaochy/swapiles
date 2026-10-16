@@ -23,6 +23,7 @@ class ListingInfolist
     protected const STATUS_LABELS = [
         'published' => 'En ligne',
         'draft' => 'Masquée',
+                        'vacances' => 'En pause (vacances)',
         'sold' => 'Vendue',
     ];
 

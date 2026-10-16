@@ -41,6 +41,17 @@
             </div>
         @endif
 
+        @if(\App\Support\Vacances::enVacances($user))
+            <div class="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-sm text-amber-900"><strong>🌴 Mode vacances :</strong> vos annonces sont en pause jusqu’au {{ \App\Support\Vacances::retour($user) }}.</p>
+                <form method="POST" action="{{ route('account.vacances.terminer') }}">
+                    @csrf
+                    @method('DELETE')
+                    <button class="w-full whitespace-nowrap rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white hover:bg-teal-700 sm:w-auto">Je suis de retour</button>
+                </form>
+            </div>
+        @endif
+
         {{-- 1. En-tête : photo, prénom, bio (comme Instagram), puis les deux boutons. --}}
         <header class="space-y-4">
             <div class="flex items-start gap-4">
@@ -330,9 +341,11 @@
                                 <span class="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[11px] font-bold shadow-sm
                                     @if($listing->status === 'published') bg-teal-600 text-white
                                     @elseif($listing->status === 'sold') bg-gray-800 text-white
+                                    @elseif($listing->status === 'vacances') bg-sky-500 text-white
                                     @else bg-amber-400 text-amber-950 @endif">
                                     @if($listing->status === 'published') En ligne
                                     @elseif($listing->status === 'sold') Vendue
+                                    @elseif($listing->status === 'vacances') 🌴 En pause
                                     @else Brouillon @endif
                                 </span>
                             </a>

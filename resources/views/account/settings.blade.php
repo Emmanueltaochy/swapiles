@@ -68,6 +68,14 @@
                         : 'Tous les points relais de mon île sont proposés',
                 ] : null,
                 [
+                    'url' => route('account.vacances.edit'),
+                    'icone' => '🌴',
+                    'label' => 'Mode vacances',
+                    'aide' => \App\Support\Vacances::enVacances($user)
+                        ? 'Dressing en pause jusqu’au ' . \App\Support\Vacances::retour($user)
+                        : 'Mettre mon dressing en pause pendant mon absence',
+                ],
+                [
                     'url' => $stripePret ? route('account.wallet.index') : route('stripe.connect.activate'),
                     'icone' => '💳',
                     'label' => 'Recevoir mes paiements',

@@ -339,7 +339,16 @@
                                 ->where('buyer_id', auth()->id())->exists();
                         @endphp
                         <div class="mt-6 space-y-3">
-                            @if(!$isSold)
+                            @if($listing->status === \App\Support\Vacances::STATUT)
+                                {{-- Vendeur en vacances : article visible, mais pas d'achat ni d'offre. --}}
+                                <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                                    <p class="font-bold">🌴 {{ $listing->user->name ?? 'Le vendeur' }} est en vacances</p>
+                                    <p class="mt-0.5">De retour le {{ $listing->user ? \App\Support\Vacances::retour($listing->user) : 'bientôt' }}. Ajoutez l’article à vos favoris pour le retrouver à son retour.</p>
+                                    @if($listing->user?->vacances_message)
+                                        <p class="mt-2 italic">« {{ $listing->user->vacances_message }} »</p>
+                                    @endif
+                                </div>
+                            @elseif(!$isSold)
                                 @auth
                                     @if(auth()->id() !== $listing->user_id)
                                         @if($showInterest)
@@ -522,6 +531,7 @@
                                         <p class="font-semibold text-gray-900 truncate">{{ $vendeur->name }}</p>
                                         <p class="text-sm text-gray-500">⭐ {{ number_format((float) $vendeur->rating, 1, ',', ' ') }} · {{ $vendeur->transactions_count ?? 0 }} transactions</p>
                                         <p class="text-xs font-semibold text-gray-700"><span data-abonnes-de="{{ $vendeur->id }}">{{ number_format($abonnesVendeur, 0, ',', ' ') }} abonné{{ $abonnesVendeur > 1 ? 's' : '' }}</span></p>
+                                        <div class="mt-1">@include('partials.badge-reponse', ['vendeur' => $vendeur])</div>
                                     </div>
                                 </a>
                                 @include('partials.follow-button', ['seller' => $vendeur, 'classes' => 'shrink-0 px-3.5 py-2 text-sm'])

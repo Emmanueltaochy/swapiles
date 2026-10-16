@@ -155,4 +155,16 @@ class EspaceCompteRevueTest extends TestCase
         $this->get(route('account.dashboard'))->assertDontSee('➕', false)->assertSee('Voir mon profil');
         $this->assertStringNotContainsString('➕', file_get_contents(public_path('js/follow.js')));
     }
+
+    public function test_la_photo_de_profil_s_agrandit_au_toucher(): void
+    {
+        $tom = $this->membre('Tom');
+        $this->get(route('profiles.show', $tom))->assertOk()->assertDontSee('data-photo-agrandir', false);
+
+        $tom->forceFill(['avatar' => '/storage/avatars/tom.jpg'])->save();
+        $this->get(route('profiles.show', $tom))->assertOk()
+            ->assertSee('data-photo-agrandir', false)
+            ->assertSee('Agrandir la photo de Tom', false)
+            ->assertSee('data-photo-grande', false);
+    }
 }

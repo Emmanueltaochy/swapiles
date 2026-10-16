@@ -44,13 +44,51 @@
 
         <div class="mt-4 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
             <div class="flex gap-4 sm:gap-5">
-                <div class="grid h-20 w-20 sm:h-24 sm:w-24 shrink-0 place-items-center overflow-hidden rounded-2xl bg-teal-100 text-3xl font-bold text-teal-800">
-                    @if($user->avatar)
+                @if($user->avatar)
+                    {{-- Toucher la photo l'agrandit (comme Instagram). --}}
+                    <button type="button" data-photo-agrandir
+                            class="h-20 w-20 sm:h-24 sm:w-24 shrink-0 overflow-hidden rounded-2xl bg-teal-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-300"
+                            aria-label="Agrandir la photo de {{ $user->name }}">
                         <img src="{{ $user->avatar }}" alt="{{ $user->name }}" class="h-full w-full object-cover">
-                    @else
+                    </button>
+
+                    <div data-photo-grande hidden role="dialog" aria-modal="true" aria-label="Photo de {{ $user->name }}"
+                         class="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-black/95 p-6">
+                        <img src="{{ $user->avatar }}" alt="{{ $user->name }}"
+                             class="max-h-[75vh] w-full max-w-sm rounded-3xl object-contain shadow-2xl">
+                        <p class="mt-4 text-base font-bold text-white">{{ $user->name }}</p>
+                        <button type="button" data-photo-fermer
+                                class="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] grid h-11 w-11 place-items-center rounded-full bg-white/15 text-2xl text-white"
+                                aria-label="Fermer">×</button>
+                    </div>
+                    <script>
+                        (function () {
+                            // Une seule écoute pour tout le site (navigation Turbo).
+                            if (window.swpPhotoProfil) return;
+                            window.swpPhotoProfil = true;
+                            function fermer() {
+                                document.querySelectorAll('[data-photo-grande]').forEach(function (v) { v.hidden = true; });
+                                document.documentElement.style.overflow = '';
+                            }
+                            document.addEventListener('click', function (e) {
+                                if (e.target.closest('[data-photo-agrandir]')) {
+                                    var vue = document.querySelector('[data-photo-grande]');
+                                    if (vue) { vue.hidden = false; document.documentElement.style.overflow = 'hidden'; }
+                                    return;
+                                }
+                                var vue = e.target.closest('[data-photo-grande]');
+                                // On ferme en touchant le fond ou la croix, pas la photo.
+                                if (vue && (e.target === vue || e.target.closest('[data-photo-fermer]'))) fermer();
+                            });
+                            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fermer(); });
+                            document.addEventListener('turbo:before-render', fermer);
+                        })();
+                    </script>
+                @else
+                    <div class="grid h-20 w-20 sm:h-24 sm:w-24 shrink-0 place-items-center overflow-hidden rounded-2xl bg-teal-100 text-3xl font-bold text-teal-800">
                         {{ strtoupper(substr($user->name, 0, 1)) }}
-                    @endif
-                </div>
+                    </div>
+                @endif
 
                 <div class="min-w-0">
                     <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">{{ $user->name }}</h1>

@@ -52,6 +52,12 @@
             </div>
 
             <div>
+                <label for="bio" class="block text-sm font-bold text-gray-800 mb-2">Bio <span class="font-normal text-gray-400">(facultatif, {{ \App\Support\Bio::MAX }} caractères)</span></label>
+                <textarea id="bio" name="bio" rows="3" maxlength="{{ \App\Support\Bio::MAX }}" placeholder="Quelques mots sur vous et votre dressing"
+                          class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">{{ old('bio', $user->bio) }}</textarea>
+            </div>
+
+            <div>
                 <label class="block text-sm font-bold text-gray-800 mb-2">Téléphone</label>
                 <input type="text" name="phone" value="{{ old('phone', $user->phone) }}" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
             </div>

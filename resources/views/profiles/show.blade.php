@@ -54,6 +54,9 @@
 
                 <div class="min-w-0">
                     <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">{{ $user->name }}</h1>
+                    @if($user->bio)
+                        <p class="mt-1 max-w-xl whitespace-pre-line break-words text-sm text-gray-700">{{ $user->bio }}</p>
+                    @endif
 
                     <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
                         <span>⭐ {{ number_format((float) $user->rating, 1, ',', ' ') }}</span>

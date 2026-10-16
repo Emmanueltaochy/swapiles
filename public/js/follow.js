@@ -17,7 +17,7 @@
         bouton.dataset.suivi = suivi ? '1' : '0';
         bouton.setAttribute('aria-pressed', suivi ? 'true' : 'false');
         var libelle = bouton.querySelector('[data-suivre-libelle]');
-        if (libelle) libelle.textContent = suivi ? '✓ Abonné' : '➕ Suivre';
+        if (libelle) libelle.textContent = suivi ? '✓ Abonné' : 'Suivre';
     }
 
     function compter(vendeur, nombre) {

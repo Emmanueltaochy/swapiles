@@ -11,7 +11,7 @@
 --}}
 @php
     $moi = auth()->user();
-    $classesBouton = 'inline-flex items-center justify-center gap-1.5 rounded-xl font-semibold transition '
+    $classesBouton = 'group inline-flex items-center justify-center gap-1.5 rounded-xl font-semibold transition '
         . 'bg-teal-600 text-white hover:bg-teal-700 '
         . 'data-[suivi=1]:bg-white data-[suivi=1]:text-gray-700 data-[suivi=1]:ring-1 data-[suivi=1]:ring-gray-200 data-[suivi=1]:hover:bg-gray-50 '
         . ($classes ?? 'px-4 py-2 text-sm');
@@ -20,7 +20,7 @@
 @if(! $moi)
     {{-- Visiteur : un BOUTON (il peut se trouver dans un lien), qui mène à la connexion. --}}
     <button type="button" data-suivre-connexion="{{ route('login') }}" data-suivi="0" class="{{ $classesBouton }}">
-        <span aria-hidden="true">➕</span> Suivre
+        <svg class="h-4 w-4 group-data-[suivi=1]:hidden" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg> Suivre
     </button>
 @elseif($moi->id !== $seller->id && ! $moi->hasBlocked($seller))
     @php $suivi = $moi->suit($seller); @endphp
@@ -31,6 +31,7 @@
             data-suivi="{{ $suivi ? '1' : '0' }}"
             aria-pressed="{{ $suivi ? 'true' : 'false' }}"
             class="{{ $classesBouton }}">
-        <span data-suivre-libelle>{{ $suivi ? '✓ Abonné' : '➕ Suivre' }}</span>
+        <svg class="h-4 w-4 group-data-[suivi=1]:hidden" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg>
+        <span data-suivre-libelle>{{ $suivi ? '✓ Abonné' : 'Suivre' }}</span>
     </button>
 @endif

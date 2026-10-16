@@ -303,13 +303,13 @@
         <div class="mt-6 flex flex-wrap justify-center gap-3">
             @auth
                 <a href="{{ route('account.listings.create', ['territoire' => $selectedTerritoire]) }}"
-                   class="rounded-xl bg-teal-600 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-teal-700">
-                    ➕ Déposer la première annonce
+                   class="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-teal-700">
+                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg> Déposer la première annonce
                 </a>
             @else
                 <a href="{{ route('register') }}"
-                   class="rounded-xl bg-teal-600 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-teal-700">
-                    ➕ M'inscrire et publier
+                   class="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-teal-700">
+                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg> M'inscrire et publier
                 </a>
             @endauth
         </div>
@@ -774,8 +774,8 @@
 
             <div class="mt-8 flex flex-col sm:flex-row gap-4">
                 <a href="{{ route('account.listings.create') }}"
-                   class="inline-flex justify-center items-center rounded-2xl bg-white text-teal-700 px-8 py-4 font-bold shadow-lg hover:scale-[1.02] transition">
-                    ➕ Déposer une annonce
+                   class="inline-flex justify-center items-center gap-2 rounded-2xl bg-white text-teal-700 px-8 py-4 font-bold shadow-lg hover:scale-[1.02] transition">
+                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg> Déposer une annonce
                 </a>
 
                 <a href="{{ route('search') }}"

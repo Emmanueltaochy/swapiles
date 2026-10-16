@@ -41,42 +41,77 @@
             </div>
         @endif
 
-        {{-- 1. En-tête --}}
-        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            {{-- Photo de profil : on la touche, on choisit une photo, elle part aussitôt. --}}
-            <form method="POST" action="{{ route('account.profile.photo') }}" enctype="multipart/form-data" class="flex items-center gap-4 pb-1.5" data-photo-profil>
-                @csrf
-                <label for="photo-profil" class="relative shrink-0 cursor-pointer" title="{{ $user->avatar ? 'Modifier la photo de profil' : 'Mettre une photo de profil' }}">
-                    <span class="grid h-16 w-16 sm:h-20 sm:w-20 place-items-center overflow-hidden rounded-full bg-teal-100 text-2xl font-extrabold text-teal-800 ring-4 ring-white shadow">
-                        @if($user->avatar)
-                            <img src="{{ $user->avatar }}" alt="Ma photo de profil" class="h-full w-full object-cover">
-                        @else
-                            {{ mb_strtoupper(mb_substr($user->name ?? '?', 0, 1)) }}
-                        @endif
-                    </span>
-                    <span class="absolute -bottom-0.5 -right-0.5 grid h-7 w-7 place-items-center rounded-full bg-teal-600 text-sm text-white ring-2 ring-white" aria-hidden="true">📷</span>
-                </label>
-                <input id="photo-profil" type="file" name="avatar" accept="image/*" class="sr-only"
-                       onchange="if (this.files[0]) { this.form.querySelector('[data-photo-texte]').textContent = 'Envoi de la photo…'; this.form.submit(); }">
-                <div class="min-w-0">
+        {{-- 1. En-tête : photo, prénom, bio (comme Instagram), puis les deux boutons. --}}
+        <header class="space-y-4">
+            <div class="flex items-start gap-4">
+                {{-- Photo : on la touche, on choisit une photo, elle part aussitôt. --}}
+                <form method="POST" action="{{ route('account.profile.photo') }}" enctype="multipart/form-data" class="shrink-0 pb-1.5">
+                    @csrf
+                    <label for="photo-profil" class="relative block cursor-pointer" title="{{ $user->avatar ? 'Modifier la photo de profil' : 'Mettre une photo de profil' }}">
+                        <span class="grid h-16 w-16 sm:h-20 sm:w-20 place-items-center overflow-hidden rounded-full bg-teal-100 text-2xl font-extrabold text-teal-800 ring-4 ring-white shadow">
+                            @if($user->avatar)
+                                <img src="{{ $user->avatar }}" alt="Ma photo de profil" class="h-full w-full object-cover">
+                            @else
+                                {{ mb_strtoupper(mb_substr($user->name ?? '?', 0, 1)) }}
+                            @endif
+                        </span>
+                        <span class="absolute -bottom-0.5 -right-0.5 grid h-7 w-7 place-items-center rounded-full bg-teal-600 text-sm text-white ring-2 ring-white" aria-hidden="true">📷</span>
+                    </label>
+                    <input id="photo-profil" type="file" name="avatar" accept="image/*" class="sr-only"
+                           onchange="if (this.files[0]) { var t = document.querySelector('[data-photo-texte]'); if (t) t.textContent = 'Envoi de la photo…'; this.form.submit(); }">
+                </form>
+
+                <div class="min-w-0 flex-1">
                     <p class="text-xs font-semibold uppercase tracking-wide text-teal-600">Mon compte</p>
                     <h1 class="mt-0.5 truncate text-2xl sm:text-3xl font-bold text-gray-900">Bonjour {{ $user->name }}</h1>
-                    <label for="photo-profil" class="mt-0.5 inline-block cursor-pointer text-sm font-semibold text-teal-700 hover:text-teal-900" data-photo-texte>
-                        {{ $user->avatar ? 'Modifier la photo de profil' : '📷 Mettre une photo de profil' }}
-                    </label>
+
+                    @if($user->bio)
+                        <p class="mt-1 whitespace-pre-line break-words text-sm text-gray-700">{{ $user->bio }}</p>
+                    @endif
+
+                    <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-semibold">
+                        <label for="photo-profil" class="cursor-pointer text-teal-700 hover:text-teal-900" data-photo-texte>
+                            {{ $user->avatar ? '📷 Modifier la photo' : '📷 Mettre une photo de profil' }}
+                        </label>
+                        <button type="button" class="text-teal-700 hover:text-teal-900"
+                                onclick="var f = document.getElementById('bio-form'); f.hidden = !f.hidden; if (!f.hidden) f.querySelector('textarea').focus();">
+                            {{ $user->bio ? '✏️ Modifier la bio' : '✏️ Ajouter une bio' }}
+                        </button>
+                    </div>
+
                     @error('avatar')
                         <p class="mt-1 text-sm font-semibold text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
+            </div>
+
+            {{-- Bio : quelques mots qui s'affichent sous ton nom, sur ton profil. --}}
+            <form id="bio-form" method="POST" action="{{ route('account.profile.bio') }}" @if(! $errors->has('bio')) hidden @endif
+                  class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                @csrf
+                @method('PATCH')
+                <label for="bio" class="text-sm font-bold text-gray-900">Ma bio</label>
+                <p class="text-xs text-gray-500">Elle s’affiche sous ton nom sur ton profil. Ex : « Maman de 3, je vide les placards 🌴 Envoi rapide »</p>
+                <textarea id="bio" name="bio" rows="3" maxlength="{{ \App\Support\Bio::MAX }}"
+                          class="mt-2 w-full rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm focus:ring-2 focus:ring-teal-600"
+                          oninput="this.form.querySelector('[data-bio-compteur]').textContent = this.value.length + ' / {{ \App\Support\Bio::MAX }}'">{{ old('bio', $user->bio) }}</textarea>
+                @error('bio')
+                    <p class="mt-1 text-sm font-semibold text-red-600">{{ $message }}</p>
+                @enderror
+                <div class="mt-2 flex items-center justify-between gap-3">
+                    <span class="text-xs text-gray-400" data-bio-compteur>{{ mb_strlen((string) old('bio', $user->bio)) }} / {{ \App\Support\Bio::MAX }}</span>
+                    <button class="rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white hover:bg-teal-700">Enregistrer</button>
+                </div>
             </form>
-            <div class="flex items-center gap-2">
+
+            <div class="grid grid-cols-2 gap-2 sm:flex sm:justify-start">
                 <a href="{{ route('profiles.show', $user) }}"
-                   class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
-                    Voir mon profil
+                   class="inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-teal-600 bg-white px-4 py-2.5 text-sm font-bold text-teal-700 hover:bg-teal-50">
+                    👤 Voir mon profil
                 </a>
                 <a href="{{ route('account.listings.create') }}"
-                   class="rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
-                    ➕ Déposer une annonce
+                   class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-700 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
+                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg> Déposer une annonce
                 </a>
             </div>
         </header>

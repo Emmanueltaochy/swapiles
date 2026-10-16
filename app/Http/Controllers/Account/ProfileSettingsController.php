@@ -87,6 +87,21 @@ class ProfileSettingsController extends Controller
         return redirect()->route('account.dashboard')->with('status', 'Photo de profil mise à jour.');
     }
 
+    /** Bio modifiée depuis « Mon compte » (sans toucher au reste du profil). */
+    public function bio(Request $request)
+    {
+        $request->validate(['bio' => ['nullable', 'string', 'max:500']]);
+
+        $bio = \App\Support\Bio::nettoyer($request->input('bio'));
+        if ($erreur = \App\Support\Bio::erreur($bio)) {
+            return back()->withErrors(['bio' => $erreur])->withInput();
+        }
+
+        Auth::user()->forceFill(['bio' => $bio])->save();
+
+        return redirect()->route('account.dashboard')->with('status', $bio ? 'Bio enregistrée.' : 'Bio retirée.');
+    }
+
     public function update(Request $request)
     {
         $user = Auth::user();
@@ -101,6 +116,7 @@ class ProfileSettingsController extends Controller
             'city' => ['nullable', 'string', 'max:255'],
             'country_code' => ['nullable', 'string', 'size:2'],
             'avatar' => ['nullable', 'image', 'max:5120'],
+            'bio' => ['nullable', 'string', 'max:500'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'notification_prefs' => ['nullable', 'array'],
         ]);
@@ -113,6 +129,13 @@ class ProfileSettingsController extends Controller
             );
         } else {
             unset($data['notification_prefs']);
+        }
+
+        if ($request->has('bio')) {
+            $data['bio'] = \App\Support\Bio::nettoyer($data['bio'] ?? null);
+            if ($erreur = \App\Support\Bio::erreur($data['bio'])) {
+                return back()->withErrors(['bio' => $erreur])->withInput();
+            }
         }
 
         if ($request->hasFile('avatar')) {

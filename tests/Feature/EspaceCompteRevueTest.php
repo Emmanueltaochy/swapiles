@@ -113,4 +113,46 @@ class EspaceCompteRevueTest extends TestCase
         ])->assertSessionHasErrors('avatar');
         $this->assertSame($actuelle, $lea->fresh()->avatar);
     }
+
+    public function test_bio_sous_le_nom_avec_garde_fous(): void
+    {
+        $lea = $this->membre();
+
+        $this->actingAs($lea)->get(route('account.dashboard'))->assertOk()->assertSee('Ajouter une bio');
+
+        $this->patch(route('account.profile.bio'), ['bio' => "  Maman de 3 🌴  \n\n\nEnvoi rapide  "])
+            ->assertRedirect(route('account.dashboard'));
+        $this->assertSame("Maman de 3 🌴\nEnvoi rapide", $lea->fresh()->bio, 'Espaces et lignes vides nettoyés.');
+
+        $this->get(route('account.dashboard'))->assertSee('Maman de 3 🌴')->assertSee('Modifier la bio');
+        $this->get(route('profiles.show', $lea))->assertOk()->assertSee('Maman de 3 🌴');
+
+        foreach ([
+            'Appelle-moi au 0692 12 34 56',
+            'Écris-moi sur WhatsApp',
+            'Tout mon stock sur www.monsite.com',
+            'Contact : lea@gmail.com',
+            'Paiement par PayPal possible',
+            str_repeat('a', 151),
+        ] as $refusee) {
+            $this->patch(route('account.profile.bio'), ['bio' => $refusee])->assertSessionHasErrors('bio');
+            $this->assertSame("Maman de 3 🌴\nEnvoi rapide", $lea->fresh()->bio, "Refusée : {$refusee}");
+        }
+
+        // Bio vidée = retirée.
+        $this->patch(route('account.profile.bio'), ['bio' => '   ']);
+        $this->assertNull($lea->fresh()->bio);
+    }
+
+    public function test_boutons_plus_blancs(): void
+    {
+        $lea = $this->membre();
+        $tom = $this->membre('Tom');
+
+        $this->actingAs($lea)->get(route('profiles.show', $tom))->assertOk()
+            ->assertDontSee('➕', false)
+            ->assertSee('Suivre');
+        $this->get(route('account.dashboard'))->assertDontSee('➕', false)->assertSee('Voir mon profil');
+        $this->assertStringNotContainsString('➕', file_get_contents(public_path('js/follow.js')));
+    }
 }

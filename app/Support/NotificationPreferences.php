@@ -51,7 +51,7 @@ class NotificationPreferences
         ],
         'favoris' => [
             'label' => 'Mises en favori',
-            'description' => 'Quand quelqu’un ajoute une de vos annonces à ses favoris.',
+            'description' => 'Sur votre téléphone et par e-mail quand quelqu’un ajoute une de vos annonces à ses favoris. Les favoris apparaissent toujours dans vos notifications de l’appli.',
             'types' => ['favorite_added'],
             'defaut' => false,
         ],

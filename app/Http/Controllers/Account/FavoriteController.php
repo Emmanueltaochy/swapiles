@@ -68,12 +68,10 @@ class FavoriteController extends Controller
      */
     private function notifierFavori(Listing $listing, $user): void
     {
-        // Les mises en favori sont coupées par défaut : sans demande du
-        // vendeur, on ne crée même pas l'alerte (pas de badge rouge pour rien).
-        if ($listing->user && ! $listing->user->veutEtrePrevenu('favorite_added')) {
-            return;
-        }
-
+        // Toujours visible dans l'appli (cloche + pastille rouge) : sans cela,
+        // un vendeur qui ne lit pas ses e-mails ne savait jamais qu'on aimait
+        // ses articles. Le téléphone, lui, ne sonne que si le vendeur a
+        // activé « Mises en favori » (vérifié à la création de la notification).
         $aujourdHui = Notification::query()
             ->where('user_id', $listing->user_id)
             ->where('type', 'favorite_added')
@@ -113,6 +111,21 @@ class FavoriteController extends Controller
         ])->saveQuietly();
     }
 
+    /**
+     * L'e-mail de favori part comme avant, sauf si le vendeur l'a lui-même
+     * décoché dans ses réglages de notifications.
+     */
+    private function emailFavoriAccepte(?\App\Models\User $vendeur): bool
+    {
+        $prefs = $vendeur?->notification_prefs;
+
+        if (! is_array($prefs) || ! array_key_exists('favoris', $prefs)) {
+            return true;
+        }
+
+        return (bool) ($prefs['favoris']['email'] ?? false);
+    }
+
     public function toggle(Listing $listing)
     {
         $user = auth()->user();
@@ -128,7 +141,9 @@ class FavoriteController extends Controller
                 $this->notifierFavori($listing, $user);
 
                 try {
-                    $listing->user?->notify(new ListingFavoritedNotification($listing, $user));
+                    if ($this->emailFavoriAccepte($listing->user)) {
+                        $listing->user?->notify(new ListingFavoritedNotification($listing, $user));
+                    }
                 } catch (\Throwable $e) {
                     report($e);
                 }

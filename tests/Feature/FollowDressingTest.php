@@ -77,7 +77,7 @@ class FollowDressingTest extends TestCase
         Queue::assertNotPushed(SendPushBroadcast::class);
     }
 
-    public function test_un_favori_ne_previent_pas_le_vendeur_par_defaut(): void
+    public function test_un_favori_apparait_dans_l_appli_sans_faire_sonner_le_telephone(): void
     {
         Queue::fake();
         $annonce = $this->annonce($vendeur = $this->membre('Vendeur'));
@@ -87,8 +87,39 @@ class FollowDressingTest extends TestCase
             ->assertOk()
             ->assertJson(['favorited' => true]);
 
-        $this->assertDatabaseMissing('notifications', ['user_id' => $vendeur->id, 'type' => 'favorite_added']);
+        // Cloche + pastille rouge dans l'appli, mais pas de notification sur le téléphone.
+        $this->assertDatabaseHas('notifications', ['user_id' => $vendeur->id, 'type' => 'favorite_added', 'read_at' => null]);
         Queue::assertNotPushed(SendPushBroadcast::class);
+
+        $this->actingAs($vendeur)->get(route('account.notifications.index'))
+            ->assertOk()->assertSee('Nouveau favori');
+    }
+
+    public function test_favoris_du_jour_regroupes_et_email_coupe_si_le_vendeur_l_a_decoche(): void
+    {
+        Queue::fake();
+        \Illuminate\Support\Facades\Notification::fake();
+        $vendeur = $this->membre('Vendeur', ['favoris' => ['push' => false, 'email' => false]]);
+        $robe = $this->annonce($vendeur);
+        $jupe = $this->annonce($vendeur);
+
+        $this->actingAs($this->membre('Lea'))->postJson(route('account.favorites.toggle', $robe))->assertOk();
+        $this->actingAs($this->membre('Tom'))->postJson(route('account.favorites.toggle', $jupe))->assertOk();
+
+        $notif = \App\Models\Notification::where('user_id', $vendeur->id)->where('type', 'favorite_added')->sole();
+        $this->assertSame('2 personnes ont ajouté vos annonces à leurs favoris aujourd’hui.', $notif->message);
+        \Illuminate\Support\Facades\Notification::assertNothingSentTo($vendeur);
+    }
+
+    public function test_email_de_favori_garde_par_defaut(): void
+    {
+        Queue::fake();
+        \Illuminate\Support\Facades\Notification::fake();
+        $annonce = $this->annonce($vendeur = $this->membre('Vendeur'));
+
+        $this->actingAs($this->membre('Lea'))->postJson(route('account.favorites.toggle', $annonce))->assertOk();
+
+        \Illuminate\Support\Facades\Notification::assertSentTo($vendeur, \App\Notifications\ListingFavoritedNotification::class);
     }
 
     public function test_le_vendeur_qui_active_les_vues_est_prevenu(): void

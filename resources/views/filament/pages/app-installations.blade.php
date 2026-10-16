@@ -13,7 +13,7 @@
     @php
         $n = fn ($v) => number_format((int) $v, 0, ',', ' ');
         $cartes = [
-            'ios' => ['🍎 iPhone / iPad', '#0f172a'],
+            'ios' => ['🍎 iPhone / iPad', '#3b82f6'],
             'android' => ['🤖 Android', '#0d9488'],
             'toutes' => ['📱 Total', '#7c3aed'],
         ];

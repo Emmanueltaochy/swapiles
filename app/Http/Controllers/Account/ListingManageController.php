@@ -159,7 +159,12 @@ class ListingManageController extends Controller
                 'listing_type' => $data['listing_type'],
                 'allows_offers' => $request->boolean('payment_negociable') || $data['listing_type'] === 'negoce-prix',
                 'allows_exchange' => $request->boolean('payment_exchange') || $data['listing_type'] === 'echange-produits',
-                'status' => \App\Support\Vacances::enVacances($request->user()) ? \App\Support\Vacances::STATUT : 'published',
+                'status' => match (true) {
+                    // Exclusivité live (testeurs du live) : cachée jusqu'au direct.
+                    $request->boolean('exclusivite_live') && \App\Support\ExclusiviteLive::disponible($request->user()) => \App\Support\ExclusiviteLive::STATUT,
+                    \App\Support\Vacances::enVacances($request->user()) => \App\Support\Vacances::STATUT,
+                    default => 'published',
+                },
                 'territoire' => $data['territoire'],
                 'also_territoires' => $alsoTerritoires ?: null,
                 'category_level1' => $data['category_level1'],
@@ -199,6 +204,17 @@ class ListingManageController extends Controller
         // Point 19 — provisionne le compte Connect en arrière-plan si le vendeur
         // active la CB sans encore avoir de compte (KYC différé à la vente).
         $this->provisionConnectAccountIfNeeded($cbEnabled);
+
+        // Exclusivité live : personne n'est prévenu, elle se découvre en direct.
+        if ($listing->status === \App\Support\ExclusiviteLive::STATUT) {
+            if ($request->boolean('pour_live')) {
+                return redirect()->route('live.create', ['ajoute' => $listing->id])
+                    ->with('status', '🎬 Exclusivité ajoutée : elle reste cachée jusqu’à ce que vous la dévoiliez en live.');
+            }
+
+            return redirect()->route('listings.show', $listing)
+                ->with('status', '🎬 Exclusivité live enregistrée : elle reste cachée jusqu’à ce que vous la dévoiliez en direct.');
+        }
 
         // En vacances, l'annonce attend le retour : on ne prévient personne d'un
         // article encore invisible.

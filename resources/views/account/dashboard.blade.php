@@ -348,10 +348,12 @@
                                     @if($listing->status === 'published') bg-teal-600 text-white
                                     @elseif($listing->status === 'sold') bg-gray-800 text-white
                                     @elseif($listing->status === 'vacances') bg-sky-500 text-white
+                                    @elseif($listing->status === 'live') bg-fuchsia-600 text-white
                                     @else bg-amber-400 text-amber-950 @endif">
                                     @if($listing->status === 'published') En ligne
                                     @elseif($listing->status === 'sold') Vendue
                                     @elseif($listing->status === 'vacances') 🌴 En pause
+                                    @elseif($listing->status === 'live') 🎬 Exclusivité live
                                     @else Brouillon @endif
                                 </span>
                             </a>

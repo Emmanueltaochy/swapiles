@@ -367,6 +367,21 @@
                 </div>
             </div>
 
+            @if(! isset($listing) && \App\Support\ExclusiviteLive::disponible(auth()->user()))
+                {{-- Exclusivité live (phase de test : testeurs du live seulement). --}}
+                <label for="exclusivite_live" class="flex cursor-pointer items-start gap-3 rounded-2xl border-2 border-fuchsia-200 bg-fuchsia-50 p-4">
+                    <input type="checkbox" id="exclusivite_live" name="exclusivite_live" value="1" class="mt-1 rounded text-fuchsia-600 focus:ring-fuchsia-500"
+                           @checked(old('exclusivite_live', request('exclusivite_live')))>
+                    <span>
+                        <span class="block font-bold text-fuchsia-900">🎬 Exclusivité live : cachée jusqu’à mon live</span>
+                        <span class="mt-0.5 block text-sm text-fuchsia-800">Personne ne la voit (recherche, profil, accueil) tant que vous ne l’avez pas dévoilée en direct. Pas dévoilée ? Elle passe en ligne à la fin du live.</span>
+                    </span>
+                </label>
+                @if(request('pour_live') || old('pour_live'))
+                    <input type="hidden" name="pour_live" value="1">
+                @endif
+            @endif
+
             <button id="btn-publier" class="w-full rounded-xl bg-teal-600 px-6 py-4 font-semibold text-white shadow-sm transition hover:bg-teal-700 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70">
                 Publier mon annonce
             </button>

@@ -161,6 +161,13 @@
             </div>
         @endif
 
+        @if($listing->status === \App\Support\ExclusiviteLive::STATUT)
+            <div class="mb-6 flex flex-col gap-3 rounded-2xl border border-fuchsia-200 bg-fuchsia-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-sm text-fuchsia-900"><strong>🎬 Exclusivité live :</strong> vous seul voyez cet article. Il apparaîtra quand vous le dévoilerez en direct.</p>
+                <a href="{{ route('live.create', ['ajoute' => $listing->id]) }}" class="whitespace-nowrap rounded-xl bg-fuchsia-600 px-4 py-2 text-center text-sm font-bold text-white hover:bg-fuchsia-700">Préparer un live</a>
+            </div>
+        @endif
+
         @if(session('report_sent'))
             <div class="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-medium text-emerald-800">
                 ✅ Merci, votre signalement a bien été transmis à notre équipe.

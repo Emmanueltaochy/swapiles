@@ -17,7 +17,12 @@ class ListingController extends Controller
     {
         // On autorise la consultation des annonces en ligne ET vendues
         // (sinon un clic sur une notification d'un article vendu → 404).
-        abort_unless(in_array($listing->status, ['published', 'sold', \App\Support\Vacances::STATUT], true), 404);
+        abort_unless(
+            in_array($listing->status, ['published', 'sold', \App\Support\Vacances::STATUT], true)
+                // Exclusivité live : visible du seul vendeur jusqu'au dévoilement.
+                || ($listing->status === \App\Support\ExclusiviteLive::STATUT && (int) $request->user()?->id === (int) $listing->user_id),
+            404
+        );
 
         // On ne compte pas les vues des robots/crawlers (chiffres gonflés).
         $isBot = \App\Support\BotDetector::isBot($request->userAgent());

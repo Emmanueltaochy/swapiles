@@ -31,8 +31,11 @@ class LiveController extends Controller
     public function create(Request $request)
     {
         return view('live.create', [
-            'articles' => Listing::where('user_id', $request->user()->id)->where('status', 'published')
+            'articles' => Listing::where('user_id', $request->user()->id)
+                ->whereIn('status', ['published', \App\Support\ExclusiviteLive::STATUT])
                 ->with('images')->latest()->get(),
+            // Exclusivité tout juste déposée depuis cet écran : déjà cochée.
+            'ajoute' => (int) $request->query('ajoute'),
         ]);
     }
 
@@ -43,7 +46,7 @@ class LiveController extends Controller
             'description' => ['nullable', 'string', 'max:1000'],
             'debut_prevu_at' => ['nullable', 'date'],
             'articles' => ['required', 'array', 'min:1', 'max:50'],
-            'articles.*' => ['integer', Rule::exists('listings', 'id')->where('user_id', $request->user()->id)->where('status', 'published')],
+            'articles.*' => ['integer', Rule::exists('listings', 'id')->where('user_id', $request->user()->id)->whereIn('status', ['published', \App\Support\ExclusiviteLive::STATUT])],
         ], [
             'articles.required' => 'Choisissez au moins un article à présenter.',
         ]);
@@ -134,8 +137,10 @@ class LiveController extends Controller
         $live->update(['statut' => 'termine', 'termine_at' => now(), 'article_epingle_id' => null]);
         LiveService::message($live, null, 'Le live est terminé. Merci à tous ! 🌴', 'systeme');
         \App\Support\LiveEnregistrement::arreter($live);
+        $misesEnLigne = \App\Support\ExclusiviteLive::publierRestantes($live);
 
-        return redirect()->route('live.show', $live)->with('status', 'Live terminé. Merci !');
+        return redirect()->route('live.show', $live)->with('status', 'Live terminé. Merci !'
+            . ($misesEnLigne > 0 ? ' Vos ' . $misesEnLigne . ' exclusivité(s) non dévoilée(s) sont maintenant en ligne.' : ''));
     }
 
     /** Le vendeur montre ou cache un article dans la liste des spectateurs. */
@@ -147,6 +152,11 @@ class LiveController extends Controller
 
         $visible = $request->boolean('visible');
         $live->articles()->updateExistingPivot($listing->id, ['visible' => $visible]);
+
+        // Exclusivité dévoilée : elle passe en ligne et s'achète tout de suite.
+        if ($visible) {
+            \App\Support\ExclusiviteLive::devoiler($listing);
+        }
 
         if ($visible && ! $article->pivot->visible && $live->enDirect()) {
             LiveService::message($live, null, '🛍️ Nouvel article : ' . $listing->title . ' — ' . \App\Support\TableauDeBord::euros((float) $listing->price), 'nouveau', $listing->id);
@@ -221,6 +231,7 @@ class LiveController extends Controller
         // Mis en avant = forcément visible dans la liste.
         $live->articles()->updateExistingPivot($data['listing_id'], ['visible' => true]);
         $article = Listing::find($data['listing_id']);
+        \App\Support\ExclusiviteLive::devoiler($article);
         LiveService::message($live, null, '📌 ' . $article->title . ' — ' . \App\Support\TableauDeBord::euros((float) $article->price), 'epingle', $article->id);
 
         return response()->noContent();

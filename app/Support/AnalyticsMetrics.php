@@ -10,451 +10,390 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Calculs des métriques produit / SaaS à partir du flux d'événements
- * (analytics_events) et des tables métier (users, listings, transactions).
+ * Chiffres de la page « Analyse avancée ».
  *
- * Regroupe la logique utilisée par le tableau de bord et la page « Analyse
- * avancée » afin d'avoir des chiffres cohérents partout.
+ * Mêmes sources et mêmes règles que le tableau de bord et le calendrier :
+ *  - visiteurs = humains confirmés par leur navigateur (visiteurs_jours),
+ *    jamais le trafic brut du serveur, gonflé par les robots ;
+ *  - argent = TableauDeBord::entre (ventes payées en ligne, revenus nets) ;
+ *  - pages vues = celles des seuls visiteurs humains confirmés.
  */
 class AnalyticsMetrics
 {
-    /** Options de période partagées dans tout l'admin. */
+    /** Mêmes périodes que le tableau de bord. */
     public static function periods(): array
     {
+        return TableauDeBord::PERIODES;
+    }
+
+    private static function aDesVisiteurs(): bool
+    {
+        return Schema::hasTable('visiteurs_jours');
+    }
+
+    /** Heure (0-23) d'une colonne date, quel que soit le moteur SQL. */
+    private static function heureSql(string $colonne): string
+    {
+        return DB::connection()->getDriverName() === 'sqlite'
+            ? "CAST(strftime('%H', {$colonne}) AS INTEGER)"
+            : "HOUR({$colonne})";
+    }
+
+    // --- Aujourd'hui ---------------------------------------------------------
+
+    /**
+     * La journée en cours : visiteurs humains, connectés, heure par heure.
+     *
+     * @return array<string,mixed>
+     */
+    public static function aujourdhui(): array
+    {
+        $parHeure = array_fill(0, 24, 0);
+        $visiteurs = $membres = $appli = 0;
+        $hierMemeHeure = null;
+
+        if (self::aDesVisiteurs()) {
+            $jour = DB::table('visiteurs_jours')->where('jour', today()->toDateString());
+            $visiteurs = (clone $jour)->count();
+            $membres = (clone $jour)->whereNotNull('user_id')->count();
+            $appli = (clone $jour)->where('appli', true)->count();
+
+            $lignes = (clone $jour)->whereNotNull('arrivee_at')
+                ->selectRaw(self::heureSql('arrivee_at') . ' as h, COUNT(*) as n')
+                ->groupBy('h')->pluck('n', 'h');
+            foreach ($lignes as $h => $n) {
+                $parHeure[(int) $h] = (int) $n;
+            }
+
+            // Hier à la même heure : une comparaison juste en cours de journée.
+            $hier = DB::table('visiteurs_jours')->where('jour', today()->subDay()->toDateString());
+            if ((clone $hier)->whereNotNull('arrivee_at')->exists()) {
+                $hierMemeHeure = (clone $hier)->where('arrivee_at', '<=', now()->subDay())->count();
+            }
+        }
+
         return [
-            'today' => 'Aujourd’hui',
-            'week' => 'Cette semaine',
-            '15d' => '15 derniers jours',
-            '30d' => '30 derniers jours',
-            '3m' => '3 mois',
-            'all' => 'Depuis le début',
+            'en_ligne' => VisiteursEnDirect::compte()['humains'],
+            'visiteurs' => $visiteurs,
+            'membres' => $membres,
+            'appli' => $appli,
+            'hier_meme_heure' => $hierMemeHeure,
+            'par_heure' => $parHeure,
+            'connectes' => self::connectesDuJour(),
         ];
     }
 
-    public static function startDate(string $period): ?Carbon
-    {
-        return match ($period) {
-            'today' => Carbon::today(),
-            'week' => Carbon::now()->startOfWeek(),
-            '15d' => Carbon::now()->subDays(15),
-            '30d' => Carbon::now()->subDays(30),
-            '3m' => Carbon::now()->subMonths(3),
-            default => null,
-        };
-    }
-
-    /** Nombre de jours affichés dans les courbes d'évolution pour une période. */
-    public static function chartDays(string $period): int
-    {
-        return match ($period) {
-            'today' => 14,
-            'week' => 14,
-            '15d' => 15,
-            '30d' => 30,
-            '3m' => 90,
-            default => 30,
-        };
-    }
-
-    private static function eventsTableExists(): bool
-    {
-        return Schema::hasTable('analytics_events');
-    }
-
     /**
-     * Série journalière remplie (jours sans données = 0) pour un modèle donné.
+     * Courbe des connectés (humains) relevés chaque minute aujourd'hui.
      *
-     * @return array{labels: array<int,string>, data: array<int,int>}
+     * @return array{labels:array<int,string>,data:array<int,int>,pic:array{nombre:int,heure:?string}}
      */
-    public static function dailySeries(string $modelClass, int $days, ?callable $constrain = null): array
+    public static function connectesDuJour(): array
     {
-        $start = Carbon::today()->subDays($days - 1);
-
-        $query = $modelClass::query()->where('created_at', '>=', $start);
-        if ($constrain) {
-            $query = $constrain($query);
-        }
-
-        $rows = $query
-            ->selectRaw('DATE(created_at) as d, COUNT(*) as c')
-            ->groupBy('d')
-            ->pluck('c', 'd');
-
-        $labels = [];
-        $data = [];
-        for ($i = 0; $i < $days; $i++) {
-            $date = (clone $start)->addDays($i);
-            $key = $date->toDateString();
-            $labels[] = $date->format('d/m');
-            $data[] = (int) ($rows[$key] ?? 0);
-        }
-
-        return ['labels' => $labels, 'data' => $data];
-    }
-
-    /**
-     * Série journalière entre deux dates (bornes incluses), trous remplis à 0.
-     *
-     * @return array{labels: array<int,string>, data: array<int,int>}
-     */
-    public static function dailySeriesBetween(string $modelClass, Carbon $start, Carbon $end, ?callable $constrain = null): array
-    {
-        $start = $start->copy()->startOfDay();
-        $end = $end->copy()->startOfDay();
-
-        // Sécurité : on borne à 366 jours pour éviter un graphique démesuré.
-        if ($start->diffInDays($end) > 366) {
-            $start = $end->copy()->subDays(366);
-        }
-
-        $query = $modelClass::query()
-            ->where('created_at', '>=', $start)
-            ->where('created_at', '<', $end->copy()->addDay());
-        if ($constrain) {
-            $query = $constrain($query);
-        }
-
-        $rows = $query
-            ->selectRaw('DATE(created_at) as d, COUNT(*) as c')
-            ->groupBy('d')
-            ->pluck('c', 'd');
-
-        $labels = [];
-        $data = [];
-        $cursor = $start->copy();
-        while ($cursor <= $end) {
-            $key = $cursor->toDateString();
-            $labels[] = $cursor->format('d/m');
-            $data[] = (int) ($rows[$key] ?? 0);
-            $cursor->addDay();
-        }
-
-        return ['labels' => $labels, 'data' => $data];
-    }
-
-    /**
-     * Visiteurs uniques (sessions) par heure aujourd'hui.
-     *
-     * @return array<int,int> index 0-23
-     */
-    public static function todayHourlyVisitors(): array
-    {
-        $hours = array_fill(0, 24, 0);
-
-        if (! self::eventsTableExists()) {
-            return $hours;
-        }
-
-        try {
-            $rows = DB::table('analytics_events')
-                ->whereDate('created_at', Carbon::today())
-                ->selectRaw('HOUR(created_at) as h, COUNT(DISTINCT COALESCE(visitor_id, session_id)) as c')
-                ->groupBy('h')
-                ->pluck('c', 'h');
-
-            foreach ($rows as $h => $c) {
-                $hours[(int) $h] = (int) $c;
-            }
-        } catch (\Throwable $e) {
-            report($e);
-        }
-
-        return $hours;
-    }
-
-    /** Visiteurs uniques (sessions distinctes) aujourd'hui — sans double comptage. */
-    public static function todayUniqueVisitors(): int
-    {
-        if (! self::eventsTableExists()) {
-            return 0;
-        }
-
-        try {
-            // Visiteur unique = identifiant STABLE (visitor_id), avec repli sur
-            // session_id pour les événements historiques sans visitor_id.
-            return (int) DB::table('analytics_events')
-                ->whereDate('created_at', Carbon::today())
-                ->selectRaw('COUNT(DISTINCT COALESCE(visitor_id, session_id)) as agg')
-                ->value('agg');
-        } catch (\Throwable $e) {
-            report($e);
-
-            return 0;
-        }
-    }
-
-    /**
-     * Courbe des connectés simultanés aujourd'hui + pic du jour.
-     *
-     * @return array{labels:array<int,string>,data:array<int,int>,peak:array{count:int,time:?string}}
-     */
-    public static function todayConcurrent(): array
-    {
-        $labels = [];
-        $data = [];
-        $peak = ['count' => 0, 'time' => null];
+        $labels = $data = [];
+        $pic = ['nombre' => 0, 'heure' => null];
 
         if (! Schema::hasTable('visitor_snapshots')) {
-            return ['labels' => $labels, 'data' => $data, 'peak' => $peak];
+            return ['labels' => $labels, 'data' => $data, 'pic' => $pic];
         }
 
-        $rows = DB::table('visitor_snapshots')
-            ->whereDate('created_at', Carbon::today())
+        $releves = DB::table('visitor_snapshots')
+            ->where('created_at', '>=', today())
             ->orderBy('created_at')
             ->get(['live_count', 'created_at']);
 
-        foreach ($rows as $r) {
-            $t = Carbon::parse($r->created_at);
-            $labels[] = $t->format('H:i');
-            $data[] = (int) $r->live_count;
+        // Un point toutes les 10 minutes suffit à lire la journée.
+        foreach ($releves->groupBy(fn ($r) => Carbon::parse($r->created_at)->format('H') . ':' . intdiv((int) Carbon::parse($r->created_at)->format('i'), 10)) as $groupe) {
+            $max = (int) $groupe->max('live_count');
+            $heure = Carbon::parse($groupe->first()->created_at)->format('H:i');
+            $labels[] = $heure;
+            $data[] = $max;
+        }
 
-            if ((int) $r->live_count > $peak['count']) {
-                $peak = ['count' => (int) $r->live_count, 'time' => $t->format('H:i')];
+        foreach ($releves as $r) {
+            if ((int) $r->live_count > $pic['nombre']) {
+                $pic = ['nombre' => (int) $r->live_count, 'heure' => Carbon::parse($r->created_at)->format('H:i')];
             }
         }
 
-        return ['labels' => $labels, 'data' => $data, 'peak' => $peak];
+        return ['labels' => $labels, 'data' => $data, 'pic' => $pic];
     }
 
+    // --- Sur la période ------------------------------------------------------
+
     /**
-     * Bloc complet de métriques pour la page d'analyse avancée.
+     * Toutes les métriques d'une période (ou d'une plage de dates).
      *
-     * @param  Carbon|null  $from  Date de début personnalisée (prioritaire sur $period).
-     * @param  Carbon|null  $to    Date de fin personnalisée (incluse).
+     * @return array<string,mixed>
      */
-    public static function advanced(string $period, ?Carbon $from = null, ?Carbon $to = null): array
+    public static function advanced(?string $period, ?Carbon $from = null, ?Carbon $to = null): array
     {
-        // Une plage personnalisée (date à date) est prioritaire sur la période.
         $custom = $from !== null || $to !== null;
-        $start = $custom ? ($from?->copy()->startOfDay()) : self::startDate($period);
-        $end = $to?->copy()->endOfDay();
-
-        $hasEvents = self::eventsTableExists();
-
-        // --- Helper de filtrage par période (bornes début ET fin) ---
-        $inPeriod = function ($q) use ($start, $end) {
-            if ($start) {
-                $q->where('created_at', '>=', $start);
-            }
-            if ($end) {
-                $q->where('created_at', '<=', $end);
-            }
-
-            return $q;
-        };
-
-        // ============ ACQUISITION ============
-        $newUsers = $inPeriod(User::query())->count();
-        $newListings = $inPeriod(Listing::query())->count();
-
-        // ============ ÉVÉNEMENTS / ENGAGEMENT ============
-        $pageViews = 0;
-        $sessions = 0;
-        $uniqueVisitors = 0;
-        $bounceRate = 0.0;
-        $pagesPerSession = 0.0;
-        $dau = $wau = $mau = 0;
-        $returningVisitors = 0;
-        $hourly = array_fill(0, 24, 0);
-        $devices = collect();
-        $topPages = collect();
-        $sources = [];
-
-        if ($hasEvents) {
-          try {
-            $base = DB::table('analytics_events');
-            if ($start) {
-                $base->where('created_at', '>=', $start);
-            }
-            if ($end) {
-                $base->where('created_at', '<=', $end);
-            }
-
-            $pageViews = (clone $base)->count();
-
-            // Sessions = session_id distincts (une session ≈ une visite).
-            $sessions = (clone $base)->whereNotNull('session_id')->distinct()->count('session_id');
-            // Visiteurs uniques = identifiant STABLE (visitor_id), repli session_id.
-            // Beaucoup plus bas que le nb de sessions -> fini le surcompte ×4-5.
-            $uniqueVisitors = (int) (clone $base)
-                ->selectRaw('COUNT(DISTINCT COALESCE(visitor_id, session_id)) as agg')
-                ->value('agg');
-
-            $pagesPerSession = $sessions > 0 ? round($pageViews / $sessions, 1) : 0.0;
-
-            // Rebond : sessions à 1 seul événement
-            $singleEventSessions = (clone $base)
-                ->whereNotNull('session_id')
-                ->select('session_id')
-                ->groupBy('session_id')
-                ->havingRaw('COUNT(*) = 1')
-                ->get()
-                ->count();
-            $bounceRate = $sessions > 0 ? round($singleEventSessions / $sessions * 100, 1) : 0.0;
-
-            // Visiteurs récurrents : sessions actives sur ≥ 2 jours distincts
-            $returningVisitors = DB::table('analytics_events')
-                ->whereNotNull('session_id')
-                ->when($start, fn ($q) => $q->where('created_at', '>=', $start))
-                ->when($end, fn ($q) => $q->where('created_at', '<=', $end))
-                ->select('session_id')
-                ->groupBy('session_id')
-                ->havingRaw('COUNT(DISTINCT DATE(created_at)) >= 2')
-                ->get()
-                ->count();
-
-            // Actifs glissants (indépendants de la période) — visiteurs stables.
-            $visitorCount = fn (Carbon $since) => (int) DB::table('analytics_events')
-                ->where('created_at', '>=', $since)
-                ->selectRaw('COUNT(DISTINCT COALESCE(visitor_id, session_id)) as agg')
-                ->value('agg');
-            $dau = $visitorCount(Carbon::now()->subDay());
-            $wau = $visitorCount(Carbon::now()->subDays(7));
-            $mau = $visitorCount(Carbon::now()->subDays(30));
-
-            // Activité par heure
-            $hourRows = (clone $base)
-                ->selectRaw('HOUR(created_at) as h, COUNT(*) as c')
-                ->groupBy('h')
-                ->pluck('c', 'h');
-            foreach ($hourRows as $h => $c) {
-                $hourly[(int) $h] = (int) $c;
-            }
-
-            // Répartition appareils
-            $devices = (clone $base)
-                ->selectRaw('COALESCE(device, "inconnu") as device, COUNT(*) as c')
-                ->groupBy('device')
-                ->orderByDesc('c')
-                ->get();
-
-            // Pages les plus vues
-            $topPages = (clone $base)
-                ->selectRaw('COALESCE(page_name, path) as label, path, COUNT(*) as c')
-                ->groupBy('label', 'path')
-                ->orderByDesc('c')
-                ->limit(10)
-                ->get();
-
-            // Sources de trafic (referer -> domaine)
-            $host = parse_url(config('app.url'), PHP_URL_HOST) ?: 'swapiles.com';
-            $direct = (clone $base)->where(function ($q) {
-                $q->whereNull('referer')->orWhere('referer', '');
-            })->count();
-
-            $refRows = (clone $base)
-                ->whereNotNull('referer')->where('referer', '!=', '')
-                ->selectRaw('referer, COUNT(*) as c')
-                ->groupBy('referer')
-                ->orderByDesc('c')
-                ->limit(300)
-                ->get();
-
-            $agg = [];
-            foreach ($refRows as $r) {
-                $rh = parse_url($r->referer, PHP_URL_HOST) ?: 'autre';
-                $rh = preg_replace('/^www\./', '', strtolower($rh));
-                if ($rh === $host || $rh === preg_replace('/^www\./', '', $host)) {
-                    $direct += (int) $r->c; // navigation interne comptée comme direct
-                    continue;
-                }
-                $agg[$rh] = ($agg[$rh] ?? 0) + (int) $r->c;
-            }
-            arsort($agg);
-            $sources = ['Direct' => $direct] + array_slice($agg, 0, 8, true);
-            $sources = array_filter($sources, fn ($v) => $v > 0);
-            arsort($sources);
-          } catch (\Throwable $e) {
-              // En cas d'incompatibilité SQL ou d'erreur, on n'empêche jamais
-              // l'affichage de la page : les métriques d'audience restent à 0.
-              report($e);
-          }
+        if (! $custom && ! array_key_exists((string) $period, TableauDeBord::PERIODES)) {
+            $period = '30j';
         }
+        $debut = $custom ? $from?->copy()->startOfDay() : TableauDeBord::debut($period);
+        $fin = $to?->copy()->endOfDay();
+        $finExclue = $fin?->copy()->addSecond();
 
-        // ============ CONVERSION (funnel marketplace) ============
-        $publishers = $inPeriod(Listing::query())->distinct()->count('user_id');
-        $sellers = $inPeriod(Transaction::whereIn('status', ['paid', 'completed']))->distinct()->count('seller_id');
+        $dansPeriode = fn ($q, string $colonne = 'created_at') => $q
+            ->when($debut, fn ($q) => $q->where($colonne, '>=', $debut))
+            ->when($fin, fn ($q) => $q->where($colonne, '<=', $fin));
 
-        // ============ REVENU / MARKETPLACE ============
-        // Même calcul que le tableau de bord (TableauDeBord::entre) : ventes
-        // payées dans l'appli seulement, revenus = protection + commission +
-        // part Swap'Îles des frais relais − crédit de parrainage utilisé.
-        $paid = $inPeriod(Transaction::whereIn('status', ['paid', 'completed'])->enLigne());
-        $chiffres = \App\Support\TableauDeBord::entre($start, $end?->copy()->addSecond());
-        $credit = (float) (clone $paid)->sum('credit_utilise');
+        // --- Argent : exactement le calcul du tableau de bord ---
+        $chiffres = TableauDeBord::entre($debut, $finExclue);
+        $enLigne = $dansPeriode(Transaction::query()->whereIn('status', TableauDeBord::STATUTS_VENDUS)->enLigne());
+        // Volume = ce que les acheteurs ont payé : carte + crédit parrainage.
+        $credit = (float) (clone $enLigne)->sum('credit_utilise');
         $gmv = (float) $chiffres['volume'] + $credit;
-        $commission = (float) (clone $paid)->sum('commission');
-        $protection = (float) (clone $paid)->sum('buyer_protection_fee');
-        $netRevenue = (float) $chiffres['revenus'];
-        $paidCount = (int) $chiffres['ventes'];
-        $aov = $paidCount > 0 ? $gmv / $paidCount : 0.0;
-        $takeRate = $gmv > 0 ? $netRevenue / $gmv * 100 : 0.0;
+        $ventes = (int) $chiffres['ventes'];
+        $revenus = (float) $chiffres['revenus'];
 
-        $activeSellers = $sellers;
-        $activeBuyers = $inPeriod(Transaction::whereIn('status', ['paid', 'completed']))->distinct()->count('buyer_id');
+        $vendues = $dansPeriode(Transaction::query()->whereIn('status', TableauDeBord::STATUTS_VENDUS));
+        $acheteurs = (clone $enLigne)->distinct()->count('buyer_id');
+        $vendeurs = (clone $vendues)->distinct()->count('seller_id');
 
-        $listingsPublishedNow = Listing::where('status', 'published')->count();
-        $listingsSold = Listing::where('status', 'sold')->count();
-        $sellThrough = ($listingsPublishedNow + $listingsSold) > 0
-            ? round($listingsSold / ($listingsPublishedNow + $listingsSold) * 100, 1)
-            : 0.0;
+        // --- Visiteurs humains ---
+        $visiteurs = self::visiteurs($debut, $fin);
 
-        $arpu = $newUsers > 0 ? $netRevenue / max($activeBuyers, 1) : 0.0;
+        // --- Pages vues des seuls humains ---
+        $pages = self::pagesHumaines($visiteurs['debut_fiable'], $fin);
+
+        // --- Entonnoir par cohorte : les inscrits de la période, et ce qu'ILS ont fait ---
+        $inscrits = $dansPeriode(User::query());
+        $nbInscrits = (clone $inscrits)->count();
+        $ontPublie = (clone $inscrits)->whereHas('listings')->count();
+        $ontVendu = (clone $inscrits)->whereIn('id', Transaction::query()->whereIn('status', TableauDeBord::STATUTS_VENDUS)->select('seller_id'))->count();
+        $ontAchete = (clone $inscrits)->whereIn('id', Transaction::query()->whereIn('status', TableauDeBord::STATUTS_VENDUS)->enLigne()->select('buyer_id'))->count();
+
+        // --- Écoulement : annonces créées sur la période et déjà vendues ---
+        $annoncesPeriode = $dansPeriode(Listing::query());
+        $nbAnnonces = (clone $annoncesPeriode)->count();
+        $annoncesVendues = (clone $annoncesPeriode)->where(function ($q) {
+            $q->where('status', 'sold')
+                ->orWhereIn('id', Transaction::query()->whereIn('status', TableauDeBord::STATUTS_VENDUS)->select('listing_id'));
+        })->count();
 
         return [
             'period' => $custom ? 'custom' : $period,
             'periodLabel' => $custom
-                ? 'Du ' . ($start ? $start->format('d/m/Y') : '…') . ' au ' . ($end ? $end->format('d/m/Y') : "aujourd'hui")
-                : (self::periods()[$period] ?? 'Depuis le début'),
-            'from' => $start?->toDateString(),
+                ? 'Du ' . ($debut ? $debut->format('d/m/Y') : '…') . ' au ' . ($fin ? $fin->format('d/m/Y') : 'aujourd’hui')
+                : (TableauDeBord::PERIODES[$period] ?? '30 derniers jours'),
+            'from' => $debut?->toDateString(),
             'to' => $to?->toDateString(),
             'isCustom' => $custom,
 
-            // Acquisition
-            'newUsers' => $newUsers,
-            'newListings' => $newListings,
-            'sources' => $sources,
-
-            // Engagement
-            'pageViews' => $pageViews,
-            'sessions' => $sessions,
-            'uniqueVisitors' => $uniqueVisitors,
-            'pagesPerSession' => $pagesPerSession,
-            'bounceRate' => $bounceRate,
-            'dau' => $dau,
-            'wau' => $wau,
-            'mau' => $mau,
-            'stickiness' => $mau > 0 ? round($dau / $mau * 100, 1) : 0.0,
-            'returningVisitors' => $returningVisitors,
-            'returningRate' => $sessions > 0 ? round($returningVisitors / $sessions * 100, 1) : 0.0,
-            'hourly' => $hourly,
-            'devices' => $devices,
-            'topPages' => $topPages,
-
-            // Conversion funnel
-            'funnel' => [
-                'visitors' => $uniqueVisitors,
-                'signups' => $newUsers,
-                'publishers' => $publishers,
-                'sellers' => $sellers,
-            ],
-
-            // Revenu / marketplace
+            // Argent (identique au tableau de bord)
             'gmv' => $gmv,
-            'netRevenue' => $netRevenue,
-            'commission' => $commission,
-            'protection' => $protection,
-            'paidCount' => $paidCount,
-            'aov' => $aov,
-            'takeRate' => $takeRate,
-            'arpu' => $arpu,
-            'activeSellers' => $activeSellers,
-            'activeBuyers' => $activeBuyers,
-            'listingsPublishedNow' => $listingsPublishedNow,
-            'listingsSold' => $listingsSold,
-            'sellThrough' => $sellThrough,
+            'credit' => $credit,
+            'paidCount' => $ventes,
+            'aov' => $ventes > 0 ? $gmv / $ventes : 0.0,
+            'netRevenue' => $revenus,
+            'takeRate' => $gmv > 0 ? $revenus / $gmv * 100 : 0.0,
+            'ventesDeclarees' => (int) $chiffres['ventes_declarees'],
+            'volumeDeclare' => (float) $chiffres['volume_declare'],
+            'activeBuyers' => $acheteurs,
+            'activeSellers' => $vendeurs,
+            'arpu' => $acheteurs > 0 ? $revenus / $acheteurs : 0.0,
 
-            'hasEvents' => $hasEvents,
+            // Activité
+            'newUsers' => (int) $chiffres['inscriptions'],
+            'newListings' => (int) $chiffres['annonces'],
+            'messages' => (int) $chiffres['messages'],
+            'annoncesVendues' => $annoncesVendues,
+            'sellThrough' => $nbAnnonces > 0 ? round($annoncesVendues / $nbAnnonces * 100, 1) : 0.0,
+
+            // Visiteurs
+            'visiteurs' => $visiteurs,
+            'pages' => $pages,
+
+            'funnel' => [
+                'visiteurs' => $visiteurs['uniques'],
+                'inscrits' => $nbInscrits,
+                'publie' => $ontPublie,
+                'vendu' => $ontVendu,
+                'achete' => $ontAchete,
+            ],
         ];
+    }
+
+    /**
+     * Visiteurs humains de la période. Avant le comptage fiable, il n'y a
+     * rien : la période est raccourcie et la page le signale.
+     *
+     * @return array<string,mixed>
+     */
+    public static function visiteurs(?Carbon $debut, ?Carbon $fin): array
+    {
+        $fiable = Carbon::parse(TableauDeBord::DEBUT_VISITEURS_FIABLES)->startOfDay();
+        $debutFiable = $debut && $debut->gt($fiable) ? $debut->copy() : $fiable->copy();
+        $finJour = ($fin && $fin->lt(now()) ? $fin->copy() : now())->startOfDay();
+        $nbJours = $debutFiable->gt($finJour) ? 0 : (int) $debutFiable->copy()->startOfDay()->diffInDays($finJour) + 1;
+
+        $vide = [
+            'uniques' => 0, 'visites' => 0, 'par_jour' => 0.0, 'jours' => $nbJours,
+            'tronque' => $debut === null || $debut->lt($fiable), 'debut_fiable' => $debutFiable,
+            'membres' => 0, 'appli' => 0, 'fideles' => 0, 'fideles_pct' => 0.0,
+            'sources' => [], 'iles' => [], 'par_heure' => array_fill(0, 24, 0),
+            'serie' => ['labels' => [], 'data' => []],
+            'actifs_jour' => 0, 'actifs_semaine' => 0, 'actifs_mois' => 0, 'stickiness' => 0.0,
+        ];
+
+        if (! self::aDesVisiteurs() || $nbJours === 0) {
+            return $vide;
+        }
+
+        $base = DB::table('visiteurs_jours')
+            ->where('jour', '>=', $debutFiable->toDateString())
+            ->where('jour', '<=', $finJour->toDateString());
+
+        $uniques = (int) (clone $base)->distinct()->count('cle');
+        $visites = (int) (clone $base)->count();
+        $fideles = (int) DB::query()->fromSub(
+            (clone $base)->select('cle')->groupBy('cle')->havingRaw('COUNT(*) >= 2'), 'f'
+        )->count();
+
+        $sources = (clone $base)->selectRaw('source, COUNT(*) as n')->groupBy('source')->pluck('n', 'source');
+        $libellesSources = [];
+        foreach ($sources as $cle => $n) {
+            $libellesSources[VisiteursEnDirect::SOURCES[$cle] ?? ucfirst((string) $cle)] = (int) $n;
+        }
+        arsort($libellesSources);
+
+        $iles = (clone $base)->selectRaw("COALESCE(NULLIF(territoire, ''), 'Non précisée') as ile, COUNT(*) as n")
+            ->groupBy('ile')->orderByDesc('n')->pluck('n', 'ile')->map(fn ($n) => (int) $n)->all();
+
+        $parHeure = array_fill(0, 24, 0);
+        foreach ((clone $base)->whereNotNull('arrivee_at')->selectRaw(self::heureSql('arrivee_at') . ' as h, COUNT(*) as n')->groupBy('h')->pluck('n', 'h') as $h => $n) {
+            $parHeure[(int) $h] = (int) $n;
+        }
+
+        // Courbe jour par jour (≤ 120 jours affichés).
+        $parJour = (clone $base)->selectRaw('jour, COUNT(*) as n')->groupBy('jour')->pluck('n', 'jour');
+        $labels = $data = [];
+        $curseur = $nbJours > 120 ? $finJour->copy()->subDays(119) : $debutFiable->copy()->startOfDay();
+        while ($curseur->lte($finJour)) {
+            $cle = $curseur->toDateString();
+            $labels[] = $curseur->format('d/m');
+            $data[] = (int) ($parJour[$cle] ?? $parJour[$cle . ' 00:00:00'] ?? 0);
+            $curseur->addDay();
+        }
+
+        // Actifs glissants (indépendants de la période choisie).
+        $depuis = fn (int $jours) => max(today()->subDays($jours - 1)->toDateString(), $fiable->toDateString());
+        $actifs = fn (int $jours) => (int) DB::table('visiteurs_jours')
+            ->where('jour', '>=', $depuis($jours))->where('jour', '<=', today()->toDateString())
+            ->distinct()->count('cle');
+        $actifsMois = $actifs(30);
+        $visites30 = (int) DB::table('visiteurs_jours')->where('jour', '>=', $depuis(30))->where('jour', '<=', today()->toDateString())->count();
+        $jours30 = max(1, min(30, (int) $fiable->diffInDays(today()) + 1));
+
+        return [
+            'uniques' => $uniques,
+            'visites' => $visites,
+            'par_jour' => round($visites / max(1, $nbJours), 1),
+            'jours' => $nbJours,
+            'tronque' => $vide['tronque'],
+            'debut_fiable' => $debutFiable,
+            'membres' => (int) (clone $base)->whereNotNull('user_id')->distinct()->count('user_id'),
+            'appli' => (int) (clone $base)->where('appli', true)->distinct()->count('cle'),
+            'fideles' => $fideles,
+            'fideles_pct' => $uniques > 0 ? round($fideles / $uniques * 100, 1) : 0.0,
+            'sources' => $libellesSources,
+            'iles' => $iles,
+            'par_heure' => $parHeure,
+            'serie' => ['labels' => $labels, 'data' => $data],
+            'actifs_jour' => $actifs(1),
+            'actifs_semaine' => $actifs(7),
+            'actifs_mois' => $actifsMois,
+            // Part des visiteurs du mois qui viennent un jour donné, en moyenne.
+            'stickiness' => $actifsMois > 0 ? round($visites30 / $jours30 / $actifsMois * 100, 1) : 0.0,
+        ];
+    }
+
+    /**
+     * Pages vues par les visiteurs humains confirmés : le cookie visiteur du
+     * suivi des pages est relié à la présence confirmée par le navigateur.
+     *
+     * @return array{vues:int,par_visite:float,top:array<string,int>}
+     */
+    public static function pagesHumaines(Carbon $debut, ?Carbon $fin): array
+    {
+        $resultat = ['vues' => 0, 'par_visite' => 0.0, 'top' => []];
+
+        if (! self::aDesVisiteurs() || ! Schema::hasTable('analytics_events')) {
+            return $resultat;
+        }
+
+        $evenements = DB::table('analytics_events')
+            ->where('created_at', '>=', $debut->copy()->startOfDay())
+            ->when($fin, fn ($q) => $q->where('created_at', '<=', $fin))
+            ->whereNotNull('visitor_id');
+
+        $humains = DB::table('visiteurs_jours')
+            ->where('jour', '>=', $debut->toDateString())
+            ->when($fin, fn ($q) => $q->where('jour', '<=', $fin->toDateString()))
+            ->distinct()->pluck('cle')->flip();
+
+        $cle = fn (string $vid) => hash('sha256', 'presence|' . $vid . config('app.key'));
+        $ids = (clone $evenements)->distinct()->pluck('visitor_id')
+            ->filter(fn ($vid) => isset($humains[$cle((string) $vid)]))
+            ->values();
+
+        $vues = 0;
+        $top = [];
+        $visites = 0;
+        foreach ($ids->chunk(800) as $paquet) {
+            $q = (clone $evenements)->whereIn('visitor_id', $paquet->all());
+            $vues += (clone $q)->count();
+            $visites += (int) DB::query()->fromSub((clone $q)->selectRaw('visitor_id, DATE(created_at) as j')->groupBy('visitor_id', 'j'), 'v')->count();
+            foreach ((clone $q)->selectRaw('COALESCE(page_name, path) as page, COUNT(*) as n')->groupBy('page')->pluck('n', 'page') as $page => $n) {
+                $top[$page] = ($top[$page] ?? 0) + (int) $n;
+            }
+        }
+        arsort($top);
+
+        return [
+            'vues' => $vues,
+            'par_visite' => $visites > 0 ? round($vues / $visites, 1) : 0.0,
+            'top' => array_slice($top, 0, 10, true),
+        ];
+    }
+
+    /**
+     * Inscriptions, annonces et ventes payées en ligne, jour par jour.
+     *
+     * @return array{labels:array<int,string>,inscriptions:array<int,int>,annonces:array<int,int>,ventes:array<int,int>}
+     */
+    public static function activiteParJour(Carbon $debut, Carbon $fin): array
+    {
+        $debut = $debut->copy()->startOfDay();
+        $fin = $fin->copy()->startOfDay();
+        if ($debut->diffInDays($fin) > 119) {
+            $debut = $fin->copy()->subDays(119);
+        }
+
+        $compter = fn ($requete) => $requete
+            ->where('created_at', '>=', $debut)
+            ->where('created_at', '<', $fin->copy()->addDay())
+            ->selectRaw('DATE(created_at) as d, COUNT(*) as n')
+            ->groupBy('d')->pluck('n', 'd');
+
+        $series = [
+            'inscriptions' => $compter(User::query()->toBase()),
+            'annonces' => $compter(Listing::query()->toBase()),
+            'ventes' => $compter(TableauDeBord::ventes()()->toBase()),
+        ];
+
+        $sortie = ['labels' => [], 'inscriptions' => [], 'annonces' => [], 'ventes' => []];
+        for ($d = $debut->copy(); $d->lte($fin); $d->addDay()) {
+            $cle = $d->toDateString();
+            $sortie['labels'][] = $d->format('d/m');
+            foreach ($series as $nom => $valeurs) {
+                $sortie[$nom][] = (int) ($valeurs[$cle] ?? 0);
+            }
+        }
+
+        return $sortie;
     }
 }

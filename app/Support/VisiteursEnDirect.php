@@ -106,6 +106,7 @@ class VisiteursEnDirect
                 'appli' => $presence->appli,
                 'source' => $presence->source,
                 'territoire' => $presence->territoire,
+                'arrivee_at' => now(),
             ]);
         }
 

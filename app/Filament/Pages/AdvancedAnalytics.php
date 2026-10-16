@@ -2,8 +2,11 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\User;
 use App\Support\AnalyticsMetrics;
+use App\Support\TableauDeBord;
 use Filament\Pages\Page;
+use Illuminate\Support\Carbon;
 
 class AdvancedAnalytics extends Page
 {
@@ -16,57 +19,39 @@ class AdvancedAnalytics extends Page
 
     protected string $view = 'filament.pages.advanced-analytics';
 
+    public function getSubheading(): ?string
+    {
+        return 'Visiteurs humains uniquement (robots exclus) · mêmes chiffres que le tableau de bord.';
+    }
+
     public function getViewData(): array
     {
-        $period = request()->query('period', '30d');
-        if (! array_key_exists($period, AnalyticsMetrics::periods())) {
-            $period = '30d';
+        $period = (string) request()->query('period', '30j');
+        if (! array_key_exists($period, TableauDeBord::PERIODES)) {
+            $period = '30j';
         }
 
         // Plage personnalisée (date à date), prioritaire sur la période.
         $from = $this->parseDate(request()->query('from'));
         $to = $this->parseDate(request()->query('to'));
-        // Si une seule borne est fournie, on complète l'autre intelligemment.
         if ($from && ! $to) {
-            $to = \Illuminate\Support\Carbon::today();
+            $to = Carbon::today();
         }
-        $custom = $from !== null || $to !== null;
 
         $metrics = AnalyticsMetrics::advanced($period, $from, $to);
 
-        // Fenêtre des courbes : la plage choisie, sinon le nombre de jours de la période.
-        if ($custom) {
-            $chartStart = $from ?: \Illuminate\Support\Carbon::today()->subDays(30);
-            $chartEnd = $to ?: \Illuminate\Support\Carbon::today();
-            $signups = AnalyticsMetrics::dailySeriesBetween(\App\Models\User::class, $chartStart, $chartEnd);
-            $listings = AnalyticsMetrics::dailySeriesBetween(\App\Models\Listing::class, $chartStart, $chartEnd);
-            $sales = AnalyticsMetrics::dailySeriesBetween(\App\Models\Transaction::class, $chartStart, $chartEnd, fn ($q) => $q->whereIn('status', ['paid', 'completed']));
-            $events = $metrics['hasEvents'] ? AnalyticsMetrics::dailySeriesBetween(\App\Models\AnalyticsEvent::class, $chartStart, $chartEnd) : null;
-            $chartDays = count($signups['labels']);
-        } else {
-            $chartDays = AnalyticsMetrics::chartDays($period);
-            $signups = AnalyticsMetrics::dailySeries(\App\Models\User::class, $chartDays);
-            $listings = AnalyticsMetrics::dailySeries(\App\Models\Listing::class, $chartDays);
-            $sales = AnalyticsMetrics::dailySeries(\App\Models\Transaction::class, $chartDays, fn ($q) => $q->whereIn('status', ['paid', 'completed']));
-            $events = $metrics['hasEvents'] ? AnalyticsMetrics::dailySeries(\App\Models\AnalyticsEvent::class, $chartDays) : null;
-        }
+        $debutCourbe = $metrics['from']
+            ? Carbon::parse($metrics['from'])
+            : (User::query()->min('created_at') ? Carbon::parse(User::query()->min('created_at')) : today()->subDays(29));
 
-        return array_merge($metrics, [
+        return $metrics + [
             'periods' => AnalyticsMetrics::periods(),
-            'series' => [
-                'signups' => $signups,
-                'listings' => $listings,
-                'sales' => $sales,
-                'events' => $events,
-            ],
-            'chartDays' => $chartDays,
-            'todayHourly' => AnalyticsMetrics::todayHourlyVisitors(),
-            'todayConcurrent' => AnalyticsMetrics::todayConcurrent(),
-            'todayUnique' => AnalyticsMetrics::todayUniqueVisitors(),
-        ]);
+            'aujourdhui' => AnalyticsMetrics::aujourdhui(),
+            'activite' => AnalyticsMetrics::activiteParJour($debutCourbe, $to ?: today()),
+        ];
     }
 
-    private function parseDate(?string $value): ?\Illuminate\Support\Carbon
+    private function parseDate(?string $value): ?Carbon
     {
         $value = trim((string) $value);
         if ($value === '') {
@@ -74,7 +59,7 @@ class AdvancedAnalytics extends Page
         }
 
         try {
-            return \Illuminate\Support\Carbon::createFromFormat('Y-m-d', $value) ?: null;
+            return Carbon::createFromFormat('Y-m-d', $value) ?: null;
         } catch (\Throwable $e) {
             return null;
         }

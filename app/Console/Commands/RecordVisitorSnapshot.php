@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Models\LiveVisit;
 use App\Models\VisitorSnapshot;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Schema;
@@ -15,19 +14,15 @@ class RecordVisitorSnapshot extends Command
 
     public function handle(): int
     {
-        if (! Schema::hasTable('visitor_snapshots') || ! Schema::hasTable('live_visits')) {
+        if (! Schema::hasTable('visitor_snapshots') || ! Schema::hasTable('presences')) {
             return self::SUCCESS;
         }
 
-        $live = LiveVisit::query()
-            ->where('last_seen_at', '>=', now()->subMinutes(5))
-            ->count();
-
-        $members = LiveVisit::query()
-            ->where('last_seen_at', '>=', now()->subMinutes(5))
-            ->whereNotNull('user_id')
-            ->distinct()
-            ->count('user_id');
+        // Humains confirmés par leur navigateur, comme « Visiteurs en direct » :
+        // le trafic brut du serveur comptait aussi les robots.
+        $enLigne = \App\Support\VisiteursEnDirect::compte();
+        $live = $enLigne['humains'];
+        $members = $enLigne['membres'];
 
         VisitorSnapshot::create([
             'live_count' => $live,

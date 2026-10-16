@@ -15,9 +15,8 @@ class Charts
      * @param  array<int,string>  $labels   Étiquettes de l'axe X.
      * @param  array<int,array{name:string,color:string,data:array<int,float|int>}>  $series
      */
-    public static function line(array $labels, array $series, int $height = 220): string
-    {
-        $width = 900; // viewBox largeur logique (le SVG est responsive à 100%)
+    public static function line(array $labels, array $series, int $height = 220, int $width = 900): string
+    { // viewBox largeur logique (le SVG est responsive à 100%)
         $padL = 44; $padR = 16; $padT = 16; $padB = 28;
         $plotW = $width - $padL - $padR;
         $plotH = $height - $padT - $padB;
@@ -108,9 +107,8 @@ class Charts
      * @param  array<int,string>  $labels
      * @param  array<int,float|int>  $data
      */
-    public static function bars(array $labels, array $data, string $color = '#0d9488', int $height = 180): string
+    public static function bars(array $labels, array $data, string $color = '#0d9488', int $height = 180, int $width = 900): string
     {
-        $width = 900;
         $padL = 36; $padR = 12; $padT = 12; $padB = 26;
         $plotW = $width - $padL - $padR;
         $plotH = $height - $padT - $padB;
@@ -168,6 +166,11 @@ class Charts
         }
         if ($v >= 1000) {
             return rtrim(rtrim(number_format($v / 1000, 1, '.', ''), '0'), '.') . 'k';
+        }
+
+        // Graduations non entières (ex. 2,5 sur une échelle de 0 à 10).
+        if (abs($v - round($v)) > 0.01) {
+            return str_replace('.', ',', rtrim(rtrim(number_format($v, 1, '.', ''), '0'), '.'));
         }
 
         return (string) (int) round($v);

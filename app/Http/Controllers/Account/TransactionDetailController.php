@@ -17,6 +17,12 @@ class TransactionDetailController extends Controller
 
         $transaction->load(['listing.images', 'buyer', 'seller', 'relayPoint']);
 
+        // Lot : on affiche toujours la commande entière depuis sa vente principale.
+        if ($transaction->lot_id && ! $transaction->estPrincipale()) {
+            return redirect()->route('account.transactions.show', $transaction->transactionsDuLot()->first());
+        }
+        $lotVentes = $transaction->lot_id ? $transaction->transactionsDuLot()->load('listing.images') : null;
+
         // Avis mutuels : l'autre partie, mon avis éventuel, et l'avis reçu.
         $me = Auth::id();
         $otherParty = $transaction->seller_id === $me ? $transaction->buyer : $transaction->seller;
@@ -28,7 +34,7 @@ class TransactionDetailController extends Controller
             && $transaction->acheteur_conteste_at === null;
 
         return view('account.transactions.show', compact(
-            'transaction', 'otherParty', 'myReview', 'reviewAboutMe', 'canReview'
+            'transaction', 'otherParty', 'myReview', 'reviewAboutMe', 'canReview', 'lotVentes'
         ));
     }
 

@@ -29,25 +29,47 @@ class TransactionPayment
      */
     public static function confirmerAupresDeStripe(Transaction $transaction): bool
     {
+        $transaction->refresh();
         if ($transaction->status !== 'pending' || blank($transaction->stripe_payment_intent_id)) {
             return false;
         }
 
-        $attendu = (int) round((float) $transaction->amount * 100);
+        // Un lot : un seul paiement pour toutes ses ventes.
+        $ventes = $transaction->transactionsDuLot();
+        $attendu = (int) round($ventes->sum(fn ($t) => (float) $t->amount) * 100);
         $stripe = app(\App\Services\StripePaymentIntentService::class);
 
         if (! $stripe->paiementReussi($transaction->stripe_payment_intent_id, $attendu)) {
             return false;
         }
 
-        return self::markPaidOnce($transaction);
+        return self::marquerPaye($ventes);
+    }
+
+    /**
+     * Passe à « payé » une vente seule ou toutes les ventes d'un lot. Les
+     * notifications et e-mails ne partent qu'une fois, pour la vente
+     * principale (« Vous avez vendu un lot de 3 articles »).
+     *
+     * @param  \Illuminate\Support\Collection<int, Transaction>  $ventes
+     */
+    public static function marquerPaye(\Illuminate\Support\Collection $ventes): bool
+    {
+        $principale = $ventes->sortBy('id')->first();
+        $fait = false;
+
+        foreach ($ventes->sortBy('id') as $vente) {
+            $fait = self::markPaidOnce($vente, $vente->id === $principale->id) || $fait;
+        }
+
+        return $fait;
     }
 
     /**
      * @return bool  true seulement si CET appel a fait passer la transaction à
      *               « paid » (et a donc créé les notifications + e-mails).
      */
-    public static function markPaidOnce(Transaction $transaction): bool
+    public static function markPaidOnce(Transaction $transaction, bool $notifier = true): bool
     {
         // Verrou par mise à jour conditionnelle : une seule requête peut faire
         // passer la ligne de pending à paid ; les suivantes affectent 0 ligne.
@@ -68,10 +90,20 @@ class TransactionPayment
             $fresh->listing->update(['status' => 'sold']);
         }
 
-        self::createOnSiteNotifications($fresh);
+        // L'article vendu quitte tous les lots en préparation.
+        \App\Models\PanierArticle::where('listing_id', $fresh->listing_id)->delete();
 
         // Parrainage (mise à jour directe en base : pas d'événement du modèle).
         \App\Support\ParrainageService::surStatut($fresh);
+
+        // Article d'un lot (hors principal) : la notification du lot suffit.
+        if (! $notifier) {
+            $fresh->forceFill(['seller_paid_email_sent_at' => now()])->saveQuietly();
+
+            return true;
+        }
+
+        self::createOnSiteNotifications($fresh);
 
         // E-mails fiables (Mail::raw) à l'acheteur ET au vendeur — même
         // mécanisme que les autres étapes (« expédié », « reçu »…), qui, lui,
@@ -88,6 +120,10 @@ class TransactionPayment
     /** Montant net revenant au vendeur (prix affiché, commission 0 %). */
     private static function sellerNet(Transaction $t): float
     {
+        if ($t->lot_id) {
+            return (float) $t->transactionsDuLot()->sum(fn ($v) => (float) $v->seller_amount);
+        }
+
         if ((float) $t->seller_amount > 0) {
             return (float) $t->seller_amount;
         }
@@ -112,7 +148,7 @@ class TransactionPayment
                     'user_id' => $t->seller_id,
                     'type' => 'transaction_paid_seller',
                     'title' => 'Vente confirmée 🎉 — ajoute ton IBAN',
-                    'message' => 'Ta vente « ' . ($t->listing->title ?? 'Annonce') . ' » est payée. ' . $net
+                    'message' => 'Ta vente « ' . $t->libelleArticle() . ' » est payée. ' . $net
                         . ' € t’attendent : ajoute ton IBAN (2 min, sans pièce d’identité) pour les recevoir.',
                     'url' => route('account.wallet.index', absolute: false),
                 ]);
@@ -121,7 +157,9 @@ class TransactionPayment
                     'user_id' => $t->seller_id,
                     'type' => 'transaction_paid_seller',
                     'title' => 'Nouvelle vente 🎉',
-                    'message' => 'Votre article "' . ($t->listing->title ?? 'Annonce') . '" a été acheté.',
+                    'message' => $t->lot_id
+                        ? 'Votre ' . $t->libelleArticle() . ' a été acheté.'
+                        : 'Votre article "' . ($t->listing->title ?? 'Annonce') . '" a été acheté.',
                     'url' => route('account.transactions.show', $t, absolute: false),
                 ]);
             }
@@ -132,7 +170,7 @@ class TransactionPayment
                 'user_id' => $t->buyer_id,
                 'type' => 'transaction_paid_buyer',
                 'title' => 'Achat confirmé ✅',
-                'message' => 'Votre paiement a été validé pour "' . ($t->listing->title ?? 'Annonce') . '".',
+                'message' => 'Votre paiement a été validé pour "' . ($t->lot_id ? $t->libelleArticle() : ($t->listing->title ?? 'Annonce')) . '".',
                 'url' => route('account.transactions.show', $t, absolute: false),
             ]);
         }

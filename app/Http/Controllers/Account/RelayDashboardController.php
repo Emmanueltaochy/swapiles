@@ -51,15 +51,18 @@ class RelayDashboardController extends Controller
         $this->authorizeManager($transaction);
         abort_unless($transaction->relay_status === 'awaiting_deposit', 403);
 
-        $transaction->update([
-            'relay_status' => 'deposited',
-            'relay_deposited_at' => now(),
-            'shipping_status' => 'shipped',
-            'shipped_at' => $transaction->shipped_at ?: now(),
-        ]);
+        $ventes = $transaction->transactionsDuLot();
+        foreach ($ventes as $vente) {
+            $vente->update([
+                'relay_status' => 'deposited',
+                'relay_deposited_at' => now(),
+                'shipping_status' => 'shipped',
+                'shipped_at' => $vente->shipped_at ?: now(),
+            ]);
+        }
 
         try {
-            \App\Jobs\SendTransactionStatusEmails::dispatch($transaction->id, 'relay_deposited', 'commercant');
+            \App\Jobs\SendTransactionStatusEmails::dispatch($ventes->first()->id, 'relay_deposited', 'commercant');
         } catch (\Throwable $e) {
             report($e);
         }
@@ -88,25 +91,31 @@ class RelayDashboardController extends Controller
             ]);
         }
 
-        $transaction->update([
-            'relay_status' => 'collected',
-            'relay_collected_at' => now(),
-            'shipping_status' => 'received',
-            'received_at' => now(),
-            'delivered_at' => now(),
-            'status' => 'completed',
-            'completed_at' => now(),
-            'wallet_status' => 'processing',
-        ]);
+        // Un lot = un seul colis, un seul code de retrait.
+        $ventes = $transaction->transactionsDuLot()->reject(fn ($v) => in_array($v->status, ['refunded', 'cancelled'], true));
+        foreach ($ventes as $vente) {
+            $vente->update([
+                'relay_status' => 'collected',
+                'relay_collected_at' => now(),
+                'shipping_status' => 'received',
+                'received_at' => now(),
+                'delivered_at' => now(),
+                'status' => 'completed',
+                'completed_at' => now(),
+                'wallet_status' => 'processing',
+            ]);
+        }
 
         try {
-            \App\Jobs\SendTransactionStatusEmails::dispatch($transaction->id, 'received', 'commercant');
+            \App\Jobs\SendTransactionStatusEmails::dispatch($transaction->transactionsDuLot()->first()->id, 'received', 'commercant');
         } catch (\Throwable $e) {
             report($e);
         }
 
-        // Retrait confirmé -> versement au vendeur (idempotent).
-        SellerPayout::release($transaction);
+        // Retrait confirmé -> versement au vendeur (idempotent), article par article.
+        foreach ($ventes as $vente) {
+            SellerPayout::release($vente);
+        }
 
         return back()->with('status', 'Retrait confirmé. Le vendeur va être payé, et 1 € est crédité sur ton solde.');
     }

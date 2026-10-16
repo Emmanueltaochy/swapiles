@@ -53,7 +53,7 @@ class TransactionsTable
                         ->whereHas('listing', fn ($l) => $l->where('title', 'like', "%{$search}%"))
                         ->orWhereHas('seller', fn ($u) => $u->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"))
                         ->orWhereHas('buyer', fn ($u) => $u->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"))))
-                    ->description(fn (Transaction $record) => ($record->seller->name ?? '?') . ' → ' . ($record->buyer->name ?? ($record->estDeclaree() ? 'acheteur inconnu' : '?'))),
+                    ->description(fn (Transaction $record) => ($record->lot_id ? '🛍️ Lot n° ' . $record->lot_id . ' · ' : '') . ($record->seller->name ?? '?') . ' → ' . ($record->buyer->name ?? ($record->estDeclaree() ? 'acheteur inconnu' : '?'))),
                 TextColumn::make('amount')
                     ->label('Montant')
                     ->formatStateUsing(fn ($state) => number_format((float) $state, 2, ',', ' ') . ' €')

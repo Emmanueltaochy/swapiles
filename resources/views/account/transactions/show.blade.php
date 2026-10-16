@@ -14,6 +14,39 @@
             <h1 class="text-3xl font-extrabold text-gray-900">Transaction sécurisée</h1>
             <p class="text-gray-500 mt-2">Suivi de votre achat/vente Swap’Îles.</p>
 
+            @php
+                $lotVentes = $lotVentes ?? null;
+                $totalPaye = $lotVentes ? (float) $lotVentes->sum(fn ($v) => (float) $v->amount) : (float) $transaction->amount;
+                $totalProtection = $lotVentes ? (float) $lotVentes->sum(fn ($v) => (float) $v->buyer_protection_fee) : (float) ($transaction->buyer_protection_fee ?? 0);
+                $totalVendeur = $lotVentes ? (float) $lotVentes->sum(fn ($v) => (float) $v->seller_amount) : (float) ($transaction->seller_amount ?? 0);
+            @endphp
+            @if($lotVentes)
+                {{-- Lot : une commande, plusieurs articles. --}}
+                <div class="mt-6">
+                    <p class="font-extrabold text-gray-900">🛍️ Lot de {{ $lotVentes->count() }} articles</p>
+                    <p class="text-sm text-gray-500 mt-1">Vendeur : {{ $transaction->seller->name ?? '-' }} · Acheteur : {{ $transaction->buyer->name ?? '-' }}</p>
+                    @if(($transaction->lot->remise_montant ?? 0) > 0)
+                        <p class="mt-1 text-sm font-semibold text-emerald-700">🎁 Remise lot −{{ $transaction->lot->remise_pct }} % : {{ number_format($transaction->lot->remise_montant, 2, ',', ' ') }} € économisés</p>
+                    @endif
+                    <div class="mt-3 divide-y divide-gray-100 rounded-2xl border border-gray-100">
+                        @foreach($lotVentes as $vente)
+                            <div class="flex items-center gap-3 p-3">
+                                <div class="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-gray-100">
+                                    @if($vente->listing?->images?->first())
+                                        <img src="{{ $vente->listing->images->first()->url }}" alt="" class="h-full w-full object-cover">
+                                    @endif
+                                </div>
+                                <p class="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900">{{ $vente->listing->title ?? 'Annonce supprimée' }}</p>
+                                @if($vente->status === 'refunded')
+                                    <span class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">Remboursé</span>
+                                @endif
+                                <p class="text-sm font-bold text-gray-900">{{ number_format((float) $vente->seller_amount, 2, ',', ' ') }} €</p>
+                            </div>
+                        @endforeach
+                    </div>
+                    <p class="text-2xl font-extrabold text-teal-700 mt-3">{{ number_format($totalPaye, 2, ',', ' ') }} €</p>
+                </div>
+            @else
             <div class="mt-6 flex gap-4">
                 <div class="w-24 h-24 rounded-2xl bg-gray-100 overflow-hidden shrink-0">
                     @if($transaction->listing?->images?->first())
@@ -31,6 +64,7 @@
                     </p>
                 </div>
             </div>
+            @endif
 
             @if($transaction->buyer_id === auth()->id() && $transaction->attendReponseAcheteur())
                 {{-- Vente en main propre déclarée par le vendeur : l'acheteur confirme. --}}
@@ -81,17 +115,17 @@
                 <div class="space-y-3 text-sm">
                     <div class="flex justify-between">
                         <span class="text-gray-500">Total payé</span>
-                        <span class="font-extrabold">{{ number_format($transaction->amount, 2, ',', ' ') }} €</span>
+                        <span class="font-extrabold">{{ number_format($totalPaye, 2, ',', ' ') }} €</span>
                     </div>
 
                     <div class="flex justify-between">
                         <span class="text-gray-500">Protection acheteur</span>
-                        <span class="font-extrabold text-teal-700">{{ number_format($transaction->buyer_protection_fee ?? 0, 2, ',', ' ') }} €</span>
+                        <span class="font-extrabold text-teal-700">{{ number_format($totalProtection, 2, ',', ' ') }} €</span>
                     </div>
 
                     <div class="flex justify-between">
                         <span class="text-gray-500">Montant vendeur estimé</span>
-                        <span class="font-extrabold">{{ number_format($transaction->seller_amount ?? 0, 2, ',', ' ') }} €</span>
+                        <span class="font-extrabold">{{ number_format($totalVendeur, 2, ',', ' ') }} €</span>
                     </div>
                 </div>
             </div>

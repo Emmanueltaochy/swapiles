@@ -43,7 +43,8 @@ class ReviewController extends Controller
         ]);
 
         // Anti-doublon : un seul avis par auteur et par transaction.
-        $already = Review::where('transaction_id', $transaction->id)
+        // Un lot = un seul avis pour toute la commande.
+        $already = Review::whereIn('transaction_id', $transaction->transactionsDuLot()->pluck('id'))
             ->where('reviewer_id', $me)
             ->exists();
         if ($already) {

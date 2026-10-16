@@ -15,6 +15,7 @@ class Transaction extends Model
         'sharetribe_id',
         'listing_id',
         'listing_offer_id',
+        'lot_id',
         'seller_id',
         'buyer_id',
         'amount',
@@ -222,6 +223,48 @@ class Transaction extends Model
         }
 
         return max(0.0, (float) $this->amount - (float) $this->shipping_fee);
+    }
+
+    /** Commande groupée (lot) à laquelle appartient cette vente, le cas échéant. */
+    public function lot()
+    {
+        return $this->belongsTo(Lot::class);
+    }
+
+    /**
+     * Toutes les ventes du même lot (elle comprise), dans l'ordre ; la vente
+     * seule si elle ne fait pas partie d'un lot.
+     */
+    public function transactionsDuLot(): \Illuminate\Support\Collection
+    {
+        if (! $this->lot_id) {
+            return collect([$this]);
+        }
+
+        return self::where('lot_id', $this->lot_id)->orderBy('id')->get();
+    }
+
+    /**
+     * La vente « principale » porte la livraison, les notifications, l'avis :
+     * la première du lot, ou la vente elle-même hors lot.
+     */
+    public function estPrincipale(): bool
+    {
+        if (! $this->lot_id) {
+            return true;
+        }
+
+        return (int) self::where('lot_id', $this->lot_id)->min('id') === (int) $this->id;
+    }
+
+    /** « Robe fleurie » ou « votre lot de 3 articles » (e-mails, notifications). */
+    public function libelleArticle(): string
+    {
+        if ($this->lot_id && $this->lot) {
+            return 'lot de ' . $this->lot->nb_articles . ' articles';
+        }
+
+        return $this->listing?->title ?? 'votre article';
     }
 
     protected static function booted(): void

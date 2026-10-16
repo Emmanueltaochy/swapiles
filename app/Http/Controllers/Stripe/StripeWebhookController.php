@@ -46,17 +46,16 @@ class StripeWebhookController extends Controller
 
                 $paymentIntent = $event->data->object;
 
-                $transaction = Transaction::where(
-                    'stripe_payment_intent_id',
-                    $paymentIntent->id
-                )->first();
+                // Un lot partage le même paiement : toutes ses ventes passent payées.
+                $ventes = Transaction::where('stripe_payment_intent_id', $paymentIntent->id)->orderBy('id')->get();
+                $transaction = $ventes->first();
 
                 // Transition unique et idempotente (partagée avec la page de
                 // succès) : crée notifications + e-mails une seule fois.
                 // Message signé : Stripe l'a envoyé. Sinon, on revérifie le
                 // paiement directement auprès de Stripe avant d'y croire.
                 $claimed = $transaction && ($secret
-                    ? TransactionPayment::markPaidOnce($transaction)
+                    ? TransactionPayment::marquerPaye($ventes)
                     : TransactionPayment::confirmerAupresDeStripe($transaction));
 
                 if ($claimed) {
@@ -119,7 +118,13 @@ class StripeWebhookController extends Controller
 
                 $charge = $event->data->object;
 
-                if (!empty($charge->payment_intent)) {
+                // Lot remboursé en partie (un article) : l'admin a déjà mis à jour
+                // la vente concernée, on ne touche pas aux autres articles.
+                $lotPartiel = ! empty($charge->payment_intent)
+                    && ! ($charge->refunded ?? false)
+                    && Transaction::where('stripe_payment_intent_id', $charge->payment_intent)->whereNotNull('lot_id')->exists();
+
+                if (!empty($charge->payment_intent) && ! $lotPartiel) {
 
                     $concernees = Transaction::where('stripe_payment_intent_id', $charge->payment_intent)->pluck('id');
 

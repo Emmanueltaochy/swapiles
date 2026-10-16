@@ -24,6 +24,24 @@
             <aside class="order-1 lg:order-2">
                 <div class="lg:sticky lg:top-24 space-y-4">
                     <div class="rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 shadow-sm">
+                        @if(isset($lotArticles))
+                            {{-- Lot : tous les articles, payés en une fois. --}}
+                            <p class="font-semibold text-gray-900">🛍️ Lot de {{ $lotArticles->count() }} articles</p>
+                            <p class="text-sm text-gray-500">Vendu par {{ $lotVendeur->name ?? 'Utilisateur' }}</p>
+                            <div class="mt-3 space-y-2">
+                                @foreach($lotArticles as $article)
+                                    <div class="flex items-center gap-3">
+                                        <div class="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                                            @if($article->images->first())
+                                                <img src="{{ $article->images->sortBy('order')->first()->url }}" alt="{{ $article->title }}" class="h-full w-full object-cover">
+                                            @endif
+                                        </div>
+                                        <p class="min-w-0 flex-1 truncate text-sm text-gray-800">{{ $article->title }}</p>
+                                        <p class="text-sm font-semibold text-gray-900">{{ number_format($article->price, 2, ',', ' ') }} €</p>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
                         <div class="flex gap-4">
                             <div class="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-gray-100">
                                 @if($listing->images->first())
@@ -37,12 +55,19 @@
                                 <p class="text-sm text-gray-500">Vendu par {{ $listing->user->name ?? 'Utilisateur' }}</p>
                             </div>
                         </div>
+                        @endif
 
                         <div class="mt-5 space-y-3 border-t border-gray-100 pt-5 text-sm">
                             <div class="flex justify-between">
-                                <span class="text-gray-500">Prix article</span>
+                                <span class="text-gray-500">{{ isset($lotArticles) ? 'Articles' : 'Prix article' }}</span>
                                 <span class="font-semibold text-gray-900">{{ number_format($itemAmount ?? $listing->price, 2, ',', ' ') }} €</span>
                             </div>
+                            @if(($lotRemise ?? 0) > 0)
+                                <div class="flex justify-between">
+                                    <span class="text-emerald-700">🎁 Remise lot −{{ $lotRemisePct }} %</span>
+                                    <span class="font-semibold text-emerald-700">− {{ number_format($lotRemise, 2, ',', ' ') }} €</span>
+                                </div>
+                            @endif
                             <div class="flex justify-between">
                                 <span class="text-gray-500">Protection acheteur 🛡️</span>
                                 @if(($protectionOfferte ?? 0) > 0)
@@ -63,7 +88,7 @@
                                         if ($transaction->listing_offer_id ?? null) { $backParams['offer'] = $transaction->listing_offer_id; }
                                     @endphp
                                     {{ $deliveryLabel }}
-                                    <a href="{{ route('checkout.show', $backParams) }}" class="ml-1 font-semibold text-teal-600 hover:text-teal-700">Modifier</a>
+                                    <a href="{{ isset($lotArticles) ? route('lots.show', $lotVendeur) : route('checkout.show', $backParams) }}" class="ml-1 font-semibold text-teal-600 hover:text-teal-700">Modifier</a>
                                 </span>
                                 @if(($deliveryMethod ?? null) === 'hand_delivery')
                                     <span class="font-bold text-emerald-700">Gratuit</span>

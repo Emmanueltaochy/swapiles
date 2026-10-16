@@ -41,6 +41,12 @@ class CheckoutController extends Controller
                 ->with('status', 'Le vendeur est en vacances : l’article sera de nouveau disponible à son retour.');
         }
 
+        // Lot : un autre acheteur est en train de payer cet article.
+        if (\App\Support\Lots::reservePourUnAutre($listing, Auth::user())) {
+            return redirect()->route('listings.show', $listing)
+                ->with('status', 'Cet article est en cours d’achat par quelqu’un d’autre. Revenez dans quelques minutes.');
+        }
+
         // Vente en direct : un autre spectateur est en train de payer cet article.
         if (\App\Support\LiveService::reservePourUnAutre($listing, Auth::user())) {
             return redirect()->route('listings.show', $listing)

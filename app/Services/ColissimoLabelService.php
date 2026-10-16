@@ -9,6 +9,14 @@ use RuntimeException;
 
 class ColissimoLabelService
 {
+    /** Poids du colis : l'article, ou la somme des articles d'un lot (0,5 kg par défaut). */
+    private function poids(Transaction $transaction): float
+    {
+        return (float) $transaction->transactionsDuLot()
+            ->load('listing')
+            ->sum(fn ($vente) => (float) ($vente->listing->weight_kg ?: 0.5));
+    }
+
     public function generateForTransaction(Transaction $transaction): array
     {
         $transaction->loadMissing(['seller', 'buyer', 'listing']);
@@ -62,7 +70,7 @@ class ColissimoLabelService
                     'totalAmount' => (int) round(((float) $transaction->shipping_fee) * 100),
                 ],
                 'parcel' => [
-                    'weight' => (float) ($transaction->listing->weight_kg ?? 0.5),
+                    'weight' => $this->poids($transaction),
                 ],
                 'sender' => [
                     'address' => [
@@ -111,9 +119,9 @@ class ColissimoLabelService
                 'contents' => [
                     'article' => [
                         [
-                            'description' => mb_substr($transaction->listing->title ?? "Article d'occasion", 0, 64),
+                            'description' => mb_substr($transaction->lot_id ? 'Lot de ' . $transaction->transactionsDuLot()->count() . " articles d'occasion" : ($transaction->listing->title ?? "Article d'occasion"), 0, 64),
                             'quantity' => 1,
-                            'weight' => (float) ($transaction->listing->weight_kg ?? 0.5),
+                            'weight' => $this->poids($transaction),
                             'value' => round($itemValue, 2),
                             'hsCode' => '630900',
                             'originCountry' => 'FR',
@@ -144,18 +152,24 @@ class ColissimoLabelService
 
         Storage::disk('local')->put($path, $pdf);
 
-        $transaction->forceFill([
-            'carrier' => 'Colissimo',
-            'colissimo_label_path' => $path,
-        ])->save();
+        // Lot : un seul colis, la même étiquette pour toutes ses ventes.
+        foreach ($transaction->transactionsDuLot() as $vente) {
+            $vente->forceFill([
+                'carrier' => 'Colissimo',
+                'colissimo_label_path' => $path,
+            ])->save();
+        }
+        $transaction->refresh();
 
         if (preg_match('/N(?:um|°)?\\s*(?:de\\s*)?colis[^0-9A-Z]*([0-9A-Z ]{10,25})/i', $body, $m)) {
             $tracking = trim(preg_replace('/\s+/', '', $m[1]));
-            $transaction->update([
-                'carrier' => 'Colissimo',
-                'tracking_number' => $tracking,
-                'tracking_url' => 'https://www.laposte.fr/outils/suivre-vos-envois?code=' . $tracking,
-            ]);
+            foreach ($transaction->transactionsDuLot() as $vente) {
+                $vente->update([
+                    'carrier' => 'Colissimo',
+                    'tracking_number' => $tracking,
+                    'tracking_url' => 'https://www.laposte.fr/outils/suivre-vos-envois?code=' . $tracking,
+                ]);
+            }
         }
 
         return [

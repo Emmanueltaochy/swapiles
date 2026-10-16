@@ -376,6 +376,34 @@
                                             </a>
                                         @endif
 
+                                        {{-- Lot : plusieurs articles de ce dressing, un seul paiement et une seule livraison. --}}
+                                        @if($canBuyOnline && \App\Support\Lots::eligible($listing))
+                                            @php
+                                                $dansLeLot = \App\Support\Lots::contient(auth()->user(), $listing);
+                                                $tailleLot = \App\Support\Lots::resume(auth()->user())->get($listing->user_id, 0);
+                                            @endphp
+                                            @if($dansLeLot)
+                                                <div class="flex gap-2">
+                                                    <a href="{{ route('lots.show', $listing->user_id) }}" class="flex-1 rounded-xl bg-gray-900 px-4 py-3.5 text-center font-semibold text-white hover:bg-black">🛍️ Voir mon lot ({{ $tailleLot }})</a>
+                                                    <form method="POST" action="{{ route('lots.retirer', $listing) }}">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button class="h-full rounded-xl border-2 border-gray-200 px-4 font-semibold text-gray-700 hover:bg-gray-50" aria-label="Retirer du lot">Retirer</button>
+                                                    </form>
+                                                </div>
+                                            @else
+                                                <form method="POST" action="{{ route('lots.ajouter', $listing) }}">
+                                                    @csrf
+                                                    <button class="w-full rounded-xl border-2 border-gray-900 px-6 py-3.5 font-semibold text-gray-900 transition hover:bg-gray-50">
+                                                        🛍️ Ajouter au lot{{ $tailleLot > 0 ? ' (' . $tailleLot . ' déjà)' : '' }}
+                                                    </button>
+                                                </form>
+                                                @if($tailleLot === 0)
+                                                    <p class="text-center text-xs text-gray-500">Plusieurs articles de ce dressing ? Un seul paiement et une seule livraison.</p>
+                                                @endif
+                                            @endif
+                                        @endif
+
                                         @if($canCash)
                                             <form method="POST" action="{{ route('listings.request-mode', ['listing' => $listing, 'mode' => 'cash']) }}">
                                                 @csrf

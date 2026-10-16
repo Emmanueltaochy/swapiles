@@ -22,6 +22,11 @@ class CleanupPendingTransactions extends Command
 
         foreach ($transactions as $transaction) {
 
+            // Déjà traitée avec son lot (payée ou annulée) au tour précédent.
+            if ($transaction->fresh()->status !== 'pending') {
+                continue;
+            }
+
             // Paiement en fait réussi (confirmation arrivée en retard) : on
             // l'enregistre au lieu d'annuler une vente payée.
             if (\App\Support\TransactionPayment::confirmerAupresDeStripe($transaction)) {

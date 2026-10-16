@@ -40,12 +40,12 @@
             </div>
 
             <div class="flex-1 min-w-0">
-                <p class="font-extrabold text-gray-900 truncate">{{ $transaction->listing->title ?? 'Annonce supprimée' }}</p>
+                <p class="font-extrabold text-gray-900 truncate">{{ $transaction->lot_id ? '🛍️ Lot de ' . ($transaction->lot_nb ?? '') . ' articles' : ($transaction->listing->title ?? 'Annonce supprimée') }}</p>
                 <p class="text-sm text-gray-500 truncate">
                     {{ $isPurchase ? 'Vendeur' : 'Acheteur' }} · {{ $isPurchase ? ($transaction->seller->name ?? '—') : ($transaction->buyer->name ?? $transaction->buyer_full_name ?? '—') }}
                 </p>
                 <div class="mt-1.5 flex items-center justify-between gap-2">
-                    <p class="font-extrabold text-gray-900">{{ number_format($transaction->amount, 2, ',', ' ') }} €</p>
+                    <p class="font-extrabold text-gray-900">{{ number_format($transaction->lot_total ?? $transaction->amount, 2, ',', ' ') }} €</p>
                     <span class="shrink-0 whitespace-nowrap text-xs font-extrabold rounded-full px-2.5 py-1 {{ $badgeClass }}">{{ $badgeLabel }}</span>
                 </div>
             </div>

@@ -34,16 +34,20 @@ class TransactionWorkflowController extends Controller
             };
         }
 
-        $transaction->update([
-            'shipping_status' => 'shipped',
-            'carrier' => $carrier,
-            'tracking_number' => $trackingNumber,
-            'tracking_url' => $trackingUrl,
-            'shipped_at' => now(),
-        ]);
+        // Un lot part en un seul colis : toutes ses ventes sont expédiées.
+        $ventes = $transaction->transactionsDuLot();
+        foreach ($ventes as $vente) {
+            $vente->update([
+                'shipping_status' => 'shipped',
+                'carrier' => $carrier,
+                'tracking_number' => $trackingNumber,
+                'tracking_url' => $trackingUrl,
+                'shipped_at' => now(),
+            ]);
+        }
 
         try {
-            SendTransactionStatusEmails::dispatch($transaction->id, 'shipped');
+            SendTransactionStatusEmails::dispatch($ventes->first()->id, 'shipped');
         } catch (\Throwable $e) {
             report($e);
         }
@@ -61,15 +65,18 @@ class TransactionWorkflowController extends Controller
         abort_unless($transaction->delivery_method === 'relay', 403);
         abort_unless(in_array($transaction->status, ['paid', 'pending']), 403);
 
-        $transaction->update([
-            'relay_status' => 'deposited',
-            'relay_deposited_at' => now(),
-            'shipping_status' => 'shipped',
-            'shipped_at' => $transaction->shipped_at ?: now(),
-        ]);
+        $ventes = $transaction->transactionsDuLot();
+        foreach ($ventes as $vente) {
+            $vente->update([
+                'relay_status' => 'deposited',
+                'relay_deposited_at' => now(),
+                'shipping_status' => 'shipped',
+                'shipped_at' => $vente->shipped_at ?: now(),
+            ]);
+        }
 
         try {
-            SendTransactionStatusEmails::dispatch($transaction->id, 'relay_deposited');
+            SendTransactionStatusEmails::dispatch($ventes->first()->id, 'relay_deposited');
         } catch (\Throwable $e) {
             report($e);
         }
@@ -96,15 +103,21 @@ class TransactionWorkflowController extends Controller
             $update['relay_collected_at'] = now();
         }
 
-        $transaction->update($update);
+        // Un lot est reçu en une fois ; le vendeur est payé article par article.
+        $ventes = $transaction->transactionsDuLot()->reject(fn ($v) => in_array($v->status, ['refunded', 'cancelled'], true));
+        foreach ($ventes as $vente) {
+            $vente->update($update);
+        }
 
         try {
-            SendTransactionStatusEmails::dispatch($transaction->id, 'received');
+            SendTransactionStatusEmails::dispatch($transaction->transactionsDuLot()->first()->id, 'received');
         } catch (\Throwable $e) {
             report($e);
         }
 
-        \App\Support\SellerPayout::release($transaction);
+        foreach ($ventes as $vente) {
+            \App\Support\SellerPayout::release($vente);
+        }
 
         return back()->with('status', 'Transaction finalisée. Le paiement vendeur sera versé si son compte est configuré.');
     }

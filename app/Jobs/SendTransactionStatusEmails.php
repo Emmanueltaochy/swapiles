@@ -104,11 +104,13 @@ class SendTransactionStatusEmails implements ShouldQueue
      */
     public static function messagesForTransaction(Transaction $t, string $event): array
     {
-        $title = $t->listing?->title ?? 'votre article';
-        $amount = number_format((float) $t->amount, 2, ',', ' ');
-        $netRaw = (float) $t->seller_amount > 0
-            ? (float) $t->seller_amount
-            : max(0, (float) $t->amount - (float) $t->commission - (float) $t->buyer_protection_fee - (float) $t->shipping_fee);
+        $title = $t->libelleArticle();
+        // Un lot : un seul e-mail, avec les totaux de tout le lot.
+        $ventes = $t->transactionsDuLot();
+        $amount = number_format((float) $ventes->sum(fn ($v) => (float) $v->amount), 2, ',', ' ');
+        $netRaw = (float) $ventes->sum(fn ($v) => (float) $v->seller_amount > 0
+            ? (float) $v->seller_amount
+            : max(0, (float) $v->amount - (float) $v->commission - (float) $v->buyer_protection_fee - (float) $v->shipping_fee));
         $net = number_format($netRaw, 2, ',', ' ');
 
         if ($t->delivery_method === 'relay') {

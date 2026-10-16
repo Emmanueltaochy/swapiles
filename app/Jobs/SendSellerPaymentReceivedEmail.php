@@ -28,14 +28,16 @@ class SendSellerPaymentReceivedEmail implements ShouldQueue
             return;
         }
 
-        $listingTitle = $transaction->listing?->title ?? 'votre article';
+        $listingTitle = $transaction->libelleArticle();
         $buyerName = $transaction->buyer?->name ?? 'un acheteur';
-        $itemAmount = max(
-            0,
-            (float) $transaction->amount
-            - (float) $transaction->buyer_protection_fee
-            - (float) $transaction->shipping_fee
-        );
+        $itemAmount = $transaction->lot_id
+            ? (float) $transaction->transactionsDuLot()->sum(fn ($v) => (float) $v->seller_amount)
+            : max(
+                0,
+                (float) $transaction->amount
+                - (float) $transaction->buyer_protection_fee
+                - (float) $transaction->shipping_fee
+            );
 
         $itemAmountFormatted = number_format($itemAmount, 2, ',', ' ');
 

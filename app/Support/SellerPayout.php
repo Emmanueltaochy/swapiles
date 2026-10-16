@@ -68,7 +68,13 @@ class SellerPayout
                 'estimated_payout_date' => now()->addDays(2),
             ]);
 
-            SendTransactionStatusEmails::dispatch($transaction->id, 'released');
+            // Lot : un seul e-mail « paiement envoyé », quand le dernier article est versé.
+            $restants = $transaction->lot_id
+                ? $transaction->transactionsDuLot()->filter(fn ($v) => $v->status === 'completed' && ! $v->stripe_transfer_id)->count()
+                : 0;
+            if ($restants === 0) {
+                SendTransactionStatusEmails::dispatch($transaction->transactionsDuLot()->first()->id, 'released');
+            }
         } catch (\Throwable $e) {
             report($e);
         }

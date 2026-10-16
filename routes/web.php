@@ -285,6 +285,12 @@ Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle'])->name
 Route::middleware('auth')->group(function () {
     Route::get('/checkout/{listing}', [CheckoutController::class, 'start'])->name('checkout.show');
     Route::post('/checkout/{listing}', [CheckoutController::class, 'start'])->name('checkout.start');
+
+    // Lots : plusieurs articles du même dressing, un seul paiement.
+    Route::post('/lot/ajouter/{listing}', [\App\Http\Controllers\LotController::class, 'ajouter'])->name('lots.ajouter');
+    Route::delete('/lot/retirer/{listing}', [\App\Http\Controllers\LotController::class, 'retirer'])->name('lots.retirer');
+    Route::get('/lot/{vendeur}', [\App\Http\Controllers\LotController::class, 'show'])->name('lots.show');
+    Route::post('/lot/{vendeur}/payer', [\App\Http\Controllers\LotController::class, 'payer'])->name('lots.payer');
     Route::get('/checkout/success/{transaction}', [CheckoutController::class, 'success'])->name('checkout.success');
     Route::get('/checkout/cancel/{transaction}', [CheckoutController::class, 'cancel'])->name('checkout.cancel');
 });

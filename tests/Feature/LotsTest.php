@@ -298,4 +298,27 @@ class LotsTest extends TestCase
         $this->assertSame(OrderPricing::protectionFor(5400), OrderPricing::make(5400)->protectionCents());
         $this->assertSame(1500, OrderPricing::protectionFor(300000), 'Plafond à 15 € même pour un gros lot.');
     }
+
+    public function test_le_vendeur_regle_sa_remise_et_elle_s_affiche(): void
+    {
+        $lea = $this->membre('Lea');
+        $this->actingAs($lea)->get(route('account.settings'))->assertOk()->assertSee('Remise lot');
+        $this->get(route('account.remise-lot.edit'))->assertOk();
+
+        // Valeurs hors liste refusées.
+        $this->put(route('account.remise-lot.update'), ['lot_remise_pct' => 50, 'lot_remise_min' => 2])->assertSessionHasErrors('lot_remise_pct');
+        $this->put(route('account.remise-lot.update'), ['lot_remise_pct' => 10, 'lot_remise_min' => 7])->assertSessionHasErrors('lot_remise_min');
+
+        $this->put(route('account.remise-lot.update'), ['lot_remise_pct' => 15, 'lot_remise_min' => 3])->assertRedirect(route('account.settings'));
+        $this->assertSame(15, (int) $lea->fresh()->lot_remise_pct);
+
+        $robe = $this->annonce($lea, 20);
+        $tom = $this->membre('Tom');
+        $this->actingAs($tom)->get(route('profiles.show', $lea))->assertOk()->assertSee('−15 % dès 3 articles', false);
+        $this->get(route('listings.show', $robe))->assertOk()->assertSee('−15 % dès 3 articles de ce dressing', false);
+
+        // Barre du lot une fois un article ajouté.
+        Lots::ajouter($tom, $robe);
+        $this->get(route('listings.show', $robe))->assertSee('data-barre-lot', false)->assertSee('Lot chez Lea')->assertSee('1 article · 20,00 €', false);
+    }
 }

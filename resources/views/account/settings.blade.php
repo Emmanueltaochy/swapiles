@@ -68,6 +68,14 @@
                         : 'Tous les points relais de mon île sont proposés',
                 ] : null,
                 [
+                    'url' => route('account.remise-lot.edit'),
+                    'icone' => '🎁',
+                    'label' => 'Remise lot',
+                    'aide' => (int) $user->lot_remise_pct > 0
+                        ? '−' . $user->lot_remise_pct . ' % dès ' . max(2, (int) $user->lot_remise_min) . ' articles'
+                        : 'Une remise quand on achète plusieurs de vos articles',
+                ],
+                [
                     'url' => route('account.vacances.edit'),
                     'icone' => '🌴',
                     'label' => 'Mode vacances',

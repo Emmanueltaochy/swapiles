@@ -398,7 +398,9 @@
                                                         🛍️ Ajouter au lot{{ $tailleLot > 0 ? ' (' . $tailleLot . ' déjà)' : '' }}
                                                     </button>
                                                 </form>
-                                                @if($tailleLot === 0)
+                                                @if((int) ($listing->user->lot_remise_pct ?? 0) > 0)
+                                                    <p class="text-center text-xs font-bold text-rose-700">🎁 −{{ $listing->user->lot_remise_pct }} % dès {{ max(2, (int) $listing->user->lot_remise_min) }} articles de ce dressing, un seul envoi.</p>
+                                                @elseif($tailleLot === 0)
                                                     <p class="text-center text-xs text-gray-500">Plusieurs articles de ce dressing ? Un seul paiement et une seule livraison.</p>
                                                 @endif
                                             @endif
@@ -559,7 +561,7 @@
                                         <p class="font-semibold text-gray-900 truncate">{{ $vendeur->name }}</p>
                                         <p class="text-sm text-gray-500">⭐ {{ number_format((float) $vendeur->rating, 1, ',', ' ') }} · {{ $vendeur->transactions_count ?? 0 }} transactions</p>
                                         <p class="text-xs font-semibold text-gray-700"><span data-abonnes-de="{{ $vendeur->id }}">{{ number_format($abonnesVendeur, 0, ',', ' ') }} abonné{{ $abonnesVendeur > 1 ? 's' : '' }}</span></p>
-                                        <div class="mt-1">@include('partials.badge-reponse', ['vendeur' => $vendeur])</div>
+                                        <div class="mt-1 flex flex-wrap gap-1.5">@include('partials.badge-reponse', ['vendeur' => $vendeur])@include('partials.remise-lot', ['vendeur' => $vendeur])</div>
                                     </div>
                                 </a>
                                 @include('partials.follow-button', ['seller' => $vendeur, 'classes' => 'shrink-0 px-3.5 py-2 text-sm'])
@@ -1023,4 +1025,7 @@ document.addEventListener('DOMContentLoaded', function () {
     </script>
 @endif
 
+@if($listing->user)
+    @include('partials.barre-lot', ['vendeur' => $listing->user])
+@endif
 @endsection

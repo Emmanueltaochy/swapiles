@@ -108,7 +108,7 @@
                         <span>· {{ number_format($soldListingsCount, 0, ',', ' ') }} vendue{{ $soldListingsCount > 1 ? 's' : '' }}</span>
                     </div>
 
-                    <div class="mt-1.5">@include('partials.badge-reponse', ['vendeur' => $user])</div>
+                    <div class="mt-1.5 flex flex-wrap gap-1.5">@include('partials.badge-reponse', ['vendeur' => $user])@include('partials.remise-lot', ['vendeur' => $user])</div>
 
                     <p class="mt-1 text-sm font-semibold text-gray-900">
                         👥 <span data-abonnes-de="{{ $user->id }}">{{ number_format($followersCount, 0, ',', ' ') }} abonné{{ $followersCount > 1 ? 's' : '' }}</span>
@@ -416,4 +416,5 @@
     </div>
 </section>
 
+@include('partials.barre-lot', ['vendeur' => $user])
 @endsection

@@ -321,4 +321,33 @@ class LotsTest extends TestCase
         Lots::ajouter($tom, $robe);
         $this->get(route('listings.show', $robe))->assertSee('data-barre-lot', false)->assertSee('Lot chez Lea')->assertSee('1 article · 20,00 €', false);
     }
+
+    public function test_incitation_vendeur_au_bon_moment(): void
+    {
+        $lea = $this->membre('Lea');
+        $this->assertNull(\App\Support\IncitationLot::pour($lea), 'Pas d’annonce : rien à dire.');
+
+        $robe = $this->annonce($lea, 20, ['requires_online_payment' => false]);
+        $this->annonce($lea, 15, ['requires_online_payment' => false]);
+        $don = $this->annonce($lea, 0, ['requires_online_payment' => false, 'listing_type' => 'don']);
+
+        // 1. Paiement en ligne à activer : un clic l'active sur toutes les annonces vendables.
+        $this->actingAs($lea)->get(route('account.dashboard'))->assertOk()
+            ->assertSee('Vendez plusieurs articles d’un coup', false)->assertSee('Activer sur mes 2 annonces');
+        $this->post(route('account.paiement-en-ligne.activer'))->assertSessionHas('status');
+        $this->assertTrue((bool) $robe->fresh()->requires_online_payment);
+        $this->assertFalse((bool) $don->fresh()->requires_online_payment, 'Un don n’est pas concerné.');
+
+        // 2. Remise à proposer.
+        $this->get(route('account.dashboard'))->assertSee('Proposez une remise lot')->assertSee(route('account.remise-lot.edit'), false);
+        $this->get(route('profiles.show', $lea))->assertSee('Proposez une remise lot');
+        $this->get(route('account.wallet.index'))->assertSee('Proposez une remise lot');
+
+        // 3. Remise active : simple rappel.
+        $lea->forceFill(['lot_remise_pct' => 10, 'lot_remise_min' => 2])->save();
+        $this->get(route('account.dashboard'))->assertSee('Remise lot active')->assertDontSee('Proposez une remise lot');
+
+        // Les visiteurs ne voient pas ces messages sur le profil.
+        $this->actingAs($this->membre('Tom'))->get(route('profiles.show', $lea))->assertDontSee('Remise lot active');
+    }
 }

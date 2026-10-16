@@ -114,6 +114,8 @@
         </div>
 
         {{-- Journal : TOUTES les ventes, tous modes. Informatif, ce n'est pas un solde. --}}
+        <div class="mt-6">@include('partials.incitation-lot', ['vendeur' => $user])</div>
+
         <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden mt-6" data-wallet-journal>
             <div class="p-5 border-b border-gray-100">
                 <h2 class="text-xl font-extrabold text-gray-900">Toutes mes ventes</h2>

@@ -218,6 +218,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/mon-profil/bio', [ProfileSettingsController::class, 'bio'])->name('account.profile.bio');
     Route::get('/mon-compte/remise-lot', [\App\Http\Controllers\Account\RemiseLotController::class, 'edit'])->name('account.remise-lot.edit');
     Route::put('/mon-compte/remise-lot', [\App\Http\Controllers\Account\RemiseLotController::class, 'update'])->name('account.remise-lot.update');
+    Route::post('/mon-compte/paiement-en-ligne', [\App\Http\Controllers\Account\RemiseLotController::class, 'activerPaiementEnLigne'])->name('account.paiement-en-ligne.activer');
     Route::get('/mon-compte/vacances', [\App\Http\Controllers\Account\VacancesController::class, 'edit'])->name('account.vacances.edit');
     Route::post('/mon-compte/vacances', [\App\Http\Controllers\Account\VacancesController::class, 'activer'])->name('account.vacances.activer');
     Route::delete('/mon-compte/vacances', [\App\Http\Controllers\Account\VacancesController::class, 'terminer'])->name('account.vacances.terminer');

@@ -28,4 +28,21 @@ class RemiseLotController extends Controller
             ? '🎁 Remise lot enregistrée : −' . $data['lot_remise_pct'] . ' % dès ' . $data['lot_remise_min'] . ' articles.'
             : 'Remise lot désactivée.');
     }
+
+    /** « Activer sur mes annonces » : paiement en ligne sur toutes les annonces vendables. */
+    public function activerPaiementEnLigne(Request $request)
+    {
+        $user = $request->user();
+
+        // Sans KYC différé, il faut d'abord un compte de paiement opérationnel.
+        if (! config('features.defer_kyc') && ! ($user->stripe_charges_enabled && $user->stripe_payouts_enabled)) {
+            return redirect()->route('stripe.connect.activate');
+        }
+
+        $n = \App\Support\IncitationLot::activerPaiementEnLigne($user);
+
+        return back()->with('status', $n > 0
+            ? '✅ Paiement en ligne activé sur ' . $n . ' annonce' . ($n > 1 ? 's' : '') . ' : vos acheteurs peuvent maintenant les prendre en lot.'
+            : 'Le paiement en ligne est déjà activé sur vos annonces.');
+    }
 }

@@ -311,6 +311,10 @@
 <section class="bg-gray-50 min-h-screen py-6 sm:py-8">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
+        @if(auth()->id() === $user->id)
+            <div class="mb-5">@include('partials.incitation-lot', ['vendeur' => $user])</div>
+        @endif
+
         @if($activeTab === 'about')
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 <div class="lg:col-span-2 rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 shadow-sm">

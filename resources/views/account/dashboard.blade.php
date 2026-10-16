@@ -288,6 +288,9 @@
             @endforeach
         </section>
 
+        {{-- Vendre en lot : paiement en ligne à activer, remise à proposer… --}}
+        @include('partials.incitation-lot', ['vendeur' => $user])
+
         {{-- 5. Mes annonces --}}
         <section id="mes-annonces" class="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-5 border-b border-gray-100">

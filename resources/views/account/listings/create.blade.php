@@ -278,6 +278,7 @@
                             <span>
                                 <span class="block font-semibold text-gray-900">CB sécurisé Swap'Îles</span>
                                 <span class="block text-sm text-gray-500">Paiement protégé. Obligatoire pour Colissimo.</span>
+                                <span class="mt-1 block text-xs font-semibold text-rose-700">🛍️ Permet aussi l’achat en lot avec votre remise : plus de chances de vendre.</span>
                             </span>
                         </label>
                         <label class="flex cursor-pointer items-start gap-3 rounded-xl bg-gray-50 p-4">

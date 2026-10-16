@@ -194,12 +194,15 @@
 {{-- EMOJI_CATEGORIES_END --}}
 
 @if(isset($popularListings) && $popularListings->count())
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="flex items-end justify-between mb-6">
+@php
+    $populairesToujours = $populairesToujours ?? collect();
+    $vues = fn ($n) => number_format((int) $n, 0, ',', ' ') . ' vue' . ((int) $n > 1 ? 's' : '');
+@endphp
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" data-populaires>
+    <div class="flex items-end justify-between mb-4">
         <div>
             <p class="text-sm font-bold uppercase tracking-wide text-rose-600">Tendance</p>
             <h2 class="text-xl sm:text-3xl md:text-4xl font-bold text-gray-950">🔥 Les annonces populaires</h2>
-            <p class="text-gray-500 mt-2">Les articles les plus regardés ces derniers jours à {{ $selectedDisplay }}. La sélection change au fil de la journée.</p>
         </div>
 
         <a href="{{ route('search', ['territoire' => $selectedTerritoire]) }}"
@@ -208,41 +211,85 @@
         </a>
     </div>
 
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-        @foreach($popularListings as $listing)
-            <a href="{{ route('listings.show', $listing) }}"
-               class="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition">
-                <div class="relative aspect-[4/5] bg-gray-100 overflow-hidden">
-                    @if($listing->images->first())
-                        <img loading="lazy" decoding="async" src="{{ $listing->images->first()->url }}" alt="{{ $listing->title }}" class="w-full h-full object-cover group-hover:scale-[1.03] transition duration-300">
-                    @else
-                        <div class="w-full h-full flex items-center justify-center text-gray-300 text-4xl">📦</div>
-                    @endif
-
-                    {{-- Sur un téléphone, « Populaire » passait sous le cœur favori,
-                         en haut à droite : libellé court sur petit écran, complet
-                         au-delà. --}}
-                    <span class="absolute top-2 left-2 max-w-[calc(100%-3.25rem)] rounded-full bg-rose-600 text-white px-2.5 py-1 text-[11px] font-bold shadow">
-                        <span class="sm:hidden">🔥 Top</span><span class="hidden sm:inline">🔥 Populaire</span>
-                    </span>
-
-                    @include('partials.favorite-heart', ['listing' => $listing])
-                </div>
-
-                <div class="p-3">
-                    <p class="text-sm font-bold text-gray-900 line-clamp-1">{{ $listing->title }}</p>
-                    <p class="text-xs text-gray-500 mt-1">{{ number_format((int) $listing->views_count, 0, ',', ' ') }} vues</p>
-
-                    @if(($listing->price ?? 0) > 0)
-                        <p class="text-lg font-bold text-gray-900 mt-2">{{ number_format($listing->price, 0, ',', ' ') }} €</p>
-                    @else
-                        <p class="text-lg font-bold text-teal-700 mt-2">Gratuit</p>
-                    @endif
-                </div>
-            </a>
-        @endforeach
+    {{-- Onglets qui défilent à l'horizontale sur téléphone. --}}
+    <div class="-mx-4 px-4 sm:mx-0 sm:px-0 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="Période">
+        <button type="button" role="tab" aria-selected="true" data-populaires-onglet="semaine"
+                class="shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold transition bg-gray-900 text-white">
+            🔥 7 derniers jours
+        </button>
+        @if($populairesToujours->isNotEmpty())
+            <button type="button" role="tab" aria-selected="false" data-populaires-onglet="toujours"
+                    class="shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold transition bg-gray-100 text-gray-700 hover:bg-gray-200">
+                🏆 Depuis toujours
+            </button>
+        @endif
     </div>
+
+    <div data-populaires-panneau="semaine">
+        <p class="text-gray-500 text-sm mt-3 mb-5">
+            Les plus regardées et aimées <strong class="text-gray-800">ces 7 derniers jours</strong> à {{ $selectedDisplay }}. La sélection change au fil de la journée.
+        </p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+            @foreach($popularListings as $listing)
+                @include('partials.carte-populaire', [
+                    'listing' => $listing,
+                    'badge' => '🔥 7 jours',
+                    'stat' => match (true) {
+                        (int) ($listing->vues_recentes ?? 0) > 0 => '👀 ' . $vues($listing->vues_recentes) . ' en 7 jours',
+                        (int) $listing->views_count > 0 => '👀 ' . $vues($listing->views_count) . ' au total',
+                        default => '✨ Nouveauté',
+                    },
+                ])
+            @endforeach
+        </div>
+    </div>
+
+    @if($populairesToujours->isNotEmpty())
+        <div data-populaires-panneau="toujours" hidden>
+            <p class="text-gray-500 text-sm mt-3 mb-5">
+                Le classement de <strong class="text-gray-800">toute la plateforme</strong>, toutes îles confondues : les annonces les plus vues depuis leur mise en ligne.
+            </p>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                @foreach($populairesToujours as $rang => $listing)
+                    @include('partials.carte-populaire', [
+                        'listing' => $listing,
+                        'badge' => '🏆 N° ' . ($rang + 1),
+                        'couleurBadge' => $rang < 3 ? 'bg-amber-500' : 'bg-gray-900',
+                        'stat' => '👀 ' . $vues($listing->views_count) . ' au total',
+                        'ile' => $listing->territoire !== $selectedTerritoire ? $listing->territoire : null,
+                    ])
+                @endforeach
+            </div>
+        </div>
+    @endif
 </section>
+
+<script>
+    (function () {
+        // Une seule écoute pour tout le site (navigation Turbo sans rechargement).
+        if (window.swpOngletsPopulaires) return;
+        window.swpOngletsPopulaires = true;
+
+        document.addEventListener('click', function (e) {
+            var onglet = e.target.closest('[data-populaires-onglet]');
+            if (!onglet) return;
+            var bloc = onglet.closest('[data-populaires]');
+            var choix = onglet.getAttribute('data-populaires-onglet');
+
+            bloc.querySelectorAll('[data-populaires-onglet]').forEach(function (b) {
+                var actif = b === onglet;
+                b.setAttribute('aria-selected', actif ? 'true' : 'false');
+                b.classList.toggle('bg-gray-900', actif);
+                b.classList.toggle('text-white', actif);
+                b.classList.toggle('bg-gray-100', !actif);
+                b.classList.toggle('text-gray-700', !actif);
+            });
+            bloc.querySelectorAll('[data-populaires-panneau]').forEach(function (p) {
+                p.hidden = p.getAttribute('data-populaires-panneau') !== choix;
+            });
+        });
+    })();
+</script>
 @elseif(($activeListingsCount ?? 0) === 0)
 {{-- Aucune annonce sur cette île : on invite à être le premier (au lieu des populaires) --}}
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

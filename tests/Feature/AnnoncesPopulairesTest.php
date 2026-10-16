@@ -119,4 +119,23 @@ class AnnoncesPopulairesTest extends TestCase
 
         $this->get('/')->assertOk()->assertSee('La sélection change au fil de la journée.');
     }
+
+    public function test_onglets_7_jours_et_depuis_toujours_sur_toute_la_plateforme(): void
+    {
+        $reunion = $this->annonce($this->vendeur('Lea'), 50);
+        $star = Listing::create([
+            'user_id' => $this->vendeur('Max')->id, 'title' => 'Robe star de Martinique', 'description' => 'Description de test assez longue.',
+            'price' => 20, 'status' => 'published', 'listing_type' => 'achat', 'territoire' => 'Martinique', 'views_count' => 900,
+        ]);
+        $this->annonce($this->vendeur('Zoe'), 0);
+
+        $toujours = Tendances::depuisToujours();
+        $this->assertSame([$star->id, $reunion->id], $toujours->pluck('id')->all(), 'Toutes îles, du plus vu au moins vu, sans les annonces jamais vues.');
+
+        $this->get('/')->assertOk()
+            ->assertSee('🔥 7 derniers jours')
+            ->assertSee('ces 7 derniers jours', false)
+            ->assertSee('🏆 Depuis toujours')
+            ->assertSeeInOrder(['🏆 N° 1', 'Robe star de Martinique', '900 vues au total', '📍 Martinique']);
+    }
 }

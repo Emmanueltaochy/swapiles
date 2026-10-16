@@ -79,6 +79,9 @@ class HomeController extends Controller
             \App\Support\Tendances::graine((string) ($request->user()?->id ?? $request->session()->getId())),
         );
 
+        // Onglet « Depuis toujours » : le top de toute la plateforme.
+        $populairesToujours = \App\Support\Tendances::depuisToujours();
+
         $securePaymentListingsCount = Listing::query()
             ->where('status', 'published')
             ->where('requires_online_payment', true)
@@ -127,6 +130,7 @@ class HomeController extends Controller
             'crossIslandAvailableCount' => $crossIslandAvailableCount,
             'globalShippableListings' => $globalShippableListings,
             'popularListings' => $popularListings,
+            'populairesToujours' => $populairesToujours,
             'securePaymentListingsCount' => $securePaymentListingsCount,
             'membersCount' => $membersCount,
             'todayListingsCount' => $todayListingsCount,

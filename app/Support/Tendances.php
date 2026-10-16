@@ -127,6 +127,22 @@ class Tendances
         return collect($choisies);
     }
 
+    /**
+     * Le classement « depuis toujours » de toute la plateforme (toutes îles) :
+     * les annonces en ligne les plus vues au total, sans tirage au sort.
+     */
+    public static function depuisToujours(int $nombre = 8): Collection
+    {
+        return Listing::query()
+            ->with(['images', 'user'])->withCount(['favorisRecus as favorited_by_count'])
+            ->where('status', 'published')
+            ->where('views_count', '>', 0)
+            ->orderByDesc('views_count')
+            ->oldest()
+            ->take($nombre)
+            ->get();
+    }
+
     /** On ne garde que 30 jours d'historique. */
     public static function nettoyer(): int
     {

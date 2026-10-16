@@ -59,6 +59,34 @@ class ProfileSettingsController extends Controller
         ]);
     }
 
+    /**
+     * Photo de profil changée en un geste depuis « Mon compte » : on touche
+     * l'avatar, on choisit la photo, elle est envoyée aussitôt.
+     */
+    public function photo(Request $request)
+    {
+        $request->validate([
+            'avatar' => ['required', 'image', 'max:5120'],
+        ], [
+            'avatar.required' => 'Choisissez une photo.',
+            'avatar.image' => 'Ce fichier n’est pas une photo.',
+            'avatar.max' => 'Photo trop lourde (5 Mo maximum).',
+        ]);
+
+        $user = Auth::user();
+        $ancienne = $user->avatar;
+
+        $path = $request->file('avatar')->store('avatars', 'public');
+        $user->forceFill(['avatar' => Storage::url($path)])->save();
+
+        // L'ancienne photo, si elle venait d'ici, ne sert plus à rien.
+        if (is_string($ancienne) && str_starts_with($ancienne, '/storage/avatars/')) {
+            Storage::disk('public')->delete(substr($ancienne, strlen('/storage/')));
+        }
+
+        return redirect()->route('account.dashboard')->with('status', 'Photo de profil mise à jour.');
+    }
+
     public function update(Request $request)
     {
         $user = Auth::user();

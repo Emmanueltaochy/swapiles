@@ -80,4 +80,37 @@ class EspaceCompteRevueTest extends TestCase
             ->assertSee('Mon argent')
             ->assertDontSee('Mon wallet');
     }
+
+    public function test_photo_de_profil_depuis_mon_compte(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        $lea = $this->membre();
+
+        $this->actingAs($lea)->get(route('account.dashboard'))->assertOk()
+            ->assertSee('Mettre une photo de profil')
+            ->assertSee(route('account.profile.photo'), false);
+
+        $this->post(route('account.profile.photo'), [
+            'avatar' => \Illuminate\Http\UploadedFile::fake()->image('moi.jpg', 400, 400),
+        ])->assertRedirect(route('account.dashboard'));
+
+        $premiere = $lea->fresh()->avatar;
+        $this->assertStringStartsWith('/storage/avatars/', $premiere);
+        \Illuminate\Support\Facades\Storage::disk('public')->assertExists(substr($premiere, strlen('/storage/')));
+
+        $this->get(route('account.dashboard'))->assertSee('Modifier la photo de profil');
+
+        // Nouvelle photo : l'ancienne est effacée.
+        $this->post(route('account.profile.photo'), [
+            'avatar' => \Illuminate\Http\UploadedFile::fake()->image('moi2.jpg'),
+        ]);
+        \Illuminate\Support\Facades\Storage::disk('public')->assertMissing(substr($premiere, strlen('/storage/')));
+
+        // Pas une image : refusé, la photo ne change pas.
+        $actuelle = $lea->fresh()->avatar;
+        $this->post(route('account.profile.photo'), [
+            'avatar' => \Illuminate\Http\UploadedFile::fake()->create('doc.pdf', 10, 'application/pdf'),
+        ])->assertSessionHasErrors('avatar');
+        $this->assertSame($actuelle, $lea->fresh()->avatar);
+    }
 }

@@ -43,10 +43,32 @@
 
         {{-- 1. En-tête --}}
         <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-teal-600">Mon compte</p>
-                <h1 class="mt-1 text-2xl sm:text-3xl font-bold text-gray-900">Bonjour {{ $user->name }}</h1>
-            </div>
+            {{-- Photo de profil : on la touche, on choisit une photo, elle part aussitôt. --}}
+            <form method="POST" action="{{ route('account.profile.photo') }}" enctype="multipart/form-data" class="flex items-center gap-4 pb-1.5" data-photo-profil>
+                @csrf
+                <label for="photo-profil" class="relative shrink-0 cursor-pointer" title="{{ $user->avatar ? 'Modifier la photo de profil' : 'Mettre une photo de profil' }}">
+                    <span class="grid h-16 w-16 sm:h-20 sm:w-20 place-items-center overflow-hidden rounded-full bg-teal-100 text-2xl font-extrabold text-teal-800 ring-4 ring-white shadow">
+                        @if($user->avatar)
+                            <img src="{{ $user->avatar }}" alt="Ma photo de profil" class="h-full w-full object-cover">
+                        @else
+                            {{ mb_strtoupper(mb_substr($user->name ?? '?', 0, 1)) }}
+                        @endif
+                    </span>
+                    <span class="absolute -bottom-0.5 -right-0.5 grid h-7 w-7 place-items-center rounded-full bg-teal-600 text-sm text-white ring-2 ring-white" aria-hidden="true">📷</span>
+                </label>
+                <input id="photo-profil" type="file" name="avatar" accept="image/*" class="sr-only"
+                       onchange="if (this.files[0]) { this.form.querySelector('[data-photo-texte]').textContent = 'Envoi de la photo…'; this.form.submit(); }">
+                <div class="min-w-0">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-teal-600">Mon compte</p>
+                    <h1 class="mt-0.5 truncate text-2xl sm:text-3xl font-bold text-gray-900">Bonjour {{ $user->name }}</h1>
+                    <label for="photo-profil" class="mt-0.5 inline-block cursor-pointer text-sm font-semibold text-teal-700 hover:text-teal-900" data-photo-texte>
+                        {{ $user->avatar ? 'Modifier la photo de profil' : '📷 Mettre une photo de profil' }}
+                    </label>
+                    @error('avatar')
+                        <p class="mt-1 text-sm font-semibold text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+            </form>
             <div class="flex items-center gap-2">
                 <a href="{{ route('profiles.show', $user) }}"
                    class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">

@@ -211,6 +211,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/mon-compte/notifications/preferences', [ProfileSettingsController::class, 'notificationPreferences'])->name('account.notifications.preferences');
     Route::get('/mon-profil/modifier', [ProfileSettingsController::class, 'edit'])->name('account.profile.edit');
     Route::put('/mon-profil/modifier', [ProfileSettingsController::class, 'update'])->name('account.profile.update');
+    Route::post('/mon-profil/photo', [ProfileSettingsController::class, 'photo'])->name('account.profile.photo');
 
     Route::get('/deposer-une-annonce', [ListingManageController::class, 'create'])->name('account.listings.create');
     Route::post('/deposer-une-annonce', [ListingManageController::class, 'store'])->name('account.listings.store');

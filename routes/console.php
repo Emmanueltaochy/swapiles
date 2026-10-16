@@ -75,3 +75,6 @@ Schedule::call(fn () => \App\Support\Vacances::terminerLesRetours())->hourlyAt(2
 
 // Badge « Répond vite » : délai de réponse habituel recalculé chaque nuit.
 Schedule::call(fn () => \App\Support\TempsReponse::recalculerTout())->dailyAt('03:35')->name('vendeurs:temps-reponse')->withoutOverlapping();
+
+// « Nouveautés de vos dressings » : récap à 18 h chez chaque membre.
+Schedule::call(fn () => \App\Support\NouveautesDressings::envoyer())->hourlyAt(10)->name('dressings:nouveautes')->withoutOverlapping();

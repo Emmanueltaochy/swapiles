@@ -47,6 +47,7 @@ class Listing extends Model
     ];
 
     protected $casts = [
+        'offre_favoris_at' => 'datetime',
         'couleurs' => 'array',
         'category_avant' => 'array',
         'also_territoires' => 'array',

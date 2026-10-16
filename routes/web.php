@@ -354,6 +354,7 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::post('/annonce/{listing}/offre', [ListingOfferController::class, 'store'])->middleware('auth')->name('offers.store');
+Route::post('/annonce/{listing}/offre-favoris', [ListingOfferController::class, 'offreFavoris'])->middleware(['auth', 'throttle:10,1'])->name('offers.favoris');
 
 Route::post('/offres/{offer}/accepter', [ListingOfferController::class, 'accept'])->middleware('auth')->name('offers.accept');
 Route::post('/offres/{offer}/refuser', [ListingOfferController::class, 'refuse'])->middleware('auth')->name('offers.refuse');

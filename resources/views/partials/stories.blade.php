@@ -105,8 +105,18 @@
                 if (lireVu(r.dataset.storyRond) >= parseInt(r.dataset.storyDernier, 10)) r.dataset.storyVu = '1';
             });
         }
-        document.addEventListener('turbo:load', peindreRonds);
+        // Arrivée depuis la notification « Nouveautés de vos dressings » : on
+        // ouvre directement la première story pas encore vue.
+        function ouvrirDepuisNotification() {
+            if (!/[?&]stories=1\b/.test(location.search)) return;
+            var rond = document.querySelector('[data-story-rond][data-story-vu="0"]') || document.querySelector('[data-story-rond]');
+            if (rond) ouvrir(rond);
+            history.replaceState(null, '', location.pathname);
+        }
+
+        document.addEventListener('turbo:load', function () { peindreRonds(); ouvrirDepuisNotification(); });
         peindreRonds();
+        setTimeout(ouvrirDepuisNotification, 0);
 
         function marquerVu(rond) {
             rond.dataset.storyVu = '1';

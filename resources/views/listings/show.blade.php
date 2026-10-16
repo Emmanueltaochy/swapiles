@@ -370,6 +370,23 @@
                                                 @endif
                                             </div>
                                         @else
+                                        @php $offreSpeciale = $canBuyOnline ? \App\Support\OffreFavoris::offreActive($listing, auth()->user()) : null; @endphp
+                                        @if($offreSpeciale)
+                                            {{-- Offre du vendeur (offre aux favoris ou offre acceptée) : prix réduit, durée limitée. --}}
+                                            <div class="rounded-2xl border-2 border-rose-300 bg-rose-50 p-4">
+                                                <p class="font-bold text-rose-900">🎁 Offre spéciale pour vous</p>
+                                                <p class="mt-0.5 text-sm text-rose-900">
+                                                    <span class="text-2xl font-extrabold">{{ $offreSpeciale->amount }} €</span>
+                                                    <span class="ml-1 text-gray-500 line-through">{{ number_format((float) $listing->price, 0, ',', ' ') }} €</span>
+                                                    @if($offreSpeciale->expire_at)
+                                                        <span class="block text-xs font-semibold">⏳ Encore {{ $offreSpeciale->expire_at->locale('fr')->diffForHumans(now(), \Carbon\CarbonInterface::DIFF_ABSOLUTE) }}</span>
+                                                    @endif
+                                                </p>
+                                                <a href="{{ route('checkout.show', ['listing' => $listing, 'offer' => $offreSpeciale->id]) }}" class="mt-3 block w-full rounded-xl bg-rose-600 px-6 py-3.5 text-center font-bold text-white hover:bg-rose-700">
+                                                    Acheter à {{ $offreSpeciale->amount }} €
+                                                </a>
+                                            </div>
+                                        @endif
                                         @if($canBuyOnline)
                                             <a href="{{ route('checkout.show', $listing) }}" class="block w-full rounded-xl bg-teal-600 px-6 py-4 text-center font-semibold text-white shadow-sm transition hover:bg-teal-700 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
                                                 💳 Acheter par CB sécurisé
@@ -464,6 +481,36 @@
                                         Modifier mon annonce
                                     </a>
 
+                                    {{-- Offre aux favoris : une réduction de 48 h pour ceux qui ont aimé l'article. --}}
+                                    @php
+                                        $nbFans = $listing->status === 'published' ? \App\Support\OffreFavoris::destinataires($listing)->count() : 0;
+                                        $empechementOffre = \App\Support\OffreFavoris::empechement($listing);
+                                    @endphp
+                                    @if($nbFans > 0)
+                                        <div id="offre-favoris" class="scroll-mt-24 rounded-2xl border border-rose-200 bg-rose-50 p-4">
+                                            <p class="font-bold text-gray-900">❤️ {{ $nbFans }} personne{{ $nbFans > 1 ? 's ont' : ' a' }} aimé cet article</p>
+                                            @if($empechementOffre)
+                                                <p class="mt-1 text-sm text-gray-600">{{ $empechementOffre }}</p>
+                                            @else
+                                                <p class="mt-1 text-sm text-gray-700">Proposez-leur une réduction pendant 48 h : ce sont vos acheteurs les plus intéressés.</p>
+                                                <form method="POST" action="{{ route('offers.favoris', $listing) }}" class="mt-3 space-y-2"
+                                                      onsubmit="return confirm('Envoyer cette offre à {{ $nbFans }} personne{{ $nbFans > 1 ? 's' : '' }} ?');">
+                                                    @csrf
+                                                    <div class="grid grid-cols-3 gap-2">
+                                                        @foreach(\App\Support\OffreFavoris::REDUCTIONS as $pct)
+                                                            <label class="cursor-pointer rounded-xl border border-gray-200 bg-white px-2 py-2 text-center text-sm has-[:checked]:border-rose-500 has-[:checked]:bg-rose-100">
+                                                                <input type="radio" name="reduction" value="{{ $pct }}" class="sr-only" @checked($pct === 10)>
+                                                                <span class="block font-bold text-gray-900">−{{ $pct }} %</span>
+                                                                <span class="block text-xs text-gray-500">{{ \App\Support\OffreFavoris::prix($listing, $pct) }} €</span>
+                                                            </label>
+                                                        @endforeach
+                                                    </div>
+                                                    <button class="w-full rounded-xl bg-rose-600 px-5 py-3 font-bold text-white hover:bg-rose-700">🎁 Envoyer l’offre</button>
+                                                </form>
+                                            @endif
+                                        </div>
+                                    @endif
+
                                     <div class="grid grid-cols-1 gap-2" id="fin-annonce">
                                         <p class="text-sm font-semibold text-gray-700">L’article est parti ? Dites-nous comment :</p>
                                         @if($listing->price > 0)
@@ -527,6 +574,22 @@
                             'shareText' => $shareText,
                             'campaign' => $shareCampaign,
                         ])
+                        {{-- Image verticale prête pour une story Instagram / WhatsApp. --}}
+                        @php $photoStory = $listing->images->sortBy('order')->first()?->url; @endphp
+                        <button type="button" data-story-partage
+                                data-id="{{ $listing->id }}"
+                                data-photo="{{ $photoStory }}"
+                                data-logo="{{ asset('images/logo.png') }}"
+                                data-titre="{{ $listing->title }}"
+                                data-prix-texte="{{ (float) $listing->price > 0 ? number_format((float) $listing->price, 0, ',', ' ') . ' €' : 'Gratuit' }}"
+                                data-ile="{{ $listing->territoire }}"
+                                data-vendeur="{{ $listing->user->name ?? '' }}"
+                                data-texte="{{ $shareText }}"
+                                data-lien="{{ $shareBase . (str_contains($shareBase, '?') ? '&' : '?') . 'utm_source=story&utm_medium=share&utm_campaign=' . $shareCampaign }}"
+                                class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-600 via-rose-500 to-amber-400 px-4 py-3 text-sm font-bold text-white shadow-sm hover:opacity-95">
+                            📸 Partager en story Instagram / WhatsApp
+                        </button>
+                        <script defer src="{{ asset('js/story-partage.js') }}?v={{ @filemtime(public_path('js/story-partage.js')) }}"></script>
                     </div>
 
                     {{-- Protection acheteur --}}

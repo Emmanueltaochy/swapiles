@@ -119,6 +119,7 @@ class User extends Authenticatable implements FilamentUser
     ];
 
     protected $casts = [
+        'nouveautes_envoyees_at' => 'datetime',
         'email_verified_at' => 'datetime',
         'notification_prefs' => 'array',
         'recommandations_envoyees_at' => 'datetime',

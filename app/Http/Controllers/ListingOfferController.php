@@ -177,4 +177,24 @@ class ListingOfferController extends Controller
             ])
             ->with('status', 'Contre-offre envoyée.');
     }
+
+    /** Le vendeur envoie une réduction de 48 h à ceux qui ont aimé l'article. */
+    public function offreFavoris(Request $request, \App\Models\Listing $listing)
+    {
+        abort_unless($listing->user_id === Auth::id(), 403);
+
+        $data = $request->validate([
+            'reduction' => ['required', 'integer', \Illuminate\Validation\Rule::in(\App\Support\OffreFavoris::REDUCTIONS)],
+        ]);
+
+        if ($erreur = \App\Support\OffreFavoris::empechement($listing)) {
+            return back()->with('status', $erreur);
+        }
+
+        $n = \App\Support\OffreFavoris::envoyer($listing, (int) $data['reduction']);
+
+        return back()->with('status', $n > 0
+            ? '🎁 Offre envoyée à ' . $n . ' personne' . ($n > 1 ? 's' : '') . ' : ' . \App\Support\OffreFavoris::prix($listing, (int) $data['reduction']) . ' € pendant 48 h.'
+            : 'Personne n’a encore mis cet article en favori.');
+    }
 }

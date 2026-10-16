@@ -368,6 +368,9 @@
                                             @if($listing->status === 'published')
                                                 {{-- Vendue : on passe par la fiche, qui demande à qui (sinon
                                                      impossible de distinguer une vente d'un simple retrait). --}}
+                                                @if((int) ($listing->favorited_by_count ?? 0) > 0)
+                                                    <a href="{{ route('listings.show', $listing) }}#offre-favoris" class="block px-3 py-2.5 font-semibold text-rose-700 hover:bg-rose-50">🎁 Offre aux {{ $listing->favorited_by_count }} fans</a>
+                                                @endif
                                                 <a href="{{ route('listings.show', $listing) }}#fin-annonce" class="block px-3 py-2.5 font-semibold text-green-700 hover:bg-green-50">✅ Vendue</a>
                                                 <form method="POST" action="{{ route('account.listings.hide', $listing) }}">
                                                     @csrf @method('PATCH')

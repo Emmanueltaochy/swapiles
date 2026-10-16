@@ -857,6 +857,11 @@ class ListingManageController extends Controller
                 ->whereNotNull('email')
                 ->chunkById(100, function ($followers) use ($listing) {
                     foreach ($followers as $follower) {
+                        // Une alerte par dressing et par jour ; le récap du soir fait le reste.
+                        if (! \App\Support\NouveautesDressings::alerteInstantanee($follower->id, $listing->user_id)) {
+                            continue;
+                        }
+
                         \App\Models\Notification::create([
                             'user_id' => $follower->id,
                             'type' => 'seller_published_listing',

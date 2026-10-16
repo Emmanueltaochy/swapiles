@@ -34,7 +34,7 @@ class NotificationPreferences
         'vendeurs_suivis' => [
             'label' => 'Dressings que vous suivez',
             'description' => 'Quand un membre que vous suivez publie un article.',
-            'types' => ['seller_published_listing', 'listing_available_colissimo'],
+            'types' => ['seller_published_listing', 'listing_available_colissimo', 'dressings_nouveautes'],
             'defaut' => true,
         ],
         'parrainage' => [
@@ -63,8 +63,8 @@ class NotificationPreferences
         ],
         'favoris_suivis' => [
             'label' => 'Vos favoris',
-            'description' => 'Baisse de prix et rappel sur les articles que vous avez aimés.',
-            'types' => ['favorite_price_drop', 'favorite_reminder'],
+            'description' => 'Baisse de prix, offre spéciale et rappel sur les articles que vous avez aimés.',
+            'types' => ['favorite_price_drop', 'favorite_reminder', 'favorite_offer'],
             'defaut' => true,
             // L'e-mail de rappel des favoris existe à part : ici, le téléphone.
             'canaux' => ['push'],

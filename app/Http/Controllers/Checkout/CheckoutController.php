@@ -67,7 +67,8 @@ class CheckoutController extends Controller
         $offer = null;
 
         if ($request->filled('offer')) {
-            $offer = ListingOffer::where('id', $request->input('offer'))
+            // Une offre spéciale expirée (48 h) ne s'applique plus.
+            $offer = ListingOffer::valide()->where('id', $request->input('offer'))
                 ->where('listing_id', $listing->id)
                 ->where('buyer_id', Auth::id())
                 ->where('status', 'accepted')

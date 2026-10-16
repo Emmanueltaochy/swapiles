@@ -46,6 +46,8 @@ class PushSuivi
         'relay_pickup_reminder' => 'Relance : colis à retirer',
         'favorite_added' => 'Mise en favori',
         'favorite_price_drop' => 'Baisse de prix d’un favori',
+        'favorite_offer' => 'Offre spéciale aux favoris',
+        'dressings_nouveautes' => 'Nouveautés des dressings suivis',
         'favorite_reminder' => 'Rappel d’un favori',
         'listing_viewed' => 'Annonce consultée',
         'seller_published_listing' => 'Nouvel article d’un dressing suivi',

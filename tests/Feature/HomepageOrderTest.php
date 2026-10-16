@@ -66,8 +66,9 @@ class HomepageOrderTest extends TestCase
         $html = $this->get('/')->assertOk()->getContent();
 
         $recherche = strpos($html, 'Que recherches-tu');
-        // « Nouveautés » n'apparaît que dans la barre de catégories.
-        $categories = strpos($html, 'Nouveautés');
+        // La barre de catégories (« ✨ Nouveautés ») vient après la recherche ;
+        // les stories « Nouveautés des dressings », elles, sont tout en haut.
+        $categories = strpos($html, 'Nouveautés', (int) $recherche);
         $reassurance = strpos($html, 'Paiement sécurisé Swap');
 
         $this->assertNotFalse($categories);

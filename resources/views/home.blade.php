@@ -104,6 +104,9 @@
     </div>
 </section>
 
+@if(isset($stories) && $stories->isNotEmpty())
+    @include('partials.stories')
+@endif
 
 @php
     $heroBg = collect([

@@ -79,6 +79,9 @@ class HomeController extends Controller
             \App\Support\Tendances::graine((string) ($request->user()?->id ?? $request->session()->getId())),
         );
 
+        // Stories automatiques : un rond par dressing qui a publié récemment.
+        $stories = \App\Support\Stories::pour($request->user(), $selectedTerritoire);
+
         // Onglet « Depuis toujours » : le top de toute la plateforme.
         $populairesToujours = \App\Support\Tendances::depuisToujours();
 
@@ -131,6 +134,7 @@ class HomeController extends Controller
             'globalShippableListings' => $globalShippableListings,
             'popularListings' => $popularListings,
             'populairesToujours' => $populairesToujours,
+            'stories' => $stories,
             'securePaymentListingsCount' => $securePaymentListingsCount,
             'membersCount' => $membersCount,
             'todayListingsCount' => $todayListingsCount,

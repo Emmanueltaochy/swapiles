@@ -36,6 +36,9 @@ use App\Http\Controllers\ListingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+// Stories automatiques : les nouveautés d'un dressing (visionneuse de l'accueil).
+Route::get('/stories/{user}', [\App\Http\Controllers\StoryController::class, 'show'])->middleware('throttle:120,1')->name('stories.show');
+Route::post('/stories/{user}/vu', [\App\Http\Controllers\StoryController::class, 'vu'])->middleware(['auth', 'throttle:120,1'])->name('stories.vu');
 
 // Fichiers de vérification permettant aux liens swapiles.com d'ouvrir
 // directement l'application quand elle est installée (App Links / Universal

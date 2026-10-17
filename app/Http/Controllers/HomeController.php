@@ -402,13 +402,16 @@ class HomeController extends Controller
         // Point 17 : journaliser une recherche textuelle SANS résultat (hors bots),
         // pour révéler la demande hors catalogue. Le terme est aussi passé à la
         // vue pour proposer une alerte e-mail.
-        $noResultTerm = \App\Support\SearchLogger::record(
+        // Une recherche = sa première page (pas la suite chargée au défilement).
+        $premierePage = (int) $request->input('page', 1) <= 1 && ! $request->hasHeader('X-Swp-Infini');
+        $noResultTerm = $premierePage ? \App\Support\SearchLogger::record(
             (string) $request->input('q', ''),
             $listings->total(),
             optional($request->user())->id,
             (string) $request->userAgent(),
-            $request->attributes->get('swp_vid') ?? $request->cookie('swp_vid')
-        );
+            $request->attributes->get('swp_vid') ?? $request->cookie('swp_vid'),
+            ($selectedTerritoire ?? '') ?: null
+        ) : null;
 
         return view('search', compact('listings', 'selectedTerritoire', 'categoryTree', 'localCount', 'noResultTerm'));
     }

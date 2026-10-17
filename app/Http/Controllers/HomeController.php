@@ -220,16 +220,8 @@ class HomeController extends Controller
             ->where('status', 'published');
 
         if ($request->filled('q')) {
-            $search = trim($request->q);
-
-            $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', '%' . $search . '%')
-                  ->orWhere('description', 'like', '%' . $search . '%')
-                  ->orWhere('marque', 'like', '%' . $search . '%')
-                  ->orWhere('category_level1', 'like', '%' . $search . '%')
-                  ->orWhere('category_level2', 'like', '%' . $search . '%')
-                  ->orWhere('category_level3', 'like', '%' . $search . '%');
-            });
+            // Mot par mot : « jardin plante » trouve « Plante verte » rangée dans Jardin.
+            \App\Support\RechercheTexte::appliquer($query, (string) $request->q);
         }
 
         if ($request->filled('category')) {

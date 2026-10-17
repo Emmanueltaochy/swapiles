@@ -381,12 +381,7 @@ Route::get('/recherche/live', function (\Illuminate\Http\Request $request) {
 
     $listings = \App\Models\Listing::with(['images', 'user'])
         ->where('status', 'published')
-        ->where(function ($query) use ($q) {
-            $query->where('title', 'like', "%{$q}%")
-                ->orWhere('description', 'like', "%{$q}%")
-                ->orWhere('marque', 'like', "%{$q}%")
-                ->orWhere('category_level1', 'like', "%{$q}%");
-        })
+        ->where(fn ($query) => \App\Support\RechercheTexte::appliquer($query, $q))
         ->latest()
         ->take(6)
         ->get();

@@ -70,13 +70,6 @@ class SearchLogger
             return true;
         }
 
-        return Listing::query()
-            ->where('status', 'published')
-            ->where(function ($q) use ($terme) {
-                foreach (['title', 'description', 'marque', 'category_level1', 'category_level2', 'category_level3'] as $champ) {
-                    $q->orWhere($champ, 'like', '%' . $terme . '%');
-                }
-            })
-            ->exists();
+        return RechercheTexte::appliquer(Listing::query()->where('status', 'published'), $terme)->exists();
     }
 }

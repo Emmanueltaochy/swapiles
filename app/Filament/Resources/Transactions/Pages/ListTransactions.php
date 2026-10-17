@@ -5,11 +5,39 @@ namespace App\Filament\Resources\Transactions\Pages;
 use App\Filament\Resources\Transactions\TransactionResource;
 use App\Support\CsvExport;
 use Filament\Actions\CreateAction;
+use App\Models\Transaction;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Schemas\Components\Tabs\Tab;
+use Illuminate\Database\Eloquent\Builder;
 
 class ListTransactions extends ListRecords
 {
     protected static string $resource = TransactionResource::class;
+
+    /**
+     * Onglets : les ventes réussies d'abord, les paiements abandonnés et
+     * annulations à part (ils noyaient les vraies ventes).
+     */
+    public function getTabs(): array
+    {
+        $onglet = fn (string $libelle, ?array $statuts, string $icone) => Tab::make($libelle)
+            ->icon($icone)
+            ->badge(fn () => $statuts ? Transaction::whereIn('status', $statuts)->count() : Transaction::count())
+            ->modifyQueryUsing(fn (Builder $query) => $statuts ? $query->whereIn('status', $statuts) : $query);
+
+        return [
+            'reussies' => $onglet('Réussies', ['paid', 'completed'], 'heroicon-m-check-circle')->badgeColor('success'),
+            'en_cours' => $onglet('Paiement en cours', ['pending'], 'heroicon-m-clock')->badgeColor('warning'),
+            'annulees' => $onglet('Annulées', ['cancelled'], 'heroicon-m-x-circle')->badgeColor('gray'),
+            'remboursees' => $onglet('Remboursées', ['refunded'], 'heroicon-m-arrow-uturn-left')->badgeColor('danger'),
+            'toutes' => $onglet('Toutes', null, 'heroicon-m-queue-list')->badgeColor('gray'),
+        ];
+    }
+
+    public function getDefaultActiveTab(): string|int|null
+    {
+        return 'reussies';
+    }
 
     protected function getHeaderActions(): array
     {

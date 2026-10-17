@@ -11,6 +11,17 @@ class ListUsers extends ListRecords
 {
     protected static string $resource = UserResource::class;
 
+    /** Avant le tableau : membres par île et indicateurs clés. */
+    protected function getHeaderWidgets(): array
+    {
+        return [\App\Filament\Widgets\Membres\IndicateursMembres::class];
+    }
+
+    public function getHeaderWidgetsColumns(): int|array
+    {
+        return 1;
+    }
+
     protected function getHeaderActions(): array
     {
         return [

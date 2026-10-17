@@ -92,6 +92,24 @@ class RelayPointResource extends Resource
             Toggle::make('is_active')
                 ->label('Actif (proposé au paiement)')
                 ->default(true),
+            \Filament\Schemas\Components\Section::make('🤝 Enseigne partenaire (RSE)')
+                ->description('Badge et logo dans l’appli, et rapport d’impact mensuel à envoyer à l’enseigne.')
+                ->schema([
+                    TextInput::make('partenaire_enseigne')
+                        ->label('Enseigne (laisser vide si ce n’est pas un partenaire)')
+                        ->placeholder('Ex : Leclerc Saint-Denis')
+                        ->maxLength(120),
+                    \Filament\Forms\Components\FileUpload::make('partenaire_logo')
+                        ->label('Logo de l’enseigne')
+                        ->image()
+                        ->disk('public')
+                        ->directory('partenaires')
+                        ->maxSize(1024),
+                    \Filament\Forms\Components\DatePicker::make('partenaire_depuis')
+                        ->label('Partenaire depuis le'),
+                ])
+                ->columnSpanFull()
+                ->collapsible(),
         ]);
     }
 
@@ -109,6 +127,12 @@ class RelayPointResource extends Resource
                     ->label('Territoire')
                     ->badge()
                     ->sortable(),
+                TextColumn::make('partenaire_enseigne')
+                    ->label('Partenaire')
+                    ->badge()
+                    ->color('success')
+                    ->placeholder('—')
+                    ->formatStateUsing(fn ($state) => '🤝 ' . $state),
                 TextColumn::make('manager.email')
                     ->label('Contact')
                     ->default('—')
@@ -136,6 +160,12 @@ class RelayPointResource extends Resource
                     ->label('Actif'),
             ])
             ->recordActions([
+                \Filament\Actions\Action::make('rapport')
+                    ->label('Rapport d’impact')
+                    ->icon('heroicon-o-document-chart-bar')
+                    ->iconButton()
+                    ->tooltip('Rapport d’impact à envoyer à l’enseigne (lien privé)')
+                    ->url(fn (RelayPoint $record) => $record->lienRapport(), shouldOpenInNewTab: true),
                 EditAction::make()->iconButton()->tooltip('Modifier'),
                 DeleteAction::make()->iconButton()->tooltip('Supprimer'),
             ]);

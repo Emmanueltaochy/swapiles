@@ -29,7 +29,8 @@ class RelayPointsController extends Controller
 
         $points = RelayPoint::query()->active()
             ->where('territoire', $ile)
-            ->orderBy('city')->orderBy('name')
+            // Les enseignes partenaires d'abord, dans chaque ville.
+            ->orderBy('city')->orderByRaw('partenaire_enseigne IS NULL')->orderBy('name')
             ->get();
 
         return view('relay.points', [

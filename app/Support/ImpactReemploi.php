@@ -63,11 +63,27 @@ class ImpactReemploi
         return $depuis ? $lignes->filter(fn ($l) => $l['date']->gte($depuis))->values() : $lignes;
     }
 
-    private static function ligne(?Carbon $date, string $type, ?Listing $annonce, bool $relais): array
+    /**
+     * Poids (kg) et CO2 évité (kg CO2e) estimés pour un article.
+     *
+     * @return array{poids:float,co2:float}
+     */
+    public static function facteurs(?Listing $annonce): array
     {
         $categorie = $annonce?->category_level1 ? mb_strtolower($annonce->category_level1) : null;
         $facteurs = config('impact.categories.' . $categorie) ?? config('impact.defaut');
-        $poids = (float) ($annonce?->weight_kg ?: $facteurs['poids']);
+
+        return [
+            'poids' => (float) ($annonce?->weight_kg ?: $facteurs['poids']),
+            'co2' => (float) $facteurs['co2'],
+        ];
+    }
+
+    private static function ligne(?Carbon $date, string $type, ?Listing $annonce, bool $relais): array
+    {
+        $categorie = $annonce?->category_level1 ? mb_strtolower($annonce->category_level1) : null;
+        $facteurs = self::facteurs($annonce);
+        $poids = $facteurs['poids'];
 
         return [
             'date' => $date ?? now(),

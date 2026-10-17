@@ -183,6 +183,10 @@ Route::get('/points-relais', [\App\Http\Controllers\RelayPointsController::class
 Route::post('/points-relais/demande', [\App\Http\Controllers\RelayPointsController::class, 'demander'])
     ->middleware('throttle:5,1')->name('relay.points.request');
 Route::get('/devenir-point-relais', [\App\Http\Controllers\RelayPartnerController::class, 'show'])->name('relay.partner');
+// Enseignes partenaires (RSE) : présentation et rapport d'impact mensuel (lien privé).
+Route::get('/partenaires', [\App\Http\Controllers\PartenairesController::class, 'index'])->name('partenaires.index');
+Route::get('/partenaires/rapport/{jeton}', [\App\Http\Controllers\PartenairesController::class, 'rapport'])
+    ->where('jeton', '[A-Za-z0-9]{40}')->middleware('throttle:60,1')->name('partenaires.rapport');
 Route::post('/devenir-point-relais', [\App\Http\Controllers\RelayPartnerController::class, 'submit'])
     ->middleware('throttle:6,1')->name('relay.partner.contact');
 

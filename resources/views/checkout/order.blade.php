@@ -173,7 +173,7 @@
                                     <option value="">— Choisir un point relais —</option>
                                     @foreach($relayPoints as $rp)
                                         <option value="{{ $rp->id }}" @selected((string) old('relay_point_id') === (string) $rp->id)>
-                                            {{ $rp->name }}@if($rp->city) — {{ $rp->city }}@endif
+                                            {{ $rp->name }}@if($rp->city) — {{ $rp->city }}@endif @if($rp->estPartenaire()) · 🤝 Partenaire @endif
                                         </option>
                                     @endforeach
                                 </select>

@@ -66,7 +66,17 @@
                             $itineraire = 'https://www.google.com/maps/search/?api=1&query=' . urlencode($coords ?: $point->name . ' ' . $point->fullAddress());
                         @endphp
                         <article class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm" data-point-relais>
-                            <p class="font-extrabold text-gray-900">🏪 {{ $point->name }}</p>
+                            <div class="flex items-center gap-3">
+                                @if($point->logoUrl())
+                                    <img src="{{ $point->logoUrl() }}" alt="{{ $point->partenaire_enseigne }}" class="h-10 w-10 shrink-0 rounded-xl border border-gray-100 object-contain" loading="lazy">
+                                @endif
+                                <div class="min-w-0">
+                                    <p class="font-extrabold text-gray-900">🏪 {{ $point->name }}</p>
+                                    @if($point->estPartenaire())
+                                        <span class="mt-0.5 inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800">🤝 Partenaire {{ $point->partenaire_enseigne }}</span>
+                                    @endif
+                                </div>
+                            </div>
                             @if($point->fullAddress())
                                 <p class="mt-1 text-sm text-gray-600">{{ $point->fullAddress() }}</p>
                             @endif

@@ -25,10 +25,14 @@ class RelayPoint extends Model
         'opening_hours',
         'notes',
         'is_active',
+        'partenaire_enseigne',
+        'partenaire_logo',
+        'partenaire_depuis',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'partenaire_depuis' => 'date',
         'latitude' => 'float',
         'longitude' => 'float',
     ];
@@ -99,5 +103,37 @@ class RelayPoint extends Model
         return collect([$this->address, trim(($this->postal_code ?? '').' '.($this->city ?? ''))])
             ->filter()
             ->implode(', ');
+    }
+
+    /** Tenu par une enseigne partenaire (badge et logo dans l'appli). */
+    public function estPartenaire(): bool
+    {
+        return filled($this->partenaire_enseigne);
+    }
+
+    public function logoUrl(): ?string
+    {
+        if (blank($this->partenaire_logo)) {
+            return null;
+        }
+
+        return str_starts_with($this->partenaire_logo, 'http') || str_starts_with($this->partenaire_logo, '/')
+            ? $this->partenaire_logo
+            : \Illuminate\Support\Facades\Storage::disk('public')->url($this->partenaire_logo);
+    }
+
+    /** Jeton du lien de rapport à envoyer au partenaire (créé à la demande). */
+    public function jetonRapport(): string
+    {
+        if (blank($this->rapport_jeton)) {
+            $this->forceFill(['rapport_jeton' => \Illuminate\Support\Str::random(40)])->save();
+        }
+
+        return $this->rapport_jeton;
+    }
+
+    public function lienRapport(): string
+    {
+        return route('partenaires.rapport', $this->jetonRapport());
     }
 }

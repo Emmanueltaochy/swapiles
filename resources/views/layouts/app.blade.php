@@ -779,6 +779,7 @@ document.addEventListener('turbo:load', function () {
                 <a href="{{ route('dressings.top') }}" class="block text-gray-500 hover:text-teal-700">🏆 Meilleurs dressings</a>
                 <a href="{{ route('relay.points') }}" class="block text-gray-500 hover:text-teal-700">📍 Nos points relais</a>
                 <a href="{{ route('relay.partner') }}" class="block text-gray-500 hover:text-teal-700">🏪 Devenir point relais</a>
+                <a href="{{ route('partenaires.index') }}" class="block text-gray-500 hover:text-teal-700">🤝 Enseignes partenaires</a>
             </div>
 
             <div>

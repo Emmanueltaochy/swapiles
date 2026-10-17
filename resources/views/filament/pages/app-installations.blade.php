@@ -36,6 +36,23 @@
     </div>
 
     <x-filament::section>
+        <x-slot name="heading">🔗 Lien unique swapiles.com/app</x-slot>
+        <x-slot name="description">iPhone → App Store, Android → Google Play, ordinateur → page avec les deux boutons. À mettre en bio Instagram, sur les affiches, dans les messages.</x-slot>
+        @php $plat = $clics['par_plateforme']; @endphp
+        <div class="ai-ligne"><span>Clics ces 30 derniers jours</span><span>{{ $n($clics['total']) }}</span></div>
+        <div class="ai-ligne"><span>🍎 Envoyés vers l’App Store</span><span>{{ $n($plat['ios'] ?? 0) }}</span></div>
+        <div class="ai-ligne"><span>🤖 Envoyés vers Google Play</span><span>{{ $n($plat['android'] ?? 0) }}</span></div>
+        <div class="ai-ligne"><span>💻 Depuis un ordinateur</span><span>{{ $n($plat['web'] ?? 0) }}</span></div>
+        @if(count($clics['par_source']) > 0)
+            <div style="margin-top:.6rem;font-weight:700;font-size:.85rem;">D’où viennent les clics</div>
+            @foreach($clics['par_source'] as $source => $nb)
+                <div class="ai-ligne"><span>{{ $source }}</span><span>{{ $n($nb) }}</span></div>
+            @endforeach
+        @endif
+        <p class="ai-note" style="margin-top:.6rem;">Astuce : ajoutez « ?src=… » pour savoir d’où vient le clic, par exemple <strong>swapiles.com/app?src=insta</strong>, <strong>swapiles.com/app?src=tiktok</strong> ou <strong>swapiles.com/app?src=affiche</strong>.</p>
+    </x-filament::section>
+
+    <x-filament::section>
         <x-slot name="heading">Comment lire ces chiffres</x-slot>
         <div class="ai-note">
             <p>✅ <strong>Installations ouvertes</strong> : chaque appli installée compte dès qu'elle est lancée une fois. Un identifiant anonyme est tiré au hasard sur le téléphone (aucun lien avec le compte). Une appli désinstallée puis réinstallée compte comme une nouvelle installation.</p>

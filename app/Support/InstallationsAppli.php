@@ -109,4 +109,24 @@ class InstallationsAppli
 
         return $min ? Carbon::parse($min) : null;
     }
+
+    /**
+     * Clics sur le lien unique swapiles.com/app, 30 derniers jours.
+     *
+     * @return array{total:int,par_plateforme:array<string,int>,par_source:array<string,int>}
+     */
+    public static function clicsLien(int $jours = 30): array
+    {
+        if (! Schema::hasTable('app_lien_clics')) {
+            return ['total' => 0, 'par_plateforme' => [], 'par_source' => []];
+        }
+
+        $base = DB::table('app_lien_clics')->where('created_at', '>=', now()->subDays($jours));
+
+        return [
+            'total' => (clone $base)->count(),
+            'par_plateforme' => (clone $base)->selectRaw('plateforme, COUNT(*) as n')->groupBy('plateforme')->pluck('n', 'plateforme')->map(fn ($n) => (int) $n)->all(),
+            'par_source' => (clone $base)->selectRaw("COALESCE(source, 'sans précision') as s, COUNT(*) as n")->groupBy('s')->orderByDesc('n')->pluck('n', 's')->map(fn ($n) => (int) $n)->all(),
+        ];
+    }
 }

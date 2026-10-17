@@ -139,6 +139,11 @@ Route::get('/confidentialite', [\App\Http\Controllers\LegalController::class, 'c
 Route::get('/faq', [\App\Http\Controllers\LegalController::class, 'faq'])->name('faq');
 Route::get('/meilleurs-dressings', [\App\Http\Controllers\LeaderboardController::class, 'index'])->name('dressings.top');
 // Parrainage (désactivé par défaut : REFERRAL_ENABLED ; admins et testeurs en avance).
+// Lien unique vers l'appli (bio Instagram, affiches) : le bon store selon le téléphone.
+Route::get('/app', \App\Http\Controllers\AppLienController::class)->name('app.lien');
+Route::get('/installer', \App\Http\Controllers\AppLienController::class);
+Route::get('/install', \App\Http\Controllers\AppLienController::class);
+Route::get('/telecharger', \App\Http\Controllers\AppLienController::class);
 Route::get('/invite/{code}', [\App\Http\Controllers\ParrainageController::class, 'invite'])
     ->where('code', '[A-Za-z0-9]{2,20}')->middleware('throttle:60,1')->name('parrainage.invite');
 Route::get('/conditions-parrainage', [\App\Http\Controllers\ParrainageController::class, 'conditions'])->name('parrainage.conditions');

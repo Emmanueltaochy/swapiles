@@ -197,5 +197,30 @@ class DressingLeaderboardTest extends TestCase
         $this->assertSame(1, (int) $ligne->favorites);
         $this->get(route('profiles.show', $lea))->assertOk()->assertViewHas('totalViewsCount', 150)->assertViewHas('totalFavoritesCount', 1);
     }
+
+    public function test_une_vente_compte_une_fois_meme_annonce_supprimee_et_pas_si_contestee(): void
+    {
+        $lea = $this->seller('lea4@ex.com');
+        $acheteur = $this->seller('acheteur4@ex.com');
+        $vendre = function (Listing $l, array $plus = []) use ($lea, $acheteur) {
+            return Transaction::create($plus + [
+                'listing_id' => $l->id, 'seller_id' => $lea->id, 'buyer_id' => $acheteur->id,
+                'amount' => 20, 'seller_amount' => 20, 'commission' => 0, 'buyer_protection_fee' => 0,
+                'shipping_fee' => 0, 'currency' => 'EUR', 'payment_method' => 'especes',
+                'delivery_method' => 'hand_delivery', 'status' => 'completed', 'shipping_status' => 'hand_delivered',
+            ]);
+        };
+
+        $a = $this->listing($lea); $a->update(['status' => 'sold']); $vendre($a);          // vendue + enregistrée : 1
+        $b = $this->listing($lea); $b->update(['status' => 'sold']); $vendre($b); $b->delete(); // supprimée après la vente : 1
+        $c = $this->listing($lea); $c->update(['status' => 'sold']);                        // ancien bouton « Vendue » : 1
+        $d = $this->listing($lea); $d->update(['status' => 'sold']);
+        $vendre($d, ['acheteur_conteste_at' => now()]);                                     // contestée mais annonce close : 1 (close)
+        $e = $this->listing($lea); $vendre($e, ['acheteur_conteste_at' => now()]);          // contestée, annonce encore en ligne : 0
+
+        $this->assertSame(4, DressingLeaderboard::ventes([$lea->id])[$lea->id]);
+        $this->assertSame(4, DressingLeaderboard::ranked()->firstWhere('user_id', $lea->id)->sales);
+        $this->get(route('profiles.show', $lea))->assertOk()->assertViewHas('soldListingsCount', 4);
+    }
 }
 

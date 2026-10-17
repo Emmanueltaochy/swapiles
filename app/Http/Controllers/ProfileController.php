@@ -25,9 +25,8 @@ class ProfileController extends Controller
 
         $reviewsCount = $user->reviewsReceived()->count();
 
-        $soldListingsCount = $user->listings()
-            ->where('status', 'sold')
-            ->count();
+        // Même calcul que le classement des dressings.
+        $soldListingsCount = (int) (\App\Support\DressingLeaderboard::ventes([$user->id])[$user->id] ?? 0);
 
         $publishedListingsCount = $user->listings()
             ->where('status', 'published')

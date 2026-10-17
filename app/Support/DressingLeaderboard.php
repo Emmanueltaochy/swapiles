@@ -33,6 +33,44 @@ class DressingLeaderboard
      */
     public const STATUTS_COMPTES = ['published', 'sold', 'vacances'];
 
+    /**
+     * Nombre d'articles vendus par vendeur : chaque annonce compte une fois,
+     * qu'elle ait une vente enregistrée (payée en ligne, main propre, échange,
+     * don, même si l'annonce a été supprimée depuis) ou qu'elle ait été close
+     * avec l'ancien bouton « Vendue » (avant le 12/10/2026, sans vente
+     * enregistrée). Une vente contestée par l'acheteur ne compte pas.
+     *
+     * @param  array<int,int>  $vendeurs
+     * @return \Illuminate\Support\Collection<int,int> nombre par vendeur
+     */
+    public static function ventes(array $vendeurs): Collection
+    {
+        if ($vendeurs === []) {
+            return collect();
+        }
+
+        $parVente = Transaction::query()
+            ->whereIn('seller_id', $vendeurs)
+            ->whereIn('status', ['paid', 'completed'])
+            ->whereNull('acheteur_conteste_at')
+            ->whereNotNull('listing_id')
+            ->select('seller_id as uid', 'listing_id as lid')
+            ->toBase();
+
+        $closes = Listing::query()
+            ->whereIn('user_id', $vendeurs)
+            ->where('status', 'sold')
+            ->select('user_id as uid', 'id as lid')
+            ->toBase();
+
+        // UNION (sans ALL) : une annonce vendue ET enregistrée ne compte qu'une fois.
+        return DB::query()->fromSub($parVente->union($closes), 'v')
+            ->groupBy('uid')
+            ->selectRaw('uid, COUNT(*) as c')
+            ->pluck('c', 'uid')
+            ->map(fn ($c) => (int) $c);
+    }
+
     public static function ranked(): Collection
     {
         $points = config('leaderboard.points');
@@ -71,28 +109,8 @@ class DressingLeaderboard
             ->selectRaw('receiver_id as uid, COUNT(*) as c')
             ->pluck('c', 'uid');
 
-        // Ventes : transactions payées ou terminées…
-        $sales = Transaction::query()
-            ->whereIn('seller_id', $sellerIds)
-            ->whereIn('status', ['paid', 'completed'])
-            ->groupBy('seller_id')
-            ->selectRaw('seller_id as uid, COUNT(*) as c')
-            ->pluck('c', 'uid');
-
-        // … plus les annonces « vendues » sans vente enregistrée : jusqu'au
-        // 12/10/2026, le bouton « Vendue » clôturait l'annonce sans créer de
-        // vente. Sans elles, le classement affichait moins de ventes que le
-        // profil (« 8 vendues » d'un côté, « 4 » de l'autre).
-        $venduesSansVente = Listing::query()
-            ->whereIn('user_id', $sellerIds)
-            ->where('status', 'sold')
-            ->whereNotIn('id', Transaction::query()->whereIn('status', ['paid', 'completed'])->select('listing_id'))
-            ->groupBy('user_id')
-            ->selectRaw('user_id as uid, COUNT(*) as c')
-            ->pluck('c', 'uid');
-        foreach ($venduesSansVente as $uid => $n) {
-            $sales[$uid] = (int) ($sales[$uid] ?? 0) + (int) $n;
-        }
+        // Ventes : même calcul que le « X vendues » du profil.
+        $sales = self::ventes($sellerIds);
 
         // Avis reçus.
         $reviews = Review::query()

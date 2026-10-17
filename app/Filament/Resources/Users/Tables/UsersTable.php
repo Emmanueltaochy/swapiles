@@ -98,14 +98,50 @@ class UsersTable
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
+                static::demanderNoteAction(),
                 static::toggleBanAction(),
                 static::deleteAndBlockAction(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    \Filament\Actions\BulkAction::make('demanderNote')
+                        ->label('⭐ Demander une note de l’appli')
+                        ->icon('heroicon-o-star')
+                        ->color('warning')
+                        ->requiresConfirmation()
+                        ->modalHeading('Demander une note de l’appli')
+                        ->modalDescription('Chaque membre sélectionné reçoit une notification (dans l’appli et sur son téléphone) qui ouvre la page d’avis du bon store. Ceux déjà sollicités ces ' . \App\Support\NoteAppli::DELAI_JOURS . ' derniers jours sont ignorés.')
+                        ->modalSubmitActionLabel('Envoyer')
+                        ->action(function (\Illuminate\Support\Collection $records) {
+                            $envoyes = $records->filter(fn (User $u) => \App\Support\NoteAppli::demander($u))->count();
+                            FilamentNotification::make()
+                                ->title($envoyes . ' demande(s) envoyée(s)')
+                                ->body(($records->count() - $envoyes) > 0 ? ($records->count() - $envoyes) . ' membre(s) ignoré(s) : déjà sollicité(s) récemment ou banni(s).' : null)
+                                ->success()->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    protected static function demanderNoteAction(): Action
+    {
+        return Action::make('demanderNote')
+            ->label('Demander une note')
+            ->icon('heroicon-o-star')
+            ->color('warning')
+            ->requiresConfirmation()
+            ->modalHeading(fn (User $record) => 'Demander à ' . $record->name . ' de noter l’appli ?')
+            ->modalDescription('Une notification (appli + téléphone) ouvrira la page d’avis de l’App Store ou de Google Play.')
+            ->modalSubmitActionLabel('Envoyer')
+            ->action(function (User $record) {
+                $ok = \App\Support\NoteAppli::demander($record);
+                FilamentNotification::make()
+                    ->title($ok ? 'Demande envoyée ⭐' : 'Pas envoyée : déjà sollicité ces ' . \App\Support\NoteAppli::DELAI_JOURS . ' derniers jours (ou banni).')
+                    ->{$ok ? 'success' : 'warning'}()
+                    ->send();
+            });
     }
 
     protected static function toggleBanAction(): Action

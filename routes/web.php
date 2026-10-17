@@ -144,6 +144,7 @@ Route::get('/app', \App\Http\Controllers\AppLienController::class)->name('app.li
 Route::get('/installer', \App\Http\Controllers\AppLienController::class);
 Route::get('/install', \App\Http\Controllers\AppLienController::class);
 Route::get('/telecharger', \App\Http\Controllers\AppLienController::class);
+Route::get('/noter', \App\Http\Controllers\AppNoteController::class)->name('app.noter');
 Route::get('/invite/{code}', [\App\Http\Controllers\ParrainageController::class, 'invite'])
     ->where('code', '[A-Za-z0-9]{2,20}')->middleware('throttle:60,1')->name('parrainage.invite');
 Route::get('/conditions-parrainage', [\App\Http\Controllers\ParrainageController::class, 'conditions'])->name('parrainage.conditions');

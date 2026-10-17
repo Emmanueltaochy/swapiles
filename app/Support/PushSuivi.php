@@ -48,6 +48,7 @@ class PushSuivi
         'favorite_price_drop' => 'Baisse de prix d’un favori',
         'favorite_offer' => 'Offre spéciale aux favoris',
         'dressings_nouveautes' => 'Nouveautés des dressings suivis',
+        'app_note' => 'Demande de note de l’appli',
         'favorite_reminder' => 'Rappel d’un favori',
         'listing_viewed' => 'Annonce consultée',
         'seller_published_listing' => 'Nouvel article d’un dressing suivi',

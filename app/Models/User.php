@@ -124,6 +124,7 @@ class User extends Authenticatable implements FilamentUser
         'notification_prefs' => 'array',
         'recommandations_envoyees_at' => 'datetime',
         'appli_vue_at' => 'datetime',
+        'note_demandee_at' => 'datetime',
         'is_pro' => 'boolean',
         'is_banned' => 'boolean',
         'rating' => 'decimal:2',

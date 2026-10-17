@@ -61,6 +61,7 @@ class PushPolicy
             'favorite_reminder',
             'live_started_suivi',
             'dressings_nouveautes',
+            'app_note',
         ],
     ];
 

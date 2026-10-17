@@ -40,4 +40,21 @@ class AdminMembresIndicateursTest extends TestCase
         $this->actingAs($admin)->get('/admin/users')->assertOk()
             ->assertSee('Membres par île')->assertSee('Comment ils nous ont connus')->assertSee('Martinique');
     }
+
+    public function test_sources_regroupees_par_canal(): void
+    {
+        $r = MembresIndicateurs::regrouperSources([
+            'Réseaux sociaux : Facebook' => 5,
+            'Réseaux sociaux : Instagram, Facebook' => 2,
+            'Réseaux sociaux (Instagram, TikTok, Facebook…)' => 1,
+            'Publicité en ligne' => 3,
+            'Autre : chatgpt' => 1,
+            'Autre' => 1,
+        ]);
+
+        $this->assertSame(['Réseaux sociaux' => 8, 'Publicité en ligne' => 3, 'Autre' => 2], $r['canaux']);
+        $this->assertSame(['Facebook' => 7, 'Instagram' => 2], $r['reseaux']);
+        $this->assertSame(7, $r['reseaux_precise']);
+        $this->assertSame(['Chatgpt' => 1], $r['autres']);
+    }
 }

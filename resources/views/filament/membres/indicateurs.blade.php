@@ -4,6 +4,7 @@
         $pct = fn ($a, $b) => $b > 0 ? round($a / $b * 100) . ' %' : '—';
         $maxIle = max(1, ...(array_column($c['par_ile'], 'membres') ?: [1]));
         $maxConnu = max(1, ...(array_values($c['comment_connu']) ?: [1]));
+        $maxReseau = max(1, ...(array_values($c['comment_connu_reseaux']) ?: [1]));
         $drapeaux = ['La Réunion' => '🇷🇪', 'Martinique' => '🇲🇶', 'Guadeloupe' => '🇬🇵', 'Guyane' => '🇬🇫', 'La Guyane' => '🇬🇫', 'Mayotte' => '🇾🇹'];
     @endphp
 
@@ -15,7 +16,8 @@
         .mi-kpi .v{font-size:1.4rem;font-weight:900;margin-top:.15rem;font-variant-numeric:tabular-nums;}
         .mi-kpi .s{font-size:.72rem;font-weight:600;opacity:.6;margin-top:.1rem;}
         .mi-deux{display:grid;gap:1rem;grid-template-columns:repeat(2,minmax(0,1fr));}
-        @media(max-width:768px){.mi-deux{grid-template-columns:1fr;}}
+        .mi-deux>*{min-width:0;}
+        @media(max-width:768px){.mi-deux{grid-template-columns:minmax(0,1fr);}}
         .mi-ligne{display:flex;align-items:center;gap:.6rem;margin:.45rem 0;font-size:.85rem;}
         .mi-ligne .nm{width:40%;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
         .mi-piste{flex:1;height:.6rem;border-radius:1rem;background:rgba(148,163,184,.18);overflow:hidden;}
@@ -23,6 +25,17 @@
         .mi-val{min-width:4.5rem;text-align:right;font-weight:800;font-variant-numeric:tabular-nums;}
         .mi-titre{font-weight:800;font-size:.95rem;margin-bottom:.3rem;}
         .mi-note{font-size:.72rem;opacity:.6;}
+        .mi-sous{font-weight:800;font-size:.8rem;opacity:.75;margin:.8rem 0 .2rem;}
+        .mi-puces{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.3rem;}
+        .mi-puces span{font-size:.74rem;font-weight:600;border-radius:1rem;padding:.15rem .55rem;background:rgba(148,163,184,.15);}
+        .mi-nouveaux{margin:-.3rem 0 .3rem;padding-left:40%;}
+        /* Téléphone : le nom passe au-dessus de la barre, rien ne déborde. */
+        @media(max-width:640px){
+            .mi-ligne{flex-wrap:wrap;gap:.25rem .6rem;}
+            .mi-ligne .nm{width:100%;white-space:normal;}
+            .mi-val{min-width:0;}
+            .mi-nouveaux{padding-left:0;margin-top:-.2rem;}
+        }
     </style>
 
     <div style="display:flex;flex-direction:column;gap:1rem;">
@@ -81,7 +94,7 @@
                         <div class="mi-val">{{ $n($l['membres']) }}<span style="font-weight:600;opacity:.6;font-size:.72rem;"> · {{ $pct($l['membres'], $c['total']) }}</span></div>
                     </div>
                     @if($l['nouveaux'] > 0)
-                        <div class="mi-note" style="margin:-.3rem 0 .3rem;padding-left:40%;">+{{ $n($l['nouveaux']) }} ce mois-ci</div>
+                        <div class="mi-note mi-nouveaux">+{{ $n($l['nouveaux']) }} ce mois-ci</div>
                     @endif
                 @endforeach
             </x-filament::section>
@@ -97,7 +110,29 @@
                 @empty
                     <p class="mi-note">Pas encore de réponse.</p>
                 @endforelse
-                <p class="mi-note" style="margin-top:.4rem;">Réponse facultative à l’inscription : {{ $n($c['comment_connu_repondu']) }} membre(s) ont répondu.</p>
+
+                @if($c['comment_connu_reseaux'])
+                    <div class="mi-sous">📱 Détail des réseaux sociaux</div>
+                    @foreach($c['comment_connu_reseaux'] as $reseau => $nb)
+                        <div class="mi-ligne">
+                            <div class="nm">{{ $reseau }}</div>
+                            <div class="mi-piste"><div style="width:{{ max(2, round($nb / $maxReseau * 100)) }}%;background:#a855f7;"></div></div>
+                            <div class="mi-val">{{ $n($nb) }}<span style="font-weight:600;opacity:.6;font-size:.72rem;"> · {{ $pct($nb, $c['comment_connu_reseaux_precise']) }}</span></div>
+                        </div>
+                    @endforeach
+                    <p class="mi-note">Plusieurs réseaux possibles par membre : % parmi les {{ $n($c['comment_connu_reseaux_precise']) }} qui ont précisé.</p>
+                @endif
+
+                @if($c['comment_connu_autres'])
+                    <div class="mi-sous">✍️ Précisions « Autre »</div>
+                    <div class="mi-puces">
+                        @foreach($c['comment_connu_autres'] as $precision => $nb)
+                            <span>{{ $precision }}@if($nb > 1) · {{ $nb }}@endif</span>
+                        @endforeach
+                    </div>
+                @endif
+
+                <p class="mi-note" style="margin-top:.6rem;">Réponse facultative à l’inscription : {{ $n($c['comment_connu_repondu']) }} membre(s) ont répondu.</p>
             </x-filament::section>
         </div>
     </div>

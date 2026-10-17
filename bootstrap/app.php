@@ -31,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('web', \App\Http\Middleware\SecurityHeaders::class);
         // Clic sur une notification push : noté dans le journal (admin).
         $middleware->appendToGroup('web', \App\Http\Middleware\SuiviClicPush::class);
+        $middleware->appendToGroup('web', \App\Http\Middleware\RetenirSourcePub::class);
         $middleware->validateCsrfTokens(except: [
             'stripe/webhook',
         ]);

@@ -99,13 +99,15 @@ Route::get('/.well-known/assetlinks.json', [\App\Http\Controllers\DeepLinkContro
 Route::get('/.well-known/apple-app-site-association', [\App\Http\Controllers\DeepLinkController::class, 'apple'])
     ->name('deeplinks.apple');
 
-Route::get('/territoire/{territoire}', function (string $territoire) {
+Route::get('/territoire/{territoire}', function (\Illuminate\Http\Request $request, string $territoire) {
     $territoires = \App\Support\TerritoireContext::CLES;
 
     abort_unless(isset($territoires[$territoire]), 404);
 
+    // Lien de pub (« /territoire/reunion?utm_source=meta&fbclid=… ») : on garde
+    // les paramètres, sinon Meta et Google perdent la trace du clic.
     return redirect()
-        ->route('home')
+        ->route('home', $request->query())
         ->withCookie(\App\Support\TerritoireContext::cookie($territoires[$territoire]));
 })->name('territoire.switch');
 Route::get('/recherche', [HomeController::class, 'search'])->name('search');

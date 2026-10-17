@@ -10,8 +10,8 @@
 --}}
 @unless(auth()->check() && auth()->user()->utiliseLAppli())
     <div data-bandeau-appli hidden
-         data-lien-ios="{{ config('deeplinks.stores.ios') }}"
-         data-lien-android="{{ config('deeplinks.stores.android') }}"
+         data-lien-ios="{{ \App\Support\LiensStores::ios() }}"
+         data-lien-android="{{ \App\Support\LiensStores::android() }}"
          class="border-b border-teal-100 bg-white">
         <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5">
             <button type="button" data-bandeau-fermer aria-label="Fermer"

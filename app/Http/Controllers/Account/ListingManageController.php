@@ -243,7 +243,10 @@ class ListingManageController extends Controller
         // meilleur moment pour partager, c'est tout de suite après la publication.
         return redirect()->route('listings.show', $listing)
             ->with('status', 'Votre annonce a bien été publiée.')
-            ->with('just_published', true);
+            ->with('just_published', true)
+            // Pixel Meta (après accord cookies) : « Lead » = une annonce publiée,
+            // pour optimiser plus tard les pubs vers les gens qui vendent.
+            ->with('pixel_event', ['event' => 'Lead', 'params' => ['content_name' => 'annonce_publiee', 'content_category' => (string) $listing->category_level1]]);
     }
 
     public function edit(Listing $listing)

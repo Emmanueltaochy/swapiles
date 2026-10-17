@@ -26,13 +26,14 @@ class AppLienController extends Controller
             DB::table('app_lien_clics')->insert(['plateforme' => $plateforme, 'source' => $source, 'created_at' => now()]);
         }
 
-        $android = 'https://play.google.com/store/apps/details?id=' . config('deeplinks.android.package', 'com.swapiles.app')
-            . '&referrer=' . rawurlencode('utm_source=' . ($source ?: 'lien_app') . '&utm_medium=lien_app');
+        $utm = ['source' => $source ?: 'lien_app', 'medium' => 'lien_app', 'campaign' => null];
+        $android = \App\Support\LiensStores::android($utm);
+        $ios = \App\Support\LiensStores::ios($utm);
 
         return match ($plateforme) {
-            'ios' => redirect()->away(config('deeplinks.stores.ios')),
+            'ios' => redirect()->away($ios),
             'android' => redirect()->away($android),
-            default => response()->view('app-lien', ['ios' => config('deeplinks.stores.ios'), 'android' => $android]),
+            default => response()->view('app-lien', ['ios' => $ios, 'android' => $android]),
         };
     }
 }

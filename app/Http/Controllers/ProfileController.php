@@ -33,12 +33,13 @@ class ProfileController extends Controller
             ->where('status', 'published')
             ->count();
 
+        // Comme le classement : les articles vendus gardent leurs vues et favoris.
         $totalViewsCount = (int) $user->listings()
-            ->where('status', 'published')
+            ->whereIn('status', \App\Support\DressingLeaderboard::STATUTS_COMPTES)
             ->sum('views_count');
 
         $totalFavoritesCount = (int) $user->listings()
-            ->where('status', 'published')
+            ->whereIn('status', \App\Support\DressingLeaderboard::STATUTS_COMPTES)
             ->withCount(['favorisRecus as favorited_by_count'])
             ->get()
             ->sum('favorited_by_count');

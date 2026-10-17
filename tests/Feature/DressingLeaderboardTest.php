@@ -154,4 +154,48 @@ class DressingLeaderboardTest extends TestCase
             ->assertOk()
             ->assertSee('Top 1 des dressings', false);
     }
+
+    public function test_le_classement_compte_les_memes_ventes_que_le_profil(): void
+    {
+        $marie = $this->seller('marie2@ex.com');
+        $acheteur = $this->seller('acheteur2@ex.com');
+
+        // 2 anciennes annonces closes avec « Vendue » (avant le 12/10 : sans vente enregistrée).
+        foreach ([1, 2] as $i) {
+            $this->listing($marie)->update(['status' => 'sold']);
+        }
+        // 2 ventes en main propre déclarées depuis (annonce vendue + vente enregistrée).
+        foreach ([1, 2] as $i) {
+            $l = $this->listing($marie);
+            $l->update(['status' => 'sold']);
+            Transaction::create([
+                'listing_id' => $l->id, 'seller_id' => $marie->id, 'buyer_id' => $acheteur->id,
+                'amount' => 20, 'seller_amount' => 20, 'commission' => 0, 'buyer_protection_fee' => 0,
+                'shipping_fee' => 0, 'currency' => 'EUR', 'payment_method' => 'especes',
+                'delivery_method' => 'hand_delivery', 'status' => 'completed', 'shipping_status' => 'hand_delivered',
+            ]);
+        }
+
+        $ligne = DressingLeaderboard::ranked()->firstWhere('user_id', $marie->id);
+        $this->assertSame(4, $ligne->sales, 'Même nombre que « 4 vendues » sur le profil, sans double compte.');
+
+        $this->get(route('profiles.show', $marie))->assertOk()->assertSee('4 vendues');
+    }
+
+    public function test_un_article_vendu_garde_ses_vues_et_favoris_partout(): void
+    {
+        $lea = $this->seller('lea3@ex.com');
+        $fan = $this->seller('fan3@ex.com');
+        $robe = $this->listing($lea, 100);
+        $this->listing($lea, 50);
+        DB::table('favorites')->insert(['user_id' => $fan->id, 'listing_id' => $robe->id, 'created_at' => now(), 'updated_at' => now()]);
+
+        $robe->update(['status' => 'sold']);
+
+        $ligne = DressingLeaderboard::ranked()->firstWhere('user_id', $lea->id);
+        $this->assertSame(150, (int) $ligne->views);
+        $this->assertSame(1, (int) $ligne->favorites);
+        $this->get(route('profiles.show', $lea))->assertOk()->assertViewHas('totalViewsCount', 150)->assertViewHas('totalFavoritesCount', 1);
+    }
 }
+

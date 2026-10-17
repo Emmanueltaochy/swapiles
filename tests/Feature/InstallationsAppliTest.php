@@ -116,4 +116,32 @@ class InstallationsAppliTest extends TestCase
             ->assertSee('installations ouvertes au moins une fois')
             ->assertSee('App Store Connect');
     }
+
+    public function test_ile_des_installations_et_des_membres(): void
+    {
+        // Choix d'île du téléphone (cookie).
+        $this->withCookie(\App\Support\TerritoireContext::COOKIE, 'Martinique')->withCredentials()
+            ->postJson('/appli/installation', ['id' => self::IPHONE, 'plateforme' => 'ios'])->assertNoContent();
+        $this->defaultCookies = [];
+
+        // Pas de cookie, mais membre connecté : île du profil.
+        $membre = User::create(['name' => 'Lea', 'email' => 'lea@ex.com', 'password' => bcrypt('secret1234'), 'territoire' => 'La Réunion']);
+        $membre->forceFill(['appli_vue_at' => now()])->save();
+        $this->actingAs($membre)->postJson('/appli/installation', ['id' => self::ANDROID_1, 'plateforme' => 'android'])->assertNoContent();
+        auth()->logout();
+
+        // Île inconnue, puis rouverte plus tard sans info : on garde la dernière connue.
+        $this->ouvrir(self::ANDROID_2, 'android');
+        $this->withCookie(\App\Support\TerritoireContext::COOKIE, 'Martinique')->withCredentials()
+            ->postJson('/appli/installation', ['id' => self::ANDROID_1, 'plateforme' => 'android']);
+        $this->defaultCookies = [];
+        $this->ouvrir(self::IPHONE, 'ios');
+
+        $lignes = collect(InstallationsAppli::parIle())->keyBy('ile');
+        $this->assertSame(['ile' => 'Martinique', 'ios' => 1, 'android' => 1, 'installations' => 2, 'membres' => 0], $lignes['Martinique']);
+        $this->assertSame(1, $lignes['La Réunion']['membres']);
+        $this->assertSame(0, $lignes['La Réunion']['installations']);
+        $this->assertSame(1, $lignes[InstallationsAppli::ILE_INCONNUE]['android']);
+        $this->assertSame(InstallationsAppli::ILE_INCONNUE, collect(InstallationsAppli::parIle())->last()['ile']);
+    }
 }

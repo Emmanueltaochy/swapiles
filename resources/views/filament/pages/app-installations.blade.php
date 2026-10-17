@@ -8,6 +8,13 @@
         .ai-ligne span:first-child{opacity:.65}
         .ai-ligne span:last-child{font-weight:700}
         .ai-note{font-size:.82rem;opacity:.65;line-height:1.5}
+        .ai-ile{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:.2rem .9rem;align-items:center;padding:.5rem 0;border-bottom:1px solid rgba(148,163,184,.15);font-size:.88rem}
+        .ai-ile:last-of-type{border-bottom:0}
+        .ai-ile .nm{font-weight:700;min-width:0}
+        .ai-ile .det{grid-column:1/-1;font-size:.75rem;opacity:.6;margin-top:-.15rem}
+        .ai-ile .v{text-align:right;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+        .ai-ile.tete{font-size:.72rem;font-weight:700;opacity:.6;padding-top:0}
+        .ai-ile.tete .v{font-weight:700}
     </style>
 
     @php
@@ -34,6 +41,30 @@
             </x-filament::section>
         @endforeach
     </div>
+
+    @php
+        $drapeaux = ['La Réunion' => '🇷🇪', 'Martinique' => '🇲🇶', 'Guadeloupe' => '🇬🇵', 'Guyane' => '🇬🇫', 'Mayotte' => '🇾🇹'];
+    @endphp
+    <x-filament::section>
+        <x-slot name="heading">🏝️ Par île</x-slot>
+        <x-slot name="description">Installations : île choisie dans l'appli (ou celle du profil si le membre est connecté). Membres : comptes qui ont déjà utilisé l'appli.</x-slot>
+        @if(count($parIle) === 0)
+            <p class="ai-note">Pas encore de données.</p>
+        @else
+            <div class="ai-ile tete"><span>Île</span><span class="v">📱 Installations</span><span class="v">👤 Membres</span></div>
+            @foreach($parIle as $l)
+                <div class="ai-ile">
+                    <span class="nm">{{ $drapeaux[$l['ile']] ?? '❔' }} {{ $l['ile'] }}</span>
+                    <span class="v">{{ $n($l['installations']) }}</span>
+                    <span class="v">{{ $n($l['membres']) }}</span>
+                    @if($l['installations'] > 0)
+                        <span class="det">🍎 {{ $n($l['ios']) }} iPhone · 🤖 {{ $n($l['android']) }} Android</span>
+                    @endif
+                </div>
+            @endforeach
+            <p class="ai-note" style="margin-top:.6rem;">L'île des installations est notée depuis cette mise à jour : les applis déjà installées passent de « pas encore connue » à leur île dès leur prochaine ouverture.</p>
+        @endif
+    </x-filament::section>
 
     <x-filament::section>
         <x-slot name="heading">🔗 Lien unique swapiles.com/app</x-slot>

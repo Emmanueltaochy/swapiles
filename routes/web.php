@@ -79,7 +79,8 @@ Route::post('/appli/installation', function (\Illuminate\Http\Request $request) 
         'plateforme' => ['required', 'in:ios,android'],
     ]);
 
-    $nouvelle = \App\Support\InstallationsAppli::ouverture($donnees['id'], $donnees['plateforme']);
+    $ile = \App\Support\TerritoireContext::fromCookie($request) ?? \App\Support\TerritoireContext::fromProfile($request);
+    $nouvelle = \App\Support\InstallationsAppli::ouverture($donnees['id'], $donnees['plateforme'], $ile);
 
     // Parrainage, lien différé : l'appli vient d'être installée après un
     // clic sur un lien d'invitation (même connexion) → code pré-rempli.

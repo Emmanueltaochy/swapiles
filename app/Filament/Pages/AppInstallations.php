@@ -25,6 +25,7 @@ class AppInstallations extends Page
             'membres' => InstallationsAppli::membresDansLAppli(),
             'debut' => InstallationsAppli::debutComptage(),
             'clics' => InstallationsAppli::clicsLien(),
+            'parIle' => InstallationsAppli::parIle(),
         ];
     }
 

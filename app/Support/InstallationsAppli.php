@@ -18,21 +18,26 @@ class InstallationsAppli
 {
     public const PLATEFORMES = ['ios' => 'iPhone / iPad', 'android' => 'Android'];
 
-    /** Enregistre une ouverture de l'appli. Renvoie true pour une nouvelle installation. */
-    public static function ouverture(string $installId, string $plateforme): bool
+    /**
+     * Enregistre une ouverture de l'appli. Renvoie true pour une nouvelle installation.
+     * L'île n'est mise à jour que si elle est connue (on garde la dernière connue).
+     */
+    public static function ouverture(string $installId, string $plateforme, ?string $territoire = null): bool
     {
         $maintenant = now();
 
-        $maj = DB::table('app_installations')->where('install_id', $installId)->update([
+        $maj = DB::table('app_installations')->where('install_id', $installId)->update(array_filter([
             'platform' => $plateforme,
+            'territoire' => $territoire,
             'ouvertures' => DB::raw('ouvertures + 1'),
             'derniere_ouverture_at' => $maintenant,
-        ]);
+        ], fn ($v) => $v !== null));
 
         if ($maj === 0) {
             return DB::table('app_installations')->insertOrIgnore([
                 'install_id' => $installId,
                 'platform' => $plateforme,
+                'territoire' => $territoire,
                 'ouvertures' => 1,
                 'premiere_ouverture_at' => $maintenant,
                 'derniere_ouverture_at' => $maintenant,
@@ -95,6 +100,51 @@ class InstallationsAppli
         }
 
         return $serie;
+    }
+
+    public const ILE_INCONNUE = 'Île pas encore connue';
+
+    /**
+     * Répartition par île : installations (iPhone / Android, depuis que l'appli
+     * envoie son île) et membres qui ont utilisé l'appli (depuis le début).
+     *
+     * @return array<int,array{ile:string,ios:int,android:int,installations:int,membres:int}>
+     */
+    public static function parIle(): array
+    {
+        $lignes = [];
+        $ligne = function (string $ile) use (&$lignes) {
+            $lignes[$ile] ??= ['ile' => $ile, 'ios' => 0, 'android' => 0, 'installations' => 0, 'membres' => 0];
+        };
+
+        if (Schema::hasTable('app_installations') && Schema::hasColumn('app_installations', 'territoire')) {
+            $installs = DB::table('app_installations')
+                ->selectRaw('territoire, platform, COUNT(*) as n')
+                ->groupBy('territoire', 'platform')
+                ->get();
+            foreach ($installs as $l) {
+                $ile = TerritoireContext::isValid($l->territoire) ? $l->territoire : self::ILE_INCONNUE;
+                $ligne($ile);
+                if (isset(self::PLATEFORMES[$l->platform])) {
+                    $lignes[$ile][$l->platform] += (int) $l->n;
+                }
+                $lignes[$ile]['installations'] += (int) $l->n;
+            }
+        }
+
+        $membres = DB::table('users')->whereNotNull('appli_vue_at')
+            ->selectRaw('territoire, COUNT(*) as n')->groupBy('territoire')->get();
+        foreach ($membres as $l) {
+            $ile = TerritoireContext::isValid($l->territoire) ? $l->territoire : self::ILE_INCONNUE;
+            $ligne($ile);
+            $lignes[$ile]['membres'] += (int) $l->n;
+        }
+
+        // Îles connues d'abord (les plus fortes en tête), « pas encore connue » à la fin.
+        uasort($lignes, fn ($a, $b) => [$a['ile'] === self::ILE_INCONNUE, -$a['installations'], -$a['membres'], $a['ile']]
+            <=> [$b['ile'] === self::ILE_INCONNUE, -$b['installations'], -$b['membres'], $b['ile']]);
+
+        return array_values($lignes);
     }
 
     /** Membres connectés qui ont utilisé l'appli (repère, sans plateforme). */

@@ -454,7 +454,7 @@
                     'aide' => 'Les vendeurs les plus actifs de mon île',
                 ],
                 [
-                    'url' => route('home') . '#comment-ca-marche',
+                    'url' => route('comment-ca-marche'),
                     'icone' => '❓',
                     'label' => 'Comment ça marche',
                     'aide' => 'Paiement protégé, livraison, inter-îles',

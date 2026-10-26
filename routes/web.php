@@ -140,6 +140,7 @@ Route::get('/cgu', [\App\Http\Controllers\LegalController::class, 'cgu'])->name(
 Route::get('/cgv', [\App\Http\Controllers\LegalController::class, 'cgv'])->name('legal.cgv');
 Route::get('/confidentialite', [\App\Http\Controllers\LegalController::class, 'confidentialite'])->name('legal.privacy');
 Route::get('/faq', [\App\Http\Controllers\LegalController::class, 'faq'])->name('faq');
+Route::view('/comment-ca-marche', 'comment-ca-marche')->name('comment-ca-marche');
 Route::get('/meilleurs-dressings', [\App\Http\Controllers\LeaderboardController::class, 'index'])->name('dressings.top');
 // Parrainage (désactivé par défaut : REFERRAL_ENABLED ; admins et testeurs en avance).
 // Lien unique vers l'appli (bio Instagram, affiches) : le bon store selon le téléphone.
@@ -481,6 +482,7 @@ Route::get('/sitemap.xml', function () {
     $urls->push(['loc' => route('relay.partner'), 'priority' => '0.6', 'changefreq' => 'monthly']);
     $urls->push(['loc' => route('relay.points'), 'priority' => '0.6', 'changefreq' => 'weekly']);
     $urls->push(['loc' => route('relay.charte'), 'priority' => '0.4', 'changefreq' => 'monthly']);
+    $urls->push(['loc' => route('comment-ca-marche'), 'priority' => '0.6', 'changefreq' => 'monthly']);
 
     // Classement « Meilleurs dressings »
     $urls->push(['loc' => route('dressings.top'), 'priority' => '0.6', 'changefreq' => 'weekly']);

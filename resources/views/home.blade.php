@@ -684,40 +684,8 @@
     </div>
 </section>
 
-<section id="comment-ca-marche" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 scroll-mt-24">
-    <div class="rounded-3xl bg-gray-950 text-white p-6 sm:p-8 lg:p-10 overflow-hidden relative">
-        <div class="absolute -right-10 -top-10 text-9xl opacity-10">🌴</div>
-
-        <div class="max-w-2xl mb-8">
-            <p class="text-sm font-bold uppercase tracking-wide text-emerald-300">Simple et rapide</p>
-            <h2 class="text-3xl md:text-4xl font-bold mt-2">Comment ça marche ?</h2>
-            <p class="text-white/70 mt-3">Swap’Îles simplifie la seconde main entre les îles, du premier message jusqu’à la vente.</p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="rounded-3xl bg-white/10 border border-white/10 p-6">
-                <div class="text-5xl mb-5">📸</div>
-                <p class="text-sm font-bold text-emerald-300">Étape 1</p>
-                <h3 class="text-xl font-bold mt-1">Publiez gratuitement</h3>
-                <p class="text-sm text-white/65 mt-2">Ajoutez vos photos, votre prix et votre territoire en quelques minutes.</p>
-            </div>
-
-            <div class="rounded-3xl bg-white/10 border border-white/10 p-6">
-                <div class="text-5xl mb-5">💬</div>
-                <p class="text-sm font-bold text-emerald-300">Étape 2</p>
-                <h3 class="text-xl font-bold mt-1">Discutez facilement</h3>
-                <p class="text-sm text-white/65 mt-2">Échangez avec les acheteurs et vendeurs directement depuis la messagerie.</p>
-            </div>
-
-            <div class="rounded-3xl bg-white/10 border border-white/10 p-6">
-                <div class="text-5xl mb-5">🛡️</div>
-                <p class="text-sm font-bold text-emerald-300">Étape 3</p>
-                <h3 class="text-xl font-bold mt-1">Vendez en sécurité</h3>
-                <p class="text-sm text-white/65 mt-2">Activez le paiement sécurisé pour proposer l’expédition et toucher plus d’acheteurs.</p>
-            </div>
-        </div>
-    </div>
-</section>
+{{-- « Comment ça marche » : page dédiée (route comment-ca-marche). Sous la
+     grille à défilement infini, la section n'était jamais atteinte. --}}
 
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="flex items-center justify-between mb-5">

@@ -623,7 +623,7 @@ document.addEventListener('turbo:load', function () {
 
         <p class="{{ $menuTitre }}">Swap'Îles</p>
         <a href="{{ route('dressings.top') }}" class="{{ $menuLien }}"><span>🏆 Classement des dressings</span></a>
-        <a href="{{ route('home') }}#comment-ca-marche" class="{{ $menuLien }}"><span>❓ Comment ça marche</span></a>
+        <a href="{{ route('comment-ca-marche') }}" class="{{ $menuLien }}"><span>❓ Comment ça marche</span></a>
         @if(auth()->check() && \App\Support\ParrainageService::actifPour(auth()->user()))
             <a href="{{ route('parrainage.index') }}" class="{{ $menuLien }}"><span>💚 Inviter des amis{{ (float) config('referral.reward_amount') > 0 ? ' · ' . \App\Support\ParrainageService::montantCourt((float) config('referral.reward_amount')) . ' offerts' : '' }}{{ config('referral.enabled') ? '' : ' (test)' }}</span></a>
         @endif
@@ -773,7 +773,7 @@ document.addEventListener('turbo:load', function () {
 
             <div>
                 <p class="font-extrabold mb-3">Plateforme</p>
-                <a href="{{ route('home') }}#comment-ca-marche" class="block text-gray-500 hover:text-teal-700">Comment ça marche</a>
+                <a href="{{ route('comment-ca-marche') }}" class="block text-gray-500 hover:text-teal-700">Comment ça marche</a>
                 <a href="{{ route('search') }}" class="block text-gray-500 hover:text-teal-700">Catégories</a>
                 <a href="{{ route('faq') }}" class="block text-gray-500 hover:text-teal-700">FAQ</a>
                 <a href="{{ route('dressings.top') }}" class="block text-gray-500 hover:text-teal-700">🏆 Meilleurs dressings</a>

@@ -99,7 +99,9 @@ class RelaisCharteTest extends TestCase
     public function test_la_charte_publique_est_en_ligne(): void
     {
         $this->get(route('relay.charte'))->assertOk()
-            ->assertSee('Charte des points relais')->assertSee('10 jours')->assertSee('mandat d’autofacturation');
+            ->assertSee('Charte des points relais')->assertSee('10 jours')->assertSee('mandat d’autofacturation')
+            ->assertSee('dans la limite de 100 € par colis', false)->assertSee('toujours remboursé tout de suite', false)
+            ->assertSee('récépissé de dépôt de plainte', false)->assertSee('déclaration de sinistre', false);
     }
 
     public function test_colis_non_retire_apres_10_jours(): void
@@ -177,9 +179,9 @@ class RelaisCharteTest extends TestCase
         $this->assertTrue($r['autofacture']);
         $this->assertSame('SWP-R' . $point->id . '-202610', $r['numero']);
 
-        $this->assertSame(['gagne' => 4.0, 'verse' => 0.0, 'a_verser' => 4.0], VersementsRelais::soldes($point->id));
+        $this->assertSame(['gagne' => 4.0, 'verse' => 0.0, 'retenues' => 0.0, 'a_verser' => 4.0], VersementsRelais::soldes($point->id));
         VersementsRelais::marquerVerse($point, $octobre, 'VIR-OCT');
-        $this->assertSame(['gagne' => 4.0, 'verse' => 3.0, 'a_verser' => 1.0], VersementsRelais::soldes($point->id));
+        $this->assertSame(['gagne' => 4.0, 'verse' => 3.0, 'retenues' => 0.0, 'a_verser' => 1.0], VersementsRelais::soldes($point->id));
 
         $pdf = VersementsRelais::pdf($point, $octobre);
         $this->assertStringStartsWith('%PDF', $pdf);
@@ -205,5 +207,25 @@ class RelaisCharteTest extends TestCase
         $this->assertSame(0.92, $r['ht']);
         $this->assertSame(0.08, $r['tva']);
         $this->assertFalse($r['autofacture']);
+    }
+
+    public function test_retenue_pour_colis_perdu_par_le_commercant(): void
+    {
+        $point = $this->relais();
+        $this->colis($point, 'collected', ['relay_collected_at' => '2026-10-05 10:00:00']);
+        $this->colis($point, 'collected', ['relay_collected_at' => '2026-10-06 10:00:00']);
+        $this->colis($point, 'collected', ['relay_collected_at' => '2026-10-07 10:00:00']);
+        $octobre = Carbon::parse('2026-10-01');
+
+        // Retenue de 2 € : 1 € part par virement. Jamais plus que les commissions du mois.
+        $v = VersementsRelais::marquerVerse($point, $octobre, null, 2, 'Vente n° 12, colis égaré');
+        $this->assertSame(1.0, $v->net());
+        $this->assertSame(['gagne' => 3.0, 'verse' => 1.0, 'retenues' => 2.0, 'a_verser' => 0.0], VersementsRelais::soldes($point->id));
+
+        $v = VersementsRelais::marquerVerse($point, $octobre, null, 50, 'Vente n° 12, colis égaré');
+        $this->assertSame(3.0, (float) $v->retenue);
+        $this->assertSame(0.0, $v->net());
+
+        $this->assertStringStartsWith('%PDF', VersementsRelais::pdf($point, $octobre));
     }
 }

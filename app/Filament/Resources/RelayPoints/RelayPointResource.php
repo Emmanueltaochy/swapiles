@@ -230,12 +230,22 @@ class RelayPointResource extends Resource
                         TextInput::make('reference')
                             ->label('Référence du virement (facultatif)')
                             ->maxLength(120),
+                        TextInput::make('retenue')
+                            ->label('Retenue (colis perdu par sa faute), en €')
+                            ->numeric()
+                            ->minValue(0)
+                            ->default(0)
+                            ->helperText('Charte, article 8 : ' . number_format((float) config('relais.plafond_responsabilite', 100), 0, ',', ' ') . ' € maximum par colis. Préviens le commerçant avant. La retenue ne dépasse jamais les commissions du mois : reporte le reste le mois suivant.'),
+                        TextInput::make('retenue_motif')
+                            ->label('Motif de la retenue')
+                            ->placeholder('Ex : vente n° 123, colis égaré')
+                            ->maxLength(255),
                     ])
                     ->action(function (RelayPoint $record, array $data) {
                         $mois = \Illuminate\Support\Carbon::createFromFormat('Y-m-d', $data['mois'] . '-01')->startOfMonth();
-                        $v = \App\Support\VersementsRelais::marquerVerse($record, $mois, $data['reference'] ?? null);
+                        $v = \App\Support\VersementsRelais::marquerVerse($record, $mois, $data['reference'] ?? null, (float) ($data['retenue'] ?? 0), $data['retenue_motif'] ?? null);
                         \Filament\Notifications\Notification::make()
-                            ->title('Virement noté : ' . number_format((float) $v->montant, 2, ',', ' ') . ' € (' . $v->colis . ' colis)')
+                            ->title('Virement noté : ' . number_format($v->net(), 2, ',', ' ') . ' € à virer (' . $v->colis . ' colis' . ((float) $v->retenue > 0 ? ', retenue ' . number_format((float) $v->retenue, 2, ',', ' ') . ' €' : '') . ')')
                             ->success()->send();
                     }),
                 EditAction::make()->iconButton()->tooltip('Modifier'),

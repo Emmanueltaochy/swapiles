@@ -79,6 +79,10 @@
         @else
             <tr class="g"><td>Total à verser</td><td class="num">{{ $e($total) }}</td></tr>
         @endif
+        @if($versement && (float) $versement->retenue > 0)
+            <tr><td>Retenue : {{ $versement->retenue_motif }}</td><td class="num">− {{ $e($versement->retenue) }}</td></tr>
+            <tr class="g"><td>Net versé</td><td class="num">{{ $e($versement->net()) }}</td></tr>
+        @endif
     </table>
 
     <div class="mention">
@@ -90,7 +94,10 @@
         @endif
         Commission de {{ $e(config('pricing.relay_merchant_fee', 1)) }} par colis remis à l’acheteur, ou rendu au vendeur après le délai de garde.
         @if($versement && $versement->verse_at)
-            <br><strong>Versé le {{ $versement->verse_at->format('d/m/Y') }}</strong> par virement{{ $versement->reference ? ' (réf. ' . $versement->reference . ')' : '' }}.
+            <br><strong>Versé le {{ $versement->verse_at->format('d/m/Y') }}</strong> par virement{{ $versement->reference ? ' (réf. ' . $versement->reference . ')' : '' }} : {{ $e($versement->net()) }}.
+            @if((float) $versement->retenue > 0)
+                <br>Retenue appliquée selon l’article 8 de la charte des points relais (plafond de {{ $e(config('relais.plafond_responsabilite', 100)) }} par colis).
+            @endif
         @else
             <br>Versement par virement au début du mois suivant, dès {{ $e(config('relais.versement_minimum', 10)) }} de solde.
         @endif

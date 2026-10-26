@@ -195,7 +195,7 @@
                         <div class="flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
                             <div class="min-w-0">
                                 <p class="font-semibold text-gray-900">{{ ucfirst($r['mois']->locale('fr')->translatedFormat('F Y')) }}@if($points->count() > 1) · {{ $r['point']->name }}@endif</p>
-                                <p class="text-gray-500">{{ $r['colis'] }} colis · {{ number_format($r['total'], 2, ',', ' ') }} € · {{ $r['versement']?->verse_at ? 'versé le ' . $r['versement']->verse_at->format('d/m/Y') : 'à verser' }}</p>
+                                <p class="text-gray-500">{{ $r['colis'] }} colis · {{ number_format($r['total'], 2, ',', ' ') }} € · {{ $r['versement']?->verse_at ? 'versé le ' . $r['versement']->verse_at->format('d/m/Y') . ((float) $r['versement']->retenue > 0 ? ' · retenue ' . number_format((float) $r['versement']->retenue, 2, ',', ' ') . ' €' : '') : 'à verser' }}</p>
                             </div>
                             <a href="{{ route('account.relay.releve', [$r['point'], $r['mois']->format('Y-m')]) }}" class="shrink-0 rounded-xl border border-gray-200 px-3 py-2 font-semibold text-teal-700 hover:border-teal-400">Télécharger (PDF)</a>
                         </div>

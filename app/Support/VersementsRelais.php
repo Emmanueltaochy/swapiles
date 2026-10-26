@@ -77,16 +77,29 @@ class VersementsRelais
     {
         $r = self::releve($point, $mois);
 
-        $versement = RelayVersement::firstOrNew(['relay_point_id' => $point->id, 'mois' => $r['mois']->toDateString()]);
+        // whereDate : la colonne « mois » peut être stockée avec l'heure selon la base.
+        $versement = RelayVersement::where('relay_point_id', $point->id)->whereDate('mois', $r['mois']->toDateString())->first()
+            ?? new RelayVersement(['relay_point_id' => $point->id, 'mois' => $r['mois']->toDateString()]);
         $versement->fill(['colis' => $r['colis'], 'montant' => $r['total'], 'numero' => $r['numero']])->save();
 
         return $versement;
     }
 
-    public static function marquerVerse(RelayPoint $point, Carbon $mois, ?string $reference = null): RelayVersement
+    /**
+     * Note le virement du mois. Une retenue (colis perdu par la faute du
+     * commerçant, voir la charte) est déduite du virement, jamais au-delà des
+     * commissions du mois : le reste se reporte sur un mois suivant.
+     */
+    public static function marquerVerse(RelayPoint $point, Carbon $mois, ?string $reference = null, float $retenue = 0, ?string $motif = null): RelayVersement
     {
         $versement = self::enregistrer($point, $mois);
-        $versement->fill(['verse_at' => now(), 'reference' => $reference ?: null])->save();
+        $retenue = round(min(max(0, $retenue), (float) $versement->montant), 2);
+        $versement->fill([
+            'verse_at' => now(),
+            'reference' => $reference ?: null,
+            'retenue' => $retenue,
+            'retenue_motif' => $retenue > 0 ? ($motif ?: 'Colis perdu ou remis sans code') : null,
+        ])->save();
 
         return $versement;
     }
@@ -95,7 +108,7 @@ class VersementsRelais
      * Soldes d'un ou plusieurs points : gagné depuis le début, déjà versé, reste à verser.
      *
      * @param  iterable<int>|int  $pointIds
-     * @return array{gagne:float,verse:float,a_verser:float}
+     * @return array{gagne:float,verse:float,retenues:float,a_verser:float}
      */
     public static function soldes(iterable|int $pointIds): array
     {
@@ -104,9 +117,16 @@ class VersementsRelais
         $gagne = (float) Transaction::whereIn('relay_point_id', $ids)
             ->whereIn('relay_status', RelayPoint::STATUTS_REMUNERES)
             ->sum('relay_merchant_fee');
-        $verse = (float) RelayVersement::whereIn('relay_point_id', $ids)->whereNotNull('verse_at')->sum('montant');
+        // Les commissions d'un mois versé sont soldées, retenue comprise.
+        $regle = (float) RelayVersement::whereIn('relay_point_id', $ids)->whereNotNull('verse_at')->sum('montant');
+        $retenues = (float) RelayVersement::whereIn('relay_point_id', $ids)->whereNotNull('verse_at')->sum('retenue');
 
-        return ['gagne' => round($gagne, 2), 'verse' => round($verse, 2), 'a_verser' => round(max(0, $gagne - $verse), 2)];
+        return [
+            'gagne' => round($gagne, 2),
+            'verse' => round($regle - $retenues, 2),
+            'retenues' => round($retenues, 2),
+            'a_verser' => round(max(0, $gagne - $regle), 2),
+        ];
     }
 
     /**

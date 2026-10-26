@@ -5,6 +5,8 @@
     $longueur = (int) config('relais.longueur_max_cm', 100);
     $minimum = number_format((float) config('relais.versement_minimum', 10), 0, ',', ' ');
     $preavis = (int) config('relais.preavis_jours', 15);
+    $plafond = number_format((float) config('relais.plafond_responsabilite', 100), 0, ',', ' ');
+    $justif = (int) config('relais.delai_justificatif_jours', 7);
     $editeur = config('partenaires.editeur');
 @endphp
 <div class="space-y-5 text-sm text-gray-700 leading-relaxed">
@@ -38,7 +40,20 @@
     </div>
     <div>
         <h3 class="font-extrabold text-gray-900">8. Les responsabilités</h3>
-        <p>Le commerçant garde les colis avec le même soin que les articles de ses clients, dans un endroit non accessible au public. En cas de perte, de vol ou de dommage, c’est la <strong>protection acheteur Swap’Îles</strong> qui rembourse l’acheteur, et aucune somme n’est demandée au commerçant, sauf faute de sa part (par exemple un colis remis sans code ou rendu à une autre personne que le vendeur). Le contenu et la conformité des articles relèvent du vendeur.</p>
+        <p>Le commerçant a une obligation de garde : un colis est sous sa responsabilité de son dépôt jusqu’à sa remise. Il le garde avec le même soin que les articles de ses clients, dans un endroit non accessible au public.</p>
+        <p class="mt-2">En cas de problème, l’acheteur est <strong>toujours remboursé tout de suite par la protection acheteur Swap’Îles</strong>. Ensuite :</p>
+        <ul class="mt-1 list-disc pl-5 space-y-1">
+            <li><strong>Faute du commerçant</strong> (colis égaré dans le commerce, remis sans code, ou remis à une autre personne que l’acheteur ou le vendeur) : la valeur de l’article peut lui être demandée, <strong>dans la limite de {{ $plafond }} € par colis</strong>, retenue sur ses commissions. Swap’Îles l’informe avant toute retenue, avec le détail.</li>
+            <li><strong>Pas de faute</strong> : rien ne lui est demandé, <strong>sur justificatif envoyé à contact@swapiles.com sous {{ $justif }} jours</strong> :
+                <ul class="mt-1 list-[circle] pl-5 space-y-1">
+                    <li>vol avec effraction ou vol à main armée : copie du <strong>récépissé de dépôt de plainte</strong> (police ou gendarmerie) ;</li>
+                    <li>incendie, dégât des eaux ou autre sinistre : copie de la <strong>déclaration de sinistre</strong> à son assurance ;</li>
+                    <li>colis déjà abîmé ou ouvert au dépôt : <strong>signalé au moment du dépôt</strong>, avec une photo (ou refusé).</li>
+                </ul>
+            </li>
+        </ul>
+        <p class="mt-2">Sans justificatif dans ce délai, la perte est considérée comme une faute du commerçant.</p>
+        <p class="mt-2">Le contenu et la conformité des articles relèvent du vendeur.</p>
     </div>
     <div>
         <h3 class="font-extrabold text-gray-900">9. Les données personnelles</h3>

@@ -1,0 +1,39 @@
+<?php
+
+namespace App\Http\Controllers\Account;
+
+use App\Http\Controllers\Controller;
+use App\Support\IaDepot;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use RuntimeException;
+
+/** « ✨ Remplir avec l'IA » sur la page de dépôt : les photos -> propositions de champs. */
+class IaDepotController extends Controller
+{
+    public function remplir(Request $request): JsonResponse
+    {
+        abort_unless(IaDepot::disponible(), 404);
+
+        $request->validate([
+            'images' => ['required', 'array', 'min:1', 'max:' . (int) config('ia_depot.photos_max', 4)],
+            'images.*' => ['image', 'max:8192'],
+        ], [
+            'images.required' => 'Ajoute au moins une photo.',
+            'images.*.image' => 'Ce fichier n’est pas une photo.',
+        ]);
+
+        $membre = $request->user();
+        if (IaDepot::resteAujourdhui($membre) <= 0) {
+            return response()->json(['message' => 'Tu as utilisé l’IA ' . (int) config('ia_depot.limite_par_jour', 20) . ' fois aujourd’hui. Réessaie demain, ou remplis la fiche à la main.'], 429);
+        }
+
+        try {
+            $champs = IaDepot::analyser($membre, $request->file('images'));
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage() . ' Remplis la fiche à la main.'], 422);
+        }
+
+        return response()->json(['champs' => $champs, 'reste' => IaDepot::resteAujourdhui($membre)]);
+    }
+}

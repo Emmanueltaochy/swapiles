@@ -91,6 +91,17 @@
                 </button>
 
                 <p class="mt-2 text-xs text-gray-500">Plusieurs photos possibles · max 5 Mo par image. La 1ʳᵉ photo sera la photo principale.</p>
+
+                {{-- IA dépôt : masqué tant que la clé Anthropic n'est pas renseignée. --}}
+                @if(\App\Support\IaDepot::disponible())
+                    <div class="mt-4 rounded-xl bg-violet-50 p-4" data-ia-depot data-url="{{ route('account.listings.ia') }}">
+                        <button type="button" data-ia-bouton
+                                class="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 font-bold text-white transition hover:bg-violet-700 disabled:opacity-60">
+                            ✨ Remplir la fiche avec l’IA
+                        </button>
+                        <p class="mt-2 text-xs text-violet-900/80" data-ia-message>Ajoute tes photos, puis touche le bouton : l’IA propose le titre, la description, la catégorie et un prix. Tu relis et tu corriges avant de publier.</p>
+                    </div>
+                @endif
             </div>
 
             {{-- Étape 2 : Ton article --}}
@@ -562,6 +573,72 @@ document.addEventListener('DOMContentLoaded', function () {
     const previews = document.getElementById('photo-previews');
 
     if (!input || !addBtn || !previews) return;
+
+    @if(\App\Support\IaDepot::disponible())
+    // IA dépôt : envoie les photos choisies, remplit les champs encore vides.
+    (function () {
+        const bloc = document.querySelector('[data-ia-depot]');
+        if (!bloc) return;
+        const bouton = bloc.querySelector('[data-ia-bouton]');
+        const message = bloc.querySelector('[data-ia-message]');
+        const jeton = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        const l1 = document.getElementById('category_level1');
+        const l2 = document.getElementById('category_level2');
+        const l3 = document.getElementById('category_level3');
+
+        function remplir(id, valeur) {
+            const champ = document.getElementById(id);
+            if (!champ || champ.disabled || valeur === null || valeur === undefined || valeur === '') return false;
+            if (champ.value && champ.value.trim() !== '') return false; // on ne remplace pas ce que le vendeur a déjà écrit
+            champ.value = valeur;
+            champ.dispatchEvent(new Event('input', { bubbles: true }));
+            champ.dispatchEvent(new Event('change', { bubbles: true }));
+            champ.classList.add('ring-2', 'ring-violet-400');
+            return true;
+        }
+
+        bouton.addEventListener('click', function () {
+            const fichiers = Array.from(document.getElementById('images')?.files || []).slice(0, {{ (int) config('ia_depot.photos_max', 4) }});
+            if (!fichiers.length) {
+                message.textContent = 'Ajoute d’abord au moins une photo de l’article.';
+                return;
+            }
+
+            const donnees = new FormData();
+            fichiers.forEach(function (f) { donnees.append('images[]', f); });
+            bouton.disabled = true;
+            bouton.textContent = '⏳ L’IA regarde tes photos…';
+
+            fetch(bloc.dataset.url, { method: 'POST', body: donnees, credentials: 'same-origin', headers: { 'X-CSRF-TOKEN': jeton, 'Accept': 'application/json' } })
+                .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+                .then(function (res) {
+                    if (!res.ok) throw new Error(res.j.message || 'L’IA est indisponible. Remplis la fiche à la main.');
+                    const c = res.j.champs;
+                    let n = 0;
+                    n += remplir('title', c.titre) ? 1 : 0;
+                    n += remplir('description', c.description) ? 1 : 0;
+                    if (c.categorie_1 && !l1.value) {
+                        l1.value = c.categorie_1; l1.dispatchEvent(new Event('change', { bubbles: true })); n++;
+                        if (c.categorie_2) { l2.value = c.categorie_2; l2.dispatchEvent(new Event('change', { bubbles: true })); }
+                        if (c.categorie_3) { l3.value = c.categorie_3; l3.dispatchEvent(new Event('change', { bubbles: true })); }
+                    }
+                    // La catégorie peut faire apparaître les champs marque / taille : on attend un instant.
+                    setTimeout(function () {
+                        n += remplir('etat', c.etat) ? 1 : 0;
+                        n += remplir('marque', c.marque) ? 1 : 0;
+                        n += remplir('taille', c.taille) ? 1 : 0;
+                        n += remplir('price', c.prix) ? 1 : 0;
+                        n += remplir('weight_g', c.poids_g) ? 1 : 0;
+                        message.textContent = n
+                            ? '✅ ' + n + ' champ(s) remplis (encadrés en violet). Relis et corrige si besoin avant de publier.'
+                            : 'Tes champs étaient déjà remplis : rien n’a été changé.';
+                    }, 50);
+                })
+                .catch(function (e) { message.textContent = e.message; })
+                .finally(function () { bouton.disabled = false; bouton.textContent = '✨ Remplir la fiche avec l’IA'; });
+        });
+    })();
+    @endif
 
     // Repli : si DataTransfer n'est pas supporté, on garde l'input natif visible.
     let supportsDataTransfer = true;

@@ -37,6 +37,11 @@
                 Vos données ne sont partagées qu'avec les prestataires nécessaires au service : <strong>Stripe</strong>
                 (paiements), <strong>Colissimo / La Poste</strong> (livraison), et l'hébergeur. Aucune revente de données à des tiers.
             </p>
+            <p>
+                <strong>Remplissage par l'IA</strong> : si vous touchez « Remplir la fiche avec l'IA » au dépôt d'une annonce,
+                les photos choisies (réduites) sont envoyées à <strong>Anthropic</strong>, notre fournisseur d'intelligence artificielle,
+                uniquement pour proposer le titre, la description, la catégorie et le prix. Rien n'est envoyé si vous n'utilisez pas ce bouton.
+            </p>
 
             <h2 class="text-xl font-bold text-gray-900 pt-4">5. Durée de conservation</h2>
             <p>Vos données sont conservées le temps nécessaire à la fourniture du service et aux obligations légales (comptables, fiscales).</p>

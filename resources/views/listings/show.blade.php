@@ -692,12 +692,9 @@
                             <p class="mt-1.5 text-xs text-gray-400">Emplacement indicatif — l'adresse exacte n'est jamais affichée publiquement.</p>
                         </div>
 
-                        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-                              integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-                        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-                                integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+                        @include('partials.leaflet')
                         <script>
-                            (function () {
+                            swpLeaflet(function () {
                                 var el = document.getElementById('listing-map');
                                 if (!el || el._leaflet_id || typeof L === 'undefined') return;
                                 var lat = parseFloat(el.dataset.lat), lng = parseFloat(el.dataset.lng);
@@ -711,7 +708,7 @@
                                     radius: 1500, color: '#0d9488', weight: 2,
                                     fillColor: '#14b8a6', fillOpacity: 0.18
                                 }).addTo(map).bindPopup(el.dataset.label || '');
-                            })();
+                            });
                         </script>
                     @endif
                 </div>

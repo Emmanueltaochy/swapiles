@@ -182,12 +182,9 @@
                             </div>
 
                             @if($relayGeo->isNotEmpty())
-                                <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-                                      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-                                <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-                                        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+                                @include('partials.leaflet')
                                 <script>
-                                    (function () {
+                                    swpLeaflet(function () {
                                         var el = document.getElementById('relay-map');
                                         var select = document.getElementById('relay_point_id');
                                         if (!el || el._leaflet_id || typeof L === 'undefined') return;
@@ -245,7 +242,7 @@
                                                 }
                                             }).observe(relayBlock, { attributes: true, attributeFilter: ['class'] });
                                         }
-                                    })();
+                                    });
                                 </script>
                             @endif
                         @endif

@@ -84,11 +84,25 @@ class RelayDashboardController extends Controller
     }
 
     /** Relevé mensuel (ou autofacture) d'un point relais, en PDF. */
-    public function releve(RelayPoint $point, string $mois)
+    public function releve(Request $request, RelayPoint $point, string $mois)
     {
         abort_unless(Auth::user()->managedRelayPoints()->whereKey($point->id)->exists(), 403);
         abort_unless(preg_match('/^\d{4}-\d{2}$/', $mois) === 1, 404);
         $debut = Carbon::createFromFormat('Y-m-d', $mois . '-01')->startOfMonth();
+
+        // Dans l'appli, un PDF ouvert remplace l'écran sans bouton retour :
+        // on montre un aperçu dans une page Swap'Îles (pdf-appli.js).
+        if ($request->query('vue') === 'html') {
+            return response(VersementsRelais::html($point, $debut));
+        }
+        if ($request->query('vue') === 'apercu') {
+            return view('account.relay.releve-apercu', [
+                'titre' => 'Relevé ' . ucfirst($debut->locale('fr')->translatedFormat('F Y')),
+                'contenu' => route('account.relay.releve', [$point, $mois, 'vue' => 'html']),
+                'pdf' => route('account.relay.releve', [$point, $mois]),
+                'fichier' => VersementsRelais::nomFichier($point, $debut),
+            ]);
+        }
 
         return response()->streamDownload(
             fn () => print(VersementsRelais::pdf($point, $debut)),

@@ -166,6 +166,15 @@ class VersementsRelais
         return $dompdf->output();
     }
 
+    /** Même relevé en page web (aperçu dans l'appli, où un PDF ouvert bloque l'écran). */
+    public static function html(RelayPoint $point, Carbon $mois): string
+    {
+        return view('pdf.releve-relais', self::releve($point, $mois) + [
+            'logo' => asset('images/logo.png'),
+            'contact' => config('partenaires.contact'),
+        ])->render();
+    }
+
     public static function nomFichier(RelayPoint $point, Carbon $mois): string
     {
         return 'swapiles-releve-relais-' . self::numero($point, $mois) . '.pdf';

@@ -189,6 +189,12 @@ class RelaisCharteTest extends TestCase
         // Le commerçant télécharge son relevé ; un autre membre ne peut pas.
         $this->actingAs($this->commercant)->get(route('account.relay.releve', [$point, '2026-10']))->assertOk()->assertHeader('content-type', 'application/pdf');
         $this->actingAs($this->acheteur)->get(route('account.relay.releve', [$point, '2026-10']))->assertForbidden();
+
+        // Dans l'appli : aperçu avec bouton retour, et version page web du relevé.
+        $this->actingAs($this->commercant)->get(route('account.relay.releve', [$point, '2026-10', 'vue' => 'apercu']))
+            ->assertOk()->assertSee('Retour à mon espace relais')->assertSee('Enregistrer / partager le PDF')->assertSee('vue=html', false);
+        $this->actingAs($this->commercant)->get(route('account.relay.releve', [$point, '2026-10', 'vue' => 'html']))
+            ->assertOk()->assertSee('SWP-R' . $point->id . '-202610');
         $this->actingAs($this->commercant)->get(route('account.relay.dashboard'))->assertOk()->assertSee('Mes relevés')->assertSee('versé le');
 
         // L'admin voit ce qui reste à verser.

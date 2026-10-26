@@ -26,7 +26,7 @@ class NotificationsVente
         'seller_ship_reminder' => [2, 6],
         'buyer_confirm_reminder' => [4, 9],
         'buyer_handover_reminder' => [2, 5],
-        'relay_pickup_reminder' => [2, 5],
+        'relay_pickup_reminder' => [2, 7],
     ];
 
     /** Jours après expédition avant validation automatique (voir AutoResolveTransactions). */
@@ -153,10 +153,13 @@ class NotificationsVente
 
         // [type, destinataire, depuis, titre, message]
         $relance = match (true) {
+            // Délai de garde dépassé : plus de relance, l'admin reprend la main.
+            $t->delivery_method === 'relay' && in_array($t->relay_status, ['expired', 'returned'], true) => null,
             $t->delivery_method === 'relay' && $t->relay_status === 'deposited' && ! $t->relay_collected_at => [
                 'relay_pickup_reminder', $t->buyer_id, $t->relay_deposited_at,
                 '🏪 Ton colis t’attend toujours',
-                "« {$titre} » est chez {$ou} depuis %d jours." . ($t->relay_pickup_code ? " Code de retrait : {$t->relay_pickup_code}." : ''),
+                "« {$titre} » est chez {$ou} depuis %d jours." . ($t->relay_pickup_code ? " Code de retrait : {$t->relay_pickup_code}." : '')
+                    . ' À retirer avant le ' . GardeRelais::limite($t)?->format('d/m') . ', sinon il sera rendu au vendeur.',
             ],
             $t->delivery_method === 'relay' && ! $t->shipped_at => [
                 'seller_ship_reminder', $t->seller_id, $t->created_at,

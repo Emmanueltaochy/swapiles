@@ -32,10 +32,14 @@ class RelayMerchantTest extends TestCase
 
     private function relay(?User $manager = null): RelayPoint
     {
-        return RelayPoint::create([
+        $point = RelayPoint::create([
             'name' => 'Boutique', 'territoire' => 'La Réunion', 'city' => 'Saint-Denis',
             'is_active' => true, 'manager_user_id' => $manager?->id,
         ]);
+        // Charte acceptée : sinon l'espace relais bloque les actions (voir RelaisCharteTest).
+        $point->forceFill(['charte_version' => config('relais.charte_version'), 'charte_acceptee_at' => now()])->save();
+
+        return $point;
     }
 
     private function tx(RelayPoint $relay, User $seller, User $buyer, string $relayStatus, string $code = 'ABC234'): Transaction

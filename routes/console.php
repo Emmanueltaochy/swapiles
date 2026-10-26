@@ -55,6 +55,10 @@ Schedule::command('recommandations:envoyer')->hourlyAt(5)->withoutOverlapping();
 // la nuit, elles attendent le matin chez le membre (PushPolicy).
 Schedule::command('ventes:relances')->hourlyAt(20)->withoutOverlapping();
 
+// Point relais : colis non retiré après le délai de garde (charte, 10 jours)
+// => le vendeur vient le récupérer, l'admin décide du remboursement.
+Schedule::command('relais:garde')->dailyAt('08:15')->withoutOverlapping();
+
 // Ventes en direct : « le live commence dans 15 min » aux membres qui ont
 // appuyé sur « Me prévenir ». Une seule fois par live.
 Schedule::command('live:rappels')->everyMinute()->withoutOverlapping();

@@ -110,6 +110,23 @@ class RelayPointResource extends Resource
                 ])
                 ->columnSpanFull()
                 ->collapsible(),
+            \Filament\Schemas\Components\Section::make('🧾 Charte et facturation')
+                ->description(fn (?RelayPoint $record) => $record?->charte_acceptee_at
+                    ? 'Charte ' . $record->charte_version . ' acceptée le ' . $record->charte_acceptee_at->format('d/m/Y') . ' (mandat d’autofacturation inclus).'
+                    : 'Charte pas encore acceptée : le commerçant l’accepte dans son espace relais.')
+                ->schema([
+                    TextInput::make('raison_sociale')
+                        ->label('Raison sociale (sur les factures)')
+                        ->maxLength(160),
+                    TextInput::make('siret')
+                        ->label('SIRET')
+                        ->maxLength(20)
+                        ->helperText('Avec un SIRET, le relevé mensuel est une autofacture. Sans SIRET, c’est un simple relevé.'),
+                    Toggle::make('assujetti_tva')
+                        ->label('Le commerce facture la TVA'),
+                ])
+                ->columnSpanFull()
+                ->collapsible(),
         ]);
     }
 
@@ -141,6 +158,13 @@ class RelayPointResource extends Resource
                 IconColumn::make('is_active')
                     ->label('Actif')
                     ->boolean(),
+                TextColumn::make('a_verser')
+                    ->label('À verser')
+                    ->state(fn (RelayPoint $record) => \App\Support\VersementsRelais::soldes($record->id)['a_verser'])
+                    ->formatStateUsing(fn ($state) => number_format((float) $state, 2, ',', ' ') . ' €')
+                    ->badge()
+                    ->color(fn ($state) => (float) $state >= (float) config('relais.versement_minimum', 10) ? 'warning' : 'gray')
+                    ->description(fn (RelayPoint $record) => $record->charteAJour() ? 'Charte ✓' : 'Charte à accepter'),
                 TextColumn::make('transactions_count')
                     ->label('Colis')
                     ->counts('transactions')
@@ -166,9 +190,69 @@ class RelayPointResource extends Resource
                     ->iconButton()
                     ->tooltip('Rapport d’impact à envoyer à l’enseigne (lien privé)')
                     ->url(fn (RelayPoint $record) => $record->lienRapport(), shouldOpenInNewTab: true),
+                \Filament\Actions\Action::make('releve')
+                    ->label('Relevé du mois')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->iconButton()
+                    ->tooltip('Relevé mensuel / autofacture (PDF)')
+                    ->modalHeading('Relevé mensuel du point relais')
+                    ->modalSubmitActionLabel('Télécharger')
+                    ->schema([
+                        Select::make('mois')
+                            ->label('Mois')
+                            ->options(fn () => self::optionsMois())
+                            ->default(now()->subMonthNoOverflow()->format('Y-m'))
+                            ->required(),
+                    ])
+                    ->action(function (RelayPoint $record, array $data) {
+                        $mois = \Illuminate\Support\Carbon::createFromFormat('Y-m-d', $data['mois'] . '-01')->startOfMonth();
+                        \App\Support\VersementsRelais::enregistrer($record, $mois);
+
+                        return response()->streamDownload(
+                            fn () => print(\App\Support\VersementsRelais::pdf($record, $mois)),
+                            \App\Support\VersementsRelais::nomFichier($record, $mois),
+                            ['Content-Type' => 'application/pdf'],
+                        );
+                    }),
+                \Filament\Actions\Action::make('verse')
+                    ->label('Marquer versé')
+                    ->icon('heroicon-o-banknotes')
+                    ->iconButton()
+                    ->tooltip('Noter le virement du mois')
+                    ->modalHeading('Noter un virement')
+                    ->modalDescription('Fais d’abord le virement depuis ta banque, puis note-le ici : le commerçant le voit dans son espace relais.')
+                    ->schema([
+                        Select::make('mois')
+                            ->label('Mois payé')
+                            ->options(fn () => self::optionsMois())
+                            ->default(now()->subMonthNoOverflow()->format('Y-m'))
+                            ->required(),
+                        TextInput::make('reference')
+                            ->label('Référence du virement (facultatif)')
+                            ->maxLength(120),
+                    ])
+                    ->action(function (RelayPoint $record, array $data) {
+                        $mois = \Illuminate\Support\Carbon::createFromFormat('Y-m-d', $data['mois'] . '-01')->startOfMonth();
+                        $v = \App\Support\VersementsRelais::marquerVerse($record, $mois, $data['reference'] ?? null);
+                        \Filament\Notifications\Notification::make()
+                            ->title('Virement noté : ' . number_format((float) $v->montant, 2, ',', ' ') . ' € (' . $v->colis . ' colis)')
+                            ->success()->send();
+                    }),
                 EditAction::make()->iconButton()->tooltip('Modifier'),
                 DeleteAction::make()->iconButton()->tooltip('Supprimer'),
             ]);
+    }
+
+    /** Les 12 derniers mois (le mois en cours en premier). */
+    private static function optionsMois(): array
+    {
+        $options = [];
+        for ($i = 0; $i < 12; $i++) {
+            $m = now()->startOfMonth()->subMonths($i);
+            $options[$m->format('Y-m')] = ucfirst($m->locale('fr')->translatedFormat('F Y'));
+        }
+
+        return $options;
     }
 
     public static function getNavigationLabel(): string

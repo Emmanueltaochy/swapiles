@@ -54,6 +54,8 @@ class Transaction extends Model
         'relay_pickup_code',
         'relay_deposited_at',
         'relay_collected_at',
+        'relay_expired_at',
+        'relay_returned_at',
         'status',
         'shipping_status',
         'wallet_status',
@@ -101,6 +103,8 @@ class Transaction extends Model
         'auto_review_flagged_at' => 'datetime',
         'relay_deposited_at' => 'datetime',
         'relay_collected_at' => 'datetime',
+        'relay_expired_at' => 'datetime',
+        'relay_returned_at' => 'datetime',
         'acheteur_confirme_at' => 'datetime',
         'acheteur_conteste_at' => 'datetime',
     ];

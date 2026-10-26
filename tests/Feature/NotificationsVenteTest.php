@@ -61,9 +61,11 @@ class NotificationsVenteTest extends TestCase
 
     private function vente(string $mode = 'colissimo', array $plus = []): Transaction
     {
-        $relais = $mode === 'relay'
-            ? RelayPoint::create(['name' => 'Tao Bijoux', 'territoire' => 'La Réunion', 'city' => 'Saint-Gilles', 'is_active' => true, 'manager_user_id' => $this->commercant->id])
-            : null;
+        $relais = null;
+        if ($mode === 'relay') {
+            $relais = RelayPoint::create(['name' => 'Tao Bijoux', 'territoire' => 'La Réunion', 'city' => 'Saint-Gilles', 'is_active' => true, 'manager_user_id' => $this->commercant->id]);
+            $relais->forceFill(['charte_version' => config('relais.charte_version'), 'charte_acceptee_at' => now()])->save();
+        }
 
         return Transaction::create($plus + [
             'listing_id' => $this->annonce()->id, 'seller_id' => $this->vendeur->id, 'buyer_id' => $this->acheteur->id,

@@ -192,6 +192,7 @@ Route::get('/points-relais', [\App\Http\Controllers\RelayPointsController::class
 Route::post('/points-relais/demande', [\App\Http\Controllers\RelayPointsController::class, 'demander'])
     ->middleware('throttle:5,1')->name('relay.points.request');
 Route::get('/devenir-point-relais', [\App\Http\Controllers\RelayPartnerController::class, 'show'])->name('relay.partner');
+Route::view('/points-relais/charte', 'relay.charte')->name('relay.charte');
 // Enseignes partenaires (RSE) : présentation et rapport d'impact mensuel (lien privé).
 Route::get('/partenaires', [\App\Http\Controllers\PartenairesController::class, 'index'])->name('partenaires.index');
 Route::get('/partenaires/rapport/{jeton}', [\App\Http\Controllers\PartenairesController::class, 'rapport'])
@@ -331,6 +332,12 @@ Route::middleware('auth')->group(function () {
         ->name('account.relay.deposit');
     Route::patch('/mon-relais/{transaction}/remettre', [\App\Http\Controllers\Account\RelayDashboardController::class, 'confirmPickup'])
         ->name('account.relay.pickup');
+    Route::patch('/mon-relais/{transaction}/rendre-au-vendeur', [\App\Http\Controllers\Account\RelayDashboardController::class, 'confirmReturn'])
+        ->name('account.relay.return');
+    Route::post('/mon-relais/charte', [\App\Http\Controllers\Account\RelayDashboardController::class, 'accepterCharte'])
+        ->name('account.relay.charte');
+    Route::get('/mon-relais/releve/{point}/{mois}', [\App\Http\Controllers\Account\RelayDashboardController::class, 'releve'])
+        ->name('account.relay.releve');
 });
 
 
@@ -473,6 +480,7 @@ Route::get('/sitemap.xml', function () {
     // Page vitrine « Devenir point relais partenaire »
     $urls->push(['loc' => route('relay.partner'), 'priority' => '0.6', 'changefreq' => 'monthly']);
     $urls->push(['loc' => route('relay.points'), 'priority' => '0.6', 'changefreq' => 'weekly']);
+    $urls->push(['loc' => route('relay.charte'), 'priority' => '0.4', 'changefreq' => 'monthly']);
 
     // Classement « Meilleurs dressings »
     $urls->push(['loc' => route('dressings.top'), 'priority' => '0.6', 'changefreq' => 'weekly']);

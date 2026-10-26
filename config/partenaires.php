@@ -16,6 +16,13 @@ return [
         'telephone' => env('PARTENAIRES_CONTACT_TELEPHONE'),
     ],
 
+    // Émetteur des relevés et autofactures des points relais (voir mentions légales).
+    'editeur' => [
+        'nom' => 'Emmanuel Taochy (EI), Swap’Îles',
+        'adresse' => '124 route des canots, 97427 Étang-Salé, La Réunion',
+        'siret' => '884 270 604 00025',
+    ],
+
     'formules' => [
         [
             'nom' => 'Point relais',

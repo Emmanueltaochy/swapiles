@@ -211,7 +211,10 @@
                 ['Est-ce que ça me coûte quelque chose ?', 'Non. Devenir point relais est 100 % gratuit : aucun matériel, aucun abonnement, aucune commission prélevée sur vous. Vous êtes rémunéré, pas l\'inverse.'],
                 ['Dois-je encaisser de l\'argent ?', 'Jamais. L\'acheteur paie en ligne, de façon sécurisée, avant même le dépôt. Vous vous contentez de garder le colis et de le remettre contre un code de retrait.'],
                 ['De combien de place ai-je besoin ?', 'Très peu : un simple coin pour stocker quelques colis en attente de retrait suffit pour démarrer le pilote.'],
-                ['Comment suis-je payé ?', 'Vous gagnez ' . number_format($merchantFee, 0, ',', ' ') . ' € par colis remis. Le montant s\'accumule sur votre solde, visible à tout moment dans votre espace relais.'],
+                ['Comment suis-je payé ?', 'Vous gagnez ' . number_format($merchantFee, 0, ',', ' ') . ' € par colis remis. Le solde est visible à tout moment dans votre espace relais et vous est versé par virement chaque mois, dès ' . number_format((float) config('relais.versement_minimum', 10), 0, ',', ' ') . ' €. Nous faisons la facture à votre place (autofacturation) : vous n\'avez rien à rédiger.'],
+                ['Et si un colis est perdu ou abîmé ?', 'C\'est la protection acheteur Swap\'Îles qui rembourse l\'acheteur. Rien ne vous est demandé, sauf si un colis a été remis sans code de retrait.'],
+                ['Combien de temps je garde un colis ?', 'L\'acheteur a ' . (int) config('relais.delai_garde_jours', 10) . ' jours pour venir le chercher. Ensuite, le vendeur vient le récupérer. Colis de ' . rtrim(rtrim(number_format((float) config('relais.poids_max_kg', 15), 1, ',', ''), '0'), ',') . ' kg maximum.'],
+                ['Suis-je engagé ?', 'Non. Vous arrêtez quand vous voulez, sans frais, avec un préavis de ' . (int) config('relais.preavis_jours', 15) . ' jours pour les colis en stock. Toutes les règles sont dans la charte des points relais (swapiles.com/points-relais/charte).'],
                 ['Comment je commence ?', 'Créez un compte Swap\'Îles, puis contactez-nous : nous activons votre point relais et vous accompagnons pour vos premiers colis.'],
             ] as [$q, $a])
                 <details class="group rounded-2xl border border-gray-100 bg-white p-5">

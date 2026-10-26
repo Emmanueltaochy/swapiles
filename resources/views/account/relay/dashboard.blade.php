@@ -17,11 +17,57 @@
             </div>
         @endif
 
+        @error('charte')
+            <div class="mt-5 rounded-2xl bg-red-50 border border-red-100 p-4 text-sm font-semibold text-red-700">{{ $message }}</div>
+        @enderror
+
+        {{-- Charte à accepter avant de gérer les colis --}}
+        @unless($charteAJour)
+            <div id="charte" class="mt-6 rounded-3xl border-2 border-amber-300 bg-amber-50 p-5 sm:p-6">
+                <h2 class="text-lg font-extrabold text-gray-900">📝 Accepte la charte des points relais</h2>
+                <p class="mt-1 text-sm text-gray-700">Une seule fois : ce sont les règles entre ton commerce et Swap’Îles (rémunération, délai de garde, responsabilités). Tant qu’elle n’est pas acceptée, tu ne peux pas valider de colis.</p>
+
+                <details class="mt-4 rounded-2xl bg-white p-4">
+                    <summary class="cursor-pointer font-bold text-teal-800">Lire la charte</summary>
+                    <div class="mt-4">@include('relay.partials.charte-texte')</div>
+                </details>
+
+                <form method="POST" action="{{ route('account.relay.charte') }}" class="mt-4 space-y-3">
+                    @csrf
+                    <p class="text-sm font-semibold text-gray-800">Pour tes factures (facultatif, modifiable plus tard)</p>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div>
+                            <label for="raison_sociale" class="block text-xs font-semibold text-gray-600">Raison sociale</label>
+                            <input id="raison_sociale" name="raison_sociale" maxlength="160" value="{{ old('raison_sociale', $points->first()->raison_sociale) }}"
+                                   class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-teal-500 focus:ring-teal-500">
+                        </div>
+                        <div>
+                            <label for="siret" class="block text-xs font-semibold text-gray-600">SIRET (14 chiffres)</label>
+                            <input id="siret" name="siret" inputmode="numeric" maxlength="17" value="{{ old('siret', $points->first()->siret) }}"
+                                   class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-teal-500 focus:ring-teal-500 @error('siret') border-red-500 @enderror">
+                            @error('siret')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+                    <label class="flex items-center gap-2 text-sm text-gray-700">
+                        <input type="checkbox" name="assujetti_tva" value="1" @checked(old('assujetti_tva', $points->first()->assujetti_tva)) class="rounded border-gray-300 text-teal-600 focus:ring-teal-500">
+                        Mon commerce facture la TVA
+                    </label>
+                    <label class="flex items-start gap-2 text-sm font-semibold text-gray-900">
+                        <input type="checkbox" name="accepte" value="1" required class="mt-0.5 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
+                        J’ai lu et j’accepte la charte des points relais, y compris le mandat d’autofacturation.
+                    </label>
+                    @error('accepte')<p class="text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
+                    <button class="w-full sm:w-auto rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-bold px-5 py-3 text-sm">J’accepte la charte</button>
+                </form>
+            </div>
+        @endunless
+
         {{-- Solde --}}
         <div class="mt-6 rounded-3xl border border-teal-100 bg-teal-50/50 p-6">
             <p class="text-sm font-semibold text-teal-700">Ton solde Swap'Îles</p>
-            <p class="mt-1 text-4xl font-extrabold text-teal-800">{{ number_format($balance, 2, ',', ' ') }} €</p>
-            <p class="mt-1 text-sm text-teal-700">{{ $collectedCount }} colis remis · 1 € par colis</p>
+            <p class="mt-1 text-4xl font-extrabold text-teal-800">{{ number_format($soldes['a_verser'], 2, ',', ' ') }} €</p>
+            <p class="mt-1 text-sm text-teal-700">à verser · {{ number_format($soldes['verse'], 2, ',', ' ') }} € déjà versés · {{ $collectedCount }} colis remis · {{ number_format((float) config('pricing.relay_merchant_fee', 1), 0, ',', ' ') }} € par colis</p>
+            <p class="mt-2 text-xs text-teal-700/80">Virement au début de chaque mois dès {{ number_format((float) config('relais.versement_minimum', 10), 0, ',', ' ') }} € de solde. <a href="{{ route('relay.charte') }}" class="font-semibold underline">Charte des points relais</a></p>
         </div>
 
         {{-- À réceptionner --}}
@@ -87,6 +133,43 @@
             </div>
         </div>
 
+        {{-- Délai de garde dépassé : à rendre au vendeur --}}
+        @if($toReturn->isNotEmpty())
+            <div class="mt-8">
+                <h2 class="text-lg font-extrabold text-gray-900">↩️ Colis à rendre au vendeur ({{ $toReturn->count() }})</h2>
+                <p class="text-sm text-gray-500">L’acheteur ne les a pas retirés à temps. Rends-les au vendeur quand il passe (vérifie son nom). Si l’acheteur vient avant, tu peux encore les lui remettre avec son code ci-dessus.</p>
+                <div class="mt-3 space-y-3">
+                    @foreach($toReturn as $t)
+                        <div class="rounded-2xl border border-amber-100 bg-white p-4 shadow-sm">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p class="font-bold text-gray-900">{{ $t->listing->title ?? 'Article' }}</p>
+                                    <p class="text-sm text-gray-500">Vendeur : {{ $t->seller->name ?? '—' }}</p>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <form method="POST" action="{{ route('account.relay.return', $t) }}" class="shrink-0" onsubmit="return confirm('Confirmer que le vendeur a récupéré son colis ?')">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button class="rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2.5 text-sm">Rendu au vendeur</button>
+                                    </form>
+                                </div>
+                            </div>
+                            <form method="POST" action="{{ route('account.relay.pickup', $t) }}" class="mt-3 flex items-end gap-2">
+                                @csrf
+                                @method('PATCH')
+                                <div>
+                                    <label for="code-r-{{ $t->id }}" class="block text-xs font-semibold text-gray-600">L’acheteur est venu ? Code de retrait</label>
+                                    <input id="code-r-{{ $t->id }}" name="pickup_code" required maxlength="12" autocomplete="off" placeholder="Ex : ABC234"
+                                           class="mt-1 w-36 rounded-xl border border-gray-300 px-3 py-2 text-sm font-bold uppercase tracking-widest focus:border-teal-500 focus:ring-teal-500">
+                                </div>
+                                <button class="rounded-xl border border-emerald-600 text-emerald-700 font-bold px-4 py-2 text-sm">Remettre</button>
+                            </form>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         {{-- Historique récent --}}
         @if($recentCollected->isNotEmpty())
             <div class="mt-8">
@@ -94,8 +177,27 @@
                 <div class="mt-3 divide-y divide-gray-100 rounded-2xl border border-gray-100 bg-white">
                     @foreach($recentCollected as $t)
                         <div class="flex items-center justify-between gap-3 p-4 text-sm">
-                            <span class="min-w-0 truncate text-gray-700">{{ $t->listing->title ?? 'Article' }} — {{ $t->buyer->name ?? '—' }}</span>
+                            <span class="min-w-0 truncate text-gray-700">{{ $t->listing->title ?? 'Article' }} — {{ $t->relay_status === 'returned' ? 'rendu au vendeur' : ($t->buyer->name ?? '—') }}</span>
                             <span class="shrink-0 font-semibold text-teal-700">+{{ number_format((float) $t->relay_merchant_fee, 2, ',', ' ') }} €</span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
+        {{-- Relevés mensuels (autofactures) --}}
+        @if($releves->isNotEmpty())
+            <div class="mt-8">
+                <h2 class="text-lg font-extrabold text-gray-900">🧾 Mes relevés</h2>
+                <p class="text-sm text-gray-500">Un relevé par mois (facture établie pour toi si ton SIRET est renseigné).</p>
+                <div class="mt-3 divide-y divide-gray-100 rounded-2xl border border-gray-100 bg-white">
+                    @foreach($releves as $r)
+                        <div class="flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
+                            <div class="min-w-0">
+                                <p class="font-semibold text-gray-900">{{ ucfirst($r['mois']->locale('fr')->translatedFormat('F Y')) }}@if($points->count() > 1) · {{ $r['point']->name }}@endif</p>
+                                <p class="text-gray-500">{{ $r['colis'] }} colis · {{ number_format($r['total'], 2, ',', ' ') }} € · {{ $r['versement']?->verse_at ? 'versé le ' . $r['versement']->verse_at->format('d/m/Y') : 'à verser' }}</p>
+                            </div>
+                            <a href="{{ route('account.relay.releve', [$r['point'], $r['mois']->format('Y-m')]) }}" class="shrink-0 rounded-xl border border-gray-200 px-3 py-2 font-semibold text-teal-700 hover:border-teal-400">Télécharger (PDF)</a>
                         </div>
                     @endforeach
                 </div>

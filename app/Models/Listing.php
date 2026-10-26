@@ -278,6 +278,11 @@ class Listing extends Model
             return collect();
         }
 
+        // Charte : un petit commerce n'accepte pas les colis trop lourds.
+        if ((float) $this->weight_kg > (float) config('relais.poids_max_kg', 15)) {
+            return collect();
+        }
+
         $territoire = $this->territoire;
 
         $filter = fn ($points) => $points

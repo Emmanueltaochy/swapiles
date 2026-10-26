@@ -48,6 +48,9 @@ class AutoResolveTransactions extends Command
             ->where('status', 'paid')
             ->whereNotNull('shipped_at')
             ->where('shipped_at', '<=', $limit)
+            // Point relais : la vente se termine au retrait du colis, jamais
+            // automatiquement (colis non retiré => délai de garde, voir relais:garde).
+            ->where(fn ($q) => $q->where('delivery_method', '!=', 'relay')->orWhereNull('delivery_method'))
             ->get();
 
         $this->info("FILET 1 (versement auto, expédié depuis ≥ "

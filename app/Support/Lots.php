@@ -155,7 +155,8 @@ class Lots
             && $listings->every(fn ($l) => ($l->requires_online_payment ?? false) && ($l->allows_colissimo ?? false));
 
         $relais = collect();
-        if (config('features.relay_points') && $listings->isNotEmpty()) {
+        // Charte : poids total du colis limité au point relais.
+        if (config('features.relay_points') && $listings->isNotEmpty() && $poids <= (float) config('relais.poids_max_kg', 15)) {
             $relais = $listings->first()->effectiveRelayPoints();
             foreach ($listings->slice(1) as $l) {
                 $ids = $l->effectiveRelayPoints()->pluck('id');

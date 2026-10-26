@@ -109,6 +109,10 @@ class NotificationPreferences
         'buyer_confirm_reminder',
         'buyer_handover_reminder',
         'relay_pickup_reminder',
+        'relay_expired_seller',
+        'relay_expired_buyer',
+        'relay_expired_merchant',
+        'relay_returned',
     ];
 
     /** Réglages par défaut de chaque catégorie (voir CATEGORIES). */

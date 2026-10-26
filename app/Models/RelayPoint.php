@@ -28,11 +28,19 @@ class RelayPoint extends Model
         'partenaire_enseigne',
         'partenaire_logo',
         'partenaire_depuis',
+        'raison_sociale',
+        'siret',
+        'assujetti_tva',
     ];
+
+    /** Colis qui rapportent la commission : remis à l'acheteur, ou rendu au vendeur après le délai de garde. */
+    public const STATUTS_REMUNERES = ['collected', 'returned'];
 
     protected $casts = [
         'is_active' => 'boolean',
         'partenaire_depuis' => 'date',
+        'charte_acceptee_at' => 'datetime',
+        'assujetti_tva' => 'boolean',
         'latitude' => 'float',
         'longitude' => 'float',
     ];
@@ -64,12 +72,12 @@ class RelayPoint extends Model
 
     /**
      * Solde gagné par le commerçant sur ce point : 1 € (relay_merchant_fee) par
-     * colis effectivement REMIS à l'acheteur (relay_status = collected).
+     * colis effectivement REMIS (à l'acheteur, ou rendu au vendeur après le délai de garde).
      */
     public function earnedBalance(): float
     {
         return (float) $this->transactions()
-            ->where('relay_status', 'collected')
+            ->whereIn('relay_status', self::STATUTS_REMUNERES)
             ->sum('relay_merchant_fee');
     }
 
@@ -77,8 +85,29 @@ class RelayPoint extends Model
     public function collectedCount(): int
     {
         return (int) $this->transactions()
-            ->where('relay_status', 'collected')
+            ->whereIn('relay_status', self::STATUTS_REMUNERES)
             ->count();
+    }
+
+    public function versements()
+    {
+        return $this->hasMany(RelayVersement::class);
+    }
+
+    /** Le commerçant a-t-il accepté la version en vigueur de la charte ? */
+    public function charteAJour(): bool
+    {
+        return $this->charte_acceptee_at !== null
+            && $this->charte_version === (string) config('relais.charte_version');
+    }
+
+    public function accepterCharte(User $gerant): void
+    {
+        $this->forceFill([
+            'charte_version' => (string) config('relais.charte_version'),
+            'charte_acceptee_at' => now(),
+            'charte_acceptee_par' => $gerant->id,
+        ])->save();
     }
 
     public function scopeActive(Builder $query): Builder

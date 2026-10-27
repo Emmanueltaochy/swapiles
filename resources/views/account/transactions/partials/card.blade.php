@@ -13,6 +13,10 @@
     if ($status === 'cancelled') {
         $badgeClass = 'bg-red-100 text-red-700';
         $badgeLabel = 'Annulée';
+    } elseif ($transaction->attendReponseAcheteur()) {
+        // Vente en main propre déclarée par le vendeur : l'acheteur doit confirmer.
+        $badgeClass = 'bg-amber-100 text-amber-800';
+        $badgeLabel = $isPurchase ? '👉 À confirmer' : 'Attend la confirmation';
     } elseif ($status === 'completed') {
         $badgeClass = 'bg-green-100 text-green-700';
         $badgeLabel = 'Terminée';

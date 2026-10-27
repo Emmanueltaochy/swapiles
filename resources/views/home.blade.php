@@ -144,10 +144,11 @@
             </p>
 
             <form method="GET" action="{{ route('search', ['territoire' => $selectedTerritoire]) }}" data-turbo="true" class="mt-4 sm:mt-7 bg-white rounded-3xl shadow-2xl p-2.5 sm:p-3 max-w-5xl">
-                <div class="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-4 gap-2">
+                @php $photoIa = \App\Support\IaDepot::disponible(); @endphp
+                <div class="grid {{ $photoIa ? 'grid-cols-[minmax(0,1fr)_auto_auto] md:grid-cols-5' : 'grid-cols-[minmax(0,1fr)_auto] md:grid-cols-4' }} gap-2">
                     <input type="hidden" name="territoire" value="{{ $selectedTerritoire }}">
 
-                    <input type="text" name="q" value="{{ request('q') }}" placeholder="Que recherches-tu ?"
+                    <input type="text" name="q" value="{{ request('q') }}" placeholder="{{ $photoIa ? 'Rechercher…' : 'Que recherches-tu ?' }}"
                         class="min-w-0 w-full md:col-span-2 px-4 py-3 bg-gray-50 rounded-2xl border-0 text-sm focus:ring-2 focus:ring-teal-600">
 
                     <select name="category" class="hidden md:block px-4 py-3 bg-gray-50 rounded-2xl border-0 text-sm focus:ring-2 focus:ring-teal-600">
@@ -158,11 +159,18 @@
                         <option value="Accessoires">Accessoires</option>
                     </select>
 
+                    @include('partials.recherche-photo', ['classe' => 'shrink-0 bg-violet-600 hover:bg-violet-700 text-white font-bold px-4 py-3 rounded-2xl transition'])
                     <button class="shrink-0 whitespace-nowrap bg-teal-700 hover:bg-teal-800 text-white font-bold px-4 sm:px-6 py-3 rounded-2xl transition">
                         Rechercher
                     </button>
                 </div>
             </form>
+            @if($photoIa)
+                {{-- L'IA est le meilleur argument face aux applis qui la font payer. --}}
+                <a href="{{ route('account.listings.create') }}" class="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-white backdrop-blur hover:bg-white/25">
+                    ✨ Nouveau : dépose en 30 secondes, l’IA remplit ton annonce · gratuit
+                </a>
+            @endif
         </div>
     </div>
 </section>
@@ -372,7 +380,7 @@
         </div>
     @endif
 
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" data-defilement-infini data-page-suivante="{{ $listings->nextPageUrl() }}">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" data-defilement-infini data-auto-max="0" data-page-suivante="{{ $listings->nextPageUrl() }}">
         @foreach($listings as $listing)
             <a href="{{ route('listings.show', $listing) }}" class="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition">
                 <div class="relative aspect-[4/5] bg-gray-100 overflow-hidden">

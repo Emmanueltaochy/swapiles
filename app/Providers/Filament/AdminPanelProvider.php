@@ -60,6 +60,12 @@ class AdminPanelProvider extends PanelProvider
                     . "input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),"
                     . 'select,textarea{font-size:16px !important;}}</style>'
             )
+            // Dans l'appli, un téléchargement (PDF, export) s'ouvre dans une fenêtre
+            // avec « Fermer » au lieu de bloquer l'écran (public/js/telechargement-appli.js).
+            ->renderHook(
+                \Filament\View\PanelsRenderHook::HEAD_END,
+                fn (): string => '<script src="' . asset('js/telechargement-appli.js') . '?v=' . @filemtime(public_path('js/telechargement-appli.js')) . '"></script>'
+            )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')

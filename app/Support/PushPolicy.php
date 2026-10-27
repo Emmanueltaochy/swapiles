@@ -47,7 +47,7 @@ class PushPolicy
     public const NIVEAUX = [
         'social' => ['message_received', 'exchange_proposal', 'listing_interest', 'message_reminder', 'live_soon', 'live_started', 'referral_joined', 'referral_welcome', 'favorite_offer'],
         // Relances de vente : pas la nuit, pas plus de 3 par jour.
-        'rappel' => ['wallet_expiring', 'seller_ship_reminder', 'buyer_confirm_reminder', 'buyer_handover_reminder', 'relay_pickup_reminder'],
+        'rappel' => ['wallet_expiring', 'seller_ship_reminder', 'buyer_confirm_reminder', 'buyer_handover_reminder', 'relay_pickup_reminder', 'cash_sale_confirm_reminder'],
         'animation' => [
             'favorite_added',
             'listing_viewed',

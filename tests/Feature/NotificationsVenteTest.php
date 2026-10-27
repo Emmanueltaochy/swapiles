@@ -196,8 +196,11 @@ class NotificationsVenteTest extends TestCase
         $declaree = $this->vente('hand_delivery', ['payment_method' => 'especes', 'status' => 'completed']);
         $this->vieillir($declaree, 5);
 
-        $this->assertSame(1, NotificationsVente::envoyerRelances());
+        // La remise en main propre payée en ligne, et la vente déclarée en espèces
+        // (l'acheteur doit confirmer pour qu'elle compte).
+        $this->assertSame(2, NotificationsVente::envoyerRelances());
         $this->assertArrayHasKey('buyer_handover_reminder', $this->notifs($this->acheteur));
+        $this->assertArrayHasKey('cash_sale_confirm_reminder', $this->notifs($this->acheteur));
     }
 
     public function test_les_relances_attendent_le_matin(): void

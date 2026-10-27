@@ -92,6 +92,7 @@
                 <label for="q" class="sr-only">Rechercher</label>
                 <input id="q" type="text" name="q" value="{{ request('q') }}" placeholder="Rechercher un article, une marque…"
                        class="min-w-0 flex-1 rounded-full border-0 bg-gray-100 px-5 py-3 text-sm outline-none focus:ring-2 focus:ring-teal-500">
+                @include('partials.recherche-photo')
                 <button class="shrink-0 rounded-full bg-teal-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-700">Rechercher</button>
             </div>
 
@@ -430,6 +431,9 @@
     <div class="mb-5">
         <h1 class="text-xl font-bold text-gray-900">Articles</h1>
         <p class="mt-0.5 text-sm text-gray-500">{{ $listings->total() }} résultat{{ $listings->total() > 1 ? 's' : '' }}</p>
+        @if(request()->boolean('photo') && filled(request('q')))
+            <p class="mt-2 rounded-2xl bg-violet-50 px-4 py-2.5 text-sm text-violet-900">📷 Recherche à partir de ta photo : « <strong>{{ request('q') }}</strong> ». Pas tout à fait ça ? Modifie les mots dans la barre de recherche.</p>
+        @endif
     </div>
 
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5" data-defilement-infini data-page-suivante="{{ $listings->nextPageUrl() }}">

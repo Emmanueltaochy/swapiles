@@ -97,6 +97,7 @@ class NotificationPreferences
         'user_deleted',
         // Parcours d'une vente (NotificationsVente).
         'cash_sale_confirm',
+        'cash_sale_confirm_reminder',
         'relay_incoming',
         'transaction_shipped',
         'relay_ready',

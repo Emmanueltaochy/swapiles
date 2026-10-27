@@ -112,6 +112,8 @@ Route::get('/territoire/{territoire}', function (\Illuminate\Http\Request $reque
         ->withCookie(\App\Support\TerritoireContext::cookie($territoires[$territoire]));
 })->name('territoire.switch');
 Route::get('/recherche', [HomeController::class, 'search'])->name('search');
+Route::post('/recherche/photo', [\App\Http\Controllers\RecherchePhotoController::class, 'chercher'])
+    ->middleware('throttle:6,1')->name('search.photo');
 
 // Jeton de sécurité frais, demandé par l'appli quand elle revient au premier
 // plan : une page ouverte depuis des jours garderait sinon un jeton périmé, et

@@ -32,7 +32,7 @@ class IaDepot
 
     public static function resteAujourdhui(User $membre): int
     {
-        $faits = DB::table('ia_depot_usages')->where('user_id', $membre->id)->where('created_at', '>=', today())->count();
+        $faits = DB::table('ia_depot_usages')->where('user_id', $membre->id)->where('fonction', 'depot')->where('created_at', '>=', today())->count();
 
         return max(0, (int) config('ia_depot.limite_par_jour', 20) - $faits);
     }
@@ -62,7 +62,9 @@ class IaDepot
             'limite_jour' => (int) config('ia_depot.limite_par_jour', 20),
             'appels' => $appels,
             'reussis' => $ok,
-            'membres' => (clone $mois)->distinct()->count('user_id'),
+            'membres' => (clone $mois)->whereNotNull('user_id')->distinct()->count('user_id'),
+            'depots' => (clone $mois)->where('fonction', 'depot')->count(),
+            'recherches_photo' => (clone $mois)->where('fonction', 'recherche_photo')->count(),
             'cout' => round($cout, 4),
             'cout_moyen' => $appels > 0 ? round($cout / $appels, 5) : 0.0,
             'par_jour' => DB::table('ia_depot_usages')
@@ -167,7 +169,7 @@ class IaDepot
     }
 
     /** Photo réduite en JPEG (côté max configurable), encodée en base64. */
-    private static function image(UploadedFile $fichier): ?string
+    public static function image(UploadedFile $fichier): ?string
     {
         $source = @imagecreatefromstring((string) file_get_contents($fichier->getRealPath()));
         if (! $source) {
@@ -190,12 +192,14 @@ class IaDepot
         return base64_encode($jpeg);
     }
 
-    private static function noter(User $membre, string $modele, int $photos, int $entree, int $sortie, string $statut): void
+    /** Note un appel (coût estimé). $fonction : depot | recherche_photo. */
+    public static function noter(?User $membre, string $modele, int $photos, int $entree, int $sortie, string $statut, string $fonction = 'depot'): void
     {
         [$prixEntree, $prixSortie] = config('ia_depot.tarifs.' . $modele, [0, 0]);
 
         DB::table('ia_depot_usages')->insert([
-            'user_id' => $membre->id,
+            'user_id' => $membre?->id,
+            'fonction' => $fonction,
             'modele' => $modele,
             'photos' => $photos,
             'jetons_entree' => $entree,

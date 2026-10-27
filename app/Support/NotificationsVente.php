@@ -27,6 +27,8 @@ class NotificationsVente
         'buyer_confirm_reminder' => [4, 9],
         'buyer_handover_reminder' => [2, 5],
         'relay_pickup_reminder' => [2, 7],
+        // Vente en main propre déclarée : l'acheteur confirme pour que la vente compte.
+        'cash_sale_confirm_reminder' => [2, 6],
     ];
 
     /** Jours après expédition avant validation automatique (voir AutoResolveTransactions). */
@@ -208,10 +210,61 @@ class NotificationsVente
         ];
     }
 
+    /**
+     * Relance « Vous avez acheté cet article ? » pour une vente en main propre
+     * déclarée par le vendeur, encore sans réponse de l'acheteur.
+     *
+     * @return array{user_id:int,type:string,title:string,message:string,url:string}|null
+     */
+    public static function relanceConfirmationMainPropre(Transaction $t, ?Carbon $maintenant = null): ?array
+    {
+        $maintenant ??= now();
+        if (! $t->attendReponseAcheteur()) {
+            return null;
+        }
+
+        $type = 'cash_sale_confirm_reminder';
+        $vente = route('account.transactions.show', $t, absolute: false);
+        $deja = Notification::where('user_id', $t->buyer_id)->where('type', $type)->where('url', $vente)->count();
+        $seuils = self::RELANCES[$type];
+        $jours = (int) Carbon::parse($t->created_at)->diffInDays($maintenant);
+
+        if ($deja >= count($seuils) || $jours < $seuils[$deja]) {
+            return null;
+        }
+
+        $titre = $t->listing?->title ?? 'cet article';
+        $vendeur = $t->seller?->name ?? 'Le vendeur';
+
+        return [
+            'user_id' => $t->buyer_id,
+            'type' => $type,
+            'title' => '👉 Confirmez votre achat',
+            'message' => "{$vendeur} indique vous avoir vendu « {$titre} » en main propre. Un clic pour confirmer : ça compte pour son classement, et vous pourrez lui laisser un avis.",
+            'url' => $vente,
+        ];
+    }
+
     /** Passe en revue les ventes en cours et envoie les relances dues. */
     public static function envoyerRelances(?Carbon $maintenant = null): int
     {
         $envoyees = 0;
+
+        Transaction::query()
+            ->where('payment_method', 'especes')
+            ->whereNotNull('buyer_id')
+            ->whereNull('acheteur_confirme_at')
+            ->whereNull('acheteur_conteste_at')
+            ->where('created_at', '>=', now()->subDays(30))
+            ->with(['listing', 'seller'])
+            ->chunkById(200, function ($ventes) use (&$envoyees, $maintenant) {
+                foreach ($ventes as $t) {
+                    if ($relance = self::relanceConfirmationMainPropre($t, $maintenant)) {
+                        Notification::create($relance);
+                        $envoyees++;
+                    }
+                }
+            });
 
         Transaction::query()
             ->where('status', 'paid')

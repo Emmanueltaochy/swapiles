@@ -23,7 +23,7 @@
 
     // Raccourcis de navigation du compte
     $shortcuts = [
-        ['route' => 'account.transactions.index',      'icon' => '📦', 'label' => 'Ventes & achats'],
+        ['route' => 'account.transactions.index',      'icon' => '📦', 'label' => 'Ventes & achats', 'badge' => \App\Models\Transaction::where('buyer_id', $user->id)->where('payment_method', 'especes')->whereNull('acheteur_confirme_at')->whereNull('acheteur_conteste_at')->count()],
         ['route' => 'account.messages.index',          'icon' => '💬', 'label' => 'Messages', 'badge' => \App\Models\Message::where('receiver_id', $user->id)->whereNull('read_at')->count()],
         ['route' => 'account.favorites.index',         'icon' => '❤️', 'label' => 'Favoris'],
         ['route' => 'account.followed-sellers.index',  'icon' => '👥', 'label' => 'Vendeurs suivis'],

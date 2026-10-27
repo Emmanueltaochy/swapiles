@@ -5,7 +5,7 @@
     @endphp
 
     <x-filament::section>
-        <x-slot name="heading">État</x-slot>
+        <x-slot name="heading">État (remplissage des annonces et recherche par photo)</x-slot>
         @if(! $b['active'])
             <p style="font-size:.9rem;">🔒 <strong>Masqué</strong> : la clé <code>ANTHROPIC_API_KEY</code> n’est pas encore renseignée dans les secrets GitHub. Le bouton « ✨ Remplir la fiche avec l’IA » n’apparaît à personne.</p>
         @elseif(! $b['disponible'])
@@ -16,7 +16,7 @@
     </x-filament::section>
 
     <div style="display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
-        <x-filament::section><div style="opacity:.65;font-weight:700;font-size:.8rem;">Utilisations ce mois-ci</div><div style="font-size:1.8rem;font-weight:800;">{{ $n($b['appels']) }}</div><div style="font-size:.8rem;opacity:.65;">{{ $n($b['reussis']) }} réussies · {{ $n($b['membres']) }} membre(s)</div></x-filament::section>
+        <x-filament::section><div style="opacity:.65;font-weight:700;font-size:.8rem;">Utilisations ce mois-ci</div><div style="font-size:1.8rem;font-weight:800;">{{ $n($b['appels']) }}</div><div style="font-size:.8rem;opacity:.65;">{{ $n($b['depots']) }} annonce(s) remplie(s) · {{ $n($b['recherches_photo']) }} recherche(s) par photo · {{ $n($b['reussis']) }} réussies</div></x-filament::section>
         <x-filament::section><div style="opacity:.65;font-weight:700;font-size:.8rem;">Coût du mois (estimé)</div><div style="font-size:1.8rem;font-weight:800;">{{ $usd($b['cout'], 2) }}</div><div style="font-size:.8rem;opacity:.65;">sur un budget de {{ $usd($b['budget']) }}</div></x-filament::section>
         <x-filament::section><div style="opacity:.65;font-weight:700;font-size:.8rem;">Coût moyen par annonce</div><div style="font-size:1.8rem;font-weight:800;">{{ $usd($b['cout_moyen'], 4) }}</div><div style="font-size:.8rem;opacity:.65;">d’après les jetons facturés</div></x-filament::section>
     </div>

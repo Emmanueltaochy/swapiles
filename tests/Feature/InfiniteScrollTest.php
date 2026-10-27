@@ -68,7 +68,7 @@ class InfiniteScrollTest extends TestCase
 
     private function pageSuivante(string $html): string
     {
-        preg_match('#data-defilement-infini data-page-suivante="([^"]*)"#', $html, $m);
+        preg_match('#data-defilement-infini(?: data-auto-max="\d+")? data-page-suivante="([^"]*)"#', $html, $m);
         $this->assertNotEmpty($m, 'Adresse de la page suivante absente.');
 
         return html_entity_decode($m[1]);
@@ -154,7 +154,7 @@ class InfiniteScrollTest extends TestCase
         // Réseau coupé : la main revient au visiteur, rien n'est perdu.
         $this->assertMatchesRegularExpression('/\.catch\(function \(\) \{.*?bouton\.hidden = false;/s', $js);
         // Coupure : pas de nouvel essai à chaque mouvement de doigt.
-        $this->assertStringContainsString('if (actif && !enPause && pages < AUTO_MAX && procheDuBas()) charger();', $js);
+        $this->assertStringContainsString('if (actif && !enPause && pages < autoMax && procheDuBas()) charger();', $js);
         // Défilement rapide qui saute le bas de liste : la suite arrive quand même
         // (position vérifiée à chaque défilement, pas d'IntersectionObserver).
         $this->assertStringContainsString("window.addEventListener('scroll', surveiller, options);", $js);
@@ -162,5 +162,15 @@ class InfiniteScrollTest extends TestCase
         $this->assertStringContainsString('pagination.hidden = true', $js);
         // Retour arrière : la page restaurée est re-préparée.
         $this->assertStringContainsString("document.addEventListener('turbo:load', initialiser);", $js);
+    }
+
+    public function test_accueil_bouton_voir_plus_sans_chargement_automatique(): void
+    {
+        // Sur l'accueil, les rubriques et le pied de page sous la grille doivent rester atteignables.
+        $html = $this->get('/')->assertOk()->getContent();
+        $this->assertStringContainsString('data-defilement-infini data-auto-max="0"', $html);
+
+        $js = file_get_contents(public_path('js/infinite-scroll.js'));
+        $this->assertStringContainsString("grille.hasAttribute('data-auto-max')", $js);
     }
 }

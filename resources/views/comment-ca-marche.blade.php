@@ -32,6 +32,9 @@
                 <p class="mt-3 text-sm font-bold text-teal-700">Étape 1</p>
                 <h3 class="font-bold text-gray-900">Publiez gratuitement</h3>
                 <p class="mt-1 text-sm text-gray-600">Quelques photos, un prix, votre île : l’annonce est en ligne. Le dépôt est gratuit et vous gardez le prix que vous fixez.</p>
+                @if(\App\Support\IaDepot::disponible())
+                    <p class="mt-2 rounded-xl bg-violet-50 px-3 py-2 text-sm text-violet-900">✨ <strong>L’IA remplit pour vous</strong> : touchez « Remplir la fiche avec l’IA », elle propose le titre, la description, la catégorie et un prix. Gratuit, sans abonnement.</p>
+                @endif
             </div>
             <div class="{{ $etape }}">
                 <div class="text-4xl">💬</div>
@@ -56,6 +59,9 @@
                 <p class="mt-3 text-sm font-bold text-teal-700">Étape 1</p>
                 <h3 class="font-bold text-gray-900">Trouvez près de chez vous</h3>
                 <p class="mt-1 text-sm text-gray-600">Les annonces sont sur votre île : pas besoin d’attendre un colis de métropole.</p>
+                @if(\App\Support\IaDepot::disponible())
+                    <p class="mt-2 rounded-xl bg-violet-50 px-3 py-2 text-sm text-violet-900">📷 <strong>Cherchez avec une photo</strong> : touchez l’appareil photo dans la barre de recherche, on trouve les articles qui ressemblent.</p>
+                @endif
             </div>
             <div class="{{ $etape }}">
                 <div class="text-4xl">🛡️</div>
@@ -95,7 +101,7 @@
         <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div class="{{ $etape }}">
                 <p class="font-bold text-gray-900">Pour le vendeur</p>
-                <p class="mt-1 text-sm text-gray-600"><strong>Rien.</strong> Dépôt d’annonce gratuit, aucune commission : vous gardez le prix que vous fixez.</p>
+                <p class="mt-1 text-sm text-gray-600"><strong>Rien.</strong> Dépôt d’annonce gratuit, aucune commission : vous gardez le prix que vous fixez.@if(\App\Support\IaDepot::disponible()) L’IA qui remplit l’annonce est incluse, sans abonnement.@endif</p>
             </div>
             <div class="{{ $etape }}">
                 <p class="font-bold text-gray-900">Pour l’acheteur, en paiement en ligne</p>

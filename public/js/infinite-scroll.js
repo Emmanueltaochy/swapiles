@@ -13,6 +13,8 @@
  *
  * Grille concernée : [data-defilement-infini], avec l'adresse de la page
  * suivante dans data-page-suivante. Pagination : [data-pagination].
+ * data-auto-max="0" : pas de chargement automatique, bouton tout de suite
+ * (accueil : les rubriques et le pied de page sous la grille restent visibles).
  */
 (function () {
     'use strict';
@@ -79,6 +81,7 @@
         grille.insertAdjacentElement('afterend', controle);
 
         var pages = parseInt(grille.getAttribute('data-pages-chargees') || '0', 10);
+        var autoMax = grille.hasAttribute('data-auto-max') ? parseInt(grille.getAttribute('data-auto-max'), 10) || 0 : AUTO_MAX;
         var enCours = false;
         var actif = true;
         // Après un échec (réseau coupé), on n'insiste pas à chaque mouvement
@@ -144,7 +147,7 @@
                         return;
                     }
 
-                    if (pages >= AUTO_MAX) {
+                    if (pages >= autoMax) {
                         bouton.hidden = false;
                     } else if (procheDuBas()) {
                         // Écran encore loin d'être rempli : on enchaîne.
@@ -176,7 +179,7 @@
             prevu = true;
             window.requestAnimationFrame(function () {
                 prevu = false;
-                if (actif && !enPause && pages < AUTO_MAX && procheDuBas()) charger();
+                if (actif && !enPause && pages < autoMax && procheDuBas()) charger();
             });
         }
 
@@ -190,7 +193,7 @@
             surveiller();
         }, options);
 
-        if (pages >= AUTO_MAX) {
+        if (pages >= autoMax) {
             bouton.hidden = false;
         } else {
             surveiller();

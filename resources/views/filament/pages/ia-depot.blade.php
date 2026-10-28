@@ -62,7 +62,9 @@
                     @endif
                     <div>📦 @if($l['annonce_id'])
                         <a href="{{ \App\Filament\Resources\Listings\ListingResource::getUrl('view', ['record' => $l['annonce_id']]) }}" style="text-decoration:underline;font-weight:600;">{{ $l['annonce'] }}</a>
-                        <span style="opacity:.65;">({{ $statuts[$l['annonce_statut']] ?? $l['annonce_statut'] }})</span>
+                        <span style="opacity:.65;">({{ $statuts[$l['annonce_statut']] ?? $l['annonce_statut'] }}{{ ($l['annonce_probable'] ?? false) ? ' · publiée dans les 3 h, page rechargée entre-temps' : '' }})</span>
+                    @elseif($l['statut'] !== 'ok')
+                        <span style="opacity:.65;">L’IA n’a rien rempli ({{ $l['statut'] }}) : pas d’annonce publiée</span>
                     @else
                         <span style="opacity:.65;">Annonce pas (encore) publiée</span>
                     @endif</div>

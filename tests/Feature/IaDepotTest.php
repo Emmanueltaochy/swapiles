@@ -149,4 +149,24 @@ class IaDepotTest extends TestCase
         $this->actingAs($admin)->get('/admin/ia-depot')->assertOk()
             ->assertSee('Dernières utilisations')->assertSee('Lea')->assertSee('Ma robe à fleurs')->assertSee('Robe fleurie · 12 €');
     }
+
+    public function test_journal_retrouve_l_annonce_publiee_apres_un_rechargement(): void
+    {
+        config()->set('ia_depot.cle', 'cle-de-test');
+        $membre = $this->membre();
+        $this->fauxClient(['titre' => 'Sac en raphia', 'description' => 'D', 'categorie' => '', 'etat' => '', 'marque' => '', 'taille' => '', 'prix' => 15, 'poids_g' => 400]);
+        $this->actingAs($membre)->postJson(route('account.listings.ia'), ['images' => [$this->photo()], 'jeton' => 'jeton-avant-rechargement'])->assertOk();
+
+        // Page rechargée avant la publication : le jeton du formulaire a changé.
+        $this->travel(20)->minutes();
+        $annonce = Listing::create(['user_id' => $membre->id, 'title' => 'Sac raphia', 'description' => 'Description de test assez longue.', 'price' => 15, 'status' => 'published', 'listing_type' => 'achat', 'territoire' => 'La Réunion', 'submission_token' => 'jeton-apres-rechargement']);
+
+        $ligne = IaDepot::journal()[0];
+        $this->assertSame($annonce->id, (int) $ligne['annonce_id']);
+        $this->assertTrue($ligne['annonce_probable']);
+
+        // Une annonce publiée le lendemain n'est pas attribuée à l'IA.
+        DB::table('listings')->where('id', $annonce->id)->update(['created_at' => now()->addDay()]);
+        $this->assertNull(IaDepot::journal()[0]['annonce_id']);
+    }
 }

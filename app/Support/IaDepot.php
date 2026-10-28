@@ -97,19 +97,42 @@ class IaDepot
                 'listings.id as annonce_id', 'listings.title as annonce_titre', 'listings.status as annonce_statut',
             ]);
 
-        return $lignes->map(fn ($l) => [
-            'date' => \Illuminate\Support\Carbon::parse($l->created_at),
-            'fonction' => $l->fonction,
-            'membre_id' => $l->user_id,
-            'membre' => $l->membre_nom,
-            'annonce_id' => $l->annonce_id,
-            'annonce' => $l->annonce_titre,
-            'annonce_statut' => $l->annonce_statut,
-            'resultat' => $l->resultat,
-            'statut' => $l->statut,
-            'photos' => (int) $l->photos,
-            'cout' => (float) $l->cout_usd,
-        ])->all();
+        return $lignes->map(function ($l) {
+            $date = \Illuminate\Support\Carbon::parse($l->created_at);
+            $probable = $l->fonction === 'depot' && ! $l->annonce_id && $l->user_id
+                ? self::annonceProbable((int) $l->user_id, $date)
+                : null;
+
+            return [
+                'date' => $date,
+                'fonction' => $l->fonction,
+                'membre_id' => $l->user_id,
+                'membre' => $l->membre_nom,
+                'annonce_id' => $l->annonce_id ?? $probable?->id,
+                'annonce' => $l->annonce_titre ?? $probable?->title,
+                'annonce_statut' => $l->annonce_statut ?? $probable?->status,
+                // Retrouvée par le membre et l'heure, pas par le jeton du formulaire.
+                'annonce_probable' => $probable !== null,
+                'resultat' => $l->resultat,
+                'statut' => $l->statut,
+                'photos' => (int) $l->photos,
+                'cout' => (float) $l->cout_usd,
+            ];
+        })->all();
+    }
+
+    /**
+     * Annonce publiée par le membre dans les 3 h qui suivent l'utilisation,
+     * quand le jeton ne la relie pas : la page de dépôt a été rechargée entre
+     * l'IA et la publication (nouveau jeton), ou l'appli a été rouverte.
+     */
+    private static function annonceProbable(int $membreId, \Illuminate\Support\Carbon $date): ?object
+    {
+        return DB::table('listings')
+            ->where('user_id', $membreId)
+            ->whereBetween('created_at', [$date->copy()->subMinute(), $date->copy()->addHours(3)])
+            ->orderBy('created_at')
+            ->first(['id', 'title', 'status']);
     }
 
     /**

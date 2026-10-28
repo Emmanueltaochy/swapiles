@@ -91,6 +91,36 @@ class ListingManageController extends Controller
 
     public function store(Request $request)
     {
+        $reponse = $this->publier($request);
+
+        // Envoi direct depuis la page de dépôt (fetch, en-tête X-Depot-Direct) :
+        // on répond en JSON pour que la page reste affichée en cas d'erreur.
+        // Un rechargement du formulaire effaçait les photos (un navigateur ne
+        // peut pas les remettre dans le champ) et beaucoup abandonnaient là.
+        if ($request->header('X-Depot-Direct') === '1' && $reponse instanceof \Illuminate\Http\RedirectResponse) {
+            $erreurs = $request->session()->get('errors');
+            if ($erreurs instanceof \Illuminate\Support\ViewErrorBag && $erreurs->any()) {
+                $adresse = (bool) $request->session()->get('need_address');
+                // Erreurs déjà affichées dans la page : rien à montrer au prochain chargement.
+                $request->session()->forget(['errors', '_old_input', 'need_address']);
+
+                return response()->json([
+                    'message' => $erreurs->first(),
+                    'errors' => $erreurs->getBag('default')->toArray(),
+                    'need_address' => $adresse,
+                ], 422);
+            }
+
+            // Succès : les messages (« annonce publiée », pixel…) sont déjà en session
+            // pour la page suivante ; le navigateur s'y rend lui-même.
+            return response()->json(['redirect' => $reponse->getTargetUrl()]);
+        }
+
+        return $reponse;
+    }
+
+    private function publier(Request $request)
+    {
         // Anti-doublon : si ce formulaire a déjà créé une annonce (double tap sur
         // mobile, actualisation pendant l'envoi des photos, retour arrière), on
         // renvoie sur l'annonce existante au lieu d'en créer une deuxième.

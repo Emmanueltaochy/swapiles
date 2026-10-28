@@ -63,7 +63,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('account.listings.store') }}" enctype="multipart/form-data" class="space-y-5" id="form-annonce" data-brouillon="depot-annonce">
+        <form method="POST" action="{{ route('account.listings.store') }}" enctype="multipart/form-data" class="space-y-5" id="form-annonce" data-brouillon="depot-annonce" novalidate>
             {{-- Anti-doublon : identifie cet envoi de formulaire. Un deuxième envoi
                  du même formulaire (double tap, actualisation pendant l'envoi des
                  photos) renvoie sur l'annonce déjà publiée au lieu d'en créer une
@@ -99,7 +99,7 @@
                                 class="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 font-bold text-white transition hover:bg-violet-700 disabled:opacity-60">
                             ✨ Remplir la fiche avec l’IA
                         </button>
-                        <p class="mt-2 text-xs text-violet-900/80" data-ia-message>Ajoute tes photos, puis touche le bouton : l’IA propose le titre, la description, la catégorie et un prix. Tu relis et tu corriges avant de publier.</p>
+                        <p class="mt-2 text-xs text-violet-900/80" data-ia-message>Gagne du temps : l’IA regarde tes photos et remplit le titre, la description, la catégorie et un prix. Tu relis et tu corriges avant de publier.</p>
                     </div>
                 @endif
             </div>
@@ -190,6 +190,7 @@
                     <div>
                         <label for="price" class="{{ $lbl }}">Prix en €</label>
                         <input id="price" type="number" name="price" value="{{ old('price') }}" min="0" placeholder="Ex : 15" class="{{ $inp }}">
+                        <p id="price-ia" class="mt-1 hidden text-xs text-violet-700">💡 Prix suggéré par l’IA pour une vente rapide dans les îles : ajuste-le si besoin.</p>
                     </div>
                 </div>
                 <p class="text-xs text-gray-500">Pour un don, le prix sera automatiquement mis à 0 €.</p>
@@ -393,6 +394,9 @@
                 @endif
             @endif
 
+            {{-- Ce qui manque avant de publier (vérifié dans la page, ou renvoyé par le serveur). --}}
+            <div id="depot-erreurs" class="hidden rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert" aria-live="assertive"></div>
+
             <button id="btn-publier" class="w-full rounded-xl bg-teal-600 px-6 py-4 font-semibold text-white shadow-sm transition hover:bg-teal-700 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70">
                 Publier mon annonce
             </button>
@@ -575,32 +579,77 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!input || !addBtn || !previews) return;
 
     @if(\App\Support\IaDepot::disponible())
-    // IA dépôt : envoie les photos choisies, remplit les champs encore vides.
+    // IA dépôt : envoie les photos choisies et remplit la fiche. Le vendeur relit avant de publier.
     (function () {
         const bloc = document.querySelector('[data-ia-depot]');
         if (!bloc) return;
         const bouton = bloc.querySelector('[data-ia-bouton]');
         const message = bloc.querySelector('[data-ia-message]');
-        const jeton = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        const jeton = () => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
         const l1 = document.getElementById('category_level1');
         const l2 = document.getElementById('category_level2');
         const l3 = document.getElementById('category_level3');
+        const TEXTE_BOUTON = bouton.textContent.trim();
+        let utilisee = false;
+        let lancerApresPhotos = false;
+
+        function dire(texte, ton) {
+            message.textContent = texte;
+            message.classList.toggle('text-red-700', ton === 'erreur');
+            message.classList.toggle('font-semibold', ton === 'erreur' || ton === 'ok');
+            message.classList.toggle('text-violet-900/80', ton !== 'erreur');
+        }
+
+        // Un champ vide, ou rempli par l'IA et pas retouché, peut recevoir la proposition :
+        // relancer l'IA avec d'autres photos met donc la fiche à jour.
+        function libre(champ) {
+            return !champ.value || champ.value.trim() === '' || champ.value === champ.dataset.iaValeur;
+        }
+
+        function marquer(champ) {
+            champ.dataset.iaValeur = champ.value;
+            champ.classList.add('ring-2', 'ring-violet-400');
+            if (champ.dataset.iaSuivi) return;
+            champ.dataset.iaSuivi = '1';
+            const retirer = () => { if (champ.value !== champ.dataset.iaValeur) champ.classList.remove('ring-2', 'ring-violet-400'); };
+            champ.addEventListener('input', retirer);
+            champ.addEventListener('change', retirer);
+        }
 
         function remplir(id, valeur) {
             const champ = document.getElementById(id);
             if (!champ || champ.disabled || valeur === null || valeur === undefined || valeur === '') return false;
-            if (champ.value && champ.value.trim() !== '') return false; // on ne remplace pas ce que le vendeur a déjà écrit
+            if (!libre(champ)) return false;
             champ.value = valeur;
+            if (champ.value === '') return false; // liste sans cette valeur
             champ.dispatchEvent(new Event('input', { bubbles: true }));
             champ.dispatchEvent(new Event('change', { bubbles: true }));
-            champ.classList.add('ring-2', 'ring-violet-400');
+            marquer(champ);
             return true;
         }
 
-        bouton.addEventListener('click', function () {
+        function choisir(select, valeur) {
+            if (!select || !valeur) return false;
+            select.value = valeur;
+            if (select.value !== valeur) return false;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            marquer(select);
+            return true;
+        }
+
+        function attente(actif) {
+            bouton.disabled = actif;
+            bouton.classList.remove('animate-pulse');
+            bouton.textContent = actif ? '⏳ L’IA regarde tes photos…' : (utilisee ? '✨ Relancer l’IA' : TEXTE_BOUTON);
+        }
+
+        function lancer() {
             const fichiers = Array.from(document.getElementById('images')?.files || []).slice(0, {{ (int) config('ia_depot.photos_max', 4) }});
             if (!fichiers.length) {
-                message.textContent = 'Ajoute d’abord au moins une photo de l’article.';
+                // Pas encore de photo : on ouvre directement le choix des photos, l'IA part ensuite toute seule.
+                lancerApresPhotos = true;
+                dire('Choisis une ou plusieurs photos de l’article : l’IA démarre dès qu’elles sont ajoutées.');
+                document.getElementById('photo-add-btn')?.click();
                 return;
             }
 
@@ -609,36 +658,74 @@ document.addEventListener('DOMContentLoaded', function () {
             // Relie cette utilisation à l'annonce publiée ensuite (suivi dans l'admin).
             const jetonDepot = document.querySelector('input[name="submission_token"]');
             if (jetonDepot) donnees.append('jeton', jetonDepot.value);
-            bouton.disabled = true;
-            bouton.textContent = '⏳ L’IA regarde tes photos…';
+            attente(true);
+            dire('Analyse des photos en cours (une dizaine de secondes)…');
+            const relance = setTimeout(function () { dire('Presque fini : l’IA rédige le titre, la description et le prix…'); }, 5000);
 
-            fetch(bloc.dataset.url, { method: 'POST', body: donnees, credentials: 'same-origin', headers: { 'X-CSRF-TOKEN': jeton, 'Accept': 'application/json' } })
-                .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+            fetch(bloc.dataset.url, { method: 'POST', body: donnees, credentials: 'same-origin', headers: { 'X-CSRF-TOKEN': jeton(), 'Accept': 'application/json' } })
+                .then(function (r) {
+                    return r.text().then(function (t) {
+                        let j = null;
+                        try { j = JSON.parse(t); } catch (e) { /* page d'erreur HTML */ }
+                        return { statut: r.status, ok: r.ok, j: j };
+                    });
+                })
                 .then(function (res) {
-                    if (!res.ok) throw new Error(res.j.message || 'L’IA est indisponible. Remplis la fiche à la main.');
+                    if (res.statut === 419) throw new Error('Ta session a expiré : recharge la page, puis réessaie.');
+                    if (!res.ok || !res.j || !res.j.champs) throw new Error((res.j && res.j.message) || 'L’IA est indisponible pour le moment. Remplis la fiche à la main.');
                     const c = res.j.champs;
-                    let n = 0;
-                    n += remplir('title', c.titre) ? 1 : 0;
-                    n += remplir('description', c.description) ? 1 : 0;
-                    if (c.categorie_1 && !l1.value) {
-                        l1.value = c.categorie_1; l1.dispatchEvent(new Event('change', { bubbles: true })); n++;
-                        if (c.categorie_2) { l2.value = c.categorie_2; l2.dispatchEvent(new Event('change', { bubbles: true })); }
-                        if (c.categorie_3) { l3.value = c.categorie_3; l3.dispatchEvent(new Event('change', { bubbles: true })); }
+                    const faits = [];
+                    if (remplir('title', c.titre)) faits.push('titre');
+                    if (remplir('description', c.description)) faits.push('description');
+                    if (c.categorie_1 && libre(l1) && choisir(l1, c.categorie_1)) {
+                        choisir(l2, c.categorie_2);
+                        choisir(l3, c.categorie_3);
+                        faits.push('catégorie');
                     }
                     // La catégorie peut faire apparaître les champs marque / taille : on attend un instant.
                     setTimeout(function () {
-                        n += remplir('etat', c.etat) ? 1 : 0;
-                        n += remplir('marque', c.marque) ? 1 : 0;
-                        n += remplir('taille', c.taille) ? 1 : 0;
-                        n += remplir('price', c.prix) ? 1 : 0;
-                        n += remplir('weight_g', c.poids_g) ? 1 : 0;
-                        message.textContent = n
-                            ? '✅ ' + n + ' champ(s) remplis (encadrés en violet). Relis et corrige si besoin avant de publier.'
-                            : 'Tes champs étaient déjà remplis : rien n’a été changé.';
-                    }, 50);
+                        if (remplir('etat', c.etat)) faits.push('état');
+                        if (remplir('marque', c.marque)) faits.push('marque');
+                        if (remplir('taille', c.taille)) faits.push('taille');
+                        if (remplir('price', c.prix)) {
+                            faits.push('prix (' + c.prix + ' €)');
+                            document.getElementById('price-ia')?.classList.remove('hidden');
+                        }
+                        // Poids rempli en réserve (utile si Colissimo est coché ensuite), cité seulement s'il est visible.
+                        if (remplir('weight_g', c.poids_g) && document.getElementById('weight_box')?.style.display !== 'none') faits.push('poids');
+                        utilisee = true;
+                        attente(false);
+                        if (!faits.length) {
+                            dire('Tes champs étaient déjà remplis à la main : l’IA n’a rien changé.', 'ok');
+                            return;
+                        }
+                        const reste = typeof window.swapDepotManques === 'function' ? window.swapDepotManques() : [];
+                        dire('✅ L’IA a rempli : ' + faits.join(', ') + '. Relis les champs encadrés en violet et corrige si besoin.'
+                            + (reste.length ? ' Il te reste : ' + reste.join(' ') : ' Tout est prêt : tu peux publier.'), 'ok');
+                    }, 60);
                 })
-                .catch(function (e) { message.textContent = e.message; })
-                .finally(function () { bouton.disabled = false; bouton.textContent = '✨ Remplir la fiche avec l’IA'; });
+                .catch(function (e) {
+                    attente(false);
+                    dire(e.message, 'erreur');
+                })
+                .finally(function () { clearTimeout(relance); });
+        }
+
+        bouton.addEventListener('click', lancer);
+
+        // Photos ajoutées : on invite à utiliser l'IA (ou on la lance si le vendeur l'avait demandée).
+        document.getElementById('images')?.addEventListener('change', function () {
+            setTimeout(function () {
+                const n = (document.getElementById('images')?.files || []).length;
+                if (!n || bouton.disabled) return;
+                if (lancerApresPhotos) {
+                    lancerApresPhotos = false;
+                    lancer();
+                } else if (!utilisee) {
+                    bouton.classList.add('animate-pulse');
+                    dire('📸 Photos prêtes : touche le bouton violet, l’IA remplit la fiche pour toi.');
+                }
+            }, 0);
         });
     })();
     @endif
@@ -730,31 +817,182 @@ document.addEventListener('DOMContentLoaded', function () {
 })();
 
 /**
- * Anti-doublon (2e barrière, côté navigateur).
- * L'envoi des photos peut prendre plusieurs secondes sur une connexion mobile :
- * sans ça, un deuxième appui sur « Publier » créait une deuxième annonce.
- * Le serveur bloque déjà le doublon (jeton d'envoi), ceci évite juste l'attente
- * sans retour visuel qui poussait à ré-appuyer.
+ * Publication : la fiche est vérifiée avant l'envoi, puis envoyée sans recharger
+ * la page. En cas d'erreur, tout reste en place, photos comprises : un
+ * rechargement effaçait les photos (un navigateur ne peut pas les remettre) et
+ * beaucoup abandonnaient là. Le serveur bloque aussi le doublon (jeton d'envoi).
  */
-(function () {
+document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('form-annonce');
     const btn = document.getElementById('btn-publier');
-    if (!form || !btn) return;
+    const boite = document.getElementById('depot-erreurs');
+    if (!form || !btn || !boite) return;
+    const TEXTE = btn.textContent.trim();
+    const $ = (id) => document.getElementById(id);
+    const vide = (el) => !el || !el.value || el.value.trim() === '';
 
-    form.addEventListener('submit', function (e) {
-        // Une validation précédente a bloqué l'envoi : on laisse le bouton actif.
-        if (e.defaultPrevented) return;
-
-        if (form.dataset.envoiEnCours === '1') {
-            e.preventDefault();
-            return;
+    // Ce qui manque encore, dans l'ordre de la page (mêmes règles que le serveur).
+    function manques() {
+        const m = [];
+        const photos = $('images');
+        if (!photos || !photos.files || photos.files.length === 0) {
+            m.push({ cible: $('photo-add-btn'), texte: 'Ajoute au moins une photo de l’article.', photo: true });
         }
+        if (vide($('title'))) m.push({ cible: $('title'), texte: 'Donne un titre à ton annonce.' });
+        if (vide($('description'))) m.push({ cible: $('description'), texte: 'Ajoute une description (état, taille, détails).' });
+        const categorie = ['category_level1', 'category_level2', 'category_level3'].map($).find(vide);
+        if (categorie) m.push({ cible: categorie, texte: 'Choisis la catégorie, la sous-catégorie et le type d’article.' });
+        if (['achat', 'negoce-prix', 'location-vetements'].includes($('listing_type')?.value) && vide($('price'))) {
+            m.push({ cible: $('price'), texte: 'Indique ton prix (ou choisis « Don »).' });
+        }
+        const cb = $('payment_cb');
+        if (($('allows_hand_delivery')?.checked || !cb?.checked) && (vide($('pickup_city')) || vide($('pickup_postal_code')))) {
+            m.push({ cible: vide($('pickup_city')) ? $('pickup_city') : $('pickup_postal_code'), texte: 'Indique la ville et le code postal de remise en main propre (ton adresse exacte n’est jamais affichée).' });
+        }
+        if ($('allows_colissimo')?.checked && vide($('weight_g'))) {
+            m.push({ cible: $('weight_g'), texte: 'Indique le poids du colis pour Colissimo.' });
+        }
+        return m;
+    }
+    // Utilisé par l'IA pour dire ce qu'il reste à faire après son remplissage.
+    window.swapDepotManques = () => manques().filter((x) => !x.photo).map((x) => x.texte);
 
+    function effacer() {
+        boite.classList.add('hidden');
+        boite.replaceChildren();
+        form.querySelectorAll('[data-erreur-direct]').forEach((n) => n.remove());
+        form.querySelectorAll('[data-en-erreur]').forEach((n) => { n.classList.remove('ring-2', 'ring-red-400'); delete n.dataset.enErreur; });
+    }
+
+    function afficher(liste) {
+        effacer();
+        const titre = document.createElement('p');
+        titre.className = 'font-semibold';
+        titre.textContent = liste.length > 1 ? 'Encore ' + liste.length + ' choses avant de publier :' : 'Encore une chose avant de publier :';
+        const ul = document.createElement('ul');
+        ul.className = 'mt-2 space-y-1.5';
+        liste.forEach(function (x) {
+            const li = document.createElement('li');
+            const lien = document.createElement('button');
+            lien.type = 'button';
+            lien.className = 'text-left underline decoration-red-300 underline-offset-2 hover:text-red-900';
+            lien.textContent = '→ ' + x.texte;
+            lien.addEventListener('click', () => aller(x.cible));
+            li.appendChild(lien);
+            ul.appendChild(li);
+            if (x.cible && !x.cible.dataset.enErreur) {
+                x.cible.dataset.enErreur = '1';
+                x.cible.classList.add('ring-2', 'ring-red-400');
+                const p = document.createElement('p');
+                p.dataset.erreurDirect = '1';
+                p.className = 'mt-1 text-xs font-semibold text-red-600';
+                p.textContent = x.texte;
+                x.cible.insertAdjacentElement('afterend', p);
+            }
+        });
+        boite.append(titre, ul);
+        boite.classList.remove('hidden');
+        aller(liste[0].cible || boite);
+    }
+
+    function aller(el) {
+        if (!el) return;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (typeof el.focus === 'function') setTimeout(() => el.focus({ preventScroll: true }), 350);
+    }
+
+    // Le champ est corrigé : son message d'erreur disparaît.
+    ['input', 'change'].forEach(function (type) {
+        form.addEventListener(type, function (e) {
+            const champ = e.target;
+            if (!champ?.dataset?.enErreur || vide(champ)) return;
+            champ.classList.remove('ring-2', 'ring-red-400');
+            delete champ.dataset.enErreur;
+            if (champ.nextElementSibling?.dataset.erreurDirect) champ.nextElementSibling.remove();
+        });
+    });
+    $('images')?.addEventListener('change', function () {
+        const bouton = $('photo-add-btn');
+        if (!bouton?.dataset.enErreur) return;
+        bouton.classList.remove('ring-2', 'ring-red-400');
+        delete bouton.dataset.enErreur;
+        if (bouton.nextElementSibling?.dataset.erreurDirect) bouton.nextElementSibling.remove();
+    });
+
+    // Erreurs renvoyées par le serveur : affichées au bon endroit, sans recharger.
+    const CHAMPS = {
+        images: 'photo-add-btn', title: 'title', description: 'description', category_level1: 'category_level1',
+        category_level2: 'category_level2', category_level3: 'category_level3', price: 'price', listing_type: 'listing_type',
+        territoire: 'territoire', pickup_city: 'pickup_city', pickup_postal_code: 'pickup_postal_code', weight_g: 'weight_g',
+        allows_colissimo: 'colissimo_box', also_territoires: 'also-islands', payment_cb: 'payment_cb',
+    };
+    function afficherServeur(j) {
+        const liste = [];
+        Object.entries(j.errors || {}).forEach(function ([cle, messages]) {
+            let cible = $(CHAMPS[cle.split('.')[0]] || cle.split('.')[0]);
+            if (cible && cible.type === 'checkbox') cible = cible.closest('label');
+            liste.push({ cible: cible, texte: (messages && messages[0]) || j.message });
+        });
+        if (j.need_address && $('colissimo_address_notice')) $('colissimo_address_notice').style.display = 'block';
+        afficher(liste.length ? liste : [{ cible: null, texte: j.message || 'La publication n’a pas abouti. Réessaie.' }]);
+    }
+
+    function rearmer() {
+        delete form.dataset.envoiEnCours;
+        btn.disabled = false;
+        btn.textContent = TEXTE;
+    }
+
+    function envoyer() {
         form.dataset.envoiEnCours = '1';
         btn.disabled = true;
         btn.textContent = 'Publication en cours…';
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', form.action);
+        xhr.setRequestHeader('Accept', 'application/json');
+        xhr.setRequestHeader('X-Depot-Direct', '1');
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.upload.onprogress = function (ev) {
+            if (ev.lengthComputable && ev.total > 200000) btn.textContent = 'Envoi des photos… ' + Math.round((ev.loaded / ev.total) * 100) + ' %';
+        };
+        xhr.upload.onload = function () { btn.textContent = 'Publication en cours…'; };
+        xhr.onload = function () {
+            let j = null;
+            try { j = JSON.parse(xhr.responseText); } catch (e) { /* page HTML */ }
+            if (xhr.status >= 200 && xhr.status < 300 && j && j.redirect) {
+                btn.textContent = '✅ Annonce publiée';
+                window.location.assign(j.redirect);
+                return;
+            }
+            rearmer();
+            if (xhr.status === 422 && j) return afficherServeur(j);
+            if (xhr.status === 419) return afficher([{ cible: null, texte: 'Ta session a expiré. Recharge la page, puis publie à nouveau.' }]);
+            if (xhr.status === 413) return afficher([{ cible: $('photo-add-btn'), texte: 'Les photos sont trop lourdes pour être envoyées ensemble. Retire une ou deux photos, puis réessaie.' }]);
+            // Réponse inattendue : envoi classique du formulaire (le jeton empêche tout doublon).
+            form.dataset.envoiEnCours = '1';
+            HTMLFormElement.prototype.submit.call(form);
+        };
+        xhr.onerror = function () {
+            rearmer();
+            afficher([{ cible: null, texte: 'Connexion perdue pendant l’envoi. Vérifie ta connexion puis touche à nouveau « Publier » : tes photos sont toujours là.' }]);
+        };
+        xhr.send(new FormData(form));
+    }
+
+    form.addEventListener('submit', function (e) {
+        // Colissimo sans adresse, autres îles sans Colissimo : déjà signalé plus haut.
+        if (e.defaultPrevented) return;
+        e.preventDefault();
+        if (form.dataset.envoiEnCours === '1') return;
+        const liste = manques();
+        if (liste.length) {
+            afficher(liste);
+            return;
+        }
+        effacer();
+        envoyer();
     });
-})();
+});
 </script>
 @include('account.listings._fiche-champs')
 

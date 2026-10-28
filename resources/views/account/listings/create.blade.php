@@ -606,6 +606,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const donnees = new FormData();
             fichiers.forEach(function (f) { donnees.append('images[]', f); });
+            // Relie cette utilisation à l'annonce publiée ensuite (suivi dans l'admin).
+            const jetonDepot = document.querySelector('input[name="submission_token"]');
+            if (jetonDepot) donnees.append('jeton', jetonDepot.value);
             bouton.disabled = true;
             bouton.textContent = '⏳ L’IA regarde tes photos…';
 

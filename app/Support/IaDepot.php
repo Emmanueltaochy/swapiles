@@ -77,10 +77,46 @@ class IaDepot
     }
 
     /**
+     * Les dernières utilisations, une par ligne, pour l'admin : qui, quoi,
+     * l'annonce publiée ensuite (dépôt) ou la recherche obtenue (photo).
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public static function journal(int $limite = 100): array
+    {
+        $lignes = DB::table('ia_depot_usages')
+            ->leftJoin('users', 'users.id', '=', 'ia_depot_usages.user_id')
+            ->leftJoin('listings', function ($j) {
+                $j->on('listings.submission_token', '=', 'ia_depot_usages.jeton_depot')
+                    ->whereNotNull('ia_depot_usages.jeton_depot');
+            })
+            ->orderByDesc('ia_depot_usages.id')
+            ->limit($limite)
+            ->get([
+                'ia_depot_usages.*', 'users.name as membre_nom', 'users.email as membre_email',
+                'listings.id as annonce_id', 'listings.title as annonce_titre', 'listings.status as annonce_statut',
+            ]);
+
+        return $lignes->map(fn ($l) => [
+            'date' => \Illuminate\Support\Carbon::parse($l->created_at),
+            'fonction' => $l->fonction,
+            'membre_id' => $l->user_id,
+            'membre' => $l->membre_nom,
+            'annonce_id' => $l->annonce_id,
+            'annonce' => $l->annonce_titre,
+            'annonce_statut' => $l->annonce_statut,
+            'resultat' => $l->resultat,
+            'statut' => $l->statut,
+            'photos' => (int) $l->photos,
+            'cout' => (float) $l->cout_usd,
+        ])->all();
+    }
+
+    /**
      * @param  array<int,UploadedFile>  $photos
      * @return array{titre:string,description:string,categorie_1:?string,categorie_2:?string,categorie_3:?string,etat:?string,marque:string,taille:string,prix:?int,poids_g:?int}
      */
-    public static function analyser(User $membre, array $photos): array
+    public static function analyser(User $membre, array $photos, ?string $jeton = null): array
     {
         $photos = array_slice(array_values($photos), 0, (int) config('ia_depot.photos_max', 4));
         $images = array_values(array_filter(array_map(fn (UploadedFile $f) => self::image($f), $photos)));
@@ -109,7 +145,7 @@ class IaDepot
                 outputConfig: ['effort' => 'low', 'format' => ['type' => 'json_schema', 'schema' => self::schema()]],
             );
         } catch (APIStatusException|APIConnectionException $e) {
-            self::noter($membre, $modele, count($images), 0, 0, 'erreur');
+            self::noter($membre, $modele, count($images), 0, 0, 'erreur', 'depot', $jeton);
             Log::warning('IA dépôt : appel en échec', ['erreur' => $e->getMessage()]);
             throw new RuntimeException('L’IA est indisponible pour le moment.', 0, $e);
         }
@@ -119,7 +155,7 @@ class IaDepot
         $sortie = (int) $reponse->usage->outputTokens;
 
         if ($reponse->stopReason === 'refusal') {
-            self::noter($membre, $modele, count($images), $entree, $sortie, 'refus');
+            self::noter($membre, $modele, count($images), $entree, $sortie, 'refus', 'depot', $jeton);
             throw new RuntimeException('L’IA n’a pas pu analyser ces photos.');
         }
 
@@ -130,12 +166,14 @@ class IaDepot
                 break;
             }
         }
-        self::noter($membre, $modele, count($images), $entree, $sortie, is_array($json) ? 'ok' : 'erreur');
-        if (! is_array($json)) {
+        $champs = is_array($json) ? self::nettoyer($json) : null;
+        self::noter($membre, $modele, count($images), $entree, $sortie, $champs ? 'ok' : 'erreur', 'depot', $jeton,
+            $champs ? trim($champs['titre'] . ($champs['prix'] ? ' · ' . $champs['prix'] . ' €' : '')) : null);
+        if (! $champs) {
             throw new RuntimeException('Réponse de l’IA illisible.');
         }
 
-        return self::nettoyer($json);
+        return $champs;
     }
 
     /** Ne garde que des valeurs que le formulaire accepte (catégorie existante, état connu…). */
@@ -193,13 +231,15 @@ class IaDepot
     }
 
     /** Note un appel (coût estimé). $fonction : depot | recherche_photo. */
-    public static function noter(?User $membre, string $modele, int $photos, int $entree, int $sortie, string $statut, string $fonction = 'depot'): void
+    public static function noter(?User $membre, string $modele, int $photos, int $entree, int $sortie, string $statut, string $fonction = 'depot', ?string $jeton = null, ?string $resultat = null): void
     {
         [$prixEntree, $prixSortie] = config('ia_depot.tarifs.' . $modele, [0, 0]);
 
         DB::table('ia_depot_usages')->insert([
             'user_id' => $membre?->id,
             'fonction' => $fonction,
+            'jeton_depot' => $jeton ? Str::limit($jeton, 64, '') : null,
+            'resultat' => $resultat ? Str::limit($resultat, 250) : null,
             'modele' => $modele,
             'photos' => $photos,
             'jetons_entree' => $entree,

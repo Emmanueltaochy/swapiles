@@ -29,7 +29,7 @@ class IaDepotController extends Controller
         }
 
         try {
-            $champs = IaDepot::analyser($membre, $request->file('images'));
+            $champs = IaDepot::analyser($membre, $request->file('images'), $request->string('jeton')->limit(64, '')->toString() ?: null);
         } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage() . ' Remplis la fiche à la main.'], 422);
         }

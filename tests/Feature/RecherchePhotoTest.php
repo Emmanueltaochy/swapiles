@@ -48,6 +48,8 @@ class RecherchePhotoTest extends TestCase
         $this->assertStringContainsString('q=robe%20fleurie', str_replace('+', '%20', $url));
         $this->assertStringContainsString('category=femme', $url);
         $this->assertSame('recherche_photo', DB::table('ia_depot_usages')->value('fonction'));
+        // L'admin voit ce qui a été cherché (jamais la photo).
+        $this->assertStringContainsString('robe fleurie', (string) DB::table('ia_depot_usages')->value('resultat'));
 
         $this->get($url)->assertOk()->assertSee('Recherche à partir de ta photo', false);
     }

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Listing;
 use App\Models\User;
 use App\Support\IaDepot;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -126,5 +127,26 @@ class IaDepotTest extends TestCase
         $admin->forceFill(['email' => 'cabinet@taochyconsulting.fr'])->save();
 
         $this->actingAs($admin)->get('/admin/ia-depot')->assertOk()->assertSee('Masqué');
+    }
+
+    public function test_journal_admin_membre_et_annonce(): void
+    {
+        config()->set('ia_depot.cle', 'cle-de-test');
+        $membre = $this->membre();
+        $this->fauxClient(['titre' => 'Robe fleurie', 'description' => 'D', 'categorie' => '', 'etat' => '', 'marque' => '', 'taille' => '', 'prix' => 12, 'poids_g' => 300]);
+
+        $this->actingAs($membre)->postJson(route('account.listings.ia'), ['images' => [$this->photo()], 'jeton' => 'jeton-abc'])->assertOk();
+        $this->assertSame('Robe fleurie · 12 €', DB::table('ia_depot_usages')->value('resultat'));
+
+        // Pas encore publiée : le journal le dit ; une fois publiée, l'annonce est reliée par le jeton du formulaire.
+        $this->assertNull(IaDepot::journal()[0]['annonce_id']);
+        $annonce = Listing::create(['user_id' => $membre->id, 'title' => 'Ma robe à fleurs', 'description' => 'Description de test assez longue.', 'price' => 12, 'status' => 'published', 'listing_type' => 'achat', 'territoire' => 'La Réunion', 'submission_token' => 'jeton-abc']);
+        $ligne = IaDepot::journal()[0];
+        $this->assertSame($annonce->id, (int) $ligne['annonce_id']);
+        $this->assertSame('Lea', $ligne['membre']);
+
+        $admin = User::create(['name' => 'Admin', 'email' => 'cabinet@taochyconsulting.fr', 'password' => bcrypt('secret1234'), 'territoire' => 'La Réunion', 'email_verified_at' => now()]);
+        $this->actingAs($admin)->get('/admin/ia-depot')->assertOk()
+            ->assertSee('Dernières utilisations')->assertSee('Lea')->assertSee('Ma robe à fleurs')->assertSee('Robe fleurie · 12 €');
     }
 }

@@ -34,10 +34,50 @@
     @endif
 
     <x-filament::section>
+        <x-slot name="heading">Dernières utilisations</x-slot>
+        <x-slot name="description">Qui a utilisé l’IA, pour quoi, et ce qu’elle a proposé (les 100 dernières).</x-slot>
+        @forelse($journal as $l)
+            @php
+                $statuts = ['published' => 'en ligne', 'pending' => 'en attente', 'draft' => 'brouillon', 'sold' => 'vendue', 'reserved' => 'réservée', 'rejected' => 'refusée', 'archived' => 'archivée'];
+            @endphp
+            <div style="padding:.6rem 0;border-bottom:1px solid rgba(148,163,184,.15);font-size:.88rem;line-height:1.5;">
+                <div style="display:flex;justify-content:space-between;gap:.75rem;flex-wrap:wrap;">
+                    <strong>{{ $l['fonction'] === 'recherche_photo' ? '📷 Recherche photo' : '✨ Remplissage annonce' }}</strong>
+                    <span style="opacity:.65;">{{ $l['date']->timezone(config('app.timezone'))->format('d/m H:i') }} · {{ $usd($l['cout'], 4) }}@if($l['statut'] !== 'ok') · <span style="color:#dc2626;">⚠️ échec</span>@endif</span>
+                </div>
+                <div>
+                    👤 @if($l['membre_id'] && $l['membre'])
+                        <a href="{{ \App\Filament\Resources\Users\UserResource::getUrl('view', ['record' => $l['membre_id']]) }}" style="text-decoration:underline;font-weight:600;">{{ $l['membre'] }}</a>
+                    @elseif($l['membre_id'])
+                        Membre supprimé
+                    @else
+                        <span style="opacity:.65;">Visiteur non connecté</span>
+                    @endif
+                </div>
+                @if($l['fonction'] === 'recherche_photo')
+                    <div>🔎 {!! $l['resultat'] ? 'A cherché : <strong>' . e($l['resultat']) . '</strong>' : '<span style="opacity:.65;">Aucune recherche obtenue</span>' !!}</div>
+                @else
+                    @if($l['resultat'])
+                        <div>💡 Proposé : {{ $l['resultat'] }}</div>
+                    @endif
+                    <div>📦 @if($l['annonce_id'])
+                        <a href="{{ \App\Filament\Resources\Listings\ListingResource::getUrl('view', ['record' => $l['annonce_id']]) }}" style="text-decoration:underline;font-weight:600;">{{ $l['annonce'] }}</a>
+                        <span style="opacity:.65;">({{ $statuts[$l['annonce_statut']] ?? $l['annonce_statut'] }})</span>
+                    @else
+                        <span style="opacity:.65;">Annonce pas (encore) publiée</span>
+                    @endif</div>
+                @endif
+            </div>
+        @empty
+            <p style="font-size:.88rem;opacity:.65;">Aucune utilisation pour l’instant.</p>
+        @endforelse
+    </x-filament::section>
+
+    <x-filament::section>
         <x-slot name="heading">Bon à savoir</x-slot>
         <div style="font-size:.85rem;opacity:.8;line-height:1.6;">
             <p>Le coût affiché est une estimation à partir des tarifs publics ; la facture exacte est dans la console Anthropic (fixez-y aussi une limite de dépense).</p>
-            <p>Les photos sont envoyées à l’IA uniquement quand le vendeur touche le bouton, réduites, et ne sont pas conservées ici.</p>
+            <p>Les photos sont envoyées à l’IA uniquement quand le vendeur touche le bouton, réduites, et ne sont jamais conservées : on garde seulement qui a utilisé l’IA, la proposition obtenue et le coût.</p>
         </div>
     </x-filament::section>
 </x-filament-panels::page>

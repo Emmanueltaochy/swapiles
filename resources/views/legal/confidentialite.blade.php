@@ -40,7 +40,10 @@
             <p>
                 <strong>Remplissage par l'IA</strong> : si vous touchez « Remplir la fiche avec l'IA » au dépôt d'une annonce,
                 les photos choisies (réduites) sont envoyées à <strong>Anthropic</strong>, notre fournisseur d'intelligence artificielle,
-                uniquement pour proposer le titre, la description, la catégorie et le prix. Rien n'est envoyé si vous n'utilisez pas ce bouton.
+                uniquement pour proposer le titre, la description, la catégorie et le prix. De même, la <strong>recherche par photo</strong> (📷 dans la barre
+                de recherche) envoie la photo à Anthropic pour la transformer en mots-clés. Les photos ne sont jamais conservées : nous gardons
+                seulement la proposition obtenue (titre ou mots-clés), la date et le compte utilisé, pour le suivi et la lutte contre les abus.
+                Rien n'est envoyé si vous n'utilisez pas ces boutons.
             </p>
 
             <h2 class="text-xl font-bold text-gray-900 pt-4">5. Durée de conservation</h2>

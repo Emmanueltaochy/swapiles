@@ -67,17 +67,18 @@ class RecherchePhoto
                 }
             }
         }
-        IaDepot::noter($membre, $modele, 1, $entree, $sortie, is_array($json) ? 'ok' : 'erreur', 'recherche_photo');
-        if (! is_array($json) || trim((string) ($json['mots_cles'] ?? '')) === '') {
+        $q = is_array($json) ? Str::limit(trim((string) ($json['mots_cles'] ?? '')), 60, '') : '';
+        $categorie = is_array($json) ? mb_strtolower(trim((string) ($json['categorie'] ?? ''))) : '';
+        $categorie = array_key_exists($categorie, Categories::niveau1()) ? $categorie : null;
+
+        // On garde la recherche obtenue (jamais la photo), pour l'admin.
+        IaDepot::noter($membre, $modele, 1, $entree, $sortie, $q !== '' ? 'ok' : 'erreur', 'recherche_photo', null,
+            $q !== '' ? '« ' . $q . ' »' . ($categorie ? ' · ' . (Categories::label($categorie) ?? $categorie) : '') : null);
+        if ($q === '') {
             throw new RuntimeException('Je n’ai pas reconnu l’article sur cette photo.');
         }
 
-        $categorie = mb_strtolower(trim((string) ($json['categorie'] ?? '')));
-
-        return [
-            'q' => Str::limit(trim((string) $json['mots_cles']), 60, ''),
-            'categorie' => array_key_exists($categorie, Categories::niveau1()) ? $categorie : null,
-        ];
+        return ['q' => $q, 'categorie' => $categorie];
     }
 
     private static function consignes(): string

@@ -5,7 +5,7 @@ namespace App\Filament\Pages;
 use App\Support\IaDepot;
 use Filament\Pages\Page;
 
-/** Suivi de l'IA dépôt : utilisation et coût du mois, garde-fous. */
+/** Suivi de l'IA dépôt : utilisation et coût du mois, garde-fous, détail de chaque utilisation. */
 class IaDepotSuivi extends Page
 {
     protected static ?string $navigationLabel = 'IA dépôt';
@@ -24,6 +24,6 @@ class IaDepotSuivi extends Page
 
     public function getViewData(): array
     {
-        return ['b' => IaDepot::bilan()];
+        return ['b' => IaDepot::bilan(), 'journal' => IaDepot::journal()];
     }
 }

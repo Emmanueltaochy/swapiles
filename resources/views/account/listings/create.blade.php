@@ -191,6 +191,8 @@
                         <label for="price" class="{{ $lbl }}">Prix en €</label>
                         <input id="price" type="number" name="price" value="{{ old('price') }}" min="0" placeholder="Ex : 15" class="{{ $inp }}">
                         <p id="price-ia" class="mt-1 hidden text-xs text-violet-700">💡 Prix suggéré par l’IA pour une vente rapide dans les îles : ajuste-le si besoin.</p>
+                        {{-- Prix repères : à combien se vendent les articles de la même catégorie sur Swap'Îles. --}}
+                        <p id="price-reperes" class="mt-1 hidden rounded-lg bg-teal-50 px-2.5 py-1.5 text-xs text-teal-900" data-url="{{ route('account.listings.prix-reperes') }}" aria-live="polite"></p>
                     </div>
                 </div>
                 <p class="text-xs text-gray-500">Pour un don, le prix sera automatiquement mis à 0 €.</p>
@@ -558,6 +560,46 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // Prix repères Swap'Îles : affichés dès que le type d'article est choisi (à la main ou par l'IA).
+    const reperesEl = document.getElementById('price-reperes');
+    const prixEl = document.getElementById('price');
+    let reperes = null;
+    let reperesCle = '';
+
+    function euros(n) { return n.toLocaleString('fr-FR') + ' €'; }
+
+    function afficherReperes(r) {
+        if (r !== undefined) reperes = r;
+        if (!reperesEl) return;
+        if (!reperes) { reperesEl.classList.add('hidden'); reperesEl.textContent = ''; return; }
+        const ou = reperes.ile ? ' (' + reperes.ile + ')' : '';
+        let texte = reperes.bas === reperes.haut
+            ? '💡 Sur Swap’Îles' + ou + ', « ' + reperes.libelle + ' » se vend autour de ' + euros(reperes.median) + '.'
+            : '💡 Sur Swap’Îles' + ou + ', « ' + reperes.libelle + ' » se vend en général entre ' + euros(reperes.bas) + ' et ' + euros(reperes.haut) + ' (prix le plus courant : ' + euros(reperes.median) + ').';
+        const prix = parseFloat(prixEl?.value || '');
+        if (prix > 0 && prix > reperes.haut * 1.5) texte += ' Ton prix est au-dessus : l’article risque de partir moins vite.';
+        reperesEl.textContent = texte;
+        reperesEl.classList.remove('hidden');
+    }
+    window.swapPrixReperes = afficherReperes;
+
+    function chargerReperes() {
+        if (!reperesEl || !l1.value || !l2.value) { afficherReperes(null); return; }
+        const params = new URLSearchParams({ c1: l1.value, c2: l2.value, c3: l3.value || '', territoire: territoireSel?.value || '' });
+        const cle = params.toString();
+        if (cle === reperesCle) return;
+        reperesCle = cle;
+        fetch(reperesEl.dataset.url + '?' + cle, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (j) { if (j && cle === reperesCle) afficherReperes(j.reperes || null); })
+            .catch(function () { /* simple aide : rien à signaler */ });
+    }
+
+    l2.addEventListener('change', chargerReperes);
+    l3.addEventListener('change', chargerReperes);
+    territoireSel?.addEventListener('change', chargerReperes);
+    prixEl?.addEventListener('input', function () { if (reperes) afficherReperes(); });
+
     if (oldLevel1) {
         const normalized = normalize(oldLevel1);
         if (tree[normalized]) l1.value = normalized; // toute catégorie de l'arbre, plus seulement les trois d'origine
@@ -566,6 +608,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fillLevel2(oldLevel2);
     syncPaymentDelivery();
     syncAlsoIslands();
+    chargerReperes();
 });
 </script>
 
@@ -658,6 +701,8 @@ document.addEventListener('DOMContentLoaded', function () {
             // Relie cette utilisation à l'annonce publiée ensuite (suivi dans l'admin).
             const jetonDepot = document.querySelector('input[name="submission_token"]');
             if (jetonDepot) donnees.append('jeton', jetonDepot.value);
+            const ileDepot = document.getElementById('territoire');
+            if (ileDepot) donnees.append('territoire', ileDepot.value);
             attente(true);
             dire('Analyse des photos en cours (une dizaine de secondes)…');
             const relance = setTimeout(function () { dire('Presque fini : l’IA rédige le titre, la description et le prix…'); }, 5000);
@@ -691,6 +736,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             faits.push('prix (' + c.prix + ' €)');
                             document.getElementById('price-ia')?.classList.remove('hidden');
                         }
+                        if (res.j.reperes && typeof window.swapPrixReperes === 'function') window.swapPrixReperes(res.j.reperes);
                         // Poids rempli en réserve (utile si Colissimo est coché ensuite), cité seulement s'il est visible.
                         if (remplir('weight_g', c.poids_g) && document.getElementById('weight_box')?.style.display !== 'none') faits.push('poids');
                         utilisee = true;

@@ -244,6 +244,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/deposer-une-annonce', [ListingManageController::class, 'store'])->name('account.listings.store');
     Route::post('/deposer-une-annonce/ia', [\App\Http\Controllers\Account\IaDepotController::class, 'remplir'])
         ->middleware('throttle:10,1')->name('account.listings.ia');
+    Route::get('/deposer-une-annonce/prix-reperes', [\App\Http\Controllers\Account\IaDepotController::class, 'prixReperes'])
+        ->middleware('throttle:60,1')->name('account.listings.prix-reperes');
 
     Route::get('/mes-annonces/{listing}/modifier', [ListingManageController::class, 'edit'])->name('account.listings.edit');
     Route::put('/mes-annonces/{listing}', [ListingManageController::class, 'update'])->name('account.listings.update');

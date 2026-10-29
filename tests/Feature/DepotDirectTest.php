@@ -61,7 +61,7 @@ class DepotDirectTest extends TestCase
         $reponse = $this->envoyer($vendeur, $this->champs())->assertOk();
 
         $annonce = Listing::where('user_id', $vendeur->id)->sole();
-        $reponse->assertJson(['redirect' => route('listings.show', $annonce)]);
+        $reponse->assertJson(['redirect' => route('listings.show', [$annonce, 'publiee' => 1])]);
         $this->assertSame('Votre annonce a bien été publiée.', session('status'));
         $this->assertTrue(session('just_published'));
         $this->assertSame('Lead', session('pixel_event')['event']);

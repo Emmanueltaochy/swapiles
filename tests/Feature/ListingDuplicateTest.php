@@ -82,7 +82,8 @@ class ListingDuplicateTest extends TestCase
             ->post(route('account.listings.store'), $this->champs($token));
 
         $premiere = Listing::where('user_id', $vendeur->id)->first();
-        $second->assertRedirect(route('listings.show', $premiere));
+        // Juste après la publication : la fenêtre de partage plutôt que « déjà publiée ».
+        $second->assertRedirect(route('listings.show', [$premiere, 'publiee' => 1]));
 
         $this->assertSame(1, Listing::where('user_id', $vendeur->id)->count());
     }

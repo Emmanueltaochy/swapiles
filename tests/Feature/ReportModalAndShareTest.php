@@ -166,6 +166,18 @@ class ReportModalAndShareTest extends TestCase
             ->assertOk()
             ->assertSee('Annonce publiée !')
             ->assertSee('Partagez-la sur vos réseaux', false);
+
+        // Message de session perdu en route : « ?publiee=1 » suffit, pour le vendeur seulement.
+        $this->flushSession();
+        $this->actingAs($vendeur)->get(route('listings.show', [$annonce, 'publiee' => 1]))->assertSee('Annonce publiée !');
+        $this->actingAs($vendeur)->get(route('listings.show', $annonce))->assertDontSee('Annonce publiée !');
+        $this->actingAs($this->membre('Curieux'))->get(route('listings.show', [$annonce, 'publiee' => 1]))->assertDontSee('Annonce publiée !');
+
+        // Second envoi du même formulaire juste après : la fenêtre de partage, pas « déjà publiée ».
+        $this->actingAs($vendeur)
+            ->post(route('account.listings.store'), ['submission_token' => 'jeton-partage'])
+            ->assertRedirect(route('listings.show', [$annonce, 'publiee' => 1]))
+            ->assertSessionHas('just_published', true);
     }
 
     public function test_la_fenetre_de_signalement_est_presente_sur_le_profil_d_un_membre(): void

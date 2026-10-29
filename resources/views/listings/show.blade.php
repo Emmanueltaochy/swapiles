@@ -982,7 +982,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
 {{-- Fenêtre « Annonce publiée » : proposée juste après le dépôt, pour lancer le
      partage tant que le vendeur est encore devant son écran. --}}
-@if(session('just_published'))
+@php
+    // Aussi via « ?publiee=1 » (le vendeur, annonce de moins de 30 min) : le
+    // message de session peut se perdre entre la publication et l'affichage.
+    $vientDePublier = session('just_published')
+        || (request()->boolean('publiee') && auth()->id() && auth()->id() === $listing->user_id
+            && $listing->created_at && $listing->created_at->gt(now()->subMinutes(30)));
+@endphp
+@if($vientDePublier)
     <div id="modal-publiee" class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 p-4"
          role="dialog" aria-modal="true" aria-labelledby="modal-publiee-titre">
         <div class="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
@@ -1030,6 +1037,15 @@ document.addEventListener('DOMContentLoaded', function () {
         (function () {
             var modal = document.getElementById('modal-publiee');
             if (!modal) return;
+
+            // Retire « publiee=1 » de l'adresse : pas de nouvelle fenêtre en rechargeant ou en partageant le lien.
+            try {
+                var u = new URL(window.location.href);
+                if (u.searchParams.has('publiee')) {
+                    u.searchParams.delete('publiee');
+                    history.replaceState(history.state, '', u.pathname + u.search + u.hash);
+                }
+            } catch (e) {}
 
             function fermer() {
                 modal.remove();

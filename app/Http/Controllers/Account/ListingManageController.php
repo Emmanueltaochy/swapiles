@@ -89,6 +89,22 @@ class ListingManageController extends Controller
             ->first();
     }
 
+    /**
+     * Second envoi du même formulaire (double tap, envoi relancé) : on montre
+     * l'annonce existante, avec la fenêtre de partage si elle vient d'être créée.
+     */
+    private function versAnnonceDejaPubliee(Listing $annonce)
+    {
+        if ($annonce->created_at && $annonce->created_at->gt(now()->subMinutes(30))) {
+            return redirect()->route('listings.show', [$annonce, 'publiee' => 1])
+                ->with('status', 'Votre annonce a bien été publiée.')
+                ->with('just_published', true);
+        }
+
+        return redirect()->route('listings.show', $annonce)
+            ->with('status', 'Cette annonce est déjà publiée.');
+    }
+
     public function store(Request $request)
     {
         $reponse = $this->publier($request);
@@ -126,8 +142,7 @@ class ListingManageController extends Controller
         // renvoie sur l'annonce existante au lieu d'en créer une deuxième.
         $submissionToken = $this->submissionToken($request);
         if ($dejaPublie = $this->listingForSubmissionToken($submissionToken)) {
-            return redirect()->route('listings.show', $dejaPublie)
-                ->with('status', 'Cette annonce est déjà publiée.');
+            return $this->versAnnonceDejaPubliee($dejaPublie);
         }
 
         $data = $this->validateListing($request, requireImages: true);
@@ -220,8 +235,7 @@ class ListingManageController extends Controller
             // Deux envois partis en même temps : la contrainte d'unicité sur le
             // jeton a bloqué le second. On renvoie sur l'annonce déjà créée.
             if ($dejaPublie = $this->listingForSubmissionToken($submissionToken)) {
-                return redirect()->route('listings.show', $dejaPublie)
-                    ->with('status', 'Cette annonce est déjà publiée.');
+                return $this->versAnnonceDejaPubliee($dejaPublie);
             }
 
             throw $e;
@@ -271,7 +285,10 @@ class ListingManageController extends Controller
 
         // « just_published » déclenche la fenêtre de partage sur la fiche : le
         // meilleur moment pour partager, c'est tout de suite après la publication.
-        return redirect()->route('listings.show', $listing)
+        // « publiee=1 » dans l'adresse : la fenêtre s'affiche même si le message
+        // de session est perdu en route (appel de fond qui réécrit la session
+        // pendant l'envoi des photos, appli rouverte…).
+        return redirect()->route('listings.show', [$listing, 'publiee' => 1])
             ->with('status', 'Votre annonce a bien été publiée.')
             ->with('just_published', true)
             // Pixel Meta (après accord cookies) : « Lead » = une annonce publiée,

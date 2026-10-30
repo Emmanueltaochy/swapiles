@@ -101,6 +101,7 @@ class RelaisCharteTest extends TestCase
         $this->get(route('relay.charte'))->assertOk()
             ->assertSee('Charte des points relais')->assertSee('10 jours')->assertSee('mandat d’autofacturation')
             ->assertSee('dans la limite de 100 € par colis', false)->assertSee('toujours remboursé tout de suite', false)
+            ->assertSee('le prix réel de l’article', false)->assertSee('n’avance jamais d’argent de sa poche', false)
             ->assertSee('récépissé de dépôt de plainte', false)->assertSee('déclaration de sinistre', false);
     }
 

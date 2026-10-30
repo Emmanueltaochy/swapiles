@@ -425,8 +425,10 @@ class Categories
                 ],
             ],
         ],
+        // Accessoires seulement : pas d'animaux vivants sur Swap'Îles (le nom le dit,
+        // « Animaux » seul faisait croire qu'on en vendait).
         'animaux' => [
-            'label' => 'Animaux',
+            'label' => 'Accessoires animaux',
             'emoji' => '🐾',
             'enfants' => [
                 'chiens-chats' => [
@@ -443,7 +445,7 @@ class Categories
                     'enfants' => [
                         'aquariophilie' => 'Aquariophilie',
                         'cages-volieres' => 'Cages / volières',
-                        'basse-cour' => 'Basse-cour',
+                        'basse-cour' => 'Poulaillers / basse-cour (matériel)',
                     ],
                 ],
             ],

@@ -82,3 +82,10 @@ Schedule::call(fn () => \App\Support\TempsReponse::recalculerTout())->dailyAt('0
 
 // « Nouveautés de vos dressings » : récap à 18 h chez chaque membre.
 Schedule::call(fn () => \App\Support\NouveautesDressings::envoyer())->hourlyAt(10)->name('dressings:nouveautes')->withoutOverlapping();
+
+// Prospection points relais : repère les commerces (OpenStreetMap) chaque nuit,
+// lance la recherche demandée depuis l'admin dans la minute, et envoie les
+// mails du jour le matin (plafond quotidien, pause possible depuis l'admin).
+Schedule::command('relais:prospects')->dailyAt('03:50')->withoutOverlapping(120);
+Schedule::command('relais:prospects --si-demande')->everyMinute()->withoutOverlapping(120);
+Schedule::command('relais:prospection-envoyer')->dailyAt('09:05')->withoutOverlapping();

@@ -195,6 +195,9 @@ Route::get('/points-relais', [\App\Http\Controllers\RelayPointsController::class
 Route::post('/points-relais/demande', [\App\Http\Controllers\RelayPointsController::class, 'demander'])
     ->middleware('throttle:5,1')->name('relay.points.request');
 Route::get('/devenir-point-relais', [\App\Http\Controllers\RelayPartnerController::class, 'show'])->name('relay.partner');
+// Lien « Ne plus être contacté » des mails de prospection des points relais.
+Route::get('/points-relais/ne-plus-me-contacter/{jeton}', [\App\Http\Controllers\ProspectionRelaisController::class, 'desinscrire'])
+    ->where('jeton', '[A-Za-z0-9]{40}')->middleware('throttle:30,1')->name('relais.prospection.desinscription');
 Route::view('/points-relais/charte', 'relay.charte')->name('relay.charte');
 // Enseignes partenaires (RSE) : présentation et rapport d'impact mensuel (lien privé).
 Route::get('/partenaires', [\App\Http\Controllers\PartenairesController::class, 'index'])->name('partenaires.index');

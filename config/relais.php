@@ -34,6 +34,10 @@ return [
     // déclaration à l'assurance) dans ce délai, sinon la perte est sa faute.
     'delai_justificatif_jours' => 7,
 
+    // Prospection (mails aux commerces repérés) : envois par jour au plus.
+    // La boîte contact@ est plafonnée à 1 000 e-mails/jour pour tout le site.
+    'prospection_par_jour' => (int) env('RELAIS_PROSPECTION_PAR_JOUR', 40),
+
     // TVA des DOM (taux normal). Guyane et Mayotte : TVA non applicable.
     'taux_tva' => ['La Réunion' => 8.5, 'Martinique' => 8.5, 'Guadeloupe' => 8.5],
 ];

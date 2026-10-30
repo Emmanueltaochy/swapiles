@@ -86,6 +86,7 @@ Schedule::call(fn () => \App\Support\NouveautesDressings::envoyer())->hourlyAt(1
 // Prospection points relais : repère les commerces (OpenStreetMap) chaque nuit,
 // lance la recherche demandée depuis l'admin dans la minute, et envoie les
 // mails du jour le matin (plafond quotidien, pause possible depuis l'admin).
-Schedule::command('relais:prospects')->dailyAt('03:50')->withoutOverlapping(120);
-Schedule::command('relais:prospects --si-demande')->everyMinute()->withoutOverlapping(120);
+// En arrière-plan : la carte peut mettre plusieurs minutes à répondre, sans bloquer les autres tâches.
+Schedule::command('relais:prospects')->dailyAt('03:50')->withoutOverlapping(120)->runInBackground();
+Schedule::command('relais:prospects --si-demande')->everyMinute()->withoutOverlapping(120)->runInBackground();
 Schedule::command('relais:prospection-envoyer')->dailyAt('09:05')->withoutOverlapping();

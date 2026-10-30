@@ -20,7 +20,7 @@ class ProspecterRelais extends Command
     protected $signature = 'relais:prospects {ile? : une île, sinon toutes} {--emails=150 : sites web à visiter au plus (0 : aucun)}
         {--si-demande : seulement si l’admin l’a demandé} {--si-vide : seulement si aucun commerce n’est encore enregistré} {--sans-import : seulement chercher les e-mails}';
 
-    public const BILAN = 'relais.prospection.bilan';
+    public const BILAN = 'relais.prospection.bilan-recherche';
 
     protected $description = 'Prospection points relais : repère les commerces et cherche leur e-mail';
 
@@ -47,7 +47,8 @@ class ProspecterRelais extends Command
 
         $bilan = [];
         if (! $this->option('sans-import')) {
-            Cache::put(self::BILAN, '⏳ recherche en cours depuis ' . now()->format('H:i') . '…', now()->addDay());
+            // « En cours » s'efface tout seul si la recherche est interrompue.
+            Cache::put(self::BILAN, '⏳ recherche en cours depuis ' . now()->format('H:i') . '…', now()->addMinutes(30));
             foreach ($ile ? [$ile] : array_keys(ProspectionRelais::ILES) as $nom) {
                 try {
                     $r = ProspectionRelais::importer($nom);
@@ -57,6 +58,8 @@ class ProspecterRelais extends Command
                     $bilan[] = "{$nom} : ⚠️ " . $e->getMessage();
                 }
                 $this->info(end($bilan));
+                // Progression visible dans l'admin pendant que les autres îles se chargent.
+                Cache::put(self::BILAN, '⏳ en cours · ' . implode(' · ', $bilan), now()->addMinutes(30));
             }
         }
 

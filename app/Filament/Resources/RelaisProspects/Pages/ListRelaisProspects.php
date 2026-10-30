@@ -24,14 +24,19 @@ class ListRelaisProspects extends ListRecords
         $derniere = Cache::get('relais.prospection.derniere');
         $pause = Cache::get(EnvoyerProspectionRelais::PAUSE);
 
+        $parIle = RelaisProspect::query()->selectRaw('territoire, COUNT(*) as n, SUM(CASE WHEN email IS NOT NULL AND email != \'\' THEN 1 ELSE 0 END) as e')
+            ->groupBy('territoire')->get()
+            ->map(fn ($l) => $l->territoire . ' : ' . $l->n . ' commerces (' . (int) $l->e . ' avec e-mail)')->implode(' · ');
+
         return 'Commerces repérés sur OpenStreetMap qui pourraient devenir points relais. '
+            . ($parIle !== '' ? $parIle . ' · ' : '')
             . RelaisProspect::query()->contactable()->count() . ' à contacter par mail · '
             . ProspectionRelais::envoyesAujourdhui() . '/' . ProspectionRelais::plafondJour() . ' mails envoyés aujourd’hui · '
             . ($pause ? '⏸️ envoi automatique en pause' : 'envoi automatique chaque matin à 9 h, villes les plus demandées d’abord')
             . (($demandeAt = Cache::get(ProspecterRelais::DEMANDE . '_at')) && Cache::has(ProspecterRelais::DEMANDE)
                 ? ' · ⏳ recherche demandée à ' . Carbon::parse($demandeAt)->format('H:i') . ', elle démarre dans la minute'
                 : '')
-            . ' · ' . (Cache::get(ProspecterRelais::BILAN) ?: ($derniere ? 'dernière recherche le ' . Carbon::parse($derniere)->format('d/m à H:i') : 'aucune recherche encore'));
+            . ' · Dernière recherche : ' . (Cache::get(ProspecterRelais::BILAN) ?: ($derniere ? 'le ' . Carbon::parse($derniere)->format('d/m à H:i') : 'aucune encore'));
     }
 
     protected function getHeaderActions(): array

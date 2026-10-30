@@ -195,6 +195,11 @@ Route::get('/points-relais', [\App\Http\Controllers\RelayPointsController::class
 Route::post('/points-relais/demande', [\App\Http\Controllers\RelayPointsController::class, 'demander'])
     ->middleware('throttle:5,1')->name('relay.points.request');
 Route::get('/devenir-point-relais', [\App\Http\Controllers\RelayPartnerController::class, 'show'])->name('relay.partner');
+// Bouton des mails de prospection des points relais (clic noté dans l'admin).
+Route::get('/points-relais/decouvrir/{jeton}', [\App\Http\Controllers\ProspectionRelaisController::class, 'clic'])
+    ->where('jeton', '[A-Za-z0-9]{40}')->middleware('throttle:30,1')->name('relais.prospection.clic');
+Route::post('/points-relais/decouvrir/suivi', [\App\Http\Controllers\ProspectionRelaisController::class, 'action'])
+    ->middleware('throttle:60,1')->name('relais.prospection.action');
 // Lien « Ne plus être contacté » des mails de prospection des points relais.
 Route::get('/points-relais/ne-plus-me-contacter/{jeton}', [\App\Http\Controllers\ProspectionRelaisController::class, 'desinscrire'])
     ->where('jeton', '[A-Za-z0-9]{40}')->middleware('throttle:30,1')->name('relais.prospection.desinscription');

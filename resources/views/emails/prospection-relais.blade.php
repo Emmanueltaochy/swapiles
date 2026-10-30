@@ -31,7 +31,7 @@
             <p>Bien cordialement,<br><strong>Emmanuel Taochy</strong><br>Fondateur de Swap’Îles · swapiles.com</p>
         </div>
         <div style="padding:16px 26px;background:#f9fafb;font-size:12px;line-height:1.5;color:#6b7280;">
-            Vous recevez ce message car votre commerce est référencé publiquement (OpenStreetMap ou votre site). Il s’agit d’un message unique : sans réponse de votre part, nous ne vous relancerons pas.
+            Vous recevez ce message car votre commerce est référencé publiquement (OpenStreetMap ou votre site). Il s’agit d’un message unique : sans réponse de votre part, nous ne vous relancerons pas. Le bouton ci-dessus nous indique si notre présentation vous a intéressé (suivi de notre démarche, rien d’autre).
             <a href="{{ $lienDesinscription }}" style="color:#6b7280;">Ne plus être contacté</a>.<br>
             Swap’Îles · {{ config('partenaires.editeur.nom') }} · {{ config('partenaires.editeur.adresse') }}
         </div>

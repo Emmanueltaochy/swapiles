@@ -23,11 +23,11 @@
             et soutenez l'économie circulaire de votre île — le tout sans rien investir.
         </p>
         <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <a href="#contact"
+            <a href="#contact" data-suivi="devenir"
                class="w-full sm:w-auto rounded-2xl bg-white px-7 py-3.5 font-extrabold text-teal-800 shadow-lg hover:bg-teal-50 transition">
                 Devenir partenaire
             </a>
-            <a href="#comment-ca-marche"
+            <a href="#comment-ca-marche" data-suivi="comment"
                class="w-full sm:w-auto rounded-2xl border border-white/40 px-7 py-3.5 font-bold text-white hover:bg-white/10 transition">
                 Comment ça marche
             </a>
@@ -258,7 +258,7 @@
                     <div class="mt-4 rounded-2xl bg-red-50 border border-red-100 p-4 text-sm font-semibold text-red-700">{{ $message }}</div>
                 @enderror
 
-                <form method="POST" action="{{ route('relay.partner.contact') }}" class="mt-5 space-y-4">
+                <form method="POST" action="{{ route('relay.partner.contact') }}" class="mt-5 space-y-4" data-suivi-formulaire>
                     @csrf
                     {{-- Honeypot anti-spam (caché aux humains) --}}
                     <input type="text" name="website" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true">
@@ -315,11 +315,39 @@
                     <button class="w-full rounded-2xl bg-teal-700 px-6 py-3.5 font-extrabold text-white hover:bg-teal-800 transition">
                         Envoyer ma demande
                     </button>
-                    <p class="text-center text-xs text-gray-400">Ou écrivez-nous à <a href="mailto:contact@swapiles.com" class="font-semibold text-teal-700 hover:underline">contact@swapiles.com</a></p>
+                    <p class="text-center text-xs text-gray-400">Ou écrivez-nous à <a href="mailto:contact@swapiles.com" data-suivi="mail" class="font-semibold text-teal-700 hover:underline">contact@swapiles.com</a></p>
                 </form>
             </div>
         </div>
     </div>
 </section>
 
+@if(\App\Http\Controllers\ProspectionRelaisController::prospectSuivi())
+    {{-- Commerce venu d'un mail de prospection : boutons touchés et lecture notés dans son suivi. --}}
+    <script>
+    (function () {
+        const url = '{{ route('relais.prospection.action') }}';
+        const jeton = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        const deja = {};
+        function noter(a) {
+            if (deja[a]) return;
+            deja[a] = true;
+            const d = new FormData();
+            d.append('a', a);
+            d.append('_token', jeton);
+            if (navigator.sendBeacon) navigator.sendBeacon(url, d);
+            else fetch(url, { method: 'POST', body: d, credentials: 'same-origin', keepalive: true });
+        }
+        document.querySelectorAll('[data-suivi]').forEach(function (el) {
+            el.addEventListener('click', function () { noter(el.dataset.suivi); });
+        });
+        document.querySelector('[data-suivi-formulaire]')?.addEventListener('focusin', function () { noter('formulaire'); });
+        window.addEventListener('scroll', function () {
+            const vu = (window.scrollY + window.innerHeight) / Math.max(1, document.documentElement.scrollHeight);
+            if (vu > 0.5) noter('moitie');
+            if (vu > 0.92) noter('bas');
+        }, { passive: true, signal: window.swpPage ? window.swpPage() : undefined });
+    })();
+    </script>
+@endif
 @endsection

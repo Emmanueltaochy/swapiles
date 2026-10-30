@@ -42,6 +42,8 @@ class ListRelaisProspects extends ListRecords
             . ($parIle !== '' ? $parIle . ' · ' : '')
             . RelaisProspect::query()->contactable()->count() . ' à contacter par mail · '
             . ProspectionRelais::envoyesAujourdhui() . '/' . ProspectionRelais::plafondJour() . ' mails envoyés aujourd’hui · '
+            . RelaisProspect::whereNotNull('contacte_at')->count() . ' contactés, dont ' . RelaisProspect::whereNotNull('clique_at')->count() . ' ont cliqué 👀 et '
+            . RelaisProspect::whereNotNull('formulaire_at')->count() . ' ont rempli le formulaire · '
             . ($pause ? '⏸️ envoi automatique en pause' : 'envoi automatique chaque matin à 9 h, villes les plus demandées d’abord')
             . (($demandeAt = Cache::get(ProspecterRelais::DEMANDE . '_at')) && Cache::has(ProspecterRelais::DEMANDE)
                 ? ' · ⏳ recherche demandée à ' . Carbon::parse($demandeAt)->format('H:i') . ', elle démarre dans la minute'

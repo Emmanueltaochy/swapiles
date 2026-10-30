@@ -32,6 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Clic sur une notification push : noté dans le journal (admin).
         $middleware->appendToGroup('web', \App\Http\Middleware\SuiviClicPush::class);
         $middleware->appendToGroup('web', \App\Http\Middleware\RetenirSourcePub::class);
+        // Commerce venu d'un mail de prospection : pages vues notées dans l'admin.
+        $middleware->appendToGroup('web', \App\Http\Middleware\SuiviProspectRelais::class);
         $middleware->validateCsrfTokens(except: [
             'stripe/webhook',
         ]);

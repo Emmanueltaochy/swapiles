@@ -294,7 +294,7 @@ class ProspectionRelais
             'p' => $p,
             'commission' => (float) config('pricing.relay_merchant_fee', 1.00),
             'garde' => (int) config('relais.delai_garde_jours', 10),
-            'lienPartenaire' => route('relay.partner'),
+            'lienPartenaire' => route('relais.prospection.clic', $p->jeton),
             'lienDesinscription' => route('relais.prospection.desinscription', $p->jeton),
             'contact' => config('partenaires.contact'),
         ];

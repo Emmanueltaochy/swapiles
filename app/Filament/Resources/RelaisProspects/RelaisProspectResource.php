@@ -59,7 +59,12 @@ class RelaisProspectResource extends Resource
                     ->color(fn (?string $state) => match ($state) {
                         'nouveau' => 'warning', 'contacte' => 'info', 'interesse', 'relais' => 'success', 'refuse', 'desinscrit' => 'gray', default => 'gray',
                     })
-                    ->description(fn (RelaisProspect $p) => $p->contacte_at ? 'Mail le ' . $p->contacte_at->format('d/m') : null),
+                    ->description(fn (RelaisProspect $p) => collect([
+                        $p->contacte_at ? 'Mail le ' . $p->contacte_at->format('d/m') : null,
+                        $p->clique_at ? '👀 a cliqué le ' . $p->clique_at->format('d/m à H:i') . ($p->nb_clics > 1 ? ' (' . $p->nb_clics . ' fois)' : '') : ($p->contacte_at ? 'pas encore cliqué' : null),
+                        $p->formulaire_at ? '📝 formulaire rempli le ' . $p->formulaire_at->format('d/m') : null,
+                        ! empty($p->parcours) ? 'dernière étape : ' . (collect($p->parcours)->last()['e'] ?? '') : null,
+                    ])->filter()->implode(' · ') ?: null),
             ])
             ->filters([
                 SelectFilter::make('territoire')->label('Île')->options(array_combine(array_keys(ProspectionRelais::ILES), array_keys(ProspectionRelais::ILES))),
@@ -69,6 +74,13 @@ class RelaisProspectResource extends Resource
                     ->queries(
                         true: fn ($q) => $q->whereNotNull('email')->where('email', '!=', ''),
                         false: fn ($q) => $q->where(fn ($q) => $q->whereNull('email')->orWhere('email', '')),
+                        blank: fn ($q) => $q,
+                    ),
+                TernaryFilter::make('a_clique')->label('Clic sur le mail')
+                    ->trueLabel('A cliqué 👀')->falseLabel('Mail envoyé, pas cliqué')
+                    ->queries(
+                        true: fn ($q) => $q->whereNotNull('clique_at'),
+                        false: fn ($q) => $q->whereNotNull('contacte_at')->whereNull('clique_at'),
                         blank: fn ($q) => $q,
                     ),
                 SelectFilter::make('type')->label('Type de commerce')->options(ProspectionRelais::TYPES),
@@ -87,6 +99,17 @@ class RelaisProspectResource extends Resource
                         Notification::make()->title($ok ? 'Mail envoyé ✉️' : 'Pas envoyé : plafond du jour atteint (' . ProspectionRelais::plafondJour() . ').')
                             ->{$ok ? 'success' : 'warning'}()->send();
                     }),
+                Action::make('parcours')
+                    ->label('Parcours')
+                    ->icon('heroicon-o-eye')
+                    ->color('info')
+                    ->visible(fn (RelaisProspect $p) => ! empty($p->parcours))
+                    ->modalHeading(fn (RelaisProspect $p) => 'Ce qu’a fait ' . $p->nom . ' après le mail')
+                    ->modalContent(fn (RelaisProspect $p) => new \Illuminate\Support\HtmlString(
+                        '<ol style="font-size:.9rem;line-height:1.5;">' . collect($p->parcours)->map(fn ($e) => '<li style="padding:.35rem 0;border-bottom:1px solid rgba(148,163,184,.2);"><span style="opacity:.6;font-variant-numeric:tabular-nums;">' . e($e['t'] ?? '') . '</span> · ' . e($e['e'] ?? '') . '</li>')->implode('') . '</ol>'
+                    ))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Fermer'),
                 Action::make('appeler')
                     ->label('Appeler')
                     ->icon('heroicon-o-phone')

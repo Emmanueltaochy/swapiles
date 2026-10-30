@@ -151,6 +151,41 @@ class ProspectionRelaisTest extends TestCase
         $this->assertSame(['Supérette du front de mer', 'Épicerie Cilaos'], RelaisProspect::orderByDesc('demande')->pluck('nom')->all());
     }
 
+    public function test_clic_parcours_et_formulaire(): void
+    {
+        Mail::fake();
+        $p = RelaisProspect::create(['source_id' => 'osm:node/30', 'nom' => 'Tabac du Port', 'ville' => 'Saint-Pierre', 'territoire' => 'La Réunion', 'email' => 'tabac@commerce.re']);
+        $this->assertTrue(ProspectionRelais::envoyer($p->fresh()));
+
+        $this->get(route('relais.prospection.clic', $p->jeton))->assertRedirect();
+        $this->get(route('relay.partner'))->assertOk()->assertSee('data-suivi-formulaire', false)->assertSee(route('relais.prospection.action'), false);
+        $this->post(route('relais.prospection.action'), ['a' => 'devenir'])->assertNoContent();
+        $this->post(route('relais.prospection.action'), ['a' => 'pirate'])->assertNoContent();
+        $this->get(route('relay.charte'))->assertOk();
+
+        $p->refresh();
+        $this->assertNotNull($p->clique_at);
+        $this->assertSame(1, $p->nb_clics);
+        $this->assertSame([
+            '✉️ A cliqué sur le bouton du mail',
+            '📄 Page « Devenir point relais »',
+            '👉 A touché « Devenir partenaire »',
+            '📄 Charte des points relais',
+        ], collect($p->parcours)->pluck('e')->all());
+
+        $this->post(route('relay.partner.contact'), [
+            'business' => 'Tabac du Port', 'name' => 'Jean', 'city' => 'Saint-Pierre', 'phone' => '0692 00 00 00', 'email' => 'jean@autre.re',
+        ])->assertRedirect();
+        $p->refresh();
+        $this->assertSame('interesse', $p->statut);
+        $this->assertNotNull($p->formulaire_at);
+        $this->assertSame('✅ A envoyé le formulaire « Devenir partenaire »', collect($p->parcours)->last()['e']);
+
+        // Un visiteur ordinaire n'est pas suivi.
+        $this->flushSession();
+        $this->get(route('relay.partner'))->assertOk()->assertDontSee(route('relais.prospection.action'), false);
+    }
+
     public function test_page_admin(): void
     {
         $admin = User::create(['name' => 'Admin', 'email' => 'cabinet@taochyconsulting.fr', 'password' => bcrypt('secret1234'), 'territoire' => 'La Réunion']);

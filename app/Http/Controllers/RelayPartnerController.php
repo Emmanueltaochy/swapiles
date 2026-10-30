@@ -85,6 +85,23 @@ class RelayPartnerController extends Controller
                 ->withErrors(['relay_contact' => "L'envoi a échoué. Réessaie ou écris-nous directement à contact@swapiles.com."]);
         }
 
+        // Commerce démarché par mail : sa fiche de prospection passe à « Intéressé ».
+        try {
+            $prospect = \App\Models\RelaisProspect::query()
+                ->where(fn ($q) => $q->where('id', (int) session('relais_prospect'))->orWhereRaw('LOWER(email) = ?', [mb_strtolower($data['email'])]))
+                ->first();
+            if ($prospect) {
+                $prospect->noterEtape('✅ A envoyé le formulaire « Devenir partenaire »');
+                $prospect->forceFill([
+                    'formulaire_at' => now(),
+                    'statut' => in_array($prospect->statut, ['nouveau', 'contacte'], true) ? 'interesse' : $prospect->statut,
+                    'notes' => trim(($prospect->notes ? $prospect->notes . "\n" : '') . now()->format('d/m') . ' : formulaire rempli par ' . $data['name'] . ' (' . $data['phone'] . ')'),
+                ])->save();
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         try {
             AdminEvent::notify(
                 'Nouvelle demande point relais',

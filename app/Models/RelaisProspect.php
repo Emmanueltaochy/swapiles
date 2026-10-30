@@ -19,19 +19,37 @@ class RelaisProspect extends Model
 
     protected $fillable = [
         'source_id', 'nom', 'type', 'adresse', 'code_postal', 'ville', 'territoire', 'latitude', 'longitude',
-        'telephone', 'email', 'site_web', 'horaires', 'email_cherche_at', 'statut', 'contacte_at', 'nb_envois', 'jeton', 'notes', 'demande',
+        'telephone', 'email', 'site_web', 'horaires', 'email_cherche_at', 'statut', 'contacte_at', 'nb_envois', 'jeton', 'notes', 'demande', 'clique_at', 'nb_clics', 'formulaire_at', 'parcours',
     ];
 
     protected $casts = [
         'email_cherche_at' => 'datetime',
         'contacte_at' => 'datetime',
+        'clique_at' => 'datetime',
+        'formulaire_at' => 'datetime',
+        'parcours' => 'array',
     ];
+
+    /** Étapes du parcours après le clic sur le mail, des plus anciennes aux plus récentes. */
+    public const PARCOURS_MAX = 40;
 
     protected static function booted(): void
     {
         static::creating(function (RelaisProspect $p) {
             $p->jeton ??= Str::random(40);
         });
+    }
+
+    /** Ajoute une étape au parcours (une étape identique à la précédente n'est pas répétée). */
+    public function noterEtape(string $etape): void
+    {
+        $parcours = $this->parcours ?? [];
+        $derniere = end($parcours);
+        if ($derniere && ($derniere['e'] ?? null) === $etape) {
+            return;
+        }
+        $parcours[] = ['t' => now()->format('d/m H:i'), 'e' => $etape];
+        $this->forceFill(['parcours' => array_slice($parcours, -self::PARCOURS_MAX)])->save();
     }
 
     public function scopeContactable($query)

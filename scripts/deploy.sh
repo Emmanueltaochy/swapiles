@@ -120,6 +120,28 @@ php artisan listings:enable-cb-for-stripe-sellers 2>/dev/null || true
 php artisan queue:restart 2>/dev/null || true
 
 # ---------------------------------------------------------------------------
+# 6b. PROSPECTION POINTS RELAIS + DIAGNOSTIC DU PLANIFICATEUR
+#     Le planificateur Laravel (cron « schedule:run ») lance les tâches de
+#     fond. On vérifie qu'il est installé, et on fait la toute première
+#     recherche de commerces ici si aucune n'a encore abouti. Ne bloque jamais.
+# ---------------------------------------------------------------------------
+WEB_USER="${WEB_USER:-www-data}"
+echo "==> Planificateur : utilisateur du déploiement = $(id -un)"
+if grep -rqs "schedule:run" /etc/crontab /etc/cron.d /var/spool/cron 2>/dev/null || crontab -l 2>/dev/null | grep -q "schedule:run"; then
+  echo "    cron schedule:run trouvé :"
+  grep -rhs "schedule:run" /etc/crontab /etc/cron.d /var/spool/cron 2>/dev/null | sed 's/^/      /' || true
+  crontab -l 2>/dev/null | grep "schedule:run" | sed 's/^/      /' || true
+else
+  echo "    !! AUCUN cron schedule:run trouvé : les tâches planifiées ne tournent pas"
+fi
+COMME_WEB=""
+if [ "$(id -u)" = "0" ] && id "$WEB_USER" >/dev/null 2>&1; then COMME_WEB="runuser -u $WEB_USER --"; fi
+echo "==> Prospection relais (si aucun commerce enregistré)"
+$COMME_WEB timeout 300 php artisan relais:prospects --si-vide --emails=0 2>&1 | sed 's/^/    /' || true
+# Recherche des e-mails sur les sites, en arrière-plan (plusieurs minutes).
+setsid nohup $COMME_WEB php artisan relais:prospects --sans-import --emails=150 >/dev/null 2>&1 < /dev/null &
+
+# ---------------------------------------------------------------------------
 # 7. PERMISSIONS (le serveur web doit pouvoir écrire dans storage / cache)
 # ---------------------------------------------------------------------------
 WEB_USER="${WEB_USER:-www-data}"

@@ -95,19 +95,22 @@ class ProspectionRelais
             . 'out center tags;';
 
         $elements = null;
+        $problemes = [];
         foreach (['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'] as $serveur) {
             try {
-                $reponse = Http::timeout(150)->asForm()->post($serveur, ['data' => $requete]);
-                if ($reponse->successful()) {
+                $reponse = Http::timeout(150)->withHeaders(['User-Agent' => 'Swapiles/1.0 (+https://swapiles.com)'])
+                    ->asForm()->post($serveur, ['data' => $requete]);
+                if ($reponse->successful() && is_array($reponse->json('elements'))) {
                     $elements = $reponse->json('elements');
                     break;
                 }
+                $problemes[] = parse_url($serveur, PHP_URL_HOST) . ' HTTP ' . $reponse->status();
             } catch (Throwable $e) {
-                report($e);
+                $problemes[] = parse_url($serveur, PHP_URL_HOST) . ' ' . Str::limit($e->getMessage(), 80);
             }
         }
         if (! is_array($elements)) {
-            throw new \RuntimeException('OpenStreetMap ne répond pas pour le moment. Réessayez plus tard.');
+            throw new \RuntimeException('OpenStreetMap ne répond pas (' . implode(' ; ', $problemes) . ').');
         }
 
         $relaisExistants = RelayPoint::query()->pluck('name')->map(fn ($n) => Str::lower(trim((string) $n)))->all();
@@ -195,7 +198,7 @@ class ProspectionRelais
         $base = rtrim(preg_replace('#^(https?://[^/]+).*$#', '$1', $site), '/');
         foreach (array_unique([$site, $base . '/contact', $base . '/nous-contacter']) as $page) {
             try {
-                $html = Http::timeout(8)->withHeaders(['User-Agent' => 'Mozilla/5.0 (compatible; SwapilesBot/1.0; +https://swapiles.com)'])
+                $html = Http::timeout(5)->withHeaders(['User-Agent' => 'Mozilla/5.0 (compatible; SwapilesBot/1.0; +https://swapiles.com)'])
                     ->get($page)->body();
             } catch (Throwable) {
                 continue;

@@ -28,7 +28,10 @@ class ListRelaisProspects extends ListRecords
             . RelaisProspect::query()->contactable()->count() . ' à contacter par mail · '
             . ProspectionRelais::envoyesAujourdhui() . '/' . ProspectionRelais::plafondJour() . ' mails envoyés aujourd’hui · '
             . ($pause ? '⏸️ envoi automatique en pause' : 'envoi automatique chaque matin à 9 h, villes les plus demandées d’abord')
-            . ($derniere ? ' · dernière recherche le ' . Carbon::parse($derniere)->format('d/m à H:i') : ' · aucune recherche encore');
+            . (($demandeAt = Cache::get(ProspecterRelais::DEMANDE . '_at')) && Cache::has(ProspecterRelais::DEMANDE)
+                ? ' · ⏳ recherche demandée à ' . Carbon::parse($demandeAt)->format('H:i') . ', elle démarre dans la minute'
+                : '')
+            . ' · ' . (Cache::get(ProspecterRelais::BILAN) ?: ($derniere ? 'dernière recherche le ' . Carbon::parse($derniere)->format('d/m à H:i') : 'aucune recherche encore'));
     }
 
     protected function getHeaderActions(): array
@@ -43,6 +46,7 @@ class ListRelaisProspects extends ListRecords
                 ])
                 ->action(function (array $data) {
                     Cache::put(ProspecterRelais::DEMANDE, $data['ile'], now()->addHour());
+                    Cache::put(ProspecterRelais::DEMANDE . '_at', now()->toIso8601String(), now()->addHour());
                     Notification::make()->title('Recherche lancée 🔎')
                         ->body('Elle démarre dans la minute et prend quelques minutes (carte, puis sites web des commerces). Rechargez la page ensuite.')
                         ->success()->send();

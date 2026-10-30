@@ -69,6 +69,8 @@ class ProspecterRelais extends Command
             $this->info(end($bilan));
         }
 
+        ProspectionRelais::recalculerDemande();
+
         // Montré en haut de la page « Prospection relais » de l'admin.
         Cache::put(self::BILAN, now()->format('d/m H:i') . ' · ' . implode(' · ', $bilan), now()->addYear());
         Cache::put('relais.prospection.derniere', now()->toIso8601String(), now()->addYear());

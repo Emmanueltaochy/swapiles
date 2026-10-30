@@ -19,6 +19,16 @@ class ListRelaisProspects extends ListRecords
 {
     protected static string $resource = RelaisProspectResource::class;
 
+    public function mount(): void
+    {
+        parent::mount();
+        // Tri par demande à jour (annonces et demandes bougent) : recalculé au plus une fois par heure.
+        if (! Cache::has('relais.prospection.demande_calculee')) {
+            ProspectionRelais::recalculerDemande();
+            Cache::put('relais.prospection.demande_calculee', true, now()->addHour());
+        }
+    }
+
     public function getSubheading(): ?string
     {
         $derniere = Cache::get('relais.prospection.derniere');

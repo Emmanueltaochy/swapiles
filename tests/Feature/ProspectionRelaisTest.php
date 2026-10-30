@@ -132,6 +132,25 @@ class ProspectionRelaisTest extends TestCase
         $this->assertNull(Cache::get(ProspecterRelais::DEMANDE));
     }
 
+    public function test_demande_triable_ville_retrouvee_par_la_position(): void
+    {
+        $vendeur = User::create(['name' => 'Lea', 'email' => 'lea@ex.com', 'password' => bcrypt('secret1234'), 'territoire' => 'La Réunion']);
+        foreach (['St Pierre', 'Saint-Pierre', 'saint pierre'] as $ville) {
+            Listing::create(['user_id' => $vendeur->id, 'title' => 'Robe', 'description' => 'Description de test assez longue.', 'price' => 10,
+                'status' => 'published', 'listing_type' => 'achat', 'territoire' => 'La Réunion', 'pickup_city' => $ville]);
+        }
+        // Commerce sans adresse, situé près du centre de Saint-Pierre.
+        $sansVille = RelaisProspect::create(['source_id' => 'osm:node/20', 'nom' => 'Supérette du front de mer', 'territoire' => 'La Réunion', 'latitude' => -21.340, 'longitude' => 55.480]);
+        $ailleurs = RelaisProspect::create(['source_id' => 'osm:node/21', 'nom' => 'Épicerie Cilaos', 'ville' => 'Cilaos', 'territoire' => 'La Réunion']);
+
+        ProspectionRelais::recalculerDemande();
+
+        $this->assertSame('Saint-Pierre', $sansVille->fresh()->ville);
+        $this->assertSame(3, $sansVille->fresh()->demande);
+        $this->assertSame(0, $ailleurs->fresh()->demande);
+        $this->assertSame(['Supérette du front de mer', 'Épicerie Cilaos'], RelaisProspect::orderByDesc('demande')->pluck('nom')->all());
+    }
+
     public function test_page_admin(): void
     {
         $admin = User::create(['name' => 'Admin', 'email' => 'cabinet@taochyconsulting.fr', 'password' => bcrypt('secret1234'), 'territoire' => 'La Réunion']);

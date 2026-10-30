@@ -19,7 +19,7 @@ class RelaisProspect extends Model
 
     protected $fillable = [
         'source_id', 'nom', 'type', 'adresse', 'code_postal', 'ville', 'territoire', 'latitude', 'longitude',
-        'telephone', 'email', 'site_web', 'horaires', 'email_cherche_at', 'statut', 'contacte_at', 'nb_envois', 'jeton', 'notes',
+        'telephone', 'email', 'site_web', 'horaires', 'email_cherche_at', 'statut', 'contacte_at', 'nb_envois', 'jeton', 'notes', 'demande',
     ];
 
     protected $casts = [

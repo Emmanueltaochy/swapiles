@@ -6,7 +6,6 @@ use App\Models\RelaisProspect;
 use App\Support\ProspectionRelais;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -38,12 +37,11 @@ class EnvoyerProspectionRelais extends Command
             return self::SUCCESS;
         }
 
-        $demande = ProspectionRelais::demandeParVille();
+        ProspectionRelais::recalculerDemande();
         $prospects = RelaisProspect::query()->contactable()
             ->when($this->option('ile'), fn ($q, $ile) => $q->where('territoire', $ile))
-            ->get()
-            ->sortByDesc(fn (RelaisProspect $p) => $demande[Str::lower(trim((string) $p->ville))] ?? 0)
-            ->take($max);
+            ->orderByDesc('demande')->orderBy('id')
+            ->limit($max)->get();
 
         $envoyes = 0;
         foreach ($prospects as $p) {

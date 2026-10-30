@@ -19,7 +19,6 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 
 /** Prospection : commerces repérés qui pourraient devenir points relais. */
 class RelaisProspectResource extends Resource
@@ -40,28 +39,18 @@ class RelaisProspectResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
-    /** @var array<string,int>|null */
-    private static ?array $demande = null;
-
-    private static function demande(RelaisProspect $p): int
-    {
-        self::$demande ??= ProspectionRelais::demandeParVille();
-
-        return self::$demande[Str::lower(trim((string) $p->ville))] ?? 0;
-    }
-
     public static function table(Table $table): Table
     {
         return $table
-            ->defaultSort('updated_at', 'desc')
+            // Les villes où il y a le plus d'annonces et de demandes de relais d'abord.
+            ->defaultSort('demande', 'desc')
             ->columns([
                 TextColumn::make('nom')->label('Commerce')->weight('bold')->searchable()->wrap()
                     ->description(fn (RelaisProspect $p) => ProspectionRelais::TYPES[$p->type] ?? $p->type),
                 TextColumn::make('ville')->label('Ville')->searchable()->placeholder('—')
                     ->description(fn (RelaisProspect $p) => trim($p->adresse . ' · ' . $p->territoire, ' ·')),
-                TextColumn::make('demande')->label('Demande')
-                    ->state(fn (RelaisProspect $p) => self::demande($p))
-                    ->formatStateUsing(fn (int $state) => $state > 0 ? '🔥 ' . $state : '—')
+                TextColumn::make('demande')->label('Demande')->sortable()
+                    ->formatStateUsing(fn ($state) => (int) $state > 0 ? '🔥 ' . (int) $state : '—')
                     ->tooltip('Annonces en ligne dans la ville, + 20 par demande « un relais près de chez moi »'),
                 TextColumn::make('email')->label('E-mail')->placeholder('pas trouvé')->copyable()->searchable()
                     ->description(fn (RelaisProspect $p) => $p->telephone),

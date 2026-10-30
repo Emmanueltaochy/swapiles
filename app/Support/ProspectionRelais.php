@@ -235,20 +235,52 @@ class ProspectionRelais
      * Demande par ville : annonces de la ville + demandes « un relais près de
      * chez moi ». Sert à contacter d'abord là où des ventes se perdent.
      *
-     * @return array<string,int> ville en minuscules => poids
+     * @return array<string,int> ville normalisée (DomTomGeo::normalize) => poids
      */
     public static function demandeParVille(): array
     {
         $poids = [];
+        $ajouter = function ($n, $ville, int $facteur) use (&$poids) {
+            $cle = DomTomGeo::normalize((string) $ville);
+            if ($cle !== '') {
+                $poids[$cle] = ($poids[$cle] ?? 0) + $facteur * (int) $n;
+            }
+        };
         Listing::query()->where('status', 'published')->whereNotNull('pickup_city')
-            ->selectRaw('LOWER(pickup_city) as v, COUNT(*) as n')->groupBy('v')->pluck('n', 'v')
-            ->each(function ($n, $v) use (&$poids) { $poids[trim((string) $v)] = ($poids[trim((string) $v)] ?? 0) + (int) $n; });
+            ->selectRaw('pickup_city as v, COUNT(*) as n')->groupBy('v')->pluck('n', 'v')
+            ->each(fn ($n, $v) => $ajouter($n, $v, 1));
+        // Une demande explicite pèse comme 20 annonces.
         RelayPointRequest::query()->whereNotNull('city')
-            ->selectRaw('LOWER(city) as v, COUNT(*) as n')->groupBy('v')->pluck('n', 'v')
-            // Une demande explicite pèse comme 20 annonces.
-            ->each(function ($n, $v) use (&$poids) { $poids[trim((string) $v)] = ($poids[trim((string) $v)] ?? 0) + 20 * (int) $n; });
+            ->selectRaw('city as v, COUNT(*) as n')->groupBy('v')->pluck('n', 'v')
+            ->each(fn ($n, $v) => $ajouter($n, $v, 20));
 
         return $poids;
+    }
+
+    /**
+     * Met à jour la colonne « demande » (tri dans l'admin, ordre des envois),
+     * et donne une ville aux commerces sans adresse : la commune la plus proche.
+     */
+    public static function recalculerDemande(): void
+    {
+        $poids = self::demandeParVille();
+
+        RelaisProspect::query()->select(['id', 'ville', 'territoire', 'latitude', 'longitude', 'demande'])
+            ->chunkById(500, function ($prospects) use ($poids) {
+                foreach ($prospects as $p) {
+                    $maj = [];
+                    if (blank($p->ville) && ($commune = DomTomGeo::communeProche($p->territoire, $p->latitude !== null ? (float) $p->latitude : null, $p->longitude !== null ? (float) $p->longitude : null))) {
+                        $maj['ville'] = $p->ville = $commune;
+                    }
+                    $demande = $poids[DomTomGeo::normalize($p->ville)] ?? 0;
+                    if ((int) $p->demande !== $demande) {
+                        $maj['demande'] = $demande;
+                    }
+                    if ($maj) {
+                        RelaisProspect::whereKey($p->id)->update($maj);
+                    }
+                }
+            });
     }
 
     /** Envoie le mail de présentation. False si non contactable ou plafond du jour atteint. */

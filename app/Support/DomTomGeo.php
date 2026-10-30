@@ -209,6 +209,26 @@ class DomTomGeo
         };
     }
 
+    /** Commune la plus proche d'un point (centre-bourg le plus près), ou null. */
+    public static function communeProche(string $territoire, ?float $lat, ?float $lng): ?string
+    {
+        if ($lat === null || $lng === null || empty(self::COMMUNES[$territoire])) {
+            return null;
+        }
+
+        $proche = null;
+        $meilleure = INF;
+        foreach (self::COMMUNES[$territoire] as [$cLat, $cLng, $nom]) {
+            $d = ($cLat - $lat) ** 2 + (($cLng - $lng) * cos(deg2rad($lat))) ** 2;
+            if ($d < $meilleure) {
+                $meilleure = $d;
+                $proche = $nom;
+            }
+        }
+
+        return $proche;
+    }
+
     /** [lat, lng, zoom] du centre d'un territoire. */
     public static function center(string $territoire): array
     {

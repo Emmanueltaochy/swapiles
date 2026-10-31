@@ -801,6 +801,9 @@ document.addEventListener('turbo:load', function () {
                 <a href="mailto:contact@swapiles.com" class="block text-gray-500 hover:text-teal-700">Contact</a>
             </div>
         </div>
+        <div class="border-t border-gray-100">
+            <p class="max-w-7xl mx-auto px-4 py-4 text-center text-xs text-gray-500">Site et application mobile réalisé par <a href="https://taochyagency.com/" class="font-semibold text-gray-700 hover:text-teal-700 underline-offset-2 hover:underline">Taochy Agency</a>, agence web et marketing à La Réunion</p>
+        </div>
     </footer>
 
 <script>

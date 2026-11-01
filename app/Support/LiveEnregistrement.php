@@ -28,9 +28,17 @@ class LiveEnregistrement
 
     private static function appeler(string $methode, array $corps): ?array
     {
-        $reponse = Http::withToken(LiveKit::jetonServeur(['roomRecord' => true]))
-            ->acceptJson()->timeout(15)
-            ->post(LiveKit::api() . '/twirp/livekit.Egress/' . $methode, $corps);
+        // Service vidéo injoignable ou trop lent : on le note, sans jamais faire
+        // échouer l'action du vendeur (démarrer, terminer le live…).
+        try {
+            $reponse = Http::withToken(LiveKit::jetonServeur(['roomRecord' => true]))
+                ->acceptJson()->timeout(15)
+                ->post(LiveKit::api() . '/twirp/livekit.Egress/' . $methode, $corps);
+        } catch (\Throwable $e) {
+            Log::warning('Live : ' . $methode . ' injoignable', ['erreur' => mb_substr($e->getMessage(), 0, 300)]);
+
+            return null;
+        }
 
         if (! $reponse->successful()) {
             Log::warning('Live : échec ' . $methode, ['statut' => $reponse->status(), 'reponse' => mb_substr($reponse->body(), 0, 500)]);

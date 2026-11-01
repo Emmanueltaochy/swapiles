@@ -46,8 +46,10 @@ class TrackLiveVisit
                 [
                     'user_id' => optional($request->user())->id,
                     'territoire' => $territoire,
-                    'url' => mb_substr($request->fullUrl(), 0, 1000),
-                    'path' => '/' . ltrim($request->path(), '/'),
+                    // Colonnes de 255 caractères : un lien de pub (fbclid…) est souvent plus long,
+                    // et la visite n'était alors pas comptée.
+                    'url' => mb_substr($request->fullUrl(), 0, 255),
+                    'path' => mb_substr('/' . ltrim($request->path(), '/'), 0, 255),
                     'device' => $device,
                     'lat' => $lat + (mt_rand(-100, 100) / 10000),
                     'lng' => $lng + (mt_rand(-100, 100) / 10000),

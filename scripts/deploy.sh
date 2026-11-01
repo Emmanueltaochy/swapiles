@@ -147,25 +147,30 @@ setsid nohup $COMME_WEB php artisan relais:prospects --sans-import --emails=150 
 #     contenir des données de membres), seulement la date, le type d'erreur et
 #     le fichier:ligne du code en cause.
 # ---------------------------------------------------------------------------
-echo "==> Dernières erreurs (type + fichier:ligne uniquement)"
+echo "==> Erreurs des 3 derniers jours, regroupées (type + fichier:ligne uniquement)"
+DEPUIS="$(date -d '3 days ago' +%Y-%m-%d 2>/dev/null || echo 2000-01-01)"
 for f in $(ls -1t storage/logs/*.log 2>/dev/null | head -2); do
-  tail -n 4000 "$f" 2>/dev/null | awk '
-    function court(x) { sub(/.*\/(app|resources|routes|vendor|bootstrap)\//, "&", x); sub(/^.*\/(app|resources|routes|vendor|bootstrap)\//, "", x); return x }
-    function afficher() { if (date != "") printf "    %s | %s | %s | code : %s\n", date, type, ou, appli }
+  awk -v depuis="$DEPUIS" '
+    function court(x) { sub(/^.*\/(app|resources|routes|vendor|bootstrap|storage)\//, "", x); return x }
+    function garder() {
+      if (date == "" || substr(date, 1, 10) < depuis) return
+      cle = type " | " ou " | code : " appli
+      n[cle]++; derniere[cle] = date
+    }
     /^\[20[0-9-]+ [0-9:]+\] [a-z]+\.ERROR:/ {
-      afficher()
+      garder()
       date = substr($0, 2, 19); type = "?"; ou = "?"; appli = "?"
       if (match($0, /\[object\] \([A-Za-z0-9_\\]+/)) type = substr($0, RSTART + 10, RLENGTH - 10)
-      if (match($0, / at \/[^ ]+\.php:[0-9]+/)) { ou = substr($0, RSTART + 4, RLENGTH - 4); ou = court(ou) }
+      if (match($0, / at \/[^ ]+\.php:[0-9]+/)) { ou = court(substr($0, RSTART + 4, RLENGTH - 4)) }
       cherche = 1; next
     }
-    /^\[20[0-9-]+ [0-9:]+\]/ { afficher(); date = ""; cherche = 0; next }
+    /^\[20[0-9-]+ [0-9:]+\]/ { garder(); date = ""; cherche = 0; next }
     cherche && /^#[0-9]+ \/[^ ]*\/(app|resources\/views|storage\/framework\/views)\// {
-      if (match($0, /\/[^ (]+\.php[(:][0-9]+/)) { appli = substr($0, RSTART, RLENGTH); appli = court(appli) }
+      if (match($0, /\/[^ (]+\.php[(:][0-9]+/)) appli = court(substr($0, RSTART, RLENGTH))
       cherche = 0
     }
-    END { afficher() }
-  ' | tail -n 12
+    END { garder(); for (c in n) printf "    %s fois, dernière le %s | %s\n", n[c], derniere[c], c }
+  ' "$f" | sort -t'|' -k1,1 | tail -n 25
 done || true
 
 # ---------------------------------------------------------------------------

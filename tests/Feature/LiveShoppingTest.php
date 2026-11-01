@@ -117,6 +117,24 @@ class LiveShoppingTest extends TestCase
         $this->assertSame('termine', $live->fresh()->statut);
     }
 
+    public function test_terminer_meme_si_le_service_video_ne_repond_pas(): void
+    {
+        config()->set('live.livekit', ['url' => 'wss://exemple.livekit.cloud', 'key' => 'cle', 'secret' => str_repeat('s', 32)]);
+        config()->set('live.replay', ['cle' => 'k', 'secret' => 's', 'bucket' => 'b', 'region' => 'auto', 'endpoint' => null, 'url_publique' => 'https://replay.exemple']);
+        \Illuminate\Support\Facades\Http::fake(fn () => throw new \Illuminate\Http\Client\ConnectionException('cURL error 28: timeout'));
+
+        $robe = $this->article($this->admin, 'Robe longue', 18);
+        $this->actingAs($this->admin)->post('/live', ['titre' => 'Démo marque', 'articles' => [$robe->id]]);
+        $live = LiveSession::sole();
+        $this->actingAs($this->admin)->post("/live/{$live->id}/demarrer");
+        $live->forceFill(['enregistrement_id' => 'EG_test', 'replay_chemin' => 'lives/live-1.mp4', 'enregistrement_debut_at' => now()])->save();
+
+        $this->actingAs($this->admin)->post("/live/{$live->id}/terminer")->assertRedirect(route('live.show', $live));
+        $this->assertSame('termine', $live->fresh()->statut);
+        // La page du live terminé (replay à garder ou supprimer) s'affiche.
+        $this->actingAs($this->admin)->get(route('live.show', $live))->assertOk()->assertSee('Garder le replay', false);
+    }
+
     public function test_seul_le_vendeur_anime_son_live(): void
     {
         config(['live.testeurs' => ['membre@ex.com']]);

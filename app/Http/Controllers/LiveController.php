@@ -135,9 +135,21 @@ class LiveController extends Controller
         $this->vendeurSeulement($request, $live);
 
         $live->update(['statut' => 'termine', 'termine_at' => now(), 'article_epingle_id' => null]);
-        LiveService::message($live, null, 'Le live est terminé. Merci à tous ! 🌴', 'systeme');
-        \App\Support\LiveEnregistrement::arreter($live);
-        $misesEnLigne = \App\Support\ExclusiviteLive::publierRestantes($live);
+
+        // Le live est terminé quoi qu'il arrive ensuite : une étape annexe qui
+        // échoue (service vidéo, message) ne doit pas afficher d'erreur au vendeur.
+        $misesEnLigne = 0;
+        foreach ([
+            fn () => LiveService::message($live, null, 'Le live est terminé. Merci à tous ! 🌴', 'systeme'),
+            fn () => \App\Support\LiveEnregistrement::arreter($live),
+            function () use ($live, &$misesEnLigne) { $misesEnLigne = \App\Support\ExclusiviteLive::publierRestantes($live); },
+        ] as $etape) {
+            try {
+                $etape();
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
 
         return redirect()->route('live.show', $live)->with('status', 'Live terminé. Merci !'
             . ($misesEnLigne > 0 ? ' Vos ' . $misesEnLigne . ' exclusivité(s) non dévoilée(s) sont maintenant en ligne.' : ''));

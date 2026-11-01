@@ -34,6 +34,11 @@ class LiveSession extends Model
         'replay_fichier_efface_at' => 'datetime',
     ];
 
+    protected static function booted(): void
+    {
+        static::saved(fn (LiveSession $live) => \App\Support\LiveService::oublierEtat($live));
+    }
+
     public function vendeur(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');

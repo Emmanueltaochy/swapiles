@@ -549,6 +549,7 @@
         fetch(racine.dataset.etatUrl + '?apres=' + dernier, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
             .then(function (r) { return r.json(); })
             .then(function (etat) {
+                if (etat.intervalle) intervalle = etat.intervalle;
                 if (etat.exclu) { chat.innerHTML = '<p class="text-sm text-white/80">Vous ne pouvez plus participer à ce live.</p>'; return; }
                 if (etat.statut !== racine.dataset.statut) { location.reload(); return; }
                 racine.querySelector('[data-spectateurs]').textContent = etat.spectateurs;
@@ -561,8 +562,10 @@
                 majArticles(etat.articles);
             })
             .catch(function () {})
-            .finally(function () { if (actif) setTimeout(rafraichir, 2500); });
+            .finally(function () { if (actif) setTimeout(rafraichir, intervalle); });
     }
+    // Rythme donné par le serveur : plus lent quand il y a beaucoup de spectateurs.
+    var intervalle = 2500;
     if (!modeReplay) rafraichir();
 
     // --- Replay : chat, cœurs et article présenté rejoués au bon moment -----------

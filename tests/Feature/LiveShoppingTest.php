@@ -112,6 +112,13 @@ class LiveShoppingTest extends TestCase
         $this->assertSame('Robe longue', $etat['epingle']['titre']);
         $this->assertSame('18,00 €', $etat['epingle']['prix']);
         $this->assertContains('📌 Robe longue — 18,00 €', array_column($etat['messages'], 'texte'));
+        $this->assertSame(2500, $etat['intervalle']);
+
+        // État commun gardé 2 s : un message envoyé entre-temps apparaît quand même tout de suite.
+        $dernier = max(array_column($etat['messages'], 'id'));
+        $this->actingAs($this->admin)->postJson("/live/{$live->id}/messages", ['texte' => 'Elle existe en M ?'])->assertNoContent();
+        $suite = $this->actingAs($this->admin)->getJson("/live/{$live->id}/etat?apres={$dernier}")->json('messages');
+        $this->assertSame(['Elle existe en M ?'], array_column($suite, 'texte'));
 
         $this->actingAs($this->admin)->post("/live/{$live->id}/terminer")->assertRedirect();
         $this->assertSame('termine', $live->fresh()->statut);

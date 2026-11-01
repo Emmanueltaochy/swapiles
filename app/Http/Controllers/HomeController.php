@@ -47,30 +47,15 @@ class HomeController extends Controller
         $this->applyBuyableOrdering($listingsQuery, $selectedTerritoire, $alsoColExists);
         $listings = $listingsQuery->paginate(24);
 
-        $territoryCounts = Listing::query()
-            ->where('status', 'published')
-            ->selectRaw('territoire, COUNT(*) as total')
-            ->groupBy('territoire')
-            ->pluck('total', 'territoire');
-
-        $activeListingsCount = (int) ($territoryCounts[$selectedTerritoire] ?? 0);
-        $totalListingsCount = (int) $territoryCounts->sum();
-
-        $crossIslandAvailableCount = Listing::query()
-            ->where('status', 'published')
-            ->where('territoire', '!=', $selectedTerritoire)
-            ->where('requires_online_payment', true)
-            ->where('allows_colissimo', true)
-            ->count();
-
-        $globalShippableListings = Listing::query()
-            ->with(['images', 'user'])->withCount(['favorisRecus as favorited_by_count'])
-            ->where('status', 'published')
-            ->where('requires_online_payment', true)
-            ->where('allows_colissimo', true)
-            ->latest()
-            ->take(12)
-            ->get();
+        // Chiffres et sélections identiques pour tous les visiteurs d'une île :
+        // calculés une fois par minute au lieu d'à chaque visite (afflux d'un live,
+        // d'une pub…). Le fil d'annonces et les sélections personnelles restent en direct.
+        [
+            'territoryCounts' => $territoryCounts, 'activeListingsCount' => $activeListingsCount, 'totalListingsCount' => $totalListingsCount,
+            'crossIslandAvailableCount' => $crossIslandAvailableCount, 'globalShippableListings' => $globalShippableListings,
+            'populairesToujours' => $populairesToujours, 'securePaymentListingsCount' => $securePaymentListingsCount,
+            'membersCount' => $membersCount, 'todayListingsCount' => $todayListingsCount, 'otherIslandListings' => $otherIslandListings,
+        ] = $this->accueilCommun($selectedTerritoire);
 
         // Populaires CES JOURS-CI, et une sélection qui tourne (voir Tendances).
         $popularListings = \App\Support\Tendances::populaires(
@@ -81,44 +66,6 @@ class HomeController extends Controller
 
         // Stories automatiques : un rond par dressing qui a publié récemment.
         $stories = \App\Support\Stories::pour($request->user(), $selectedTerritoire);
-
-        // Onglet « Depuis toujours » : le top de toute la plateforme.
-        $populairesToujours = \App\Support\Tendances::depuisToujours();
-
-        $securePaymentListingsCount = Listing::query()
-            ->where('status', 'published')
-            ->where('requires_online_payment', true)
-            ->count();
-
-        $membersCount = \App\Models\User::count();
-
-        $todayListingsCount = Listing::query()
-            ->where('status', 'published')
-            ->whereDate('created_at', now()->toDateString())
-            ->count();
-
-        $otherIslandListings = [];
-
-        foreach ($this->territoires as $key => $meta) {
-            if ($meta['label'] === $selectedTerritoire) {
-                continue;
-            }
-
-            $otherIslandListings[$key] = [
-                'label' => $meta['label'],
-                'flag' => $meta['flag'],
-                'count' => (int) ($territoryCounts[$meta['label']] ?? 0),
-                'listings' => Listing::query()
-                    ->with(['images', 'user'])->withCount(['favorisRecus as favorited_by_count'])
-                    ->where('status', 'published')
-                    ->where('territoire', $meta['label'])
-                    ->where('requires_online_payment', true)
-                    ->where('allows_colissimo', true)
-                    ->latest()
-                    ->take(4)
-                    ->get(),
-            ];
-        }
 
         return view('home', [
             'listings' => $listings,
@@ -165,6 +112,81 @@ class HomeController extends Controller
         $sql .= 'OR (requires_online_payment = 1 AND allows_colissimo = 1)) THEN 0 ELSE 1 END';
 
         $query->orderByRaw($sql, $bindings)->latest()->orderByDesc('listings.id');
+    }
+
+    /**
+     * Partie de l'accueil identique pour tous les visiteurs d'une île. En cache
+     * une minute, mais seulement des nombres et des identifiants d'annonces (le
+     * cache n'accepte pas d'objets, par sécurité) : les annonces sont ensuite
+     * rechargées en une seule requête.
+     *
+     * @return array<string,mixed>
+     */
+    private function accueilCommun(string $selectedTerritoire): array
+    {
+        $calcul = function () use ($selectedTerritoire) {
+            $territoryCounts = Listing::query()->where('status', 'published')
+                ->selectRaw('territoire, COUNT(*) as total')->groupBy('territoire')
+                ->pluck('total', 'territoire')->map(fn ($n) => (int) $n)->all();
+
+            $expediables = fn () => Listing::query()->where('status', 'published')
+                ->where('requires_online_payment', true)->where('allows_colissimo', true);
+
+            $autresIles = [];
+            foreach ($this->territoires as $key => $meta) {
+                if ($meta['label'] !== $selectedTerritoire) {
+                    $autresIles[$key] = $expediables()->where('territoire', $meta['label'])->latest()->take(4)->pluck('id')->all();
+                }
+            }
+
+            return [
+                'territoryCounts' => $territoryCounts,
+                'crossIslandAvailableCount' => $expediables()->where('territoire', '!=', $selectedTerritoire)->count(),
+                'globalShippable' => $expediables()->latest()->take(12)->pluck('id')->all(),
+                'populairesToujours' => \App\Support\Tendances::depuisToujours()->pluck('id')->all(),
+                'securePaymentListingsCount' => Listing::query()->where('status', 'published')->where('requires_online_payment', true)->count(),
+                'membersCount' => \App\Models\User::count(),
+                'todayListingsCount' => Listing::query()->where('status', 'published')->whereDate('created_at', now()->toDateString())->count(),
+                'autresIles' => $autresIles,
+            ];
+        };
+
+        $c = app()->runningUnitTests()
+            ? $calcul()
+            : \Illuminate\Support\Facades\Cache::remember('accueil:commun:' . md5($selectedTerritoire), 60, $calcul);
+
+        // Toutes les annonces des sélections en une seule requête, dans l'ordre d'origine.
+        $ids = array_merge($c['globalShippable'], $c['populairesToujours'], ...array_values($c['autresIles']));
+        $annonces = $ids === [] ? collect() : Listing::query()
+            ->with(['images', 'user'])->withCount(['favorisRecus as favorited_by_count'])
+            ->whereIn('id', array_unique($ids))->where('status', 'published')
+            ->get()->keyBy('id');
+        $dans = fn (array $liste) => collect($liste)->map(fn ($id) => $annonces->get($id))->filter()->values();
+
+        $territoryCounts = collect($c['territoryCounts']);
+        $otherIslandListings = [];
+        foreach ($c['autresIles'] as $key => $liste) {
+            $meta = $this->territoires[$key];
+            $otherIslandListings[$key] = [
+                'label' => $meta['label'],
+                'flag' => $meta['flag'],
+                'count' => (int) ($territoryCounts[$meta['label']] ?? 0),
+                'listings' => $dans($liste),
+            ];
+        }
+
+        return [
+            'territoryCounts' => $territoryCounts,
+            'activeListingsCount' => (int) ($territoryCounts[$selectedTerritoire] ?? 0),
+            'totalListingsCount' => (int) $territoryCounts->sum(),
+            'crossIslandAvailableCount' => $c['crossIslandAvailableCount'],
+            'globalShippableListings' => $dans($c['globalShippable']),
+            'populairesToujours' => $dans($c['populairesToujours']),
+            'securePaymentListingsCount' => $c['securePaymentListingsCount'],
+            'membersCount' => $c['membersCount'],
+            'todayListingsCount' => $c['todayListingsCount'],
+            'otherIslandListings' => $otherIslandListings,
+        ];
     }
 
     public function search(Request $request)

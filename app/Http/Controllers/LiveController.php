@@ -164,6 +164,7 @@ class LiveController extends Controller
 
         $visible = $request->boolean('visible');
         $live->articles()->updateExistingPivot($listing->id, ['visible' => $visible]);
+        LiveService::oublierEtat($live);
 
         // Exclusivité dévoilée : elle passe en ligne et s'achète tout de suite.
         if ($visible) {
@@ -242,6 +243,7 @@ class LiveController extends Controller
         $live->update(['article_epingle_id' => $data['listing_id']]);
         // Mis en avant = forcément visible dans la liste.
         $live->articles()->updateExistingPivot($data['listing_id'], ['visible' => true]);
+        LiveService::oublierEtat($live);
         $article = Listing::find($data['listing_id']);
         \App\Support\ExclusiviteLive::devoiler($article);
         LiveService::message($live, null, '📌 ' . $article->title . ' — ' . \App\Support\TableauDeBord::euros((float) $article->price), 'epingle', $article->id);

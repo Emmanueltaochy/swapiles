@@ -13,7 +13,8 @@ class TrackLiveVisit
         $response = $next($request);
 
         try {
-            if (!$request->isMethod('GET')) {
+            // Appels de données (état du live toutes les quelques secondes…) : ce ne sont pas des visites.
+            if (!$request->isMethod('GET') || $request->expectsJson() || $request->ajax()) {
                 return $response;
             }
 

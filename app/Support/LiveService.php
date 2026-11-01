@@ -23,16 +23,16 @@ class LiveService
             return false;
         }
 
-        DB::table('live_spectateurs')->updateOrInsert(
-            ['live_session_id' => $live->id, 'cle' => $cle],
-            ['user_id' => $user?->id, 'last_seen_at' => now()]
-        );
-
-        if ($live->enDirect()) {
-            $n = self::spectateurs($live);
-            if ($n > $live->spectateurs_max) {
-                $live->forceFill(['spectateurs_max' => $n])->saveQuietly();
-            }
+        // Une écriture toutes les 10 s par spectateur suffit (présence comptée sur 30 s) :
+        // avec des centaines de spectateurs qui interrogent toutes les quelques secondes,
+        // c'est autant d'écritures en moins pour la base.
+        $recent = $ligne && $ligne->last_seen_at && \Illuminate\Support\Carbon::parse($ligne->last_seen_at)->gt(now()->subSeconds(10))
+            && (int) $ligne->user_id === (int) $user?->id;
+        if (! $recent) {
+            DB::table('live_spectateurs')->updateOrInsert(
+                ['live_session_id' => $live->id, 'cle' => $cle],
+                ['user_id' => $user?->id, 'last_seen_at' => now()]
+            );
         }
 
         return true;
@@ -57,6 +57,8 @@ class LiveService
 
     public static function message(LiveSession $live, ?User $user, string $texte, string $type = 'message', ?int $listingId = null): LiveMessage
     {
+        self::oublierEtat($live);
+
         return LiveMessage::create([
             'live_session_id' => $live->id,
             'user_id' => $user?->id,
@@ -68,17 +70,29 @@ class LiveService
         ]);
     }
 
+    /** Clé de l'état commun à tous les spectateurs, gardé quelques secondes. */
+    public static function cleEtat(LiveSession|int $live): string
+    {
+        return 'live:etat:' . (is_int($live) ? $live : $live->id);
+    }
+
+    /** Après une action du vendeur ou un message : tout le monde voit le changement au prochain passage. */
+    public static function oublierEtat(LiveSession|int $live): void
+    {
+        \Illuminate\Support\Facades\Cache::forget(self::cleEtat($live));
+    }
+
     // --- Réservation pendant le paiement ------------------------------------------
 
     /** Réservation encore valable sur cet article (null si libre). */
-    public static function reservationActive(Listing $article): ?object
+    public static function reservationActive(Listing|int $article): ?object
     {
-        return DB::table('live_reservations')->where('listing_id', $article->id)
+        return DB::table('live_reservations')->where('listing_id', is_int($article) ? $article : $article->id)
             ->where('expire_at', '>', now())->orderByDesc('id')->first();
     }
 
     /** L'article est-il bloqué pour CE membre (réservé par quelqu'un d'autre) ? */
-    public static function reservePourUnAutre(Listing $article, ?User $user): bool
+    public static function reservePourUnAutre(Listing|int $article, ?User $user): bool
     {
         $r = self::reservationActive($article);
 
@@ -160,17 +174,50 @@ class LiveService
 
     // --- État envoyé à la page (toutes les 2-3 secondes) ---------------------------
 
-    /** @return array<string,mixed> */
+    /**
+     * État envoyé à chaque spectateur. La partie commune (statut, articles,
+     * chat, spectateurs, article présenté) est calculée une fois toutes les
+     * 2 secondes pour tout le monde ; seule la réservation dépend du spectateur.
+     *
+     * @return array<string,mixed>
+     */
     public static function etat(LiveSession $live, ?User $user, int $apresMessage = 0): array
     {
-        $live->refresh();
+        $commun = \Illuminate\Support\Facades\Cache::remember(self::cleEtat($live), 2, fn () => self::etatCommun($live->fresh() ?? $live));
+
+        $messages = collect($commun['messages']);
+        // À l'arrivée : les derniers messages ; ensuite, la suite.
+        $messages = $apresMessage === 0
+            ? $messages->slice(-30)->values()
+            : $messages->filter(fn ($m) => $m['id'] > $apresMessage)->values();
+
+        $epingle = $commun['epingle'];
+        if ($epingle) {
+            $epingle['reserve'] = self::reservePourUnAutre((int) $epingle['id'], $user);
+        }
+
+        $n = (int) $commun['spectateurs'];
+
+        return [
+            'statut' => $commun['statut'],
+            'articles' => $commun['articles'],
+            'spectateurs' => $n,
+            'coeurs' => $commun['coeurs'],
+            'messages' => $messages->all(),
+            'epingle' => $epingle,
+            // Beaucoup de monde : on interroge un peu moins souvent (le serveur tient la charge).
+            'intervalle' => $n < 60 ? 2500 : ($n < 250 ? 4000 : 6000),
+        ];
+    }
+
+    /** @return array<string,mixed> */
+    private static function etatCommun(LiveSession $live): array
+    {
         $epingle = $live->articleEpingle;
 
         $messages = LiveMessage::query()->with('user:id,name')
             ->where('live_session_id', $live->id)->where('masque', false)
-            ->where('id', '>', $apresMessage)
-            // À l'arrivée : les derniers messages ; ensuite, la suite.
-            ->when($apresMessage === 0, fn ($q) => $q->orderByDesc('id')->limit(30), fn ($q) => $q->orderBy('id')->limit(50))
+            ->orderByDesc('id')->limit(60)
             ->get()->sortBy('id')->values()
             ->map(fn (LiveMessage $m) => [
                 'id' => $m->id,
@@ -178,10 +225,10 @@ class LiveService
                 'vendeur' => (int) $m->user_id === (int) $live->user_id,
                 'texte' => $m->body,
                 'type' => $m->type,
-            ]);
+            ])->all();
 
         // Articles déjà dévoilés par le vendeur (liste « 🛍️ » des spectateurs).
-        $articles = $live->articlesVisibles()->with('images')->get()->map(fn (Listing $a) => [
+        $articles = $live->articlesVisibles()->with(['images', 'user'])->get()->map(fn (Listing $a) => [
             'id' => $a->id,
             'titre' => $a->title,
             'prix' => TableauDeBord::euros((float) $a->price),
@@ -191,19 +238,23 @@ class LiveService
             'lien' => route('listings.show', $a, absolute: false),
         ])->values()->all();
 
+        $spectateurs = self::spectateurs($live);
+        if ($live->enDirect() && $spectateurs > (int) $live->spectateurs_max) {
+            $live->forceFill(['spectateurs_max' => $spectateurs])->saveQuietly();
+        }
+
         return [
             'statut' => $live->statut,
             'articles' => $articles,
-            'spectateurs' => self::spectateurs($live),
-            'coeurs' => $live->coeurs,
-            'messages' => $messages->all(),
+            'spectateurs' => $spectateurs,
+            'coeurs' => (int) $live->coeurs,
+            'messages' => $messages,
             'epingle' => $epingle ? [
                 'id' => $epingle->id,
                 'titre' => $epingle->title,
                 'prix' => TableauDeBord::euros((float) $epingle->price),
                 'photo' => $epingle->images()->orderBy('order')->value('url'),
                 'vendu' => $epingle->status === 'sold',
-                'reserve' => self::reservePourUnAutre($epingle, $user),
                 'achetable' => $epingle->isOnlinePayable(),
                 'lien' => route('listings.show', $epingle),
             ] : null,

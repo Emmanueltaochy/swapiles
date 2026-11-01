@@ -10,7 +10,8 @@ Idempotent : le projet iOS étant régénéré à chaque build, on rejoue ce pat
 import re
 import pathlib
 
-# Couleur de fond exacte de mobile/resources/splash.png : RGB(16, 102, 94)
+# Couleur de fond exacte de mobile/resources/splash.png et de l'icône : #10665E = RGB(16, 102, 94),
+# la même que SplashScreen.backgroundColor (capacitor.config.json) : aucun carré visible.
 TEAL = '<color key="backgroundColor" red="0.062745098" green="0.4" blue="0.368627451" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>'
 
 path = pathlib.Path("ios/App/App/Base.lproj/LaunchScreen.storyboard")

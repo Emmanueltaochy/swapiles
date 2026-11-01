@@ -14,7 +14,11 @@ class SendSellerPaymentReceivedEmail implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 3;
+    public int $tries = 4;
+
+    // Serveur mail saturé (code 421) : on réessaie plus tard, pas tout de suite.
+
+    public array $backoff = [60, 300, 900];
 
     public function __construct(public int $transactionId)
     {

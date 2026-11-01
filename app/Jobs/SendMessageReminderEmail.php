@@ -17,7 +17,11 @@ class SendMessageReminderEmail implements ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 2;
+    public int $tries = 4;
+
+    // Serveur mail saturé (code 421) : on réessaie plus tard, pas tout de suite.
+
+    public array $backoff = [60, 300, 900];
     public int $timeout = 60;
 
     public function __construct(public int $messageId)

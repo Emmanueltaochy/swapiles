@@ -17,6 +17,10 @@ class SendListingPublishedShareEmail implements ShouldQueue
     use Queueable;
 
     public int $tries = 2;
+
+    // Serveur mail saturé (code 421) : on réessaie plus tard, pas tout de suite.
+
+    public array $backoff = [300];
     public int $timeout = 60;
 
     public function __construct(

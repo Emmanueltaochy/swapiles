@@ -45,6 +45,11 @@ class EnvoyerProspectionRelais extends Command
 
         $envoyes = 0;
         foreach ($prospects as $p) {
+            // Envoi du matin (planificateur) : une petite pause entre deux mails pour ne
+            // pas saturer le serveur mail (code 421), qui sert aussi aux mails des membres.
+            if ($envoyes > 0 && app()->runningInConsole() && ! app()->runningUnitTests()) {
+                sleep(2);
+            }
             try {
                 $envoyes += ProspectionRelais::envoyer($p) ? 1 : 0;
             } catch (Throwable $e) {

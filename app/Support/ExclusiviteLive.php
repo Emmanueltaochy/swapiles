@@ -34,8 +34,12 @@ class ExclusiviteLive
      */
     public static function publierRestantes(LiveSession $live): int
     {
-        return Listing::query()
-            ->whereIn('id', $live->articles()->select('listings.id'))
+        // Liste d'identifiants d'abord : MySQL refuse une mise à jour de
+        // « listings » filtrée par une sous-requête sur cette même table.
+        $ids = $live->articles()->pluck('listings.id')->all();
+
+        return $ids === [] ? 0 : Listing::query()
+            ->whereIn('id', $ids)
             ->where('status', self::STATUT)
             ->update(['status' => 'published']);
     }

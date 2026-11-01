@@ -133,13 +133,14 @@ class ProspectionRelais
                 'nom' => Str::limit($nom, 157, '…'),
                 'type' => $type,
                 'adresse' => $rue !== '' ? Str::limit($rue, 250, '') : $prospect->adresse,
-                'code_postal' => $t['addr:postcode'] ?? $prospect->code_postal,
-                'ville' => $t['addr:city'] ?? $prospect->ville,
+                'code_postal' => isset($t['addr:postcode']) ? Str::limit($t['addr:postcode'], 10, '') : $prospect->code_postal,
+                'ville' => isset($t['addr:city']) ? Str::limit($t['addr:city'], 120, '') : $prospect->ville,
                 'territoire' => $ile,
                 'latitude' => $el['lat'] ?? ($el['center']['lat'] ?? null),
                 'longitude' => $el['lon'] ?? ($el['center']['lon'] ?? null),
-                'telephone' => $t['phone'] ?? $t['contact:phone'] ?? $prospect->telephone,
-                'site_web' => $t['website'] ?? $t['contact:website'] ?? $prospect->site_web,
+                // Plusieurs numéros possibles (« 0262… ; 0692… ») : on garde le premier.
+                'telephone' => ($tel = $t['phone'] ?? $t['contact:phone'] ?? null) ? Str::limit(trim(preg_split('/[;,]/', $tel)[0]), 40, '') : $prospect->telephone,
+                'site_web' => ($site = $t['website'] ?? $t['contact:website'] ?? null) ? Str::limit($site, 255, '') : $prospect->site_web,
                 'horaires' => isset($t['opening_hours']) ? Str::limit($t['opening_hours'], 250, '') : $prospect->horaires,
             ]);
             // Un e-mail déjà trouvé ou corrigé à la main n'est pas écrasé.
@@ -150,8 +151,13 @@ class ProspectionRelais
             if ($nouveau && in_array(Str::lower($nom), $relaisExistants, true)) {
                 $prospect->statut = 'relais';
             }
-            $prospect->save();
-            $nouveaux += $nouveau ? 1 : 0;
+            // Une fiche aux données inattendues ne doit pas arrêter toute l'île.
+            try {
+                $prospect->save();
+                $nouveaux += $nouveau ? 1 : 0;
+            } catch (Throwable $e) {
+                report($e);
+            }
         }
 
         return ['trouves' => count($elements), 'nouveaux' => $nouveaux];

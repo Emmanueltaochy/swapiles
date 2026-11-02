@@ -86,8 +86,12 @@ class TurboNavigationTest extends TestCase
         // (535 ms au lieu de 246).
         $this->assertStringNotContainsString('<meta name="view-transition"', $html);
 
-        // Retour arrière instantané, sans aperçu périmé en avance.
-        $this->assertStringContainsString('<meta name="turbo-cache-control" content="no-preview">', $html);
+        // Onglets principaux : réaffichés à l'instant (version gardée), puis mis à jour.
+        $this->assertStringNotContainsString('<meta name="turbo-cache-control" content="no-preview">', $html);
+        $this->assertStringContainsString('id="swp-squelette"', $html);
+
+        // Les autres pages : jamais d'aperçu périmé en avance.
+        $this->get('/faq')->assertOk()->assertSee('<meta name="turbo-cache-control" content="no-preview">', false);
     }
 
     public function test_les_formulaires_restent_classiques_sauf_la_recherche(): void

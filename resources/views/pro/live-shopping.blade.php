@@ -180,7 +180,7 @@
             <div class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-rose-100">
                 <p class="text-3xl">🎁</p>
                 <h3 class="mt-3 font-extrabold text-gray-900">Bonus du live</h3>
-                <p class="mt-1 text-sm text-gray-600">Livraison offerte, petit cadeau, lot à prix spécial : un geste réservé à ceux qui sont là en direct.</p>
+                <p class="mt-1 text-sm text-gray-600">Grosse promotion flash, livraison offerte, petit cadeau, lot à prix spécial : un geste réservé à ceux qui sont là en direct.</p>
             </div>
         </div>
         <div class="mx-auto mt-8 max-w-3xl rounded-3xl bg-gray-900 p-6 text-center text-white">

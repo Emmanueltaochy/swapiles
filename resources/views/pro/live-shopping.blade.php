@@ -34,48 +34,48 @@
         </div>
 
         {{-- Aperçu d'un live --}}
-        <div class="mx-auto w-full max-w-[290px]" aria-hidden="true">
-            <div class="relative aspect-[9/19] overflow-hidden rounded-[2.5rem] border-[6px] border-gray-900 bg-gray-900 shadow-2xl ring-1 ring-white/10">
+        <div class="mx-auto w-full max-w-[220px] sm:max-w-[235px] lg:max-w-[250px]" aria-hidden="true">
+            <div class="relative aspect-[9/19] overflow-hidden rounded-[2rem] border-[5px] border-gray-900 bg-gray-900 shadow-2xl ring-1 ring-white/10">
                 <img src="{{ asset('images/pro/live-vendeuse.webp') }}" alt="" class="absolute inset-0 h-full w-full object-cover object-[45%_center]">
                 <div class="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/55 to-transparent"></div>
                 <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/70 via-black/25 to-transparent"></div>
 
                 <div class="absolute inset-x-0 top-0 flex items-center gap-2 p-3 pt-4">
-                    <span class="grid h-8 w-8 place-items-center rounded-full bg-teal-600 text-xs font-bold text-white ring-2 ring-white">MB</span>
-                    <span class="text-xs font-extrabold text-white drop-shadow">Ma Boutique</span>
-                    <span class="ml-auto rounded-md bg-red-600 px-1.5 py-0.5 text-[10px] font-extrabold text-white">LIVE</span>
-                    <span class="rounded-md bg-black/45 px-1.5 py-0.5 text-[10px] font-bold text-white">👁 128</span>
+                    <span class="grid h-7 w-7 place-items-center rounded-full bg-teal-600 text-[10px] font-bold text-white ring-2 ring-white">MB</span>
+                    <span class="min-w-0 truncate whitespace-nowrap text-[11px] font-extrabold text-white drop-shadow">Ma Boutique</span>
+                    <span class="ml-auto shrink-0 rounded-md bg-red-600 px-1.5 py-0.5 text-[10px] font-extrabold text-white">LIVE</span>
+                    <span class="whitespace-nowrap rounded-md bg-black/45 px-1.5 py-0.5 text-[10px] font-bold text-white">👁 128</span>
                 </div>
 
-                <div class="absolute bottom-24 left-3 right-14 space-y-1.5 text-[11px]">
+                <div class="absolute bottom-[4.25rem] left-2.5 right-10 space-y-1 text-[10px] leading-tight">
                     <p class="w-fit rounded-xl bg-black/40 px-2 py-1 text-white backdrop-blur-sm"><b>Léa</b> Il reste du 38 ? 😍</p>
                     <p class="w-fit rounded-xl bg-black/40 px-2 py-1 text-white backdrop-blur-sm"><b>Kévin</b> Je prends la bleue !</p>
-                    <p class="w-fit rounded-xl bg-emerald-600/95 px-2 py-1 font-bold text-white">🛍️ Kévin vient d’acheter</p>
+                    <p class="w-fit whitespace-nowrap rounded-xl bg-emerald-600/95 px-2 py-1 font-bold text-white">🛍️ Kévin vient d’acheter</p>
                 </div>
 
                 {{-- Cœurs qui s'envolent, comme les « j'aime » d'un live --}}
-                <div class="swp-coeurs pointer-events-none absolute bottom-20 right-2 h-56 w-14">
-                    @foreach([['❤️', 0, 0], ['💚', 0.7, 14], ['🩵', 1.3, 4], ['❤️', 1.9, 20], ['💛', 2.6, 8], ['🩷', 3.2, 16], ['❤️', 3.9, 2], ['💚', 4.5, 22]] as [$c, $delai, $x])
+                <div class="swp-coeurs pointer-events-none absolute bottom-[4.25rem] right-1 h-32 w-11">
+                    @foreach([['❤️', 0, 4], ['💚', 0.5, 16], ['🩵', 1, 8], ['❤️', 1.5, 20], ['💛', 2, 6], ['🩷', 2.5, 14], ['❤️', 3, 2]] as [$c, $delai, $x])
                         <span class="swp-coeur" style="left:{{ $x }}px;animation-delay:{{ $delai }}s">{{ $c }}</span>
                     @endforeach
                 </div>
 
-                <div class="absolute inset-x-3 bottom-3 flex items-center gap-2 rounded-2xl bg-white p-2 shadow-xl">
-                    <img src="{{ asset('images/pro/live-basket.webp') }}" alt="" class="h-11 w-11 shrink-0 rounded-xl object-cover">
-                    <span class="min-w-0 flex-1 leading-tight"><span class="block truncate text-[11px] font-bold text-gray-900">Dunk Low bleu ciel</span><span class="text-sm font-extrabold text-gray-900">89 €</span></span>
-                    <span class="rounded-xl bg-teal-600 px-3 py-2 text-xs font-extrabold text-white">Acheter</span>
+                <div class="absolute inset-x-2.5 bottom-2.5 flex items-center gap-1.5 rounded-xl bg-white p-1.5 shadow-xl">
+                    <img src="{{ asset('images/pro/live-basket.webp') }}" alt="" class="h-9 w-9 shrink-0 rounded-lg object-cover">
+                    <span class="min-w-0 flex-1 leading-tight"><span class="block truncate text-[10px] font-bold text-gray-900">Dunk Low bleue</span><span class="text-xs font-extrabold text-gray-900">89 €</span></span>
+                    <span class="shrink-0 rounded-lg bg-teal-600 px-2 py-1.5 text-[10px] font-extrabold text-white">Acheter</span>
                 </div>
             </div>
         </div>
     </div>
     <style>
-        .swp-coeur { position: absolute; bottom: 0; font-size: 22px; opacity: 0; animation: swp-coeur 4.8s ease-in infinite; filter: drop-shadow(0 2px 3px rgba(0,0,0,.3)); }
+        .swp-coeur { position: absolute; bottom: 0; font-size: 16px; opacity: 0; animation: swp-coeur 3.5s ease-out infinite; filter: drop-shadow(0 2px 3px rgba(0,0,0,.3)); }
         @keyframes swp-coeur {
             0% { transform: translate(0, 0) scale(.6); opacity: 0; }
-            10% { opacity: 1; transform: translate(-4px, -20px) scale(1); }
-            40% { transform: translate(8px, -90px) scale(1.05); }
-            70% { transform: translate(-8px, -160px) scale(.95); opacity: .85; }
-            100% { transform: translate(6px, -220px) scale(.8); opacity: 0; }
+            12% { opacity: 1; transform: translate(-3px, -14px) scale(1.1); }
+            45% { transform: translate(6px, -55px) scale(1); }
+            75% { transform: translate(-5px, -95px) scale(.9); opacity: .8; }
+            100% { transform: translate(4px, -125px) scale(.75); opacity: 0; }
         }
         @media (prefers-reduced-motion: reduce) { .swp-coeur { animation: none; opacity: 0; } .swp-coeur:first-child { opacity: 1; } }
     </style>

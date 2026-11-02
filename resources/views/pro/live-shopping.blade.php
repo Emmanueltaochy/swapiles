@@ -61,8 +61,10 @@
                 </div>
 
                 <div class="absolute inset-x-2.5 bottom-2.5 flex items-center gap-1.5 rounded-xl bg-white p-1.5 shadow-xl">
-                    <img src="{{ asset('images/pro/live-basket.webp') }}" alt="" class="h-9 w-9 shrink-0 rounded-lg object-cover">
-                    <span class="min-w-0 flex-1 leading-tight"><span class="block truncate text-[10px] font-bold text-gray-900">Dunk Low bleue</span><span class="text-xs font-extrabold text-gray-900">89 €</span></span>
+                    <span class="grid h-9 w-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-white ring-1 ring-gray-100">
+                        <img src="{{ asset('images/pro/live-basket.webp') }}" alt="" class="w-[88%] max-w-none -rotate-[15deg] object-contain drop-shadow-sm">
+                    </span>
+                    <span class="min-w-0 flex-1 leading-tight"><span class="block truncate text-[10px] font-bold text-gray-900">Dunk Low</span><span class="text-xs font-extrabold text-gray-900">89 €</span></span>
                     <span class="shrink-0 rounded-lg bg-teal-600 px-2 py-1.5 text-[10px] font-extrabold text-white">Acheter</span>
                 </div>
             </div>

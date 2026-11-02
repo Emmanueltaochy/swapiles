@@ -17,7 +17,12 @@
          246). Le contenu étant remplacé d'un seul coup, sans écran blanc, le
          fondu n'apportait rien. Il reste actif pour les rechargements
          complets (règle @view-transition plus bas). --}}
-    <meta name="turbo-cache-control" content="no-preview">
+    {{-- Onglets principaux (accueil, produits, compte, favoris) : comme une appli,
+         un onglet déjà visité réapparaît INSTANTANÉMENT (dernière version gardée en
+         mémoire), puis se met à jour tout seul quelques instants après. --}}
+    @unless(request()->routeIs('home', 'search', 'account.dashboard', 'account.favorites.index', 'account.recommendations'))
+        <meta name="turbo-cache-control" content="no-preview">
+    @endunless
 
     {{-- SOCLE — doit passer avant tout autre script.
          Avec Turbo, la page n'est plus rechargée : seul son contenu est
@@ -174,6 +179,34 @@ html, body {
     width: 85%;
     opacity: 1;
 }
+
+/* Silhouette de la page suivante : affichee si le serveur tarde (> 150 ms)
+   apres un toucher, comme les applis qui montrent des cases grises avant le
+   contenu. Disparait des que la vraie page (ou sa version gardee) s'affiche. */
+#swp-squelette {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: var(--swp-entete, 64px);
+    bottom: 0;
+    z-index: 40;
+    background: #f9fafb;
+    padding: 16px;
+    overflow: hidden;
+    pointer-events: none;
+}
+#swp-squelette[hidden] { display: none; }
+#swp-squelette .swp-bloc {
+    border-radius: 16px;
+    background: linear-gradient(90deg, #eef0f2 25%, #f6f7f8 37%, #eef0f2 63%);
+    background-size: 400% 100%;
+    animation: swp-luire 1.3s ease infinite;
+}
+#swp-squelette .swp-grille { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (min-width: 768px) { #swp-squelette .swp-grille { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+#swp-squelette[data-forme="grille"] .swp-fiche, #swp-squelette[data-forme="fiche"] .swp-grille { display: none; }
+@keyframes swp-luire { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+@media (prefers-reduced-motion: reduce) { #swp-squelette .swp-bloc { animation: none; } }
 
 /* Barre qui reste collee JUSTE SOUS l'entete. La hauteur de l'entete varie
    (encoche, logo, largeur d'ecran), donc on ne peut pas l'ecrire en dur : un
@@ -423,6 +456,20 @@ document.addEventListener('turbo:load', function () {
 
 <body class="bg-gray-50 text-gray-900 antialiased overflow-x-hidden">
 <div id="swp-chargement" aria-hidden="true"></div>
+<div id="swp-squelette" aria-hidden="true" hidden>
+    <div class="swp-grille">
+        @for($i = 0; $i < 8; $i++)
+            <div><div class="swp-bloc" style="aspect-ratio:1/1"></div><div class="swp-bloc" style="height:12px;margin-top:8px;width:80%"></div><div class="swp-bloc" style="height:12px;margin-top:6px;width:40%"></div></div>
+        @endfor
+    </div>
+    <div class="swp-fiche">
+        <div class="swp-bloc" style="aspect-ratio:1/1;max-height:60vh"></div>
+        <div class="swp-bloc" style="height:22px;margin-top:16px;width:35%"></div>
+        <div class="swp-bloc" style="height:16px;margin-top:10px;width:70%"></div>
+        <div class="swp-bloc" style="height:12px;margin-top:16px;width:90%"></div>
+        <div class="swp-bloc" style="height:12px;margin-top:8px;width:85%"></div>
+    </div>
+</div>
 @include('partials.app-banner')
     <header data-entete class="swp-safe-top sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100">
     <div class="max-w-7xl mx-auto px-4 py-3">

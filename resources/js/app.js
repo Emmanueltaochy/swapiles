@@ -148,6 +148,48 @@ document.addEventListener('turbo:click', (event) => {
     barre(true);
 });
 
+/**
+ * SILHOUETTE DE LA PAGE SUIVANTE.
+ *
+ * Si le serveur met plus de 150 ms à répondre, on montre tout de suite la
+ * forme de la page attendue (grille d'annonces, ou fiche d'annonce) en cases
+ * grises, comme une appli. Rien ne s'affiche si la page arrive vite, ou si sa
+ * version gardée en mémoire s'affiche d'abord (onglet déjà visité).
+ */
+let minuteurSilhouette = null;
+
+function formeAttendue(chemin) {
+    if (chemin.startsWith('/annonce/')) return 'fiche';
+    if (['/', '/recherche', '/favoris', '/pour-vous', '/meilleurs-dressings'].includes(chemin)
+        || chemin.startsWith('/iles/') || chemin.startsWith('/profil/')) return 'grille';
+    return null;
+}
+
+function cacherSilhouette() {
+    clearTimeout(minuteurSilhouette);
+    const element = document.getElementById('swp-squelette');
+    if (element) element.hidden = true;
+}
+
+document.addEventListener('turbo:visit', (event) => {
+    cacherSilhouette();
+    if (event.detail.action === 'restore') return;
+
+    const forme = formeAttendue(cheminDe(event.detail.url));
+    if (!forme) return;
+
+    minuteurSilhouette = setTimeout(() => {
+        const element = document.getElementById('swp-squelette');
+        if (!element) return;
+        element.dataset.forme = forme;
+        element.hidden = false;
+    }, 150);
+});
+
+document.addEventListener('turbo:before-render', cacherSilhouette);
+document.addEventListener('turbo:load', cacherSilhouette);
+document.addEventListener('turbo:fetch-request-error', cacherSilhouette);
+
 document.addEventListener('turbo:submit-start', () => barre(true));
 document.addEventListener('turbo:load', () => barre(false));
 document.addEventListener('turbo:fetch-request-error', () => barre(false));
@@ -163,6 +205,7 @@ document.addEventListener('turbo:frame-missing', () => barre(false));
 document.addEventListener('turbo:before-cache', () => {
     document.body.style.overflow = '';
     barre(false);
+    cacherSilhouette();
 
     const menu = document.getElementById('menu-mobile');
     if (menu) menu.hidden = true;

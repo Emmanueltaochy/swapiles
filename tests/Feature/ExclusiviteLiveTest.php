@@ -51,14 +51,14 @@ class ExclusiviteLiveTest extends TestCase
     public function test_option_reservee_aux_testeurs_du_live(): void
     {
         $this->actingAs($this->membre('membre@ex.com'))->get(route('account.listings.create'))
-            ->assertOk()->assertDontSee('Exclusivité live');
+            ->assertOk()->assertDontSee('Visibilité de l’annonce', false);
 
         // Même en forçant le champ, un membre hors test publie normalement.
         $this->post(route('account.listings.store'), $this->champs(['exclusivite_live' => '1']))->assertRedirect();
         $this->assertSame('published', Listing::firstOrFail()->status);
 
         $this->actingAs($this->membre('testeuse@ex.com'))->get(route('account.listings.create'))
-            ->assertOk()->assertSee('Exclusivité live : cachée jusqu’à mon live', false);
+            ->assertOk()->assertSee('Visibilité de l’annonce', false)->assertSee('Cachée pour l’instant', false);
     }
 
     public function test_exclusivite_cachee_partout_sauf_pour_le_vendeur(): void
@@ -103,5 +103,52 @@ class ExclusiviteLiveTest extends TestCase
         // Fin du live : celle qui n'a pas été dévoilée passe en ligne.
         $this->post(route('live.terminer', $live))->assertSessionHas('status', fn ($s) => str_contains($s, '1 exclusivité(s) non dévoilée(s)'));
         $this->assertSame('published', $sac->fresh()->status);
+    }
+
+    public function test_visibilite_au_depot_et_a_la_modification(): void
+    {
+        $vendeuse = $this->membre('testeuse@ex.com');
+        $this->actingAs($vendeuse);
+
+        // Cachée pour plus tard : brouillon, personne n'est prévenu.
+        $this->post(route('account.listings.store'), $this->champs(['visibilite' => 'cachee', 'title' => 'Robe cachée']))
+            ->assertRedirect(route('account.dashboard'));
+        $cachee = Listing::where('title', 'Robe cachée')->sole();
+        $this->assertSame('draft', $cachee->status);
+
+        // Exclusivité live par le nouveau choix.
+        $this->post(route('account.listings.store'), $this->champs(['visibilite' => 'live', 'title' => 'Robe live']));
+        $this->assertSame(ExclusiviteLive::STATUT, Listing::where('title', 'Robe live')->sole()->status);
+
+        // Publique.
+        $this->post(route('account.listings.store'), $this->champs(['visibilite' => 'public', 'title' => 'Robe publique']));
+        $publique = Listing::where('title', 'Robe publique')->sole();
+        $this->assertSame('published', $publique->status);
+
+        // Modification : la robe publique devient une exclusivité live, puis redevient publique.
+        $edition = fn (Listing $l, string $v) => $this->put(route('account.listings.update', $l), [
+            'title' => $l->title, 'description' => $l->description, 'price' => 30, 'listing_type' => 'achat',
+            'territoire' => 'La Réunion', 'category_level1' => 'Mode', 'payment_hand' => '1',
+            'pickup_city' => 'Saint-Denis', 'pickup_postal_code' => '97400', 'visibilite' => $v,
+        ])->assertSessionHasNoErrors();
+        $edition($publique, 'live');
+        $this->assertSame(ExclusiviteLive::STATUT, $publique->fresh()->status);
+        $edition($publique, 'public');
+        $this->assertSame('published', $publique->fresh()->status);
+        $edition($cachee, 'public');
+        $this->assertSame('published', $cachee->fresh()->status);
+
+        // Une annonce vendue ne change pas de visibilité.
+        $publique->update(['status' => 'sold']);
+        $edition($publique, 'cachee');
+        $this->assertSame('sold', $publique->fresh()->status);
+    }
+
+    public function test_un_membre_sans_live_ne_peut_pas_cacher(): void
+    {
+        $this->actingAs($this->membre('membre@ex.com'));
+        $this->post(route('account.listings.store'), $this->champs(['visibilite' => 'cachee']));
+
+        $this->assertSame('published', Listing::sole()->status);
     }
 }

@@ -381,16 +381,33 @@
                 </div>
             </div>
 
-            @if(! isset($listing) && \App\Support\ExclusiviteLive::disponible(auth()->user()))
-                {{-- Exclusivité live (phase de test : testeurs du live seulement). --}}
-                <label for="exclusivite_live" class="flex cursor-pointer items-start gap-3 rounded-2xl border-2 border-fuchsia-200 bg-fuchsia-50 p-4">
-                    <input type="checkbox" id="exclusivite_live" name="exclusivite_live" value="1" class="mt-1 rounded text-fuchsia-600 focus:ring-fuchsia-500"
-                           @checked(old('exclusivite_live', request('exclusivite_live')))>
-                    <span>
-                        <span class="block font-bold text-fuchsia-900">🎬 Exclusivité live : cachée jusqu’à mon live</span>
-                        <span class="mt-0.5 block text-sm text-fuchsia-800">Personne ne la voit (recherche, profil, accueil) tant que vous ne l’avez pas dévoilée en direct. Pas dévoilée ? Elle passe en ligne à la fin du live.</span>
-                    </span>
-                </label>
+            @php
+                // Visibilité au choix pour les vendeurs qui font des lives (pros, testeurs) :
+                // publique tout de suite, exclusivité cachée jusqu'au live, ou cachée pour plus tard.
+                $choixVisibilite = \App\Support\ExclusiviteLive::disponible(auth()->user())
+                    && (! isset($listing) || in_array($listing->status, ['published', \App\Support\ExclusiviteLive::STATUT, 'draft'], true));
+                $visibiliteActuelle = isset($listing)
+                    ? match ($listing->status) { \App\Support\ExclusiviteLive::STATUT => 'live', 'draft' => 'cachee', default => 'public' }
+                    : (request('exclusivite_live') ? 'live' : 'public');
+                $visibiliteChoisie = old('visibilite', old('exclusivite_live') ? 'live' : $visibiliteActuelle);
+            @endphp
+            @if($choixVisibilite)
+                <fieldset class="space-y-2 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                    <legend class="px-1 text-base font-bold text-gray-900">👀 Visibilité de l’annonce</legend>
+                    @foreach([
+                        'public' => ['🌍', 'Publique', 'Visible tout de suite dans votre dressing, la recherche et l’accueil.', 'has-[:checked]:border-teal-400 has-[:checked]:bg-teal-50', 'text-teal-600 focus:ring-teal-500'],
+                        'live' => ['🎬', 'Exclusivité live', 'Cachée jusqu’à ce que vous la dévoiliez en direct. Pas dévoilée ? Elle passe en ligne à la fin du live.', 'has-[:checked]:border-fuchsia-400 has-[:checked]:bg-fuchsia-50', 'text-fuchsia-600 focus:ring-fuchsia-500'],
+                        'cachee' => ['🔒', 'Cachée pour l’instant', 'Personne ne la voit. Vous la mettez en ligne quand vous voulez depuis votre tableau de bord.', 'has-[:checked]:border-gray-400 has-[:checked]:bg-gray-50', 'text-gray-700 focus:ring-gray-500'],
+                    ] as $valeur => [$icone, $titre, $texte, $cadre, $bouton])
+                        <label class="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-gray-100 p-3 {{ $cadre }}">
+                            <input type="radio" name="visibilite" value="{{ $valeur }}" class="mt-1 {{ $bouton }}" @checked($visibiliteChoisie === $valeur)>
+                            <span>
+                                <span class="block font-bold text-gray-900">{{ $icone }} {{ $titre }}</span>
+                                <span class="mt-0.5 block text-sm text-gray-600">{{ $texte }}</span>
+                            </span>
+                        </label>
+                    @endforeach
+                </fieldset>
                 @if(request('pour_live') || old('pour_live'))
                     <input type="hidden" name="pour_live" value="1">
                 @endif

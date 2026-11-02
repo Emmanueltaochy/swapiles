@@ -205,8 +205,10 @@ class ListingManageController extends Controller
                 'allows_offers' => $request->boolean('payment_negociable') || $data['listing_type'] === 'negoce-prix',
                 'allows_exchange' => $request->boolean('payment_exchange') || $data['listing_type'] === 'echange-produits',
                 'status' => match (true) {
-                    // Exclusivité live (testeurs du live) : cachée jusqu'au direct.
-                    $request->boolean('exclusivite_live') && \App\Support\ExclusiviteLive::disponible($request->user()) => \App\Support\ExclusiviteLive::STATUT,
+                    // Exclusivité live (vendeurs qui font des lives) : cachée jusqu'au direct.
+                    $this->visibiliteDemandee($request) === 'live' => \App\Support\ExclusiviteLive::STATUT,
+                    // Cachée pour l'instant : mise en ligne plus tard depuis le tableau de bord.
+                    $this->visibiliteDemandee($request) === 'cachee' => 'draft',
                     \App\Support\Vacances::enVacances($request->user()) => \App\Support\Vacances::STATUT,
                     default => 'published',
                 },
@@ -260,6 +262,12 @@ class ListingManageController extends Controller
                 ->with('status', '🎬 Exclusivité live enregistrée : elle reste cachée jusqu’à ce que vous la dévoiliez en direct.');
         }
 
+        // Cachée pour l'instant : rien n'est annoncé, le vendeur la publiera plus tard.
+        if ($listing->status === 'draft') {
+            return redirect()->route('account.dashboard')
+                ->with('status', '🔒 Annonce enregistrée et cachée. Mettez-la en ligne quand vous voulez avec « Remettre en ligne ».');
+        }
+
         // En vacances, l'annonce attend le retour : on ne prévient personne d'un
         // article encore invisible.
         if ($listing->status === \App\Support\Vacances::STATUT) {
@@ -294,6 +302,46 @@ class ListingManageController extends Controller
             // Pixel Meta (après accord cookies) : « Lead » = une annonce publiée,
             // pour optimiser plus tard les pubs vers les gens qui vendent.
             ->with('pixel_event', ['event' => 'Lead', 'params' => ['content_name' => 'annonce_publiee', 'content_category' => (string) $listing->category_level1]]);
+    }
+
+    /**
+     * Visibilité demandée dans le formulaire : « public », « live » (exclusivité
+     * cachée jusqu'au direct) ou « cachee » (pour plus tard). Réservé aux
+     * vendeurs qui font des lives ; pour les autres, toujours publique.
+     */
+    private function visibiliteDemandee(Request $request): string
+    {
+        if (! \App\Support\ExclusiviteLive::disponible($request->user())) {
+            return 'public';
+        }
+        $choix = $request->input('visibilite', $request->boolean('exclusivite_live') ? 'live' : 'public');
+
+        return in_array($choix, ['public', 'live', 'cachee'], true) ? $choix : 'public';
+    }
+
+    /** Modification d'annonce : applique le changement de visibilité demandé. */
+    private function appliquerVisibilite(Request $request, Listing $listing): void
+    {
+        if (! $request->has('visibilite') || ! \App\Support\ExclusiviteLive::disponible($request->user())) {
+            return;
+        }
+        if (! in_array($listing->status, ['published', \App\Support\ExclusiviteLive::STATUT, 'draft'], true)) {
+            return; // vendue, en vacances… : on n'y touche pas
+        }
+
+        $etaitPubliee = $listing->status === 'published';
+        $nouveau = match ($this->visibiliteDemandee($request)) {
+            'live' => \App\Support\ExclusiviteLive::STATUT,
+            'cachee' => 'draft',
+            default => \App\Support\Vacances::enVacances($request->user()) ? \App\Support\Vacances::STATUT : 'published',
+        };
+
+        if ($nouveau !== $listing->status) {
+            $listing->update(['status' => $nouveau]);
+            if (! $etaitPubliee && $nouveau === 'published') {
+                $this->notifyFollowersNewListing($listing);
+            }
+        }
     }
 
     public function edit(Listing $listing)
@@ -412,6 +460,9 @@ class ListingManageController extends Controller
         if (! $wasShippable && $cbEnabled && $allowsColissimo) {
             $this->notifyInterestedBuyers($listing);
         }
+
+        // Visibilité choisie (vendeurs qui font des lives) : publique, exclusivité live, cachée.
+        $this->appliquerVisibilite($request, $listing);
 
         // Prix en baisse : ceux qui l'ont mise en favori sont prévenus.
         try {

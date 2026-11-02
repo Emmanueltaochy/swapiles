@@ -140,6 +140,10 @@ workflows:
           # Le modèle Capacitor ne contient rien pour les notifications : sans
           # ce correctif, aucun iPhone ne reçoit de notification (voir le script).
           python3 scripts/ios-push.py
+      - name: Retour par glissement depuis le bord gauche (comme Safari)
+        script: |
+          cd mobile
+          python3 scripts/ios-swipe-back.py
       - name: Installer les pods
         script: |
           cd mobile/ios/App

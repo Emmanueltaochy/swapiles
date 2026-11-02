@@ -14,8 +14,10 @@
 <section class="relative overflow-hidden bg-teal-950 text-white">
     <img src="{{ asset('images/pro/hero-montagnes.webp') }}" alt="" class="absolute inset-0 h-full w-full object-cover" aria-hidden="true">
     <div class="absolute inset-0 bg-gradient-to-br from-teal-950/90 via-teal-900/75 to-emerald-950/80" aria-hidden="true"></div>
-    <div class="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 sm:py-20 lg:grid-cols-2">
-        <div class="text-center lg:text-left">
+    {{-- Sur téléphone : texte, puis l'aperçu du live, puis les boutons.
+         Sur ordinateur : texte et boutons à gauche, aperçu à droite. --}}
+    <div class="relative mx-auto grid max-w-6xl items-center gap-8 px-4 py-12 sm:py-20 lg:grid-cols-2 lg:gap-x-10 lg:gap-y-0">
+        <div class="text-center lg:col-start-1 lg:row-start-1 lg:self-end lg:text-left">
             <span class="inline-flex items-center gap-2 rounded-full bg-red-500/90 px-4 py-1.5 text-sm font-extrabold">
                 <span class="h-2 w-2 animate-pulse rounded-full bg-white" aria-hidden="true"></span> LIVE SHOPPING
             </span>
@@ -26,15 +28,10 @@
                 Présentez vos articles en vidéo depuis votre téléphone. Vos clients posent leurs questions dans le chat
                 et achètent en un geste, avec un paiement sécurisé, pendant que vous êtes en direct.
             </p>
-            <div class="mt-8 flex flex-col items-center gap-3 sm:flex-row lg:justify-start">
-                <a href="#contact" class="w-full rounded-2xl bg-white px-7 py-3.5 text-center font-extrabold text-teal-800 shadow-lg hover:bg-teal-50 sm:w-auto">Organiser mon premier live</a>
-                <a href="#comment" class="w-full rounded-2xl border border-white/40 px-7 py-3.5 text-center font-bold text-white hover:bg-white/10 sm:w-auto">Comment ça marche</a>
-            </div>
-            <p class="mt-4 text-sm text-teal-100/85">Un simple téléphone suffit · aucun matériel · aucune installation</p>
         </div>
 
         {{-- Aperçu d'un live --}}
-        <div class="mx-auto w-full max-w-[220px] sm:max-w-[235px] lg:max-w-[250px]" aria-hidden="true">
+        <div class="mx-auto w-full max-w-[220px] sm:max-w-[235px] lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:max-w-[250px]" aria-hidden="true">
             <div class="relative aspect-[9/19] overflow-hidden rounded-[2rem] border-[5px] border-gray-900 bg-gray-900 shadow-2xl ring-1 ring-white/10">
                 <img src="{{ asset('images/pro/live-vendeuse.webp') }}" alt="" class="absolute inset-0 h-full w-full object-cover object-[45%_center]">
                 <div class="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/55 to-transparent"></div>
@@ -68,6 +65,13 @@
                     <span class="shrink-0 rounded-lg bg-teal-600 px-2 py-1.5 text-[10px] font-extrabold text-white">Acheter</span>
                 </div>
             </div>
+        </div>
+        <div class="text-center lg:col-start-1 lg:row-start-2 lg:self-start lg:text-left">
+            <div class="flex flex-col items-center gap-3 sm:flex-row lg:mt-8 lg:justify-start">
+                <a href="#contact" class="w-full rounded-2xl bg-white px-7 py-3.5 text-center font-extrabold text-teal-800 shadow-lg hover:bg-teal-50 sm:w-auto">Organiser mon premier live</a>
+                <a href="#comment" class="w-full rounded-2xl border border-white/40 px-7 py-3.5 text-center font-bold text-white hover:bg-white/10 sm:w-auto">Comment ça marche</a>
+            </div>
+            <p class="mt-4 text-sm text-teal-100/85">Un simple téléphone suffit · aucun matériel · aucune installation</p>
         </div>
     </div>
     <style>

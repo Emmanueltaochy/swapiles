@@ -90,3 +90,10 @@ Schedule::call(fn () => \App\Support\NouveautesDressings::envoyer())->hourlyAt(1
 Schedule::command('relais:prospects')->dailyAt('03:50')->withoutOverlapping(120)->runInBackground();
 Schedule::command('relais:prospects --si-demande')->everyMinute()->withoutOverlapping(120)->runInBackground();
 Schedule::command('relais:prospection-envoyer')->dailyAt('09:05')->withoutOverlapping();
+
+// Remontées d'annonces : ~1 ancienne annonce remise en avant pour 4 nouvelles,
+// sur chaque île, pour que les anciennes ne restent pas oubliées en bas.
+Schedule::call(fn () => \App\Support\Remontees::rotation())->hourlyAt(45)->name('annonces:rotation')->withoutOverlapping();
+
+// Conseil au vendeur : beaucoup de vues, pas d'acheteur après 14 jours.
+Schedule::call(fn () => \App\Support\ConseilsPrix::envoyer())->dailyAt('10:40')->name('annonces:conseils-prix')->withoutOverlapping();

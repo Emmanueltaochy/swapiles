@@ -95,8 +95,9 @@ class HomeController extends Controller
      */
     private function applyBuyableOrdering($query, ?string $territoire, bool $alsoColExists): void
     {
+        // « Plus récentes » = publiées ou remontées récemment (voir Remontees).
         if (! $territoire) {
-            $query->latest()->orderByDesc('listings.id');
+            \App\Support\Remontees::trier($query);
 
             return;
         }
@@ -111,7 +112,7 @@ class HomeController extends Controller
 
         $sql .= 'OR (requires_online_payment = 1 AND allows_colissimo = 1)) THEN 0 ELSE 1 END';
 
-        $query->orderByRaw($sql, $bindings)->latest()->orderByDesc('listings.id');
+        \App\Support\Remontees::trier($query->orderByRaw($sql, $bindings));
     }
 
     /**
@@ -135,14 +136,14 @@ class HomeController extends Controller
             $autresIles = [];
             foreach ($this->territoires as $key => $meta) {
                 if ($meta['label'] !== $selectedTerritoire) {
-                    $autresIles[$key] = $expediables()->where('territoire', $meta['label'])->latest()->take(4)->pluck('id')->all();
+                    $autresIles[$key] = \App\Support\Remontees::trier($expediables()->where('territoire', $meta['label']))->take(4)->pluck('id')->all();
                 }
             }
 
             return [
                 'territoryCounts' => $territoryCounts,
                 'crossIslandAvailableCount' => $expediables()->where('territoire', '!=', $selectedTerritoire)->count(),
-                'globalShippable' => $expediables()->latest()->take(12)->pluck('id')->all(),
+                'globalShippable' => \App\Support\Remontees::trier($expediables())->take(12)->pluck('id')->all(),
                 'populairesToujours' => \App\Support\Tendances::depuisToujours()->pluck('id')->all(),
                 'securePaymentListingsCount' => Listing::query()->where('status', 'published')->where('requires_online_payment', true)->count(),
                 'membersCount' => \App\Models\User::count(),

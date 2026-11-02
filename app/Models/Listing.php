@@ -59,6 +59,9 @@ class Listing extends Model
         'allows_exchange' => 'boolean',
         'requires_online_payment' => 'boolean',
         'photoless_hidden_at' => 'datetime',
+        'remonte_at' => 'datetime',
+        'prix_remonte_at' => 'datetime',
+        'conseil_prix_at' => 'datetime',
     ];
 
     /**

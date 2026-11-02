@@ -59,6 +59,7 @@ class PushSuivi
         'seller_published_listing' => 'Nouvel article d’un dressing suivi',
         'listing_available_colissimo' => 'Article disponible en Colissimo',
         'listing_needs_photo' => 'Annonce sans photo',
+        'listing_price_advice' => 'Conseil pour vendre une annonce',
         'account_onboarding' => 'Premiers pas',
         'recommandations' => 'Recommandé pour vous',
         'top_dressing' => 'Classement des dressings',

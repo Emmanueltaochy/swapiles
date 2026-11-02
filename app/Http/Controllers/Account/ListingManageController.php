@@ -420,7 +420,17 @@ class ListingManageController extends Controller
             report($e);
         }
 
-        return redirect()->route('account.dashboard')->with('status', 'Annonce mise à jour.');
+        // Baisse d'au moins 10 % : l'annonce repasse en tête de liste.
+        $remontee = false;
+        try {
+            $remontee = \App\Support\Remontees::apresBaisseDePrix($listing, $ancienPrix);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return redirect()->route('account.dashboard')->with('status', $remontee
+            ? 'Annonce mise à jour. 📈 Prix baissé : votre annonce repasse en tête de liste !'
+            : 'Annonce mise à jour.');
     }
 
     /** Prévient les acheteurs ayant signalé leur intérêt que l'article est livrable. */

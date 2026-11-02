@@ -54,6 +54,7 @@ class PushPolicy
             'seller_published_listing',
             'listing_available_colissimo',
             'listing_needs_photo',
+            'listing_price_advice',
             'account_onboarding',
             'recommandations',
             'top_dressing',

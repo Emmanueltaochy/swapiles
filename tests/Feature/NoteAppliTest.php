@@ -116,4 +116,12 @@ class NoteAppliTest extends TestCase
     {
         $this->get('/')->assertOk()->assertDontSee('id="swp-note-natif"', false);
     }
+
+    public function test_bandeau_mise_a_jour_pour_les_anciennes_versions_de_l_appli(): void
+    {
+        $html = $this->get('/')->assertOk()->getContent();
+        $this->assertStringContainsString('id="swp-maj-appli" hidden', $html, 'Caché par défaut : seule l’ancienne appli l’affiche.');
+        $this->assertStringContainsString('SwapilesApp', $html);
+        $this->assertStringContainsString('play.google.com/store/apps/details?id=com.swapiles.app', $html);
+    }
 }

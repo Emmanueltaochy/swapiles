@@ -294,6 +294,8 @@ workflows:
         - swapiles_keystore
       vars:
         PACKAGE_NAME: "com.swapiles.app"
+        # Numéro de version affiché sur Google Play (le même que sur iPhone).
+        VERSION_NAME: "1.0.1"
       node: 20
     scripts:
       - name: Utiliser JDK 21 (requis par Capacitor 7)
@@ -377,8 +379,12 @@ workflows:
               )
           # versionCode unique
           g = re.sub(r'versionCode\s+\d+', 'versionCode ' + vc, g, count=1)
+          # versionName affiché sur Google Play
+          vn = os.environ.get("VERSION_NAME", "")
+          if vn:
+              g = re.sub(r'versionName\s+"[^"]*"', 'versionName "' + vn + '"', g, count=1)
           p.write_text(g)
-          print("build.gradle patché, versionCode =", vc)
+          print("build.gradle patché, versionCode =", vc, "versionName =", vn)
           PY
       - name: Build AAB release
         script: |

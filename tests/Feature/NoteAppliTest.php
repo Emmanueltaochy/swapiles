@@ -117,8 +117,10 @@ class NoteAppliTest extends TestCase
         $this->get('/')->assertOk()->assertDontSee('id="swp-note-natif"', false);
     }
 
-    public function test_plus_de_bandeau_mise_a_jour(): void
+    public function test_bandeau_mise_a_jour_android_seulement(): void
     {
-        $this->get('/')->assertOk()->assertDontSee('swp-maj-appli');
+        $html = $this->get('/')->assertOk()->getContent();
+        $this->assertStringContainsString('id="swp-maj-appli" hidden data-plateformes="android"', $html, 'iPhone : pas avant la validation d’Apple.');
+        $this->assertStringContainsString('play.google.com/store/apps/details?id=com.swapiles.app', $html);
     }
 }

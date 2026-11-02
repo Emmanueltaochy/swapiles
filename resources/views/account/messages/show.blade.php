@@ -52,7 +52,10 @@
 
 {{-- Conversation plein écran, comme Instagram : en-tête en haut, messages au
      milieu (seuls à défiler), saisie toujours en bas. --}}
-<section data-conversation class="fixed inset-x-0 top-0 z-[60] flex flex-col bg-white" style="height:100dvh">
+<section data-conversation class="fixed inset-x-0 top-0 z-[60] flex flex-col bg-white" style="height:100dvh"
+         data-etat-url="{{ $hasListing ? route('account.messages.etat', ['listing' => $listing, 'user' => $user]) : route('account.messages.etat.general', $user) }}"
+         data-ecrit-url="{{ $hasListing ? route('account.messages.ecrit', ['listing' => $listing, 'user' => $user]) : route('account.messages.ecrit.general', $user) }}"
+         data-dernier="{{ (int) $messages->max('id') }}">
 
     {{-- En-tête --}}
     <header class="flex shrink-0 items-center gap-3 border-b border-gray-100 bg-white px-2 py-2" style="padding-top:max(8px, env(safe-area-inset-top))">
@@ -286,6 +289,21 @@
         @endforeach
     </div>
 
+    {{-- L'autre membre est en train d'écrire (comme Instagram) --}}
+    <div data-ecrit class="hidden shrink-0 items-center gap-2 bg-white px-4 pb-2" aria-live="polite">
+        <span class="inline-flex items-center gap-1 rounded-3xl rounded-bl-md bg-gray-100 px-3.5 py-2.5" aria-hidden="true">
+            <span class="swp-point h-1.5 w-1.5 rounded-full bg-gray-500"></span>
+            <span class="swp-point h-1.5 w-1.5 rounded-full bg-gray-500" style="animation-delay:.15s"></span>
+            <span class="swp-point h-1.5 w-1.5 rounded-full bg-gray-500" style="animation-delay:.3s"></span>
+        </span>
+        <span class="text-xs text-gray-500">{{ $user->name }} est en train d’écrire…</span>
+    </div>
+    <style>
+        @keyframes swp-point { 0%, 60%, 100% { opacity: .3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+        .swp-point { animation: swp-point 1.2s infinite ease-in-out; }
+        @media (prefers-reduced-motion: reduce) { .swp-point { animation: none; } }
+    </style>
+
     {{-- Alertes au-dessus de la saisie --}}
     @if(session('error'))
         <div class="shrink-0 border-t border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-700">{{ session('error') }}</div>
@@ -453,6 +471,10 @@
         var deja = fil.querySelector('[data-message-id="' + champReponse.value + '"]');
         if (deja) repondreA(deja);
     }
+
+    // Gestes sur les messages (répondre, citations) : rejoués quand de
+    // nouveaux messages arrivent sans recharger la page.
+    function brancherMessages() {
     fil.querySelectorAll('[data-repondre]').forEach(function (b) {
         b.addEventListener('click', function () { repondreA(b.closest('[data-message-id]')); });
     });
@@ -490,6 +512,68 @@
             cible.scrollIntoView({ behavior: 'smooth', block: 'center' });
             cible.animate([{ opacity: .35 }, { opacity: 1 }], { duration: 700, iterations: 2 });
         });
+    });
+    }
+    brancherMessages();
+
+    // --- En direct : nouveaux messages et « en train d'écrire » ---
+    // Toutes les 4 secondes tant que la conversation est à l'écran ; arrêt dès
+    // que l'on quitte la page ou que l'appli passe en arrière-plan.
+    var signal = window.swpPage ? window.swpPage() : null;
+    var bulleEcrit = ecran.querySelector('[data-ecrit]');
+    var dernier = parseInt(ecran.dataset.dernier || '0', 10);
+    var enCours = false, minuteur = null, finie = false;
+
+    function presDuBas() { return fil.scrollHeight - fil.scrollTop - fil.clientHeight < 160; }
+
+    function rafraichirFil() {
+        // La page elle-même, rendue par le serveur : mêmes bulles, mêmes offres.
+        return fetch(window.location.href, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-Swp-Rafraichir': '1' } })
+            .then(function (r) { return r.ok ? r.text() : null; })
+            .then(function (html) {
+                if (!html || finie) return;
+                var neuf = new DOMParser().parseFromString(html, 'text/html').querySelector('[data-fil]');
+                if (!neuf) return;
+                var enBasAvant = presDuBas();
+                fil.innerHTML = neuf.innerHTML;
+                brancherMessages();
+                if (enBasAvant) enBas();
+            });
+    }
+
+    function verifier() {
+        if (finie || enCours || document.visibilityState !== 'visible') return;
+        enCours = true;
+        fetch(ecran.dataset.etatUrl, { credentials: 'same-origin', headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (etat) {
+                if (!etat || finie) return;
+                bulleEcrit.classList.toggle('hidden', !etat.ecrit);
+                bulleEcrit.classList.toggle('flex', !!etat.ecrit);
+                if (etat.ecrit && presDuBas()) enBas();
+                if (etat.dernier > dernier) {
+                    dernier = etat.dernier;
+                    bulleEcrit.classList.add('hidden'); bulleEcrit.classList.remove('flex');
+                    return rafraichirFil();
+                }
+            })
+            .catch(function () {})
+            .then(function () { enCours = false; });
+    }
+
+    function arreter() { finie = true; clearInterval(minuteur); }
+    minuteur = setInterval(verifier, 4000);
+    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') verifier(); }, signal ? { signal: signal } : undefined);
+    if (signal) signal.addEventListener('abort', arreter);
+    window.addEventListener('pagehide', arreter, { once: true });
+
+    // « Je suis en train d'écrire » : prévenu au plus toutes les 3 secondes.
+    var dernierEcrit = 0;
+    body.addEventListener('input', function () {
+        if (!body.value.trim() || Date.now() - dernierEcrit < 3000) return;
+        dernierEcrit = Date.now();
+        var jeton = document.querySelector('meta[name="csrf-token"]');
+        fetch(ecran.dataset.ecritUrl, { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF-TOKEN': jeton ? jeton.content : '', 'X-Requested-With': 'XMLHttpRequest' } }).catch(function () {});
     });
 
     // Modération : « Modifier » recentre le champ, « Envoyer quand même »

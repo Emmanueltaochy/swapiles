@@ -524,19 +524,76 @@
                                             @php $cashCandidates = $listing->cashBuyerCandidates(); @endphp
                                             <form method="POST" action="{{ route('account.listings.cash-paid', $listing) }}" class="space-y-2">
                                                 @csrf @method('PATCH')
-                                                @if($cashCandidates->isNotEmpty())
-                                                    <label for="cash-buyer" class="block text-sm font-medium text-gray-700">Qui a acheté ? <span class="font-normal text-gray-400">(facultatif)</span></label>
-                                                    <select id="cash-buyer" name="buyer_id" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-teal-500 focus:ring-teal-500">
-                                                        <option value="">— Quelqu’un hors Swap’Îles —</option>
-                                                        @foreach($cashCandidates as $cand)
-                                                            <option value="{{ $cand->id }}">{{ $cand->name }}@if($cand->territoire) — {{ $cand->territoire }}@endif</option>
-                                                        @endforeach
-                                                    </select>
-                                                    <p class="text-xs text-gray-400">Parmi les personnes qui ont mis l'annonce en favori ou t'ont écrit. L’acheteur recevra une demande de confirmation et pourra te laisser un avis.</p>
-                                                @endif
+                                                <label for="cash-buyer" class="block text-sm font-medium text-gray-700">Qui a acheté ? <span class="font-normal text-gray-400">(facultatif)</span></label>
+                                                <select id="cash-buyer" name="buyer_id" data-acheteur-choix class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-teal-500 focus:ring-teal-500">
+                                                    <option value="">— Quelqu’un hors Swap’Îles —</option>
+                                                    @foreach($cashCandidates as $cand)
+                                                        <option value="{{ $cand->id }}">{{ $cand->name }}@if($cand->territoire) — {{ $cand->territoire }}@endif</option>
+                                                    @endforeach
+                                                    <option value="autre">🔎 Un autre membre de Swap’Îles…</option>
+                                                </select>
+                                                {{-- Recherche d'un membre par son nom --}}
+                                                <div data-acheteur-recherche data-url="{{ route('account.listings.acheteurs', $listing) }}" class="hidden space-y-1.5">
+                                                    <label for="cash-buyer-nom" class="sr-only">Nom du membre</label>
+                                                    <input id="cash-buyer-nom" type="search" autocomplete="off" placeholder="Tape le nom du membre…" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-teal-500 focus:ring-teal-500">
+                                                    <input type="hidden" name="buyer_autre_id" value="">
+                                                    <div data-acheteur-resultats class="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-100 bg-white empty:hidden"></div>
+                                                    <p data-acheteur-choisi class="hidden rounded-xl bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-800"></p>
+                                                </div>
+                                                <p class="text-xs text-gray-400">La liste montre ceux qui ont mis l’annonce en favori, t’ont écrit, fait une offre ou commenté ton live. L’acheteur reçoit une demande de confirmation et pourra te laisser un avis.</p>
                                                 <button class="w-full rounded-xl bg-gray-900 px-5 py-3 font-semibold text-white hover:bg-black">💵 Paiement espèces reçu</button>
                                             </form>
                                         @endif
+                                        <script>
+                                        (function () {
+                                            var choix = document.querySelector('[data-acheteur-choix]');
+                                            var zone = document.querySelector('[data-acheteur-recherche]');
+                                            if (!choix || !zone || choix.dataset.branche) return;
+                                            choix.dataset.branche = '1';
+                                            var champ = zone.querySelector('input[type=search]');
+                                            var cache = zone.querySelector('input[name=buyer_autre_id]');
+                                            var liste = zone.querySelector('[data-acheteur-resultats]');
+                                            var choisi = zone.querySelector('[data-acheteur-choisi]');
+                                            var minuteur = null;
+                                            choix.addEventListener('change', function () {
+                                                var autre = choix.value === 'autre';
+                                                zone.classList.toggle('hidden', !autre);
+                                                if (autre) { champ.focus(); } else { cache.value = ''; }
+                                            });
+                                            function afficher(membres) {
+                                                liste.innerHTML = '';
+                                                membres.forEach(function (m) {
+                                                    var b = document.createElement('button');
+                                                    b.type = 'button';
+                                                    b.className = 'block w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50';
+                                                    b.textContent = m.nom + (m.ile ? ' — ' + m.ile : '');
+                                                    b.addEventListener('click', function () {
+                                                        cache.value = m.id;
+                                                        choisi.textContent = '✓ ' + b.textContent;
+                                                        choisi.classList.remove('hidden');
+                                                        liste.innerHTML = '';
+                                                        champ.value = m.nom;
+                                                    });
+                                                    liste.appendChild(b);
+                                                });
+                                                if (!membres.length && champ.value.trim().length >= 2) {
+                                                    liste.innerHTML = '<p class="px-4 py-2.5 text-sm text-gray-500">Aucun membre trouvé avec ce nom.</p>';
+                                                }
+                                            }
+                                            champ.addEventListener('input', function () {
+                                                cache.value = ''; choisi.classList.add('hidden');
+                                                clearTimeout(minuteur);
+                                                var q = champ.value.trim();
+                                                if (q.length < 2) { liste.innerHTML = ''; return; }
+                                                minuteur = setTimeout(function () {
+                                                    fetch(zone.dataset.url + '?q=' + encodeURIComponent(q), { credentials: 'same-origin', headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+                                                        .then(function (r) { return r.ok ? r.json() : { membres: [] }; })
+                                                        .then(function (d) { afficher(d.membres || []); })
+                                                        .catch(function () {});
+                                                }, 250);
+                                            });
+                                        })();
+                                        </script>
                                         <form method="POST" action="{{ route('account.listings.exchanged', $listing) }}">
                                             @csrf @method('PATCH')
                                             <button class="w-full rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white hover:bg-indigo-700">🔄 Échange effectué</button>

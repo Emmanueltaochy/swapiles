@@ -161,6 +161,67 @@ class MessageController extends Controller
     }
 
 
+    /**
+     * Conversation en direct (appelé toutes les quelques secondes par la page
+     * ouverte) : dernier message et « en train d'écrire ». Très léger : une
+     * requête et une lecture de cache. Ne marque rien comme lu.
+     */
+    public function etat(Listing $listing, User $user)
+    {
+        $authId = Auth::id();
+        abort_unless($listing->user_id === $authId || $listing->user_id === $user->id, 403);
+        abort_if($authId === $user->id, 403);
+
+        return $this->etatConversation($listing->id, $user);
+    }
+
+    public function etatGeneral(User $user)
+    {
+        abort_if(Auth::id() === $user->id, 403);
+
+        return $this->etatConversation(null, $user);
+    }
+
+    /** « Je suis en train d'écrire » : retenu quelques secondes. */
+    public function ecrit(Listing $listing, User $user)
+    {
+        $authId = Auth::id();
+        abort_unless($listing->user_id === $authId || $listing->user_id === $user->id, 403);
+        abort_if($authId === $user->id, 403);
+        \Illuminate\Support\Facades\Cache::put(self::cleEcrit($listing->id, $authId, $user->id), 1, 6);
+
+        return response()->noContent();
+    }
+
+    public function ecritGeneral(User $user)
+    {
+        abort_if(Auth::id() === $user->id, 403);
+        \Illuminate\Support\Facades\Cache::put(self::cleEcrit(null, Auth::id(), $user->id), 1, 6);
+
+        return response()->noContent();
+    }
+
+    private static function cleEcrit(?int $listingId, int $de, int $pour): string
+    {
+        return 'messages:ecrit:' . ($listingId ?? 0) . ':' . $de . ':' . $pour;
+    }
+
+    private function etatConversation(?int $listingId, User $user)
+    {
+        $authId = Auth::id();
+
+        $dernier = Message::query()
+            ->when($listingId, fn ($q) => $q->where('listing_id', $listingId), fn ($q) => $q->whereNull('listing_id'))
+            ->where(fn ($q) => $q->where(fn ($s) => $s->where('sender_id', $authId)->where('receiver_id', $user->id))
+                ->orWhere(fn ($s) => $s->where('sender_id', $user->id)->where('receiver_id', $authId)))
+            ->max('id');
+
+        return response()->json([
+            'dernier' => (int) $dernier,
+            'ecrit' => (bool) \Illuminate\Support\Facades\Cache::get(self::cleEcrit($listingId, $user->id, $authId)),
+        ])->header('Cache-Control', 'no-store');
+    }
+
     public function start(Listing $listing)
     {
         abort_if($listing->user_id === Auth::id(), 403);

@@ -177,6 +177,12 @@ for f in $(ls -1t storage/logs/*.log 2>/dev/null | head -2); do
 done || true
 
 # ---------------------------------------------------------------------------
+# 6d. DIAGNOSTIC DES LIVES (réglages présents ou non, jamais leur valeur)
+# ---------------------------------------------------------------------------
+echo "==> Lives et enregistrement des replays"
+timeout 60 php artisan live:diagnostic 2>&1 | sed 's/^/    /' || true
+
+# ---------------------------------------------------------------------------
 # 7. PERMISSIONS (le serveur web doit pouvoir écrire dans storage / cache)
 # ---------------------------------------------------------------------------
 WEB_USER="${WEB_USER:-www-data}"

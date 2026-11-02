@@ -222,7 +222,21 @@ class Listing extends Model
             ->get(['sender_id', 'receiver_id'])
             ->flatMap(fn ($m) => [$m->sender_id, $m->receiver_id]);
 
-        $ids = $favIds->concat($msgIds)
+        // Aussi : offres et propositions d'échange sur l'annonce, conversations
+        // directes avec le vendeur (90 jours), commentaires dans ses lives (30 jours).
+        $offresIds = ListingOffer::where('listing_id', $this->id)->pluck('buyer_id');
+        $echangesIds = ExchangeProposal::where('listing_id', $this->id)->pluck('proposer_id');
+        $directsIds = Message::query()->whereNull('listing_id')
+            ->where('created_at', '>=', now()->subDays(90))
+            ->where(fn ($q) => $q->where('sender_id', $this->user_id)->orWhere('receiver_id', $this->user_id))
+            ->get(['sender_id', 'receiver_id'])
+            ->flatMap(fn ($m) => [$m->sender_id, $m->receiver_id]);
+        $liveIds = LiveMessage::query()
+            ->whereIn('live_session_id', LiveSession::where('user_id', $this->user_id)->where('created_at', '>=', now()->subDays(30))->select('id'))
+            ->whereNotNull('user_id')
+            ->pluck('user_id');
+
+        $ids = $favIds->concat($msgIds)->concat($offresIds)->concat($echangesIds)->concat($directsIds)->concat($liveIds)
             ->filter()
             ->reject(fn ($id) => (int) $id === (int) $this->user_id)
             ->unique()
@@ -234,6 +248,7 @@ class Listing extends Model
 
         return User::query()
             ->whereIn('id', $ids->all())
+            ->where(fn ($q) => $q->whereNull('is_banned')->orWhere('is_banned', false))
             ->orderBy('name')
             ->get();
     }

@@ -75,6 +75,7 @@ class Transaction extends Model
         'auto_review_flagged_at',
         'acheteur_confirme_at',
         'acheteur_conteste_at',
+        'acheteur_hors_liste',
     ];
 
     /**
@@ -107,6 +108,7 @@ class Transaction extends Model
         'relay_returned_at' => 'datetime',
         'acheteur_confirme_at' => 'datetime',
         'acheteur_conteste_at' => 'datetime',
+        'acheteur_hors_liste' => 'boolean',
     ];
 
     /** Ventes dont le paiement est passé par Swap'Îles (pas une simple déclaration). */

@@ -491,9 +491,24 @@ class ListingManageController extends Controller
         // acheteurs plausibles (favoris ou messagers de l'annonce) pour éviter
         // qu'un vendeur rattache un membre au hasard.
         $buyerId = null;
+        $horsListe = false;
         $chosen = $request->input('buyer_id');
         if ($chosen && $listing->cashBuyerCandidates()->contains('id', (int) $chosen)) {
             $buyerId = (int) $chosen;
+        }
+
+        // « Un autre membre de Swap'Îles », cherché par son nom : possible, mais
+        // le vendeur ne pourra lui laisser un avis qu'après sa confirmation.
+        $autre = $request->input('buyer_autre_id');
+        if (! $buyerId && $autre) {
+            $membre = \App\Models\User::query()->whereKey((int) $autre)
+                ->where('id', '!=', $listing->user_id)
+                ->where(fn ($q) => $q->whereNull('is_banned')->orWhere('is_banned', false))
+                ->first();
+            if ($membre) {
+                $buyerId = $membre->id;
+                $horsListe = true;
+            }
         }
 
         $transaction = \App\Models\Transaction::create([
@@ -513,6 +528,7 @@ class ListingManageController extends Controller
             'completed_at' => now(),
             'received_at' => now(),
             'hand_delivery_location' => $listing->hand_delivery_location ?: $listing->location_address,
+            'acheteur_hors_liste' => $horsListe,
         ]);
 
         $listing->update(['status' => 'sold']);
@@ -533,6 +549,35 @@ class ListingManageController extends Controller
         return back()->with('status', $buyerId
             ? 'Vente enregistrée. On demande à l’acheteur de la confirmer.'
             : 'Paiement en espèces confirmé. L’annonce est marquée comme vendue.');
+    }
+
+    /**
+     * « Qui a acheté ? » : recherche d'un membre par son nom, pour une vente en
+     * main propre à quelqu'un qui n'avait ni écrit ni mis l'annonce en favori.
+     */
+    public function chercherAcheteur(Request $request, Listing $listing)
+    {
+        $this->authorizeOwner($listing);
+
+        $texte = trim((string) $request->input('q', ''));
+        if (mb_strlen($texte) < 2) {
+            return response()->json(['membres' => []]);
+        }
+
+        $membres = \App\Models\User::query()
+            ->where('id', '!=', $listing->user_id)
+            ->where(fn ($q) => $q->whereNull('is_banned')->orWhere('is_banned', false))
+            ->where('name', 'like', '%' . str_replace(['%', '_'], ['\\%', '\\_'], $texte) . '%')
+            ->orderByRaw('CASE WHEN name LIKE ? THEN 0 ELSE 1 END', [str_replace(['%', '_'], ['\\%', '\\_'], $texte) . '%'])
+            ->orderBy('name')
+            ->limit(8)
+            ->get(['id', 'name', 'territoire']);
+
+        return response()->json(['membres' => $membres->map(fn ($m) => [
+            'id' => $m->id,
+            'nom' => $m->name,
+            'ile' => $m->territoire,
+        ])->values()]);
     }
 
     public function markExchanged(Listing $listing)

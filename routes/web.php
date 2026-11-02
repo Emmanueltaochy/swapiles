@@ -260,6 +260,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/mes-annonces/{listing}', [ListingManageController::class, 'update'])->name('account.listings.update');
     Route::patch('/mes-annonces/{listing}/masquer', [ListingManageController::class, 'hide'])->name('account.listings.hide');
     Route::patch('/mes-annonces/{listing}/vendue', [ListingManageController::class, 'markSold'])->name('account.listings.sold');
+    Route::get('/mes-annonces/{listing}/acheteurs', [ListingManageController::class, 'chercherAcheteur'])->middleware('throttle:40,1')->name('account.listings.acheteurs');
     Route::patch('/mes-annonces/{listing}/publier', [ListingManageController::class, 'publish'])->name('account.listings.publish');
     Route::patch('/mes-annonces/{listing}/photos/{image}/principale', [ListingManageController::class, 'makeMainImage'])->name('account.listings.images.main');
     Route::delete('/mes-annonces/{listing}/photos/{image}', [ListingManageController::class, 'destroyImage'])->name('account.listings.images.destroy');
@@ -271,6 +272,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/messages/annonce/{listing}/start', [MessageController::class, 'start'])->name('account.messages.start');
     Route::get('/messages/avec/{user}', [MessageController::class, 'showGeneral'])->name('account.messages.show.general');
     Route::post('/messages/avec/{user}', [MessageController::class, 'storeGeneral'])->name('account.messages.store.general');
+    // Conversation en direct : nouveaux messages et « en train d'écrire ».
+    Route::get('/messages/avec/{user}/etat', [MessageController::class, 'etatGeneral'])->middleware('throttle:60,1')->name('account.messages.etat.general');
+    Route::post('/messages/avec/{user}/ecrit', [MessageController::class, 'ecritGeneral'])->middleware('throttle:40,1')->name('account.messages.ecrit.general');
+    Route::get('/messages/annonce/{listing}/avec/{user}/etat', [MessageController::class, 'etat'])->middleware('throttle:60,1')->name('account.messages.etat');
+    Route::post('/messages/annonce/{listing}/avec/{user}/ecrit', [MessageController::class, 'ecrit'])->middleware('throttle:40,1')->name('account.messages.ecrit');
     Route::get('/messages/annonce/{listing}/avec/{user}', [MessageController::class, 'show'])->name('account.messages.show');
     Route::post('/messages/annonce/{listing}/avec/{user}', [MessageController::class, 'store'])->name('account.messages.store');
 

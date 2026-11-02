@@ -24,6 +24,11 @@ class ReviewController extends Controller
         abort_unless($transaction->status === 'completed', 403);
         // Le membre désigné a dit « ce n'est pas moi » : pas d'avis sur une vente fictive.
         abort_if($transaction->acheteur_conteste_at !== null, 403);
+        // Acheteur cherché par son nom par le vendeur : pas d'avis du vendeur
+        // tant que ce membre n'a pas confirmé l'achat (contre les faux avis).
+        if ($transaction->acheteur_hors_liste && $transaction->seller_id === $me && $transaction->acheteur_confirme_at === null) {
+            return back()->with('status', 'Tu pourras laisser un avis dès que l’acheteur aura confirmé l’achat.');
+        }
 
         // La personne notée est l'autre partie de la transaction.
         $reviewedId = $transaction->seller_id === $me ? $transaction->buyer_id : $transaction->seller_id;

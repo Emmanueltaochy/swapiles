@@ -160,6 +160,37 @@
     </div>
 </section>
 
+{{-- La règle du jeu : des offres réservées au live --}}
+<section class="bg-gradient-to-br from-rose-50 via-white to-amber-50">
+    <div class="mx-auto max-w-5xl px-4 py-14">
+        <p class="text-center text-sm font-extrabold uppercase tracking-wide text-rose-600">La règle du jeu</p>
+        <h2 class="mt-2 text-center text-2xl font-extrabold text-gray-900 sm:text-3xl">Des offres 100 % live, introuvables ailleurs</h2>
+        <p class="mx-auto mt-3 max-w-2xl text-center text-gray-600">Un live Swap’Îles est un rendez-vous pour notre communauté. La seule condition pour y vendre : proposer des offres qu’on ne trouve <b>que pendant le live</b>, ni en boutique, ni sur vos réseaux, ni après.</p>
+        <div class="mt-10 grid gap-4 sm:grid-cols-3">
+            <div class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-rose-100">
+                <p class="text-3xl">🔥</p>
+                <h3 class="mt-3 font-extrabold text-gray-900">Prix live</h3>
+                <p class="mt-1 text-sm text-gray-600">Une vraie réduction, valable uniquement pendant le direct. À la fin du live, l’article revient à son prix habituel.</p>
+            </div>
+            <div class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-rose-100">
+                <p class="text-3xl">💎</p>
+                <h3 class="mt-3 font-extrabold text-gray-900">Exclusivités</h3>
+                <p class="mt-1 text-sm text-gray-600">Pièces uniques, nouveautés dévoilées en avant-première, petites séries : ce qui n’est pas encore en rayon.</p>
+            </div>
+            <div class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-rose-100">
+                <p class="text-3xl">🎁</p>
+                <h3 class="mt-3 font-extrabold text-gray-900">Bonus du live</h3>
+                <p class="mt-1 text-sm text-gray-600">Livraison offerte, petit cadeau, lot à prix spécial : un geste réservé à ceux qui sont là en direct.</p>
+            </div>
+        </div>
+        <div class="mx-auto mt-8 max-w-3xl rounded-3xl bg-gray-900 p-6 text-center text-white">
+            <p class="text-lg font-extrabold">Pourquoi c’est gagnant pour vous&nbsp;?</p>
+            <p class="mt-2 text-sm text-gray-200">Nos membres savent qu’en live, ils trouvent ce qu’il y a de mieux. C’est ce qui les fait venir, revenir et activer les notifications : plus de spectateurs à chaque live, donc plus de ventes pour vous. Une communauté gâtée devient une communauté fidèle.</p>
+        </div>
+        <p class="mx-auto mt-4 max-w-3xl text-center text-xs text-gray-500">Un prix barré doit indiquer votre prix le plus bas pratiqué dans les 30 jours précédents (règle légale sur les annonces de réduction).</p>
+    </div>
+</section>
+
 {{-- Ce qui est inclus --}}
 <section class="bg-gray-50">
     <div class="mx-auto max-w-5xl px-4 py-14">

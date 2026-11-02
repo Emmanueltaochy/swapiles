@@ -84,6 +84,53 @@ class TransactionWorkflowController extends Controller
         return back()->with('status', 'Dépôt confirmé. L’acheteur peut venir retirer son colis au point relais.');
     }
 
+    /**
+     * Vendeur professionnel, retrait en boutique : le client présente son code,
+     * le pro le saisit. La vente est terminée et le pro est payé tout de suite.
+     */
+    public function retraitBoutique(Request $request, Transaction $transaction)
+    {
+        abort_unless($transaction->seller_id === Auth::id(), 403);
+        abort_unless($transaction->vendeur_pro && $transaction->delivery_method === 'hand_delivery' && $transaction->code_retrait, 403);
+
+        if ($transaction->status !== 'paid') {
+            return back()->with('status', $transaction->status === 'completed' ? 'Ce retrait est déjà validé.' : 'Cette commande n’est pas payée.');
+        }
+
+        $data = $request->validate(['code' => ['required', 'string', 'max:12']], ['code.required' => 'Saisissez le code présenté par le client.']);
+        $saisi = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $data['code']));
+
+        if (! hash_equals((string) $transaction->code_retrait, $saisi)) {
+            return back()->withErrors(['code' => 'Ce code ne correspond pas à cette commande. Vérifiez-le avec le client.']);
+        }
+
+        // Commande groupée (lot) : tous les articles sont retirés ensemble.
+        $ventes = $transaction->transactionsDuLot()->filter(fn ($v) => $v->status === 'paid');
+        foreach ($ventes as $vente) {
+            $vente->update([
+                'shipping_status' => 'received',
+                'received_at' => now(),
+                'delivered_at' => now(),
+                'retrait_valide_at' => now(),
+                'status' => 'completed',
+                'completed_at' => now(),
+                'wallet_status' => 'processing',
+            ]);
+        }
+
+        try {
+            SendTransactionStatusEmails::dispatch($transaction->transactionsDuLot()->first()->id, 'received');
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        foreach ($ventes as $vente) {
+            \App\Support\SellerPayout::release($vente);
+        }
+
+        return back()->with('status', '✅ Retrait validé : la commande est terminée et votre paiement est en route.');
+    }
+
     public function received(Transaction $transaction)
     {
         abort_unless($transaction->buyer_id === Auth::id(), 403);

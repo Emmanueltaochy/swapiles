@@ -97,7 +97,9 @@
     $images = $listing->images ?? collect();
     $mainImage = $images->first();
 
-    $protectionFee = ($listing->requires_online_payment ?? false)
+    // Vendeur professionnel : prix affiché = prix payé (pas de protection ajoutée).
+    $annoncePro = \App\Support\ComptePro::annonceDePro($listing);
+    $protectionFee = ($listing->requires_online_payment ?? false) && ! $annoncePro
         ? \App\Support\OrderPricing::fromEuros($listing->price)->protectionEuros()
         : 0;
 
@@ -255,7 +257,19 @@
                                 {{ $listing->price > 0 ? number_format($listing->price, 0, ',', ' ') . ' €' : 'Gratuit' }}
                             </p>
 
-                            @if($listing->requires_online_payment ?? false)
+                            @if(($listing->requires_online_payment ?? false) && $annoncePro)
+                                {{-- Pro : le prix affiché est le prix payé. --}}
+                                <div class="mt-3 space-y-0.5">
+                                    <span class="block text-sm font-bold text-indigo-700">🏬 Prix TTC · aucun frais ajouté</span>
+                                    @if(\App\Support\ComptePro::retraitBoutique($listing->user))
+                                        <span class="block text-xs font-semibold text-emerald-700">Retrait gratuit en boutique</span>
+                                    @endif
+                                    @if(\App\Support\ComptePro::livraison($listing->user))
+                                        @php $plp = \App\Support\ComptePro::prixLivraison($listing->user); @endphp
+                                        <span class="block text-xs text-gray-500">🚚 Livraison par la boutique : {{ $plp > 0 ? number_format($plp, 2, ',', ' ') . ' €' : 'offerte' }}</span>
+                                    @endif
+                                </div>
+                            @elseif($listing->requires_online_payment ?? false)
                                 @php
                                     $canHandDeliv = $listing->allows_hand_delivery ?? $listing->pickup_enabled ?? true;
                                     $canColisDeliv = $listing->allows_colissimo ?? false;
@@ -306,7 +320,9 @@
                             @if($listingOnlinePayable)
                                 <span class="rounded-full bg-teal-50 px-2.5 py-1 text-teal-700">🔒 CB sécurisé</span>
                             @endif
-                            @if($listing->pickup_enabled ?? true)
+                            @if($annoncePro && \App\Support\ComptePro::retraitBoutique($listing->user))
+                                <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700">🏬 Retrait en boutique</span>
+                            @elseif($listing->pickup_enabled ?? true)
                                 <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700">🤝 Main propre</span>
                             @endif
                         </div>
@@ -315,7 +331,12 @@
                         @php
                             $pickupWhere = $listing->hand_delivery_location ?: ($listing->pickup_city ?: null);
                         @endphp
-                        @if(($listing->pickup_enabled ?? true) && ($pickupWhere || $listing->territoire))
+                        @if($annoncePro && \App\Support\ComptePro::retraitBoutique($listing->user))
+                            <div class="mt-3 flex items-start gap-2 rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5 text-sm">
+                                <span class="text-base leading-none">📍</span>
+                                <span class="text-gray-700">Retrait en boutique : <span class="font-semibold text-gray-900">{{ $listing->user->pro_adresse }}</span></span>
+                            </div>
+                        @elseif(($listing->pickup_enabled ?? true) && ($pickupWhere || $listing->territoire))
                             <div class="mt-3 flex items-start gap-2 rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5 text-sm">
                                 <span class="text-base leading-none">📍</span>
                                 <span class="text-gray-700">
@@ -333,6 +354,8 @@
                             $isSold = $listing->status === 'sold';
                             $canBuyOnline = in_array($listing->listing_type, ['achat', 'negoce-prix'], true) && $listing->isOnlinePayable() && $listing->price > 0;
                             $canCash = in_array($listing->listing_type, ['achat', 'negoce-prix'], true) && $listing->allows_hand_delivery && $listing->price > 0;
+                            // Pro payable par carte : la vente passe par Swap’Îles (prix TTC, retrait en boutique).
+                            $canCash = $canCash && ! ($annoncePro && $canBuyOnline);
                             $canOffer = ($listing->allows_offers || $listing->listing_type === 'negoce-prix') && $listing->price > 0;
                             $canExchange = $listing->allows_exchange || $listing->listing_type === 'echange-produits';
                             $canDon = $listing->listing_type === 'don' || $listing->price <= 0;
@@ -656,8 +679,13 @@
                         <script defer src="{{ asset('js/story-partage.js') }}?v={{ @filemtime(public_path('js/story-partage.js')) }}"></script>
                     </div>
 
+                    {{-- Vendeur professionnel : identité et droits de l'acheteur --}}
+                    @if($annoncePro)
+                        @include('partials.pro-mentions', ['pro' => $listing->user])
+                    @endif
+
                     {{-- Protection acheteur --}}
-                    @if($canBuyOnline && !$isSold)
+                    @if($canBuyOnline && !$isSold && ! $annoncePro)
                         <div class="flex gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
                             <div class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-teal-50 text-lg" aria-hidden="true">🛡️</div>
                             <div>
@@ -686,6 +714,9 @@
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <p class="font-semibold text-gray-900 truncate">{{ $vendeur->name }}</p>
+                                        @if($annoncePro)
+                                            <p class="truncate text-xs font-bold text-indigo-700">🏬 Vendeur professionnel · {{ $vendeur->pro_raison_sociale }}</p>
+                                        @endif
                                         <p class="text-sm text-gray-500">⭐ {{ number_format((float) $vendeur->rating, 1, ',', ' ') }} · {{ $vendeur->transactions_count ?? 0 }} transactions</p>
                                         <p class="text-xs font-semibold text-gray-700"><span data-abonnes-de="{{ $vendeur->id }}">{{ number_format($abonnesVendeur, 0, ',', ' ') }} abonné{{ $abonnesVendeur > 1 ? 's' : '' }}</span></p>
                                         <div class="mt-1 flex flex-wrap gap-1.5">@include('partials.badge-reponse', ['vendeur' => $vendeur])@include('partials.remise-lot', ['vendeur' => $vendeur])</div>

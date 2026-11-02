@@ -117,6 +117,9 @@
                     @if($remise > 0)
                         <div class="flex justify-between py-1 text-emerald-700"><span>🎁 Remise lot −{{ $remisePct }} %</span><span class="font-bold">− {{ $euros($remise) }}</span></div>
                     @endif
+                    @if(\App\Support\ComptePro::estPro($vendeur))
+                        <p class="py-1 text-xs font-semibold text-indigo-700">🏬 Vendeur professionnel : prix TTC, sans frais ajoutés.</p>
+                    @else
                     <div class="flex justify-between py-1">
                         <span class="text-gray-500">Protection acheteur 🛡️ <span class="text-xs">(une seule fois)</span></span>
                         @if($protectionOfferte > 0)
@@ -125,6 +128,7 @@
                             <span class="font-semibold">{{ $euros($protection) }}</span>
                         @endif
                     </div>
+                    @endif
                     @if($creditDisponible > 0)
                         <label class="mt-1 flex items-center gap-2 py-1 text-gray-600">
                             <input type="checkbox" name="utiliser_credit" value="1" checked class="rounded text-teal-600">

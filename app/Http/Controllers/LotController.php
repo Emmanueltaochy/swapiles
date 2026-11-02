@@ -107,8 +107,14 @@ class LotController extends Controller
             $partCommercant = min($fraisRelais / 100, max(0.0, (float) config('pricing.relay_merchant_fee', 1.00)));
         }
 
-        $pricing = OrderPricing::make(array_sum($remises), $livraison, $fraisRelais);
-        if (\App\Support\ParrainageService::protectionOfferte($acheteur)) {
+        // Vendeur professionnel : prix affiché = prix payé, commission retenue sur sa part.
+        $vendeurPro = \App\Support\ComptePro::estPro($vendeur) ? $vendeur : null;
+        $tauxPro = $vendeurPro ? \App\Support\ComptePro::taux($vendeurPro) : 0.0;
+
+        $pricing = $vendeurPro
+            ? OrderPricing::pro(array_sum($remises), $livraison, $fraisRelais, $tauxPro, false)
+            : OrderPricing::make(array_sum($remises), $livraison, $fraisRelais);
+        if (! $vendeurPro && \App\Support\ParrainageService::protectionOfferte($acheteur)) {
             $pricing = $pricing->sansProtection();
         }
 
@@ -135,10 +141,14 @@ class LotController extends Controller
         $offertes = Lots::repartir($pricing->protectionOfferteCents(), $remises);
         $credits = Lots::repartir($pricing->creditCents(), array_map(fn ($r, $p) => $r + $p, $remises, $protections));
         $codeRetrait = $methode === 'relay' ? $this->codeRetrait() : null;
+        // Pro : un code de retrait en boutique pour toute la commande.
+        $codeBoutique = $vendeurPro && $methode === 'hand_delivery' ? \App\Support\ComptePro::codeRetrait() : null;
+        // Commission par article (chaque vente garde ses montants).
+        $commissions = array_map(fn ($r) => OrderPricing::pro($r, 0, 0, $tauxPro, false)->commissionCents(), $remises);
 
         [$lot, $transactions] = DB::transaction(function () use (
             $acheteur, $vendeur, $articles, $pct, $prix, $remises, $protections, $offertes, $credits,
-            $livraison, $fraisRelais, $partCommercant, $methode, $validated, $codeRetrait
+            $livraison, $fraisRelais, $partCommercant, $methode, $validated, $codeRetrait, $vendeurPro, $codeBoutique, $commissions
         ) {
             $lot = Lot::create([
                 'buyer_id' => $acheteur->id,
@@ -150,7 +160,7 @@ class LotController extends Controller
 
             $transactions = $articles->values()->map(function (Listing $article, int $i) use (
                 $lot, $acheteur, $vendeur, $remises, $protections, $offertes, $credits,
-                $livraison, $fraisRelais, $partCommercant, $methode, $validated, $codeRetrait
+                $livraison, $fraisRelais, $partCommercant, $methode, $validated, $codeRetrait, $vendeurPro, $codeBoutique, $commissions
             ) {
                 $principal = $i === 0; // la 1re vente porte la livraison
                 $port = $principal ? $livraison : 0;
@@ -163,13 +173,15 @@ class LotController extends Controller
                     'seller_id' => $vendeur->id,
                     'buyer_id' => $acheteur->id,
                     'amount' => $aPayer / 100,
-                    'commission' => 0,
-                    'platform_commission' => 0,
+                    'commission' => $commissions[$i] / 100,
+                    'platform_commission' => $commissions[$i] / 100,
+                    'vendeur_pro' => $vendeurPro !== null,
+                    'code_retrait' => $codeBoutique,
                     'buyer_protection_fee' => $protections[$i] / 100,
                     'protection_offerte' => $offertes[$i] / 100,
                     'credit_utilise' => $credits[$i] / 100,
                     'shipping_fee' => $port / 100,
-                    'seller_amount' => $remises[$i] / 100,
+                    'seller_amount' => ($remises[$i] - $commissions[$i]) / 100,
                     'currency' => 'EUR',
                     'payment_method' => 'cb',
                     'delivery_method' => $methode,
@@ -181,7 +193,7 @@ class LotController extends Controller
                     'shipping_city' => $validated['shipping_city'] ?? null,
                     'shipping_country' => $validated['shipping_country'] ?? null,
                     'hand_delivery_location' => $methode === 'hand_delivery'
-                        ? ($article->hand_delivery_location ?: $article->location_address)
+                        ? ($vendeurPro && filled($vendeurPro->pro_adresse) ? $vendeurPro->pro_adresse : ($article->hand_delivery_location ?: $article->location_address))
                         : null,
                     'relay_point_id' => $methode === 'relay' ? (int) $validated['relay_point_id'] : null,
                     'relay_fee' => $relais / 100,
@@ -263,7 +275,9 @@ class LotController extends Controller
         $pct = Lots::remisePct($vendeur, count($prix));
         $remises = Lots::prixRemises($prix, $pct);
         $protectionOfferte = \App\Support\ParrainageService::protectionOfferte($acheteur);
-        $estimation = OrderPricing::make(array_sum($remises));
+        $estimation = \App\Support\ComptePro::estPro($vendeur)
+            ? OrderPricing::pro(array_sum($remises), 0, 0, \App\Support\ComptePro::taux($vendeur), false)
+            : OrderPricing::make(array_sum($remises));
 
         return [
             'vendeur' => $vendeur,

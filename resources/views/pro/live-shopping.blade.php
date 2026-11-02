@@ -166,8 +166,11 @@
         <h2 class="text-center text-2xl font-extrabold text-gray-900 sm:text-3xl">Tout est inclus</h2>
         <div class="mt-10 grid gap-3 sm:grid-cols-2">
             @foreach([
-                ['🔒', 'Paiement sécurisé', 'Carte bancaire via Stripe. L’argent vous est versé une fois l’article reçu par le client : moins de litiges, plus de confiance.'],
-                ['📦', 'Livraison ou retrait', 'Remise en main propre, points relais partenaires, ou Colissimo vers les autres îles.'],
+                ['🏷️', 'Prix affiché = prix payé', 'Votre client paie exactement votre prix TTC, sans frais ajoutés à la caisse. Notre commission est prise sur votre part, jamais facturée au client.'],
+                ['🔒', 'Paiement sécurisé, versé vite', 'Carte bancaire via Stripe. Vous êtes payé dès le retrait en boutique, ou au plus tard 7 jours après l’envoi.'],
+                ['🏬', 'Retrait en boutique', 'Le client vient chercher son article avec un code : vous le validez, la vente est terminée. Et il repart souvent avec autre chose.'],
+                ['📦', 'Livraison à votre façon', 'Votre propre livraison (à votre prix, ou offerte), Colissimo vers les autres îles, ou points relais partenaires.'],
+                ['🧾', 'Espace pro', 'Vos ventes du mois, la commission, ce qui vous revient, et un bon de commande par vente pour vos factures.'],
                 ['💬', 'Chat et réactions en direct', 'Questions, cœurs, ventes affichées en temps réel : l’ambiance d’un vrai événement.'],
                 ['🛡️', 'Modération', 'Vous masquez un message ou excluez un spectateur en un geste. Signalement et blocage intégrés.'],
                 ['🔔', 'Notifications', 'Vos abonnés sont prévenus avant et au lancement, directement sur leur téléphone.'],

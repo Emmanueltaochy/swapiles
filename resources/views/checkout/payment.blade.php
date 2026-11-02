@@ -68,6 +68,7 @@
                                     <span class="font-semibold text-emerald-700">− {{ number_format($lotRemise, 2, ',', ' ') }} €</span>
                                 </div>
                             @endif
+                            @if(empty($vendeurPro))
                             <div class="flex justify-between">
                                 <span class="text-gray-500">Protection acheteur 🛡️</span>
                                 @if(($protectionOfferte ?? 0) > 0)
@@ -76,11 +77,13 @@
                                     <span class="font-semibold text-teal-700">{{ number_format($buyerProtectionFee ?? 0, 2, ',', ' ') }} €</span>
                                 @endif
                             </div>
+                            @endif
                             <div class="flex justify-between">
                                 <span class="text-gray-500">
                                     @php
                                         $deliveryLabel = match ($deliveryMethod ?? null) {
-                                            'hand_delivery' => 'Remise en main propre',
+                                            'hand_delivery' => empty($vendeurPro) ? 'Remise en main propre' : 'Retrait en boutique 🏬',
+                                            'livraison_pro' => 'Livraison par la boutique 🚚',
                                             'relay' => 'Point relais 🏪',
                                             default => 'Livraison',
                                         };

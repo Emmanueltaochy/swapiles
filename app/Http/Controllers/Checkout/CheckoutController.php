@@ -91,14 +91,39 @@ class CheckoutController extends Controller
                 'itemAmount' => $offer ? (int) $offer->amount : (int) $listing->price,
                 'relayPoints' => $relayPoints,
                 // Parrainage : protection offerte au filleul, crédit du portefeuille.
-                'protectionOfferte' => \App\Support\ParrainageService::protectionOfferte(Auth::user()),
+                'protectionOfferte' => ! \App\Support\ComptePro::annonceDePro($listing) && \App\Support\ParrainageService::protectionOfferte(Auth::user()),
                 'creditDisponible' => \App\Support\Portefeuille::solde(Auth::user()),
+                'vendeurPro' => \App\Support\ComptePro::annonceDePro($listing) ? $listing->user : null,
             ]);
         }
 
         $deliveryMethod = $request->input('delivery_method');
 
-        if ($deliveryMethod === 'colissimo') {
+        // Vendeur professionnel : prix affiché = prix payé, remise choisie par le pro.
+        $vendeurPro = \App\Support\ComptePro::annonceDePro($listing) ? $listing->user : null;
+
+        if ($deliveryMethod === 'livraison_pro') {
+            // Le pro livre lui-même, à son prix (ou offerte).
+            abort_unless($vendeurPro && \App\Support\ComptePro::livraison($vendeurPro), 403);
+
+            $validated = $request->validate([
+                'delivery_method' => ['required', 'in:livraison_pro'],
+                'buyer_full_name' => ['required', 'string', 'max:120'],
+                'buyer_phone' => ['required', 'string', 'max:40'],
+                'shipping_address_line1' => ['required', 'string', 'max:255'],
+                'shipping_address_line2' => ['nullable', 'string', 'max:255'],
+                'shipping_postal_code' => ['required', 'string', 'max:20'],
+                'shipping_city' => ['required', 'string', 'max:120'],
+                'shipping_territory' => ['nullable', 'string', 'max:80'],
+                'shipping_country' => ['nullable', 'string', 'max:80'],
+            ], [
+                'buyer_full_name.required' => 'Le nom complet est obligatoire pour la livraison.',
+                'buyer_phone.required' => 'Le numéro de téléphone est obligatoire pour la livraison.',
+                'shipping_address_line1.required' => 'L’adresse est obligatoire pour la livraison.',
+                'shipping_postal_code.required' => 'Le code postal est obligatoire pour la livraison.',
+                'shipping_city.required' => 'La ville est obligatoire pour la livraison.',
+            ]);
+        } elseif ($deliveryMethod === 'colissimo') {
             abort_unless(($listing->requires_online_payment ?? false) && ($listing->allows_colissimo ?? false), 403);
 
             $validated = $request->validate([
@@ -141,7 +166,12 @@ class CheckoutController extends Controller
                 ]);
             }
         } elseif ($deliveryMethod === 'hand_delivery') {
-            abort_unless(($listing->allows_hand_delivery ?? $listing->pickup_enabled ?? true), 403);
+            // Chez un pro : retrait dans sa boutique (code à présenter).
+            abort_unless(
+                ($vendeurPro && \App\Support\ComptePro::retraitBoutique($vendeurPro))
+                || ($listing->allows_hand_delivery ?? $listing->pickup_enabled ?? true),
+                403
+            );
 
             $validated = $request->validate([
                 'delivery_method' => ['required', 'in:colissimo,hand_delivery,relay'],
@@ -168,6 +198,10 @@ class CheckoutController extends Controller
          | 0 en remise en main propre. En Colissimo : tarif réel (aucun faux prix).
          */
         $shippingEuros = 0.0;
+
+        if ($deliveryMethod === 'livraison_pro') {
+            $shippingEuros = \App\Support\ComptePro::prixLivraison($vendeurPro);
+        }
 
         if ($deliveryMethod === 'colissimo') {
             try {
@@ -211,11 +245,14 @@ class CheckoutController extends Controller
             $relayMerchantFeeEuros = min($relayFeeEuros, max(0.0, (float) config('pricing.relay_merchant_fee', 1.00)));
         }
 
-        $pricing = OrderPricing::fromEuros($itemAmount, $shippingEuros, $relayFeeEuros);
+        $pricing = $vendeurPro
+            ? OrderPricing::proFromEuros($itemAmount, $shippingEuros, $relayFeeEuros, \App\Support\ComptePro::taux($vendeurPro), $deliveryMethod === 'livraison_pro')
+            : OrderPricing::fromEuros($itemAmount, $shippingEuros, $relayFeeEuros);
         $buyer = Auth::user();
 
-        // Parrainage : 1er achat d'un filleul → protection acheteur offerte.
-        if (\App\Support\ParrainageService::protectionOfferte($buyer)) {
+        // Parrainage : 1er achat d'un filleul → protection acheteur offerte
+        // (rien à offrir chez un pro : il n'y a pas de protection ajoutée).
+        if (! $vendeurPro && \App\Support\ParrainageService::protectionOfferte($buyer)) {
             $pricing = $pricing->sansProtection();
         }
 
@@ -245,8 +282,11 @@ class CheckoutController extends Controller
             'buyer_id' => Auth::id(),
             // Montant débité sur la carte (total − crédit éventuel).
             'amount' => $pricing->aPayerEuros(),
-            'commission' => 0,
-            'platform_commission' => 0,
+            // Commission Swap'Îles : 0 entre particuliers, retenue sur la part d'un pro.
+            'commission' => $pricing->commissionEuros(),
+            'platform_commission' => $pricing->commissionEuros(),
+            'vendeur_pro' => $vendeurPro !== null,
+            'code_retrait' => $vendeurPro && $deliveryMethod === 'hand_delivery' ? \App\Support\ComptePro::codeRetrait() : null,
             'buyer_protection_fee' => $pricing->protectionEuros(),
             'protection_offerte' => $pricing->protectionOfferteEuros(),
             'credit_utilise' => $pricing->creditEuros(),
@@ -263,7 +303,7 @@ class CheckoutController extends Controller
             'shipping_city' => $validated['shipping_city'] ?? null,
             'shipping_country' => $validated['shipping_country'] ?? null,
             'hand_delivery_location' => $deliveryMethod === 'hand_delivery'
-                ? ($listing->hand_delivery_location ?: $listing->location_address)
+                ? (($vendeurPro && \App\Support\ComptePro::retraitBoutique($vendeurPro)) ? $vendeurPro->pro_adresse : ($listing->hand_delivery_location ?: $listing->location_address))
                 : null,
             'relay_point_id' => $deliveryMethod === 'relay' ? $relayPoint->id : null,
             'relay_fee' => $pricing->relayFeeEuros(),
@@ -298,7 +338,9 @@ class CheckoutController extends Controller
             $utilise = \App\Support\Portefeuille::utiliser($buyer, $pricing->creditCents(), $transaction);
             if ($utilise !== $pricing->creditCents()) {
                 // Le solde a bougé entre-temps : on recalcule avec ce qui a été pris.
-                $pricing = OrderPricing::fromEuros($itemAmount, $shippingEuros, $relayFeeEuros);
+                $pricing = $vendeurPro
+                    ? OrderPricing::proFromEuros($itemAmount, $shippingEuros, $relayFeeEuros, \App\Support\ComptePro::taux($vendeurPro), $deliveryMethod === 'livraison_pro')
+                    : OrderPricing::fromEuros($itemAmount, $shippingEuros, $relayFeeEuros);
                 if ($transaction->protection_offerte > 0) {
                     $pricing = $pricing->sansProtection();
                 }
@@ -352,6 +394,7 @@ class CheckoutController extends Controller
             'deliveryMethod' => $deliveryMethod,
             'protectionOfferte' => $pricing->protectionOfferteEuros(),
             'creditUtilise' => $pricing->creditEuros(),
+            'vendeurPro' => $vendeurPro,
         ]);
     }
 

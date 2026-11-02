@@ -118,6 +118,23 @@
                         <span class="font-extrabold">{{ number_format($totalPaye, 2, ',', ' ') }} €</span>
                     </div>
 
+                    @if($transaction->vendeur_pro)
+                        {{-- Vente d'un professionnel : prix affiché = prix payé. La
+                             commission ne concerne que le pro. --}}
+                        @if(auth()->id() === $transaction->seller_id)
+                            @php $totalCommission = $lotVentes ? (float) $lotVentes->sum(fn ($v) => (float) $v->commission) : (float) ($transaction->commission ?? 0); @endphp
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Commission Swap’Îles</span>
+                                <span class="font-extrabold">− {{ number_format($totalCommission, 2, ',', ' ') }} €</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Vous recevez</span>
+                                <span class="font-extrabold text-teal-700">{{ number_format($totalVendeur, 2, ',', ' ') }} €</span>
+                            </div>
+                        @else
+                            <p class="text-xs text-gray-500">🏬 Vendu par un professionnel : prix TTC, sans frais ajoutés. <a href="{{ route('transactions.bon-de-commande', $transaction) }}" class="font-semibold text-teal-700 underline">Bon de commande</a></p>
+                        @endif
+                    @else
                     <div class="flex justify-between">
                         <span class="text-gray-500">Protection acheteur</span>
                         <span class="font-extrabold text-teal-700">{{ number_format($totalProtection, 2, ',', ' ') }} €</span>
@@ -127,6 +144,7 @@
                         <span class="text-gray-500">Montant vendeur estimé</span>
                         <span class="font-extrabold">{{ number_format($totalVendeur, 2, ',', ' ') }} €</span>
                     </div>
+                    @endif
                 </div>
             </div>
 
@@ -161,6 +179,48 @@
                         @if($transaction->relayPoint->opening_hours)
                             <p class="mt-1 text-xs text-gray-500">Horaires : {{ $transaction->relayPoint->opening_hours }}</p>
                         @endif
+                    @endif
+                @elseif($transaction->delivery_method === 'livraison_pro')
+                    <p class="text-sm text-gray-600">🚚 Livraison par la boutique</p>
+                    @if($transaction->seller?->pro_livraison_delai)
+                        <p class="mt-1 text-xs text-gray-500">Délai annoncé : {{ $transaction->seller->pro_livraison_delai }}</p>
+                    @endif
+                    @if($transaction->shipping_address_line1)
+                        <div class="mt-3 text-sm text-gray-600">
+                            <p class="font-bold text-gray-900">Adresse de livraison :</p>
+                            <p>{{ $transaction->buyer_full_name }}</p>
+                            <p>{{ $transaction->shipping_address_line1 }}</p>
+                            @if($transaction->shipping_address_line2)<p>{{ $transaction->shipping_address_line2 }}</p>@endif
+                            <p>{{ $transaction->shipping_postal_code }} {{ $transaction->shipping_city }}</p>
+                            @if($transaction->buyer_phone)<p>Tél : {{ $transaction->buyer_phone }}</p>@endif
+                        </div>
+                    @endif
+                @elseif($transaction->vendeur_pro && $transaction->code_retrait)
+                    {{-- Retrait en boutique chez un pro, avec code --}}
+                    <p class="text-sm text-gray-600">🏬 Retrait en boutique</p>
+                    <p class="mt-2 text-sm font-bold text-gray-900">{{ $transaction->seller?->pro_raison_sociale }}</p>
+                    <p class="text-sm text-gray-600">{{ $transaction->hand_delivery_location ?: $transaction->seller?->pro_adresse }}</p>
+                    @if(auth()->id() === $transaction->buyer_id && $transaction->status === 'paid')
+                        <div class="mt-4 rounded-2xl border border-teal-200 bg-white p-4 text-center">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Votre code de retrait</p>
+                            <p class="mt-1 text-3xl font-extrabold tracking-[0.3em] text-teal-700">{{ $transaction->code_retrait }}</p>
+                            <p class="mt-2 text-xs text-gray-500">Présentez ce code en boutique pour récupérer votre article.</p>
+                        </div>
+                    @elseif($transaction->retrait_valide_at)
+                        <p class="mt-3 text-sm font-semibold text-emerald-700">✅ Retiré le {{ $transaction->retrait_valide_at->format('d/m/Y à H:i') }}</p>
+                    @endif
+                    @if(auth()->id() === $transaction->seller_id && $transaction->status === 'paid')
+                        <form method="POST" action="{{ route('transactions.retrait-boutique', $transaction) }}" class="mt-4 space-y-2">
+                            @csrf
+                            <label for="code-retrait" class="block text-sm font-semibold text-gray-700">Code présenté par le client</label>
+                            <div class="flex gap-2">
+                                <input id="code-retrait" name="code" required maxlength="12" autocomplete="off" autocapitalize="characters" placeholder="Ex. K7P2QX"
+                                       class="min-w-0 flex-1 rounded-xl border border-gray-300 px-4 py-2.5 text-center text-lg font-extrabold uppercase tracking-[0.25em] focus:border-teal-500 focus:ring-teal-500">
+                                <button class="shrink-0 rounded-xl bg-teal-700 px-4 py-2.5 font-extrabold text-white hover:bg-teal-800">Valider</button>
+                            </div>
+                            @error('code')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+                            <p class="text-xs text-gray-500">Le paiement vous est versé dès la validation du code.</p>
+                        </form>
                     @endif
                 @else
                     <p class="text-sm text-gray-600">
@@ -237,7 +297,17 @@
                     @endif
                 @endif
 
-                @if(auth()->id() === $transaction->seller_id && $transaction->status === 'paid' && $transaction->delivery_method === 'hand_delivery' && $transaction->shipping_status === 'pending')
+                @if(auth()->id() === $transaction->seller_id && $transaction->status === 'paid' && $transaction->delivery_method === 'livraison_pro' && $transaction->shipping_status === 'pending')
+                    <form method="POST" action="{{ route('transactions.shipped', $transaction) }}">
+                        @csrf
+                        @method('PATCH')
+                        <button class="bg-teal-700 hover:bg-teal-800 text-white font-extrabold rounded-2xl px-5 py-3">
+                            🚚 Marquer comme expédié
+                        </button>
+                    </form>
+                @endif
+
+                @if(auth()->id() === $transaction->seller_id && $transaction->status === 'paid' && $transaction->delivery_method === 'hand_delivery' && ! $transaction->code_retrait && $transaction->shipping_status === 'pending')
                     <form method="POST" action="{{ route('transactions.shipped', $transaction) }}">
                         @csrf
                         @method('PATCH')

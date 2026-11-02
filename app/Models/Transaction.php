@@ -76,6 +76,9 @@ class Transaction extends Model
         'acheteur_confirme_at',
         'acheteur_conteste_at',
         'acheteur_hors_liste',
+        'vendeur_pro',
+        'code_retrait',
+        'retrait_valide_at',
     ];
 
     /**
@@ -109,6 +112,8 @@ class Transaction extends Model
         'acheteur_confirme_at' => 'datetime',
         'acheteur_conteste_at' => 'datetime',
         'acheteur_hors_liste' => 'boolean',
+        'vendeur_pro' => 'boolean',
+        'retrait_valide_at' => 'datetime',
     ];
 
     /** Ventes dont le paiement est passé par Swap'Îles (pas une simple déclaration). */

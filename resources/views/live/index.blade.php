@@ -15,9 +15,9 @@
                 <p class="mt-2 inline-block rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800">🧪 Mode test : visible seulement par vous</p>
             @endunless
         </div>
-        @auth
+        @if(\App\Support\LiveAcces::peutAnimer(auth()->user()))
             <a href="{{ route('live.create') }}" class="shrink-0 whitespace-nowrap rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-800">+ Créer un live</a>
-        @endauth
+        @endif
     </div>
 
     <h2 class="mt-8 mb-3 text-lg font-extrabold text-gray-900">En ce moment</h2>

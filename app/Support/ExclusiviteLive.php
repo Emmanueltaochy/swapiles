@@ -17,7 +17,7 @@ class ExclusiviteLive
 
     public static function disponible(?User $user): bool
     {
-        return LiveAcces::visible($user);
+        return LiveAcces::peutAnimer($user);
     }
 
     /** Dévoilée en direct : l'article passe en ligne et s'achète tout de suite. */

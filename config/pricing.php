@@ -37,4 +37,16 @@ return [
     */
     'relay_fee' => (float) env('PRICING_RELAY_FEE', 3.00),
     'relay_merchant_fee' => (float) env('PRICING_RELAY_MERCHANT_FEE', 1.00),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Vendeurs professionnels (voir App\Support\ComptePro)
+    |--------------------------------------------------------------------------
+    | Prix affiché = prix payé : pas de protection acheteur (le consommateur est
+    | protégé par la loi). Swap'Îles prend une commission sur ce que reçoit le
+    | pro (taux propre au pro possible dans l'admin). Le pro est payé au retrait
+    | en boutique, ou au plus tard N jours après l'envoi.
+    */
+    'pro_commission_rate' => (float) env('PRICING_PRO_COMMISSION_RATE', 0.05),
+    'pro_versement_auto_jours' => (int) env('PRO_VERSEMENT_AUTO_JOURS', 7),
 ];

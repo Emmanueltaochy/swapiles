@@ -18,6 +18,7 @@ class ViewUser extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            \App\Filament\Actions\CompteProAction::make(),
             EditAction::make()->color('gray'),
         ];
     }

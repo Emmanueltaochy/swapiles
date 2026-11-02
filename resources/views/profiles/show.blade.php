@@ -92,6 +92,10 @@
 
                 <div class="min-w-0">
                     <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">{{ $user->name }}</h1>
+                    @if(\App\Support\ComptePro::estPro($user))
+                        <p class="mt-1 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700">🏬 Vendeur professionnel</p>
+                        <p class="mt-1 text-xs text-gray-500">{{ $user->pro_raison_sociale }} · SIRET {{ \App\Support\ComptePro::siret($user->pro_siret) }}@if($user->pro_adresse) · {{ $user->pro_adresse }}@endif</p>
+                    @endif
                     @if($user->bio)
                         <p class="mt-1 max-w-xl whitespace-pre-line break-words text-sm text-gray-700">{{ $user->bio }}</p>
                     @endif

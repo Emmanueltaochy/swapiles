@@ -20,10 +20,14 @@
     $canColissimo = ($listing->requires_online_payment ?? false)
         && ($listing->allows_colissimo ?? false)
         && $sellerHasAddress;
-    $canHandDelivery = ($listing->allows_hand_delivery ?? $listing->pickup_enabled ?? true);
+    // Vendeur professionnel : retrait dans sa boutique et/ou sa propre livraison.
+    $vendeurPro = $vendeurPro ?? null;
+    $proRetrait = $vendeurPro && \App\Support\ComptePro::retraitBoutique($vendeurPro);
+    $proLivraison = $vendeurPro && \App\Support\ComptePro::livraison($vendeurPro);
+    $canHandDelivery = $proRetrait || ($listing->allows_hand_delivery ?? $listing->pickup_enabled ?? true);
     // Main propre présélectionnée par défaut (gratuite ; l'expédition coûte
     // souvent plus cher que l'article en intra-DOM).
-    $defaultDelivery = old('delivery_method', $canHandDelivery ? 'hand_delivery' : ($canColissimo ? 'colissimo' : ''));
+    $defaultDelivery = old('delivery_method', $canHandDelivery ? 'hand_delivery' : ($proLivraison ? 'livraison_pro' : ($canColissimo ? 'colissimo' : '')));
 @endphp
 
 <section class="bg-gray-50 min-h-screen py-8 sm:py-10">
@@ -58,7 +62,12 @@
                             </div>
                             <div class="min-w-0">
                                 <h3 class="font-semibold text-gray-900">{{ $listing->title }}</h3>
-                                <p class="mt-1 text-sm text-gray-500">Vendu par {{ $listing->user->name ?? 'un membre Swap’Îles' }}</p>
+                                @if($vendeurPro)
+                                    <p class="mt-1 text-sm text-gray-500">Vendu par <span class="font-semibold text-gray-700">{{ $vendeurPro->pro_raison_sociale }}</span></p>
+                                    <span class="mt-1 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-700">🏬 Vendeur professionnel</span>
+                                @else
+                                    <p class="mt-1 text-sm text-gray-500">Vendu par {{ $listing->user->name ?? 'un membre Swap’Îles' }}</p>
+                                @endif
                                 @if($offer)
                                     <p class="mt-3 text-xs font-semibold text-emerald-700">✅ Offre acceptée</p>
                                     <p class="text-sm text-gray-400 line-through">{{ number_format($listing->price, 0, ',', ' ') }} €</p>
@@ -72,7 +81,9 @@
                                 <span class="text-gray-500">Prix article</span>
                                 <span class="font-semibold text-gray-900">{{ number_format($itemAmount, 0, ',', ' ') }} €</span>
                             </div>
-                            @if($protectionOfferte ?? false)
+                            @if($vendeurPro)
+                                <p class="text-xs text-gray-500">Prix TTC, sans frais ajoutés. Livraison éventuelle indiquée à l’étape suivante.</p>
+                            @elseif($protectionOfferte ?? false)
                                 <div class="flex justify-between">
                                     <span class="text-gray-500">Protection acheteur 🛡️</span>
                                     <span class="font-semibold text-emerald-700">offerte (parrainage) 🎁</span>
@@ -104,13 +115,32 @@
                                            class="mt-1 text-teal-600 focus:ring-teal-500" @checked($defaultDelivery === 'hand_delivery')>
                                     <span class="min-w-0 flex-1">
                                         <span class="flex items-center justify-between gap-2">
-                                            <span class="font-semibold text-gray-900">🤝 Remise en main propre</span>
+                                            <span class="font-semibold text-gray-900">{{ $proRetrait ? '🏬 Retrait en boutique' : '🤝 Remise en main propre' }}</span>
                                             <span class="shrink-0 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800">Gratuit</span>
                                         </span>
                                         <span class="mt-1 block text-sm text-gray-500">
-                                            Rendez-vous proposé :
-                                            <span class="font-medium text-gray-700">{{ $listing->hand_delivery_location ?: $listing->location_address ?: 'à définir avec le vendeur' }}</span>
+                                            @if($proRetrait)
+                                                <span class="font-medium text-gray-700">{{ $vendeurPro->pro_adresse }}</span><br>Un code de retrait vous sera donné après le paiement.
+                                            @else
+                                                Rendez-vous proposé :
+                                                <span class="font-medium text-gray-700">{{ $listing->hand_delivery_location ?: $listing->location_address ?: 'à définir avec le vendeur' }}</span>
+                                            @endif
                                         </span>
+                                    </span>
+                                </label>
+                            @endif
+
+                            @if($proLivraison)
+                                @php $prixLivPro = \App\Support\ComptePro::prixLivraison($vendeurPro); @endphp
+                                <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-4 transition has-[:checked]:border-teal-500 has-[:checked]:bg-teal-50/40">
+                                    <input type="radio" name="delivery_method" value="livraison_pro" data-delivery
+                                           class="mt-1 text-teal-600 focus:ring-teal-500" @checked($defaultDelivery === 'livraison_pro')>
+                                    <span class="min-w-0 flex-1">
+                                        <span class="flex items-center justify-between gap-2">
+                                            <span class="font-semibold text-gray-900">🚚 Livraison par la boutique</span>
+                                            <span class="shrink-0 rounded-full {{ $prixLivPro > 0 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800' }} px-2.5 py-0.5 text-xs font-bold">{{ $prixLivPro > 0 ? '+' . number_format($prixLivPro, 2, ',', ' ') . ' €' : 'Offerte' }}</span>
+                                        </span>
+                                        <span class="mt-1 block text-sm text-gray-500">Livrée chez vous par {{ $vendeurPro->pro_raison_sociale }}@if($vendeurPro->pro_livraison_delai) · {{ $vendeurPro->pro_livraison_delai }}@endif.</span>
                                     </span>
                                 </label>
                             @endif
@@ -247,9 +277,9 @@
                             @endif
                         @endif
 
-                        {{-- Adresse (affichée seulement si Colissimo) --}}
-                        @if($canColissimo)
-                            <div id="colissimo-address-block" class="space-y-3 rounded-xl border border-gray-100 bg-gray-50 p-4 {{ $defaultDelivery === 'colissimo' ? '' : 'hidden' }}">
+                        {{-- Adresse (affichée seulement pour une livraison) --}}
+                        @if($canColissimo || $proLivraison)
+                            <div id="colissimo-address-block" class="space-y-3 rounded-xl border border-gray-100 bg-gray-50 p-4 {{ in_array($defaultDelivery, ['colissimo', 'livraison_pro'], true) ? '' : 'hidden' }}">
                                 <p class="font-semibold text-gray-900">Informations de livraison</p>
                                 <p class="text-xs text-gray-400">Les champs marqués d'un <span class="text-red-600">*</span> sont obligatoires.</p>
                                 <input type="hidden" name="colissimo_delivery_type" value="home">
@@ -323,6 +353,10 @@
                             </label>
                         @endif
 
+                        @if($vendeurPro)
+                            @include('partials.pro-mentions', ['pro' => $vendeurPro])
+                        @endif
+
                         <button class="w-full rounded-xl bg-teal-600 px-6 py-4 font-semibold text-white shadow-sm transition hover:bg-teal-700 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
                             Continuer vers le paiement
                         </button>
@@ -355,7 +389,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const sync = function () {
             const selected = document.querySelector('[data-delivery]:checked');
             const value = selected ? selected.value : null;
-            if (addressBlock) addressBlock.classList.toggle('hidden', value !== 'colissimo');
+            if (addressBlock) addressBlock.classList.toggle('hidden', value !== 'colissimo' && value !== 'livraison_pro');
             if (relayBlock) relayBlock.classList.toggle('hidden', value !== 'relay');
         };
         // GA4 : choix du mode de livraison (point 11).

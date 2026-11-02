@@ -99,6 +99,7 @@ class UsersTable
                 ViewAction::make(),
                 EditAction::make(),
                 static::demanderNoteAction(),
+                \App\Filament\Actions\CompteProAction::make(),
                 static::toggleBanAction(),
                 static::deleteAndBlockAction(),
             ])

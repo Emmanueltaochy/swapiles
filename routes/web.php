@@ -140,6 +140,7 @@ Route::get('/iles/{territoire}/{categorie}', [\App\Http\Controllers\CatalogContr
 Route::get('/mentions-legales', [\App\Http\Controllers\LegalController::class, 'mentions'])->name('legal.mentions');
 Route::get('/cgu', [\App\Http\Controllers\LegalController::class, 'cgu'])->name('legal.cgu');
 Route::get('/cgv', [\App\Http\Controllers\LegalController::class, 'cgv'])->name('legal.cgv');
+Route::view('/vendeurs-professionnels', 'legal.vendeurs-pro')->name('legal.vendeurs-pro');
 Route::get('/confidentialite', [\App\Http\Controllers\LegalController::class, 'confidentialite'])->name('legal.privacy');
 Route::get('/faq', [\App\Http\Controllers\LegalController::class, 'faq'])->name('faq');
 Route::view('/comment-ca-marche', 'comment-ca-marche')->name('comment-ca-marche');
@@ -182,8 +183,9 @@ Route::prefix('live')->middleware(\App\Http\Middleware\LiveVisible::class)->name
     Route::get('/{live}/jeton', [\App\Http\Controllers\LiveController::class, 'jeton'])->whereNumber('live')->middleware('throttle:30,1')->name('jeton');
 
     Route::middleware('auth')->group(function () {
-        Route::get('/nouveau', [\App\Http\Controllers\LiveController::class, 'create'])->name('create');
-        Route::post('/', [\App\Http\Controllers\LiveController::class, 'store'])->name('store');
+        // Lancer un live : seulement les membres autorisés (voir LiveAcces).
+        Route::get('/nouveau', [\App\Http\Controllers\LiveController::class, 'create'])->middleware(\App\Http\Middleware\LivePeutAnimer::class)->name('create');
+        Route::post('/', [\App\Http\Controllers\LiveController::class, 'store'])->middleware(\App\Http\Middleware\LivePeutAnimer::class)->name('store');
         Route::post('/{live}/demarrer', [\App\Http\Controllers\LiveController::class, 'demarrer'])->name('demarrer');
         Route::post('/{live}/terminer', [\App\Http\Controllers\LiveController::class, 'terminer'])->name('terminer');
         Route::post('/{live}/epingler', [\App\Http\Controllers\LiveController::class, 'epingler'])->name('epingler');
@@ -357,6 +359,10 @@ Route::middleware('auth')->group(function () {
     Route::patch('/transactions/{transaction}/depose-relais', [TransactionWorkflowController::class, 'relayDeposited'])
         ->name('transactions.relay-deposited');
 
+    // Vendeur professionnel : le client présente son code en boutique.
+    Route::post('/transactions/{transaction}/retrait-boutique', [TransactionWorkflowController::class, 'retraitBoutique'])
+        ->middleware('throttle:20,1')->name('transactions.retrait-boutique');
+
     // Espace commerçant (gérant de point relais).
     Route::get('/mon-relais', [\App\Http\Controllers\Account\RelayDashboardController::class, 'index'])
         ->name('account.relay.dashboard');
@@ -414,6 +420,9 @@ Route::post('/offres/{offer}/refuser', [ListingOfferController::class, 'refuse']
 Route::get('/mon-compte/transactions', [TransactionController::class, 'index'])->middleware('auth')->name('account.transactions.index');
 
 Route::get('/mon-compte/transactions/{transaction}', [TransactionDetailController::class, 'show'])->middleware('auth')->name('account.transactions.show');
+// Vendeurs professionnels : ventes du mois, bon de commande de chaque vente.
+Route::get('/mon-compte/ventes-pro', [\App\Http\Controllers\Account\ProController::class, 'ventes'])->middleware('auth')->name('account.pro.ventes');
+Route::get('/mon-compte/transactions/{transaction}/bon-de-commande', [\App\Http\Controllers\Account\ProController::class, 'bonDeCommande'])->middleware('auth')->name('transactions.bon-de-commande');
 // Vente en main propre déclarée par le vendeur : l'acheteur désigné confirme ou conteste.
 Route::patch('/mon-compte/transactions/{transaction}/confirmer-achat', [TransactionDetailController::class, 'confirmerAchat'])->middleware('auth')->name('account.transactions.confirm-purchase');
 Route::patch('/mon-compte/transactions/{transaction}/contester-achat', [TransactionDetailController::class, 'contesterAchat'])->middleware('auth')->name('account.transactions.dispute-purchase');

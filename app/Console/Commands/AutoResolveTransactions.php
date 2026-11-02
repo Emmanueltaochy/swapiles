@@ -47,7 +47,10 @@ class AutoResolveTransactions extends Command
         $transactions = Transaction::query()
             ->where('status', 'paid')
             ->whereNotNull('shipped_at')
-            ->where('shipped_at', '<=', $limit)
+            // Vendeur professionnel : versé plus tôt (par défaut 7 jours après l'envoi).
+            ->where(fn ($q) => $q->where('shipped_at', '<=', $limit)
+                ->orWhere(fn ($p) => $p->where('vendeur_pro', true)
+                    ->where('shipped_at', '<=', now()->subDays(max(1, (int) config('pricing.pro_versement_auto_jours', 7))))))
             // Point relais : la vente se termine au retrait du colis, jamais
             // automatiquement (colis non retiré => délai de garde, voir relais:garde).
             ->where(fn ($q) => $q->where('delivery_method', '!=', 'relay')->orWhereNull('delivery_method'))

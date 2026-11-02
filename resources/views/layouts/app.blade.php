@@ -552,6 +552,9 @@ document.addEventListener('turbo:load', function () {
                         <div class="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
                             <a href="{{ route('account.dashboard') }}" class="block px-4 py-2 hover:bg-gray-50">Tableau de bord</a>
                             <a href="{{ route('account.transactions.index') }}" class="block px-4 py-2 hover:bg-gray-50">Transactions</a>
+                            @if(\App\Support\ComptePro::estPro(auth()->user()))
+                                <a href="{{ route('account.pro.ventes') }}" class="block px-4 py-2 font-semibold text-indigo-700 hover:bg-gray-50">🏬 Mes ventes pro</a>
+                            @endif
                             <a href="/mon-wallet" class="block px-4 py-2 hover:bg-gray-50">Mon argent</a>
                             @if(auth()->user()->managesAnyRelay())
                                 <a href="{{ route('account.relay.dashboard') }}" class="block px-4 py-2 hover:bg-gray-50">🏪 Mon espace relais</a>
@@ -660,6 +663,9 @@ document.addEventListener('turbo:load', function () {
             </a>
             <a href="{{ route('account.recommendations') }}" class="{{ $menuLien }}"><span>✨ Pour vous</span></a>
             <a href="{{ route('account.transactions.index') }}" class="{{ $menuLien }}"><span>📦 Mes transactions</span></a>
+            @if(\App\Support\ComptePro::estPro(auth()->user()))
+                <a href="{{ route('account.pro.ventes') }}" class="{{ $menuLien }}"><span>🏬 Mes ventes pro</span></a>
+            @endif
             <a href="/mon-wallet" class="{{ $menuLien }}"><span>💶 Mon argent</span></a>
             <a href="{{ route('account.notifications.preferences') }}" class="{{ $menuLien }}"><span>🔇 Préférences de notification</span></a>
             <a href="{{ route('account.settings') }}" class="{{ $menuLien }}"><span>⚙️ Réglages</span></a>

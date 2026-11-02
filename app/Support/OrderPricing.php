@@ -28,7 +28,36 @@ class OrderPricing
         public readonly int $protectionOfferteCents = 0,
         // Crédit du portefeuille déduit du total (payé par Swap'Îles).
         public readonly int $creditCents = 0,
+        // Vendeur professionnel : commission Swap'Îles retenue sur sa part.
+        public readonly int $commissionCents = 0,
+        // Vendeur professionnel qui livre lui-même : la livraison lui revient.
+        public readonly int $livraisonVendeurCents = 0,
     ) {
+    }
+
+    /**
+     * Vente d'un PROFESSIONNEL (voir ComptePro) : prix affiché = prix payé.
+     *   protection = 0 (le client d'un pro est protégé par la loi)
+     *   commission = round(prix × taux, au centime, HALF_UP), retenue sur la part du pro
+     *   total = prix + livraison (+ frais de point relais)
+     *   pro = prix − commission (+ livraison s'il livre lui-même)
+     */
+    public static function pro(int $itemCents, int $shippingCents, int $relayFeeCents, float $taux, bool $livraisonAuVendeur): self
+    {
+        $itemCents = max(0, $itemCents);
+        $shippingCents = max(0, $shippingCents);
+        $relayFeeCents = max(0, $relayFeeCents);
+        $taux = max(0.0, min(1.0, $taux));
+
+        $commission = self::eurosToCents(round(($itemCents / 100) * $taux, 2, PHP_ROUND_HALF_UP));
+        $commission = max(0, min($itemCents, $commission));
+
+        return new self($itemCents, 0, $shippingCents, $relayFeeCents, 0, 0, $commission, $livraisonAuVendeur ? $shippingCents : 0);
+    }
+
+    public static function proFromEuros(float $itemEuros, float $shippingEuros, float $relayFeeEuros, float $taux, bool $livraisonAuVendeur): self
+    {
+        return self::pro(self::eurosToCents($itemEuros), self::eurosToCents($shippingEuros), self::eurosToCents($relayFeeEuros), $taux, $livraisonAuVendeur);
     }
 
     /**
@@ -37,7 +66,7 @@ class OrderPricing
      */
     public function sansProtection(): self
     {
-        return new self($this->itemCents, 0, $this->shippingCents, $this->relayFeeCents, $this->protectionCents + $this->protectionOfferteCents, 0);
+        return new self($this->itemCents, 0, $this->shippingCents, $this->relayFeeCents, $this->protectionCents + $this->protectionOfferteCents, 0, $this->commissionCents, $this->livraisonVendeurCents);
     }
 
     /**
@@ -49,7 +78,7 @@ class OrderPricing
         $minimum = (int) config('referral.paiement_minimum_centimes', 50);
         $credit = max(0, min($disponibleCents, $this->totalCents() - $minimum));
 
-        return new self($this->itemCents, $this->protectionCents, $this->shippingCents, $this->relayFeeCents, $this->protectionOfferteCents, $credit);
+        return new self($this->itemCents, $this->protectionCents, $this->shippingCents, $this->relayFeeCents, $this->protectionOfferteCents, $credit, $this->commissionCents, $this->livraisonVendeurCents);
     }
 
     public function protectionOfferteCents(): int
@@ -149,15 +178,24 @@ class OrderPricing
         return $this->itemCents + $this->protectionCents + $this->shippingCents + $this->relayFeeCents;
     }
 
-    /** Commission vendeur = 0 -> le vendeur touche exactement le prix de l'article. */
+    /**
+     * Commission vendeur : 0 entre particuliers (le vendeur touche exactement
+     * le prix de l'article) ; pour un pro, la commission Swap'Îles.
+     */
     public function commissionCents(): int
     {
-        return 0;
+        return $this->commissionCents;
     }
 
+    /** Part du vendeur : prix − commission (+ livraison s'il livre lui-même). */
     public function sellerCents(): int
     {
-        return $this->itemCents;
+        return $this->itemCents - $this->commissionCents + $this->livraisonVendeurCents;
+    }
+
+    public function commissionEuros(): float
+    {
+        return $this->commissionCents / 100;
     }
 
     /** Remboursement acheteur en cas d'annulation : prix + protection (intégral). */

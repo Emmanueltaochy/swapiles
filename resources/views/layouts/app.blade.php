@@ -1115,39 +1115,6 @@ document.addEventListener('DOMContentLoaded', function () {
     })();
 </script>
 
-{{-- Ancienne version de l'appli : bandeau « Mettre à jour ». La version 1.0.1
-     et les suivantes s'annoncent avec « SwapilesApp » ; les anciennes non. --}}
-<div id="swp-maj-appli" hidden
-     data-ios="{{ config('deeplinks.stores.ios') }}"
-     data-android="https://play.google.com/store/apps/details?id={{ config('deeplinks.android.package', 'com.swapiles.app') }}"
-     class="fixed inset-x-3 z-50 rounded-2xl bg-teal-700 p-3 text-white shadow-2xl" style="bottom:calc(84px + env(safe-area-inset-bottom))" role="status">
-    <div class="flex items-center gap-3">
-        <span class="text-2xl" aria-hidden="true">🎉</span>
-        <div class="min-w-0 flex-1">
-            <p class="text-sm font-extrabold">Nouvelle version de l’appli</p>
-            <p class="text-xs text-teal-50">Lives, messages instantanés, appli plus rapide.</p>
-        </div>
-        <a data-maj-lien href="#" class="shrink-0 rounded-xl bg-white px-3 py-2 text-sm font-extrabold text-teal-800">Mettre à jour</a>
-        <button type="button" data-maj-fermer class="grid h-8 w-8 shrink-0 place-items-center rounded-full text-teal-50 hover:bg-white/10" aria-label="Plus tard">✕</button>
-    </div>
-</div>
-<script>
-(function () {
-    var b = document.getElementById('swp-maj-appli');
-    var cap = window.Capacitor;
-    if (!b || !cap || typeof cap.isNativePlatform !== 'function' || !cap.isNativePlatform()) return;
-    if (navigator.userAgent.indexOf('SwapilesApp') !== -1) return; // déjà à jour
-    // « Plus tard » : on le remontre 3 jours après.
-    try { var plusTard = parseInt(localStorage.getItem('swp-maj-plus-tard') || '0', 10); if (Date.now() - plusTard < 3 * 864e5) return; } catch (e) {}
-    var android = typeof cap.getPlatform === 'function' && cap.getPlatform() === 'android';
-    b.querySelector('[data-maj-lien]').href = android ? b.dataset.android : b.dataset.ios;
-    b.hidden = false;
-    b.querySelector('[data-maj-fermer]').addEventListener('click', function () {
-        b.hidden = true;
-        try { localStorage.setItem('swp-maj-plus-tard', String(Date.now())); } catch (e) {}
-    });
-})();
-</script>
 @auth
     @if(\App\Support\NoteAppli::natifDu(auth()->user()))
         <div id="swp-note-natif" hidden data-url="{{ route('app.noter.natif') }}"></div>

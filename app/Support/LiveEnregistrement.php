@@ -36,12 +36,14 @@ class LiveEnregistrement
                 ->post(LiveKit::api() . '/twirp/livekit.Egress/' . $methode, $corps);
         } catch (\Throwable $e) {
             Log::warning('Live : ' . $methode . ' injoignable', ['erreur' => mb_substr($e->getMessage(), 0, 300)]);
+            self::noter($methode, 'injoignable', null);
 
             return null;
         }
 
         if (! $reponse->successful()) {
             Log::warning('Live : échec ' . $methode, ['statut' => $reponse->status(), 'reponse' => mb_substr($reponse->body(), 0, 500)]);
+            self::noter($methode, 'echec', $reponse->status(), (string) ($reponse->json('code') ?? ''));
 
             return null;
         }
@@ -49,10 +51,37 @@ class LiveEnregistrement
         return $reponse->json();
     }
 
+    /**
+     * Dernier événement de l'enregistrement, pour le diagnostic de déploiement
+     * (dépôt public) : jamais de message d'erreur, seulement le statut HTTP et
+     * le code technique du service vidéo (ex. « permission_denied »).
+     */
+    public static function noter(string $etape, string $resultat, ?int $statut = null, string $code = ''): void
+    {
+        try {
+            \Illuminate\Support\Facades\Cache::put('live:enregistrement:dernier', [
+                'quand' => now()->format('Y-m-d H:i'),
+                'etape' => $etape,
+                'resultat' => $resultat,
+                'statut' => $statut,
+                'code' => preg_replace('/[^a-z_]/', '', mb_strtolower($code)),
+            ], now()->addDays(30));
+        } catch (\Throwable $e) {
+            // Le diagnostic ne doit jamais gêner le live.
+        }
+    }
+
     /** Lance l'enregistrement (une seule fois par live). */
     public static function demarrer(LiveSession $live): bool
     {
-        if (! self::configure() || ! $live->enDirect()) {
+        if (! self::configure()) {
+            self::noter('demarrer', 'non_configure');
+
+            return false;
+        }
+        if (! $live->enDirect()) {
+            self::noter('demarrer', 'pas_en_direct');
+
             return false;
         }
         if ($live->enregistrement_id) {
@@ -80,8 +109,13 @@ class LiveEnregistrement
 
         $id = $info['egress_id'] ?? $info['egressId'] ?? null;
         if (! $id) {
+            if ($info !== null) {
+                self::noter('demarrer', 'sans_identifiant');
+            }
+
             return false;
         }
+        self::noter('demarrer', 'ok');
 
         // Début de la vidéo : sert à replacer chat et cœurs dans le replay.
         $live->forceFill(['enregistrement_id' => $id, 'replay_chemin' => $chemin, 'enregistrement_debut_at' => now()])->saveQuietly();

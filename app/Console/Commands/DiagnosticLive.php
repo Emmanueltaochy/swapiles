@@ -34,6 +34,12 @@ class DiagnosticLive extends Command
                 . ' | replay : ' . ($l->replay_supprime_at ? 'supprimé' : ($l->replay_publie_at ? 'publié' : ($l->replay_chemin ? 'en attente du choix' : 'aucun'))));
         });
 
+        $dernier = \Illuminate\Support\Facades\Cache::get('live:enregistrement:dernier');
+        $this->line('Dernière demande d’enregistrement : ' . ($dernier
+            ? $dernier['quand'] . ' | ' . $dernier['etape'] . ' → ' . $dernier['resultat']
+                . ($dernier['statut'] ? ' | HTTP ' . $dernier['statut'] : '') . ($dernier['code'] ? ' | code ' . $dernier['code'] : '')
+            : 'aucune depuis la mise en place du suivi (la page du live ne l’a pas demandée)'));
+
         // Échecs notés par LiveEnregistrement::appeler (statut et code seulement).
         $echecs = [];
         foreach (array_slice(glob(storage_path('logs/*.log')) ?: [], -3) as $fichier) {

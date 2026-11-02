@@ -773,7 +773,14 @@
             if (racine.dataset.enregistrerUrl) {
                 fetch(racine.dataset.enregistrerUrl, { method: 'POST', credentials: 'same-origin', headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } })
                     .then(function (r) { return r.json(); })
-                    .then(function (j) { if (j.enregistre) { var rec = racine.querySelector('[data-rec]'); if (rec) rec.classList.remove('hidden'); } })
+                    .then(function (j) {
+                        var rec = racine.querySelector('[data-rec]');
+                        if (!rec) return;
+                        if (j && j.enregistre) { rec.classList.remove('hidden'); return; }
+                        // Le vendeur sait tout de suite qu'il n'y aura pas de replay.
+                        rec.textContent = '⚠️ Non enregistré';
+                        rec.classList.remove('hidden');
+                    })
                     .catch(function () {});
             }
             outils.querySelector('[data-retourner]').onclick = function () {

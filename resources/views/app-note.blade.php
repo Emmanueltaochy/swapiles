@@ -9,10 +9,25 @@
         <p class="text-5xl" aria-hidden="true">⭐⭐⭐⭐⭐</p>
         <h1 class="mt-5 text-3xl font-extrabold">Merci de noter Swap’Îles</h1>
         <p class="mt-3 text-teal-50/90">Votre avis aide d’autres habitants des îles à découvrir l’appli.</p>
+        @if(!empty($natif))
+            <p id="note-natif-merci" class="mt-6 hidden font-semibold text-teal-50">Merci 🙏 La fenêtre de notation s’ouvre…</p>
+        @endif
         <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <a href="{{ $ios }}" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-black px-6 py-3.5 font-bold text-white shadow-lg">🍎 Noter sur l’App Store</a>
             <a href="{{ $android }}" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3.5 font-bold text-gray-900 shadow-lg">▶ Noter sur Google Play</a>
         </div>
     </div>
 </section>
+@if(!empty($natif))
+<script>
+    // Dans l'appli : la fenêtre officielle d'Apple / Google, sans quitter
+    // l'appli. Les boutons des stores restent là en secours.
+    setTimeout(function () {
+        if (window.swpNoteNatif && window.swpNoteNatif()) {
+            var m = document.getElementById('note-natif-merci');
+            if (m) m.classList.remove('hidden');
+        }
+    }, 400);
+</script>
+@endif
 @endsection

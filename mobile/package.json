@@ -12,6 +12,7 @@
     "assets": "capacitor-assets generate --iconBackgroundColor '#10665E' --iconBackgroundColorDark '#10665E' --splashBackgroundColor '#10665E' --splashBackgroundColorDark '#10665E'"
   },
   "dependencies": {
+    "@capacitor-community/in-app-review": "7.1.0",
     "@capacitor/android": "^7.0.0",
     "@capacitor/app": "^7.0.0",
     "@capacitor/core": "^7.0.0",

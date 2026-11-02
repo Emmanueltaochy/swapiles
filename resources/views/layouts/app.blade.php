@@ -1109,5 +1109,47 @@ document.addEventListener('DOMContentLoaded', function () {
     })();
 </script>
 
+@auth
+    @if(\App\Support\NoteAppli::natifDu(auth()->user()))
+        <div id="swp-note-natif" hidden data-url="{{ route('app.noter.natif') }}"></div>
+    @endif
+@endauth
+<script>
+(function () {
+    // Fenêtre de notation intégrée (App Store / Google Play), sans quitter
+    // l'appli. Proposée seulement après un moment heureux (avis 4-5 étoiles
+    // laissé ou reçu), jamais plus d'une fois tous les 4 mois. Sur le site
+    // web, ou dans une ancienne version de l'appli, rien ne se passe.
+    if (window.swpNoteNatif) return;
+
+    window.swpNoteNatif = function () {
+        var cap = window.Capacitor;
+        var plugin = cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform() && cap.Plugins && cap.Plugins.InAppReview;
+        if (!plugin || typeof plugin.requestReview !== 'function') return false;
+        try { Promise.resolve(plugin.requestReview()).catch(function () {}); } catch (e) { return false; }
+        return true;
+    };
+
+    var fait = false;
+    function verifier() {
+        var el = document.getElementById('swp-note-natif');
+        if (!el || fait) return;
+        fait = true;
+        // On laisse la page s'afficher (message « merci pour votre avis »…).
+        setTimeout(function () {
+            if (!window.swpNoteNatif()) { fait = false; return; }
+            var jeton = document.querySelector('meta[name="csrf-token"]');
+            fetch(el.getAttribute('data-url'), {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'X-CSRF-TOKEN': jeton ? jeton.content : '', 'X-Requested-With': 'XMLHttpRequest' }
+            }).catch(function () {});
+        }, 2500);
+    }
+
+    document.addEventListener('turbo:load', verifier);
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', verifier); } else { verifier(); }
+})();
+</script>
 </body>
 </html>

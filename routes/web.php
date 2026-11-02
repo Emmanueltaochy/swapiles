@@ -151,6 +151,7 @@ Route::get('/installer', \App\Http\Controllers\AppLienController::class);
 Route::get('/install', \App\Http\Controllers\AppLienController::class);
 Route::get('/telecharger', \App\Http\Controllers\AppLienController::class);
 Route::get('/noter', \App\Http\Controllers\AppNoteController::class)->name('app.noter');
+Route::post('/noter/natif', [\App\Http\Controllers\AppNoteController::class, 'natif'])->middleware(['auth', 'throttle:10,1'])->name('app.noter.natif');
 Route::get('/invite/{code}', [\App\Http\Controllers\ParrainageController::class, 'invite'])
     ->where('code', '[A-Za-z0-9]{2,20}')->middleware('throttle:60,1')->name('parrainage.invite');
 Route::get('/conditions-parrainage', [\App\Http\Controllers\ParrainageController::class, 'conditions'])->name('parrainage.conditions');

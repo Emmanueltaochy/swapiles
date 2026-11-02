@@ -24,6 +24,45 @@ class NoteAppli
         };
     }
 
+    /** Fenêtre intégrée : pas plus d'une fois tous les 4 mois (Apple limite aussi à 3 par an). */
+    public const NATIF_DELAI_JOURS = 120;
+
+    /** Un moment heureux reste « à proposer » pendant 14 jours. */
+    public const NATIF_VALIDITE_JOURS = 14;
+
+    /**
+     * Moment heureux (avis de 4 ou 5 étoiles laissé ou reçu) : la fenêtre de
+     * notation de l'appli s'ouvrira à sa prochaine visite dans l'appli.
+     * On ne demande jamais « vous aimez l'appli ? » avant : Apple et Google
+     * interdisent de trier les membres contents.
+     */
+    public static function momentHeureux(?User $membre): void
+    {
+        if (! $membre || $membre->is_banned) {
+            return;
+        }
+        if ($membre->note_native_at && $membre->note_native_at->gt(now()->subDays(self::NATIF_DELAI_JOURS))) {
+            return;
+        }
+
+        $membre->forceFill(['note_native_due_at' => now()])->saveQuietly();
+    }
+
+    /** La fenêtre doit-elle s'ouvrir pour ce membre (dans l'appli) ? */
+    public static function natifDu(?User $membre): bool
+    {
+        return $membre
+            && $membre->note_native_due_at
+            && $membre->note_native_due_at->gt(now()->subDays(self::NATIF_VALIDITE_JOURS))
+            && ! ($membre->note_native_at && $membre->note_native_at->gt(now()->subDays(self::NATIF_DELAI_JOURS)));
+    }
+
+    /** La fenêtre vient d'être proposée. */
+    public static function natifPropose(User $membre): void
+    {
+        $membre->forceFill(['note_native_at' => now(), 'note_native_due_at' => null])->saveQuietly();
+    }
+
     /** Envoie la demande ; false si le membre est banni ou a déjà été sollicité récemment. */
     public static function demander(User $membre): bool
     {

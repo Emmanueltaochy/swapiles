@@ -143,6 +143,16 @@ Route::get('/cgv', [\App\Http\Controllers\LegalController::class, 'cgv'])->name(
 Route::get('/confidentialite', [\App\Http\Controllers\LegalController::class, 'confidentialite'])->name('legal.privacy');
 Route::get('/faq', [\App\Http\Controllers\LegalController::class, 'faq'])->name('faq');
 Route::view('/comment-ca-marche', 'comment-ca-marche')->name('comment-ca-marche');
+// Présentation du live shopping aux professionnels : lien envoyé à la main,
+// absente des menus, du plan du site et de Google (noindex).
+Route::get('/pro/live-shopping', function () {
+    $chiffres = \Illuminate\Support\Facades\Cache::remember('pro:live-shopping:chiffres', 600, fn () => [
+        'membres' => \App\Models\User::count(),
+        'annonces' => \App\Models\Listing::where('status', 'published')->count(),
+    ]);
+
+    return view('pro.live-shopping', $chiffres);
+})->name('pro.live-shopping');
 Route::get('/meilleurs-dressings', [\App\Http\Controllers\LeaderboardController::class, 'index'])->name('dressings.top');
 // Parrainage (désactivé par défaut : REFERRAL_ENABLED ; admins et testeurs en avance).
 // Lien unique vers l'appli (bio Instagram, affiches) : le bon store selon le téléphone.

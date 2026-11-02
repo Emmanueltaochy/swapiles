@@ -138,4 +138,12 @@ class MessagerieDirectEtAcheteurTest extends TestCase
     {
         $this->artisan('live:diagnostic')->expectsOutputToContain('Enregistrement des replays configuré')->assertExitCode(0);
     }
+
+    public function test_page_pro_live_shopping_cachee_de_google(): void
+    {
+        $this->get('/pro/live-shopping')->assertOk()
+            ->assertSee('Vendez en direct', false)
+            ->assertSee('noindex, nofollow', false);
+        $this->get('/sitemap.xml')->assertDontSee('live-shopping');
+    }
 }

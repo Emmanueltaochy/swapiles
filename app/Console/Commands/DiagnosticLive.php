@@ -23,6 +23,8 @@ class DiagnosticLive extends Command
         $oui = fn ($v) => filled($v) ? 'oui' : 'NON';
         $r = config('live.replay');
 
+        $this->line('Lives ouverts à tous : ' . (config('live.ouvert_a_tous') ? 'OUI (tout le monde peut regarder et animer)' : 'non (admins et testeurs seulement)')
+            . ' | testeurs listés : ' . count((array) config('live.testeurs', [])));
         $this->line('Service vidéo (LiveKit) configuré : ' . (LiveKit::configure() ? 'oui' : 'NON'));
         $this->line('Enregistrement des replays configuré : ' . (LiveEnregistrement::configure() ? 'oui' : 'NON')
             . ' (clé ' . $oui($r['cle'] ?? null) . ', secret ' . $oui($r['secret'] ?? null) . ', espace ' . $oui($r['bucket'] ?? null)

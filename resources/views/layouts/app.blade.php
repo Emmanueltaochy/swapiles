@@ -1119,7 +1119,7 @@ document.addEventListener('DOMContentLoaded', function () {
      et les suivantes s'annoncent avec « SwapilesApp » ; les anciennes non.
      Seulement sur les plateformes où la nouvelle version est publiée
      (data-plateformes) : Android d'abord, iPhone une fois validé par Apple. --}}
-<div id="swp-maj-appli" hidden data-plateformes="android"
+<div id="swp-maj-appli" hidden data-plateformes="android,ios"
      data-ios="{{ config('deeplinks.stores.ios') }}"
      data-android="https://play.google.com/store/apps/details?id={{ config('deeplinks.android.package', 'com.swapiles.app') }}"
      class="fixed inset-x-3 z-50 rounded-2xl bg-teal-700 p-3 text-white shadow-2xl" style="bottom:calc(84px + env(safe-area-inset-bottom))" role="status">

@@ -120,7 +120,7 @@ class NoteAppliTest extends TestCase
     public function test_bandeau_mise_a_jour_android_seulement(): void
     {
         $html = $this->get('/')->assertOk()->getContent();
-        $this->assertStringContainsString('id="swp-maj-appli" hidden data-plateformes="android"', $html, 'iPhone : pas avant la validation d’Apple.');
+        $this->assertStringContainsString('id="swp-maj-appli" hidden data-plateformes="android,ios"', $html, 'Version 1.0.1 publiée sur les deux stores.');
         $this->assertStringContainsString('play.google.com/store/apps/details?id=com.swapiles.app', $html);
     }
 }

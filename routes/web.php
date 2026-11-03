@@ -154,6 +154,23 @@ Route::get('/pro/live-shopping', function () {
 
     return view('pro.live-shopping', $chiffres);
 })->name('pro.live-shopping');
+// Présentation aux collectivités et services de l'État (réemploi, pouvoir
+// d'achat) : lien envoyé à la main, hors menus, plan du site et Google.
+Route::get('/collectivites', function () {
+    $chiffres = \Illuminate\Support\Facades\Cache::remember('institutions:reemploi:chiffres', 600, function () {
+        $enLigne = fn () => \App\Models\Listing::where('status', 'published');
+
+        return [
+            'membres' => \App\Models\User::count(),
+            'annonces' => $enLigne()->count(),
+            'dons' => $enLigne()->where(fn ($q) => $q->where('listing_type', 'don')->orWhere('price', '<=', 0))->count(),
+            'echanges' => $enLigne()->where(fn ($q) => $q->where('listing_type', 'echange-produits')->orWhere('allows_exchange', true))->count(),
+            'impact' => \App\Support\ImpactReemploi::bilan()['total'],
+        ];
+    });
+
+    return view('institutions.reemploi', $chiffres);
+})->name('institutions.reemploi');
 Route::get('/meilleurs-dressings', [\App\Http\Controllers\LeaderboardController::class, 'index'])->name('dressings.top');
 // Parrainage (désactivé par défaut : REFERRAL_ENABLED ; admins et testeurs en avance).
 // Lien unique vers l'appli (bio Instagram, affiches) : le bon store selon le téléphone.

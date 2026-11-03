@@ -146,4 +146,19 @@ class MessagerieDirectEtAcheteurTest extends TestCase
             ->assertSee('noindex, nofollow', false);
         $this->get('/sitemap.xml')->assertDontSee('live-shopping');
     }
+
+    public function test_page_collectivites(): void
+    {
+        $lea = $this->membre('Lea');
+        \App\Models\Listing::create([
+            'user_id' => $lea->id, 'title' => 'Poussette', 'description' => 'Description de test assez longue.', 'price' => 0,
+            'status' => 'published', 'listing_type' => 'don', 'territoire' => 'La Réunion',
+        ]);
+
+        $this->get('/collectivites')->assertOk()
+            ->assertSee('Le réemploi, au service du pouvoir d’achat', false)
+            ->assertSee('objets à donner gratuitement', false)
+            ->assertSee('noindex, nofollow', false);
+        $this->get('/sitemap.xml')->assertDontSee('collectivites');
+    }
 }

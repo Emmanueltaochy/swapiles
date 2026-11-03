@@ -67,8 +67,8 @@
                 <select name="territoire" class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
                     <option value="">Non renseigné</option>
                     <option value="La Réunion" @selected(old('territoire', $user->territoire) === 'La Réunion')>🇷🇪 La Réunion</option>
-                    <option value="Martinique" @selected(old('territoire', $user->territoire) === 'Martinique')>🇲🇶 Martinique</option>
                     <option value="Guadeloupe" @selected(old('territoire', $user->territoire) === 'Guadeloupe')>🇬🇵 Guadeloupe</option>
+                    <option value="Martinique" @selected(old('territoire', $user->territoire) === 'Martinique')>🇲🇶 Martinique</option>
                     <option value="Guyane" @selected(old('territoire', $user->territoire) === 'Guyane')>🇬🇫 Guyane</option>
                     <option value="Mayotte" @selected(old('territoire', $user->territoire) === 'Mayotte')>🇾🇹 Mayotte</option>
                 </select>

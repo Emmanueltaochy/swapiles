@@ -5,7 +5,7 @@
 
 @section('content')
 @php
-    $drapeaux = ['La Réunion' => '🇷🇪', 'Guyane' => '🇬🇫', 'Martinique' => '🇲🇶', 'Guadeloupe' => '🇬🇵', 'Mayotte' => '🇾🇹'];
+    $drapeaux = ['La Réunion' => '🇷🇪', 'Guadeloupe' => '🇬🇵', 'Martinique' => '🇲🇶', 'Guyane' => '🇬🇫', 'Mayotte' => '🇾🇹'];
     $membre = auth()->user();
     $aLIle = ['La Réunion' => 'à La Réunion', 'Mayotte' => 'à Mayotte', 'Martinique' => 'en Martinique', 'Guadeloupe' => 'en Guadeloupe', 'Guyane' => 'en Guyane'][$ile] ?? 'sur votre île';
     $champ = 'w-full rounded-xl border px-4 py-3 text-base outline-none focus:ring-2 focus:ring-teal-100';

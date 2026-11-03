@@ -29,14 +29,14 @@ class TerritoireContext
     public const DUREE_MINUTES = 60 * 24 * 365;
 
     /** Libellés stockés en base (colonne territoire), dans l'ordre d'affichage. */
-    public const LABELS = ['La Réunion', 'Guyane', 'Martinique', 'Guadeloupe', 'Mayotte'];
+    public const LABELS = ['La Réunion', 'Guadeloupe', 'Martinique', 'Guyane', 'Mayotte'];
 
     /** Clé d'URL (/territoire/{clé}) => libellé stocké. */
     public const CLES = [
         'reunion' => 'La Réunion',
-        'guyane' => 'Guyane',
-        'martinique' => 'Martinique',
         'guadeloupe' => 'Guadeloupe',
+        'martinique' => 'Martinique',
+        'guyane' => 'Guyane',
         'mayotte' => 'Mayotte',
     ];
 

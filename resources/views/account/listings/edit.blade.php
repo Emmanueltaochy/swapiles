@@ -353,8 +353,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     <label class="block text-sm font-bold text-gray-800 mb-2">Territoire</label>
                     <select name="territoire" required class="w-full rounded-2xl bg-gray-100 border-0 px-4 py-3 focus:ring-2 focus:ring-teal-600">
                         <option value="La Réunion" @selected(old('territoire', $listing->territoire ?? 'La Réunion') === 'La Réunion')>🇷🇪 La Réunion</option>
-                        <option value="Martinique" @selected(old('territoire', $listing->territoire) === 'Martinique')>🇲🇶 Martinique</option>
                         <option value="Guadeloupe" @selected(old('territoire', $listing->territoire) === 'Guadeloupe')>🇬🇵 Guadeloupe</option>
+                        <option value="Martinique" @selected(old('territoire', $listing->territoire) === 'Martinique')>🇲🇶 Martinique</option>
                         <option value="Guyane" @selected(old('territoire', $listing->territoire) === 'Guyane')>🇬🇫 Guyane</option>
                         <option value="Mayotte" @selected(old('territoire', $listing->territoire) === 'Mayotte')>🇾🇹 Mayotte</option>
                     </select>

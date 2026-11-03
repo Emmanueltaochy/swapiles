@@ -56,8 +56,8 @@
                 @php
                     $territoiresInscription = [
                         'La Réunion' => '🇷🇪 La Réunion',
-                        'Martinique' => '🇲🇶 La Martinique',
                         'Guadeloupe' => '🇬🇵 La Guadeloupe',
+                        'Martinique' => '🇲🇶 La Martinique',
                         'Guyane' => '🇬🇫 La Guyane',
                         'Mayotte' => '🇾🇹 Mayotte',
                     ];

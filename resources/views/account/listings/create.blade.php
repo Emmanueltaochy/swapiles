@@ -22,7 +22,7 @@
 
     // Par défaut, l'annonce est sur l'île du profil (là où se trouve l'article).
     $profileTerritoire = auth()->user()?->territoire ?: request()->cookie('swapiles_territoire', 'La Réunion');
-    $allIslands = ['La Réunion' => '🇷🇪', 'Martinique' => '🇲🇶', 'Guadeloupe' => '🇬🇵', 'Guyane' => '🇬🇫', 'Mayotte' => '🇾🇹'];
+    $allIslands = ['La Réunion' => '🇷🇪', 'Guadeloupe' => '🇬🇵', 'Martinique' => '🇲🇶', 'Guyane' => '🇬🇫', 'Mayotte' => '🇾🇹'];
     $oldAlso = (array) old('also_territoires', isset($listing) ? ($listing->also_territoires ?? []) : []);
 
     $territoireCookie = request('territoire', request()->cookie('swapiles_territoire', 'La Réunion'));

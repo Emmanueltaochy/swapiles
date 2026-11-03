@@ -313,8 +313,8 @@
                 <select name="territoire" class="{{ $pillSelect }}">
                     <option value="" @selected(($selectedTerritoire ?? null) === '')>🌍 Tous les territoires</option>
                     <option value="La Réunion" @selected(($selectedTerritoire ?? request('territoire')) === 'La Réunion')>🇷🇪 La Réunion</option>
-                    <option value="Martinique" @selected(($selectedTerritoire ?? request('territoire')) === 'Martinique')>🇲🇶 Martinique</option>
                     <option value="Guadeloupe" @selected(($selectedTerritoire ?? request('territoire')) === 'Guadeloupe')>🇬🇵 Guadeloupe</option>
+                    <option value="Martinique" @selected(($selectedTerritoire ?? request('territoire')) === 'Martinique')>🇲🇶 Martinique</option>
                     <option value="Guyane" @selected(($selectedTerritoire ?? request('territoire')) === 'Guyane')>🇬🇫 Guyane</option>
                     <option value="Mayotte" @selected(($selectedTerritoire ?? request('territoire')) === 'Mayotte')>🇾🇹 Mayotte</option>
                 </select>

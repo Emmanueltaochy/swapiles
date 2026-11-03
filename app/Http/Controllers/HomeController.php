@@ -9,10 +9,12 @@ use Illuminate\Http\Request;
 class HomeController extends Controller
 {
     private array $territoires = [
+        // Ordre d'affichage (choix de l'île, autres îles de l'accueil) :
+        // La Réunion, puis Guadeloupe, Martinique, Guyane, Mayotte.
         'reunion' => ['label' => 'La Réunion', 'flag' => '🇷🇪'],
-        'guyane' => ['label' => 'Guyane', 'flag' => '🇬🇫'],
-        'martinique' => ['label' => 'Martinique', 'flag' => '🇲🇶'],
         'guadeloupe' => ['label' => 'Guadeloupe', 'flag' => '🇬🇵'],
+        'martinique' => ['label' => 'Martinique', 'flag' => '🇲🇶'],
+        'guyane' => ['label' => 'Guyane', 'flag' => '🇬🇫'],
         'mayotte' => ['label' => 'Mayotte', 'flag' => '🇾🇹'],
     ];
 

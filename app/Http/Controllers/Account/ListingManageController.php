@@ -344,6 +344,33 @@ class ListingManageController extends Controller
         }
     }
 
+    /**
+     * Dépôt d'annonce : l'envoi a été coupé (signalé par la page). On garde les
+     * 50 derniers cas, anonymes (nombre et poids des photos, avancement,
+     * appareil), pour le diagnostic de déploiement (php artisan depot:diagnostic).
+     */
+    public function echecEnvoi(Request $request)
+    {
+        $ua = (string) $request->userAgent();
+        $cas = [
+            'quand' => now()->format('Y-m-d H:i'),
+            'photos' => min(99, (int) $request->input('photos')),
+            'poids_ko' => min(999999, (int) $request->input('poids_ko')),
+            'avancement' => min(100, (int) $request->input('avancement')),
+            'statut' => (int) $request->input('statut'),
+            'appareil' => (str_contains($ua, 'SwapilesApp') ? 'appli ' : 'web ') . (str_contains($ua, 'Android') ? 'Android' : (preg_match('/iPhone|iPad/', $ua) ? 'iPhone' : 'ordinateur')),
+        ];
+        try {
+            $liste = \Illuminate\Support\Facades\Cache::get('depot:echecs', []);
+            array_unshift($liste, $cas);
+            \Illuminate\Support\Facades\Cache::put('depot:echecs', array_slice($liste, 0, 50), now()->addDays(30));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return response()->noContent();
+    }
+
     public function edit(Listing $listing)
     {
         $this->authorizeOwner($listing);

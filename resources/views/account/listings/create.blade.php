@@ -776,8 +776,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         bouton.addEventListener('click', lancer);
 
-        // Photos ajoutées : on invite à utiliser l'IA (ou on la lance si le vendeur l'avait demandée).
-        document.getElementById('images')?.addEventListener('change', function () {
+        // Photos ajoutées et préparées : on invite à utiliser l'IA (ou on la lance si le vendeur l'avait demandée).
+        document.getElementById('images')?.addEventListener('photos-pretes', function () {
             setTimeout(function () {
                 const n = (document.getElementById('images')?.files || []).length;
                 if (!n || bouton.disabled) return;
@@ -800,27 +800,86 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!supportsDataTransfer) {
         input.classList.remove('hidden');
         addBtn.classList.add('hidden');
+        input.addEventListener('change', () => input.dispatchEvent(new CustomEvent('photos-pretes')));
         return;
     }
 
     const MAX_BYTES = 5 * 1024 * 1024;
+    // Les photos sont réduites dans le téléphone avant l'envoi (1600 px, JPEG) :
+    // l'envoi passe de plusieurs Mo par photo à quelques centaines de Ko, donc
+    // plus de coupure en 4G ni de dépassement de la taille maximale du serveur.
+    // Le serveur les réduisait déjà à 1600 px : aucune perte de qualité.
+    const COTE_MAX = 1600;
     let files = [];
+    let enPreparation = 0;
+    window.swapPhotosEnPreparation = () => enPreparation > 0;
 
     addBtn.addEventListener('click', () => input.click());
 
-    input.addEventListener('change', () => {
-        let skipped = 0;
-        for (const f of input.files) {
-            if (!f.type.startsWith('image/')) continue;
-            if (f.size > MAX_BYTES) { skipped++; continue; }
-            // évite les doublons (même nom + taille)
-            if (files.some(x => x.name === f.name && x.size === f.size)) continue;
-            files.push(f);
+    // Lisible ? Une photo restée dans le cloud (Google Photos, iCloud) peut
+    // être choisie mais pas lue : on le détecte maintenant, pas à l'envoi.
+    async function lisible(f) {
+        try { await f.slice(0, 64).arrayBuffer(); return true; } catch (e) { return false; }
+    }
+
+    async function decoder(f) {
+        if (window.createImageBitmap) {
+            try { return await createImageBitmap(f, { imageOrientation: 'from-image' }); } catch (e) { /* repli image */ }
         }
+        return await new Promise((ok, ko) => {
+            const url = URL.createObjectURL(f);
+            const im = new Image();
+            im.onload = () => { URL.revokeObjectURL(url); ok(im); };
+            im.onerror = () => { URL.revokeObjectURL(url); ko(new Error('illisible')); };
+            im.src = url;
+        });
+    }
+
+    async function reduire(f) {
+        try {
+            const img = await decoder(f);
+            const l = img.width || img.naturalWidth, h = img.height || img.naturalHeight;
+            if (!l || !h) return f;
+            const r = Math.min(1, COTE_MAX / Math.max(l, h));
+            const c = document.createElement('canvas');
+            c.width = Math.round(l * r);
+            c.height = Math.round(h * r);
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            if (img.close) img.close();
+            const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.85));
+            if (!blob || blob.size >= f.size) return f; // déjà légère
+            return new File([blob], (f.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg', lastModified: Date.now() });
+        } catch (e) {
+            return f; // format que le navigateur ne sait pas lire (HEIC…) : le serveur décidera
+        }
+    }
+
+    input.addEventListener('change', async () => {
+        const choisies = Array.from(input.files || []).filter(f => !files.includes(f));
+        if (!choisies.length) return;
+        enPreparation++;
+        label.textContent = 'Préparation des photos…';
+        let tropLourdes = 0, illisibles = 0;
+        for (const f of choisies) {
+            if (!f.type.startsWith('image/') && !/\.(heic|heif|jpe?g|png|webp)$/i.test(f.name || '')) continue;
+            // évite les doublons (même nom + taille)
+            if (files.some(x => x.nomOrigine === f.name && x.tailleOrigine === f.size)) continue;
+            if (!(await lisible(f))) { illisibles++; continue; }
+            const petite = await reduire(f);
+            if (petite.size > MAX_BYTES) { tropLourdes++; continue; }
+            petite.nomOrigine = f.name;
+            petite.tailleOrigine = f.size;
+            files.push(petite);
+        }
+        enPreparation--;
         sync();
         render();
-        if (skipped > 0) {
-            alert(skipped + ' photo(s) ignorée(s) : chaque image doit faire moins de 5 Mo.');
+        input.dispatchEvent(new CustomEvent('photos-pretes'));
+        if (illisibles > 0) {
+            alert(illisibles + ' photo(s) n’ont pas pu être lues : elles ne sont sans doute pas encore téléchargées sur le téléphone (Google Photos, iCloud). Ouvre-les une fois dans ta galerie, ou choisis-en d’autres.');
+        }
+        if (tropLourdes > 0) {
+            alert(tropLourdes + ' photo(s) ignorée(s) : chaque image doit faire moins de 5 Mo.');
         }
     });
 
@@ -1036,10 +1095,38 @@ document.addEventListener('DOMContentLoaded', function () {
             HTMLFormElement.prototype.submit.call(form);
         };
         xhr.onerror = function () {
+            // Coupure passagère (4G, changement de réseau) : un second essai
+            // automatique, sans doublon grâce au jeton d'envoi.
+            if (!essaiRepris) {
+                essaiRepris = true;
+                btn.textContent = 'Nouvel essai…';
+                setTimeout(envoyer, 1500);
+                return;
+            }
             rearmer();
-            afficher([{ cible: null, texte: 'Connexion perdue pendant l’envoi. Vérifie ta connexion puis touche à nouveau « Publier » : tes photos sont toujours là.' }]);
+            signalerEchec(xhr, envoye, total);
+            afficher([{ cible: null, texte: 'L’envoi a été coupé. Vérifie ta connexion puis touche à nouveau « Publier » : tes photos sont toujours là. Si ça recommence, retire une ou deux photos.' }]);
         };
+        let envoye = 0, total = 0;
+        xhr.upload.addEventListener('progress', function (ev) { envoye = ev.loaded; total = ev.total || total; });
         xhr.send(new FormData(form));
+    }
+
+    let essaiRepris = false;
+
+    // Échec d'envoi : un signalement anonyme (nombre et poids des photos,
+    // avancement, appareil) pour comprendre et corriger.
+    function signalerEchec(xhr, envoye, total) {
+        try {
+            const photos = Array.from($('images')?.files || []);
+            const donnees = new FormData();
+            donnees.append('_token', form.querySelector('input[name=_token]')?.value || '');
+            donnees.append('photos', String(photos.length));
+            donnees.append('poids_ko', String(Math.round(photos.reduce((t, f) => t + f.size, 0) / 1024)));
+            donnees.append('avancement', total ? String(Math.round((envoye / total) * 100)) : '0');
+            donnees.append('statut', String(xhr.status || 0));
+            navigator.sendBeacon(@json(route('account.listings.echec-envoi')), donnees);
+        } catch (e) { /* jamais bloquant */ }
     }
 
     form.addEventListener('submit', function (e) {
@@ -1047,6 +1134,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (e.defaultPrevented) return;
         e.preventDefault();
         if (form.dataset.envoiEnCours === '1') return;
+        // Photos encore en préparation : on publie dès qu'elles sont prêtes.
+        if (typeof window.swapPhotosEnPreparation === 'function' && window.swapPhotosEnPreparation()) {
+            btn.textContent = 'Préparation des photos…';
+            $('images')?.addEventListener('photos-pretes', function () { btn.textContent = TEXTE; form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', { cancelable: true })); }, { once: true });
+            return;
+        }
+        essaiRepris = false;
         const liste = manques();
         if (liste.length) {
             afficher(liste);

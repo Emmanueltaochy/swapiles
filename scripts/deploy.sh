@@ -182,6 +182,13 @@ done || true
 echo "==> Lives et enregistrement des replays"
 timeout 60 php artisan live:diagnostic 2>&1 | sed 's/^/    /' || true
 
+echo "==> Dépôt d'annonce : limites d'envoi et envois coupés"
+timeout 60 php artisan depot:diagnostic 2>&1 | sed 's/^/    /' || true
+grep -rhs "client_max_body_size" /etc/nginx 2>/dev/null | sed 's/^ */    nginx : /' | sort -u | head -5 || true
+for ini in /etc/php/*/fpm/php.ini /etc/php/*/fpm/conf.d/*.ini /etc/php/*/fpm/pool.d/*.conf; do
+  grep -hsE "^\s*(php_admin_value\[)?(post_max_size|upload_max_filesize|max_file_uploads)" "$ini" 2>/dev/null | sed "s|^|    site (php-fpm) : |"
+done | sort -u | head -8 || true
+
 # ---------------------------------------------------------------------------
 # 7. PERMISSIONS (le serveur web doit pouvoir écrire dans storage / cache)
 # ---------------------------------------------------------------------------

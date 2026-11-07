@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Cache;
+use App\Support\CarnetDiagnostic;
 
 /**
  * Diagnostic du dépôt d'annonce pour les journaux de déploiement (dépôt
@@ -20,7 +20,7 @@ class DiagnosticDepot extends Command
         $this->line('PHP : post_max_size ' . ini_get('post_max_size') . ' | upload_max_filesize ' . ini_get('upload_max_filesize')
             . ' | max_file_uploads ' . ini_get('max_file_uploads') . ' | max_input_time ' . ini_get('max_input_time'));
 
-        $cas = Cache::get('depot:echecs', []);
+        $cas = CarnetDiagnostic::lire('depot-echecs');
         if ($cas === []) {
             $this->line('Aucun envoi d’annonce coupé signalé.');
         }
@@ -30,12 +30,13 @@ class DiagnosticDepot extends Command
                 number_format(($c['poids_ko'] ?? 0) / 1024, 1, ',', ''), $c['avancement'] ?? 0, $c['statut'] ?? 0));
         }
 
-        $photos = Cache::get('depot:photos', []);
+        $photos = CarnetDiagnostic::lire('depot-photos');
         if ($photos === []) {
             $this->line('Choix des photos : aucun compte rendu pour l’instant.');
         } else {
-            $soucis = array_filter($photos, fn ($c) => ($c['ajoutees'] ?? 0) < ($c['choisies'] ?? 0) || ($c['erreur'] ?? '') !== '');
-            $this->line(sprintf('Choix des photos : %d fois récemment, %d avec au moins une photo non ajoutée.', count($photos), count($soucis)));
+            $rien = array_filter($photos, fn ($c) => ($c['erreur'] ?? '') === 'rien_recu');
+            $soucis = array_filter($photos, fn ($c) => ($c['erreur'] ?? '') !== 'rien_recu' && (($c['ajoutees'] ?? 0) < ($c['choisies'] ?? 0) || ($c['erreur'] ?? '') !== ''));
+            $this->line(sprintf('Choix des photos : %d fois récemment, %d avec au moins une photo non ajoutée, %d galerie fermée sans photo reçue.', count($photos) - count($rien), count($soucis), count($rien)));
             foreach (array_slice($photos, 0, 20) as $c) {
                 $this->line(sprintf('%s | %s | choisies %d, ajoutées %d (réduites %d, non lues %d) | illisibles %d, trop lourdes %d, pas des photos %d | types %s | plus grosse %s Mo | %s s%s%s',
                     $c['quand'] ?? '?', $c['appareil'] ?? '?', $c['choisies'] ?? 0, $c['ajoutees'] ?? 0, $c['reduites'] ?? 0, $c['non_lues'] ?? 0,

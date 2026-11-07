@@ -90,7 +90,17 @@
                     <span class="text-xs text-gray-500">Tu peux en ajouter plusieurs, une par une ou en lot.</span>
                 </button>
 
-                <p class="mt-2 text-xs text-gray-500">Plusieurs photos possibles · max 5 Mo par image. La 1ʳᵉ photo sera la photo principale.</p>
+                {{-- Appareil photo direct : marche toujours, même quand la galerie
+                     n'arrive pas à fournir une photo restée dans le cloud. --}}
+                <input id="images-camera" type="file" accept="image/*" capture="environment" class="hidden">
+                <button type="button" id="photo-camera-btn"
+                        class="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition hover:border-teal-400 hover:bg-teal-50">
+                    📸 Prendre une photo maintenant
+                </button>
+
+                <p id="photo-etat" class="mt-2 hidden rounded-xl px-3 py-2 text-sm" role="status" aria-live="polite"></p>
+
+                <p class="mt-2 text-xs text-gray-500">Plusieurs photos possibles · elles sont allégées automatiquement. La 1ʳᵉ photo sera la photo principale.</p>
 
                 {{-- IA dépôt : masqué tant que la clé Anthropic n'est pas renseignée. --}}
                 @if(\App\Support\IaDepot::disponible())
@@ -800,6 +810,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!supportsDataTransfer) {
         input.classList.remove('hidden');
         addBtn.classList.add('hidden');
+        document.getElementById('photo-camera-btn')?.classList.add('hidden');
         input.addEventListener('change', () => input.dispatchEvent(new CustomEvent('photos-pretes')));
         return;
     }
@@ -914,9 +925,56 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (e) { /* simple suivi */ }
     }
 
-    input.addEventListener('change', async () => {
+    // Message sous les boutons photo (préparation, aide, problème).
+    const etat = document.getElementById('photo-etat');
+    function direPhoto(texte, ton) {
+        if (!etat) return;
+        if (!texte) { etat.classList.add('hidden'); return; }
+        etat.textContent = texte;
+        etat.className = 'mt-2 rounded-xl px-3 py-2 text-sm ' + (ton === 'aide' ? 'bg-amber-50 text-amber-900' : 'bg-teal-50 text-teal-800');
+    }
+
+    // Galerie ouverte mais aucune photo reçue : c'est ce qui arrive avec une
+    // photo restée dans iCloud / Google Photos que le téléphone n'arrive pas à
+    // télécharger (le site ne reçoit alors rien du tout). On l'explique.
+    let attenteChoix = false, minuterie = null;
+    function rienRecu() {
+        if (!attenteChoix || enPreparation > 0) return;
+        attenteChoix = false;
+        direPhoto('Aucune photo reçue. Si tu en as choisi, elles sont sans doute encore dans le cloud (iCloud, Google Photos), souvent les photos plus anciennes : ouvre-les une fois dans ta galerie pour qu’elles se téléchargent, puis réessaie. Ou touche « Prendre une photo maintenant ».', 'aide');
+        signalerPhotos({ choisies: 0, ajoutees: 0, erreur: 'rien_recu' });
+    }
+    function surveillerRetour() {
+        attenteChoix = true;
+        clearTimeout(minuterie);
+    }
+    addBtn.addEventListener('click', surveillerRetour);
+    input.addEventListener('cancel', () => { clearTimeout(minuterie); minuterie = setTimeout(rienRecu, 4000); });
+    const auRetour = () => {
+        if (!attenteChoix || document.visibilityState === 'hidden') return;
+        clearTimeout(minuterie);
+        minuterie = setTimeout(rienRecu, 6000); // une photo du cloud peut mettre quelques secondes à arriver
+    };
+    window.addEventListener('focus', auRetour);
+    document.addEventListener('visibilitychange', auRetour);
+
+    const camera = document.getElementById('images-camera');
+    document.getElementById('photo-camera-btn')?.addEventListener('click', () => camera?.click());
+    camera?.addEventListener('change', () => {
+        const prises = Array.from(camera.files || []);
+        camera.value = '';
+        if (prises.length) ajouter(prises);
+    });
+
+    input.addEventListener('change', () => {
+        attenteChoix = false;
+        clearTimeout(minuterie);
         const choisies = Array.from(input.files || []).filter(f => !files.includes(f));
-        if (!choisies.length) return;
+        if (!choisies.length) { try { sync(); } catch (e) {} return; } // annulation : on garde les photos déjà prêtes
+        ajouter(choisies);
+    });
+
+    async function ajouter(choisies) {
         enPreparation++;
         const debut = Date.now();
         diag = { erreurs: [] };
@@ -928,6 +986,7 @@ document.addEventListener('DOMContentLoaded', function () {
             for (const f of choisies) {
                 n++;
                 label.textContent = 'Préparation des photos… ' + n + '/' + choisies.length;
+                direPhoto('⏳ Préparation de la photo ' + n + ' sur ' + choisies.length + '… (quelques secondes)');
                 types.add((f.type || 'vide').slice(0, 20));
                 plusGrosse = Math.max(plusGrosse, f.size || 0);
                 // Une vidéo ou un document : pas une photo. Un type vide (fréquent
@@ -972,8 +1031,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (bilan.erreur) {
             msgs.push('Un souci est survenu pendant la préparation des photos. Réessaie, ou ajoute-les une par une.');
         }
-        if (msgs.length) alert(msgs.join('\n\n'));
-    });
+        if (msgs.length) {
+            direPhoto(msgs.join(' '), 'aide');
+            alert(msgs.join('\n\n'));
+        } else {
+            direPhoto(bilan.ajoutees ? '✅ ' + bilan.ajoutees + ' photo(s) ajoutée(s).' : '');
+        }
+    }
 
     function sync() {
         const dt = new DataTransfer();

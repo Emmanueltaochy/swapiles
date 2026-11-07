@@ -36,7 +36,7 @@ class DiagnosticLive extends Command
                 . ' | replay : ' . ($l->replay_supprime_at ? 'supprimé' : ($l->replay_publie_at ? 'publié' : ($l->replay_chemin ? 'en attente du choix' : 'aucun'))));
         });
 
-        $dernier = \Illuminate\Support\Facades\Cache::get('live:enregistrement:dernier');
+        $dernier = \App\Support\CarnetDiagnostic::dernier('live-enregistrement');
         $this->line('Dernière demande d’enregistrement : ' . ($dernier
             ? $dernier['quand'] . ' | ' . $dernier['etape'] . ' → ' . $dernier['resultat']
                 . ($dernier['statut'] ? ' | HTTP ' . $dernier['statut'] : '') . ($dernier['code'] ? ' | code ' . $dernier['code'] : '')

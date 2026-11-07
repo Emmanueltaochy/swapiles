@@ -59,13 +59,13 @@ class LiveEnregistrement
     public static function noter(string $etape, string $resultat, ?int $statut = null, string $code = ''): void
     {
         try {
-            \Illuminate\Support\Facades\Cache::put('live:enregistrement:dernier', [
+            CarnetDiagnostic::ajouter('live-enregistrement', [
                 'quand' => now()->format('Y-m-d H:i'),
                 'etape' => $etape,
                 'resultat' => $resultat,
                 'statut' => $statut,
                 'code' => preg_replace('/[^a-z_]/', '', mb_strtolower($code)),
-            ], now()->addDays(30));
+            ], 20);
         } catch (\Throwable $e) {
             // Le diagnostic ne doit jamais gêner le live.
         }

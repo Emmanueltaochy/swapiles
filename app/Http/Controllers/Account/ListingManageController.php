@@ -360,13 +360,7 @@ class ListingManageController extends Controller
             'statut' => (int) $request->input('statut'),
             'appareil' => (str_contains($ua, 'SwapilesApp') ? 'appli ' : 'web ') . (str_contains($ua, 'Android') ? 'Android' : (preg_match('/iPhone|iPad/', $ua) ? 'iPhone' : 'ordinateur')),
         ];
-        try {
-            $liste = \Illuminate\Support\Facades\Cache::get('depot:echecs', []);
-            array_unshift($liste, $cas);
-            \Illuminate\Support\Facades\Cache::put('depot:echecs', array_slice($liste, 0, 50), now()->addDays(30));
-        } catch (\Throwable $e) {
-            report($e);
-        }
+        \App\Support\CarnetDiagnostic::ajouter('depot-echecs', $cas, 50);
 
         return response()->noContent();
     }
@@ -397,13 +391,7 @@ class ListingManageController extends Controller
             'etapes' => $court('etapes', 160),
             'erreur' => $court('erreur', 40),
         ];
-        try {
-            $liste = \Illuminate\Support\Facades\Cache::get('depot:photos', []);
-            array_unshift($liste, $cas);
-            \Illuminate\Support\Facades\Cache::put('depot:photos', array_slice($liste, 0, 60), now()->addDays(30));
-        } catch (\Throwable $e) {
-            report($e);
-        }
+        \App\Support\CarnetDiagnostic::ajouter('depot-photos', $cas, 80);
 
         return response()->noContent();
     }

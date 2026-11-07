@@ -816,17 +816,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
     addBtn.addEventListener('click', () => input.click());
 
-    // Lisible ? Une photo restée dans le cloud (Google Photos, iCloud) peut
-    // être choisie mais pas lue : on le détecte maintenant, pas à l'envoi.
-    async function lisible(f) {
-        try { await f.slice(0, 64).arrayBuffer(); return true; } catch (e) { return false; }
+    // Une étape qui ne répond pas (photo encore dans le cloud, téléphone à court
+    // de mémoire) ne doit jamais bloquer le dépôt : on abandonne après un délai.
+    function avecDelai(promesse, ms) {
+        return Promise.race([promesse, new Promise((_, ko) => setTimeout(() => ko(new Error('delai')), ms))]);
     }
 
-    async function decoder(f) {
-        if (window.createImageBitmap) {
-            try { return await createImageBitmap(f, { imageOrientation: 'from-image' }); } catch (e) { /* repli image */ }
-        }
-        return await new Promise((ok, ko) => {
+    // Lisible ? Une photo restée dans le cloud (Google Photos, iCloud) peut
+    // être choisie mais pas lue : on le détecte maintenant, pas à l'envoi.
+    function lire(f) {
+        return new Promise((ok, ko) => {
+            const r = new FileReader();
+            r.onload = () => ok(true);
+            r.onerror = () => ko(r.error || new Error('lecture'));
+            r.readAsArrayBuffer(f.slice(0, 64));
+        });
+    }
+    async function lisible(f) {
+        try { return await avecDelai(lire(f), 20000); } catch (e) { return false; }
+    }
+
+    function parImage(f) {
+        return new Promise((ok, ko) => {
             const url = URL.createObjectURL(f);
             const im = new Image();
             im.onload = () => { URL.revokeObjectURL(url); ok(im); };
@@ -834,53 +845,134 @@ document.addEventListener('DOMContentLoaded', function () {
             im.src = url;
         });
     }
-
-    async function reduire(f) {
-        try {
-            const img = await decoder(f);
-            const l = img.width || img.naturalWidth, h = img.height || img.naturalHeight;
-            if (!l || !h) return f;
-            const r = Math.min(1, COTE_MAX / Math.max(l, h));
-            const c = document.createElement('canvas');
-            c.width = Math.round(l * r);
-            c.height = Math.round(h * r);
-            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-            if (img.close) img.close();
-            const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.85));
-            if (!blob || blob.size >= f.size) return f; // déjà légère
-            return new File([blob], (f.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg', lastModified: Date.now() });
-        } catch (e) {
-            return f; // format que le navigateur ne sait pas lire (HEIC…) : le serveur décidera
+    async function decoder(f, viaImage) {
+        if (!viaImage && window.createImageBitmap) {
+            try { return await avecDelai(createImageBitmap(f, { imageOrientation: 'from-image' }), 12000); } catch (e) { /* repli image */ }
         }
+        return await avecDelai(parImage(f), 15000);
+    }
+
+    // Une seule toile, vidée après chaque photo : sur iPhone, la mémoire des
+    // toiles est limitée et n'est pas toujours libérée entre deux photos.
+    const toile = document.createElement('canvas');
+    function enJpeg(qualite) {
+        return avecDelai(new Promise(ok => toile.toBlob(ok, 'image/jpeg', qualite)), 15000);
+    }
+    async function reduireAvec(f, viaImage, cote) {
+        const img = await decoder(f, viaImage);
+        try {
+            const l = img.width || img.naturalWidth, h = img.height || img.naturalHeight;
+            if (!l || !h) throw new Error('vide');
+            const r = Math.min(1, cote / Math.max(l, h));
+            toile.width = Math.max(1, Math.round(l * r));
+            toile.height = Math.max(1, Math.round(h * r));
+            const ctx = toile.getContext('2d');
+            if (!ctx) throw new Error('memoire');
+            ctx.drawImage(img, 0, 0, toile.width, toile.height);
+        } finally {
+            if (img.close) img.close(); else img.src = '';
+        }
+        let blob = await enJpeg(0.85);
+        if (blob && blob.size > 2 * 1024 * 1024) blob = (await enJpeg(0.7)) || blob;
+        toile.width = 1; toile.height = 1;
+        if (!blob || !blob.size) throw new Error('vide');
+        return blob;
+    }
+
+    // Renvoie { fichier, etat } : 'reduite', 'deja_legere', 'non_lue' (format
+    // que le téléphone ne sait pas ouvrir : on garde l'original, le serveur décide).
+    async function reduire(f) {
+        const essais = [[false, COTE_MAX], [true, COTE_MAX], [true, 1200]];
+        for (const [viaImage, cote] of essais) {
+            try {
+                const blob = await reduireAvec(f, viaImage, cote);
+                if (blob.size >= f.size && f.size <= MAX_BYTES && /^image\/(jpeg|png|webp)$/.test(f.type)) {
+                    return { fichier: f, etat: 'deja_legere' };
+                }
+                const nom = (f.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg';
+                return { fichier: new File([blob], nom, { type: 'image/jpeg', lastModified: Date.now() }), etat: 'reduite' };
+            } catch (e) {
+                toile.width = 1; toile.height = 1;
+                diag.erreurs.push((viaImage ? 'img:' : 'bmp:') + (e && (e.message || e.name) || '?').slice(0, 20));
+            }
+        }
+        return { fichier: f, etat: 'non_lue' };
+    }
+
+    // Compte rendu anonyme (types, tailles, résultat) pour comprendre à
+    // distance une photo qui ne s'ajoute pas. Aucune image n'est envoyée.
+    let diag = { erreurs: [] };
+    function signalerPhotos(r) {
+        try {
+            const url = @json(route('account.listings.photos-diag'));
+            const d = new FormData();
+            Object.entries(r).forEach(([k, v]) => d.append(k, Array.isArray(v) ? v.join(',') : String(v)));
+            d.append('_token', document.querySelector('input[name="_token"]')?.value || '');
+            if (!(navigator.sendBeacon && navigator.sendBeacon(url, d))) {
+                fetch(url, { method: 'POST', body: d, credentials: 'same-origin', keepalive: true }).catch(() => {});
+            }
+        } catch (e) { /* simple suivi */ }
     }
 
     input.addEventListener('change', async () => {
         const choisies = Array.from(input.files || []).filter(f => !files.includes(f));
         if (!choisies.length) return;
         enPreparation++;
-        label.textContent = 'Préparation des photos…';
-        let tropLourdes = 0, illisibles = 0;
-        for (const f of choisies) {
-            if (!f.type.startsWith('image/') && !/\.(heic|heif|jpe?g|png|webp)$/i.test(f.name || '')) continue;
-            // évite les doublons (même nom + taille)
-            if (files.some(x => x.nomOrigine === f.name && x.tailleOrigine === f.size)) continue;
-            if (!(await lisible(f))) { illisibles++; continue; }
-            const petite = await reduire(f);
-            if (petite.size > MAX_BYTES) { tropLourdes++; continue; }
-            petite.nomOrigine = f.name;
-            petite.tailleOrigine = f.size;
-            files.push(petite);
+        const debut = Date.now();
+        diag = { erreurs: [] };
+        const bilan = { choisies: choisies.length, ajoutees: 0, reduites: 0, non_lues: 0, illisibles: 0, trop_lourdes: 0, pas_images: 0, doublons: 0, erreur: '' };
+        const types = new Set();
+        let plusGrosse = 0;
+        try {
+            let n = 0;
+            for (const f of choisies) {
+                n++;
+                label.textContent = 'Préparation des photos… ' + n + '/' + choisies.length;
+                types.add((f.type || 'vide').slice(0, 20));
+                plusGrosse = Math.max(plusGrosse, f.size || 0);
+                // Une vidéo ou un document : pas une photo. Un type vide (fréquent
+                // depuis Google Photos) : on essaie quand même.
+                if (f.type && !f.type.startsWith('image/')) { bilan.pas_images++; continue; }
+                // évite les doublons (même nom + taille)
+                if (files.some(x => x.nomOrigine === f.name && x.tailleOrigine === f.size)) { bilan.doublons++; continue; }
+                if (!(await lisible(f))) { bilan.illisibles++; continue; }
+                const { fichier, etat } = await reduire(f);
+                if (etat === 'reduite') bilan.reduites++;
+                if (etat === 'non_lue') bilan.non_lues++;
+                if (fichier.size > MAX_BYTES) { bilan.trop_lourdes++; continue; }
+                fichier.nomOrigine = f.name;
+                fichier.tailleOrigine = f.size;
+                files.push(fichier);
+                bilan.ajoutees++;
+            }
+        } catch (e) {
+            bilan.erreur = (e && (e.name || e.message) || '?').slice(0, 30);
+        } finally {
+            enPreparation--;
+            try { sync(); } catch (e) { bilan.erreur = bilan.erreur || 'sync:' + (e && e.name); }
+            render();
+            input.dispatchEvent(new CustomEvent('photos-pretes'));
         }
-        enPreparation--;
-        sync();
-        render();
-        input.dispatchEvent(new CustomEvent('photos-pretes'));
-        if (illisibles > 0) {
-            alert(illisibles + ' photo(s) n’ont pas pu être lues : elles ne sont sans doute pas encore téléchargées sur le téléphone (Google Photos, iCloud). Ouvre-les une fois dans ta galerie, ou choisis-en d’autres.');
+
+        signalerPhotos(Object.assign(bilan, {
+            types: Array.from(types), plus_grosse_ko: Math.round(plusGrosse / 1024),
+            duree_ms: Date.now() - debut, etapes: diag.erreurs.slice(0, 6),
+        }));
+
+        const msgs = [];
+        if (bilan.illisibles > 0) {
+            msgs.push(bilan.illisibles + ' photo(s) n’ont pas pu être lues : elles ne sont sans doute pas encore téléchargées sur le téléphone (Google Photos, iCloud). Ouvre-les une fois dans ta galerie, puis choisis-les à nouveau.');
         }
-        if (tropLourdes > 0) {
-            alert(tropLourdes + ' photo(s) ignorée(s) : chaque image doit faire moins de 5 Mo.');
+        if (bilan.trop_lourdes > 0) {
+            msgs.push(bilan.trop_lourdes + ' photo(s) n’ont pas pu être préparées (trop lourdes pour le téléphone). Fais une capture d’écran de la photo et ajoute la capture : ça marche à tous les coups.');
         }
+        if (bilan.pas_images > 0) {
+            msgs.push(bilan.pas_images + ' fichier(s) ignoré(s) : ce ne sont pas des photos (vidéo ou document).');
+        }
+        if (bilan.erreur) {
+            msgs.push('Un souci est survenu pendant la préparation des photos. Réessaie, ou ajoute-les une par une.');
+        }
+        if (msgs.length) alert(msgs.join('\n\n'));
     });
 
     function sync() {

@@ -371,6 +371,43 @@ class ListingManageController extends Controller
         return response()->noContent();
     }
 
+    /**
+     * Compte rendu anonyme du choix des photos dans le téléphone (combien
+     * choisies, ajoutées, illisibles…) : pour comprendre à distance une photo
+     * qui ne s'ajoute pas. Ni image, ni nom de fichier, ni compte.
+     */
+    public function photosDiag(Request $request)
+    {
+        $ua = (string) $request->userAgent();
+        $nombre = fn (string $cle) => max(0, min(99, (int) $request->input($cle)));
+        $court = fn (string $cle, int $max) => mb_substr(preg_replace('/[^a-z0-9\/:,._+ -]/i', '', (string) $request->input($cle)), 0, $max);
+        $cas = [
+            'quand' => now()->format('Y-m-d H:i'),
+            'appareil' => (str_contains($ua, 'SwapilesApp') ? 'appli ' : 'web ') . (str_contains($ua, 'Android') ? 'Android' : (preg_match('/iPhone|iPad/', $ua) ? 'iPhone' : 'ordinateur')),
+            'choisies' => $nombre('choisies'),
+            'ajoutees' => $nombre('ajoutees'),
+            'reduites' => $nombre('reduites'),
+            'non_lues' => $nombre('non_lues'),
+            'illisibles' => $nombre('illisibles'),
+            'trop_lourdes' => $nombre('trop_lourdes'),
+            'pas_images' => $nombre('pas_images'),
+            'types' => $court('types', 80),
+            'plus_grosse_ko' => max(0, min(999999, (int) $request->input('plus_grosse_ko'))),
+            'duree_ms' => max(0, min(999999, (int) $request->input('duree_ms'))),
+            'etapes' => $court('etapes', 160),
+            'erreur' => $court('erreur', 40),
+        ];
+        try {
+            $liste = \Illuminate\Support\Facades\Cache::get('depot:photos', []);
+            array_unshift($liste, $cas);
+            \Illuminate\Support\Facades\Cache::put('depot:photos', array_slice($liste, 0, 60), now()->addDays(30));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return response()->noContent();
+    }
+
     public function edit(Listing $listing)
     {
         $this->authorizeOwner($listing);

@@ -290,6 +290,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/mes-annonces/{listing}/masquer', [ListingManageController::class, 'hide'])->name('account.listings.hide');
     Route::patch('/mes-annonces/{listing}/vendue', [ListingManageController::class, 'markSold'])->name('account.listings.sold');
     Route::post('/deposer-une-annonce/echec-envoi', [ListingManageController::class, 'echecEnvoi'])->middleware('throttle:10,1')->name('account.listings.echec-envoi');
+    Route::post('/deposer-une-annonce/photos-diag', [ListingManageController::class, 'photosDiag'])->middleware('throttle:20,1')->name('account.listings.photos-diag');
     Route::get('/mes-annonces/{listing}/acheteurs', [ListingManageController::class, 'chercherAcheteur'])->middleware('throttle:40,1')->name('account.listings.acheteurs');
     Route::patch('/mes-annonces/{listing}/publier', [ListingManageController::class, 'publish'])->name('account.listings.publish');
     Route::patch('/mes-annonces/{listing}/photos/{image}/principale', [ListingManageController::class, 'makeMainImage'])->name('account.listings.images.main');

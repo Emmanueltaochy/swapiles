@@ -30,6 +30,21 @@ class DiagnosticDepot extends Command
                 number_format(($c['poids_ko'] ?? 0) / 1024, 1, ',', ''), $c['avancement'] ?? 0, $c['statut'] ?? 0));
         }
 
+        $photos = Cache::get('depot:photos', []);
+        if ($photos === []) {
+            $this->line('Choix des photos : aucun compte rendu pour l’instant.');
+        } else {
+            $soucis = array_filter($photos, fn ($c) => ($c['ajoutees'] ?? 0) < ($c['choisies'] ?? 0) || ($c['erreur'] ?? '') !== '');
+            $this->line(sprintf('Choix des photos : %d fois récemment, %d avec au moins une photo non ajoutée.', count($photos), count($soucis)));
+            foreach (array_slice($photos, 0, 20) as $c) {
+                $this->line(sprintf('%s | %s | choisies %d, ajoutées %d (réduites %d, non lues %d) | illisibles %d, trop lourdes %d, pas des photos %d | types %s | plus grosse %s Mo | %s s%s%s',
+                    $c['quand'] ?? '?', $c['appareil'] ?? '?', $c['choisies'] ?? 0, $c['ajoutees'] ?? 0, $c['reduites'] ?? 0, $c['non_lues'] ?? 0,
+                    $c['illisibles'] ?? 0, $c['trop_lourdes'] ?? 0, $c['pas_images'] ?? 0, $c['types'] ?? '?',
+                    number_format(($c['plus_grosse_ko'] ?? 0) / 1024, 1, ',', ''), number_format(($c['duree_ms'] ?? 0) / 1000, 1, ',', ''),
+                    ($c['etapes'] ?? '') !== '' ? ' | étapes ' . $c['etapes'] : '', ($c['erreur'] ?? '') !== '' ? ' | erreur ' . $c['erreur'] : ''));
+            }
+        }
+
         return self::SUCCESS;
     }
 }

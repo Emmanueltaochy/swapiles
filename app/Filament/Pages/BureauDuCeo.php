@@ -37,6 +37,12 @@ class BureauDuCeo extends Page
 
     public bool $voirApercu = false;
 
+    /** Réservé à l'administrateur (Emmanuel) : jamais visible des membres. */
+    public static function canAccess(): bool
+    {
+        return (bool) auth()->user()?->isAdmin();
+    }
+
     /** Derniers échanges avec le CEO (pour les questions de suite). */
     public array $echanges = [];
 
@@ -112,6 +118,7 @@ class BureauDuCeo extends Page
     /** « Parler au CEO » : renvoie la réponse (lue à voix haute par la page). */
     public function demander(string $question): string
     {
+        abort_unless(static::canAccess(), 403);
         $reponse = \App\Support\Agent\Conversation::repondre($question, $this->echanges);
         $this->echanges[] = ['q' => \Illuminate\Support\Str::limit($question, 500), 'r' => $reponse];
         $this->echanges = array_slice($this->echanges, -6);

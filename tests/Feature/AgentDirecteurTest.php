@@ -299,6 +299,16 @@ class AgentDirecteurTest extends TestCase
         $this->assertStringContainsString('pas disponible', \App\Support\Agent\Conversation::repondre('Ça va ?'));
     }
 
+    public function test_bureau_du_ceo_reserve_a_l_admin(): void
+    {
+        $membre = User::create(['name' => 'Lea', 'email' => 'lea@ex.com', 'password' => bcrypt('secret1234'), 'territoire' => 'La Réunion', 'email_verified_at' => now()]);
+
+        $r = $this->actingAs($membre)->get('/admin/bureau-du-ceo');
+        $this->assertContains($r->status(), [302, 403]); // renvoyé hors de l'admin
+        $r->assertDontSee('Parler au CEO');
+        $this->get(route('home'))->assertDontSee('Parler au CEO');
+    }
+
     public function test_liens_du_mail_aux_collectivites(): void
     {
         $p = $this->organisme();

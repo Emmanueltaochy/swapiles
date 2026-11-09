@@ -39,14 +39,19 @@
                         @if($pr?->telephone)
                             <a href="tel:{{ preg_replace('/[^0-9+]/', '', $pr->telephone) }}" style="display:inline-block;border-radius:.7rem;padding:.5rem .8rem;background:#0f766e;color:#fff;font-weight:700;font-size:.85rem;text-decoration:none;">📞 Appeler {{ $pr->telephone }}</a>
                         @endif
-                        <a href="{{ $mailto }}" style="display:inline-block;border-radius:.7rem;padding:.5rem .8rem;border:1px solid #0f766e;color:#0f766e;font-weight:700;font-size:.85rem;text-decoration:none;">✉️ Répondre à {{ $r->expediteur }}</a>
+                        @if($r->brouillon && ! $r->envoye_at && $p['envoi_contact'])
+                            <x-filament::button size="sm" color="success" wire:click="envoyerReponse({{ $r->id }})"
+                                wire:confirm="Envoyer la réponse proposée à {{ $r->expediteur }} depuis contact@swapiles.com, avec ta signature ?">📨 Envoyer la réponse depuis contact@</x-filament::button>
+                        @endif
+                        <a href="{{ $mailto }}" style="display:inline-block;border-radius:.7rem;padding:.5rem .8rem;border:1px solid #0f766e;color:#0f766e;font-weight:700;font-size:.85rem;text-decoration:none;">✉️ Modifier et répondre depuis ma messagerie</a>
                     </div>
 
-                    @if($r->brouillon)
-                        <details style="margin-top:.6rem;">
-                            <summary style="cursor:pointer;font-size:.85rem;font-weight:700;">✍️ Réponse proposée (déjà dans le bouton « Répondre »)</summary>
-                            <pre style="white-space:pre-wrap;font-family:inherit;font-size:.88rem;background:rgba(148,163,184,.12);padding:.7rem;border-radius:.6rem;margin-top:.4rem;">{{ $r->brouillon }}</pre>
-                        </details>
+                    @if($r->envoye_at)
+                        <div style="margin-top:.6rem;font-size:.85rem;font-weight:700;color:#059669;">✅ Réponse envoyée le {{ $r->envoye_at->format('d/m à H:i') }} depuis contact@</div>
+                    @elseif($r->brouillon)
+                        <div style="margin-top:.6rem;font-size:.8rem;font-weight:700;opacity:.7;">✍️ Réponse proposée (ta signature Swap’Îles est ajoutée à l’envoi) :</div>
+                        <pre style="white-space:pre-wrap;font-family:inherit;font-size:.88rem;background:rgba(148,163,184,.12);padding:.7rem;border-radius:.6rem;margin-top:.3rem;">{{ \App\Support\Agent\EnvoiReponse::texte($r) }}</pre>
+                        <div style="font-size:.78rem;opacity:.65;margin-top:.2rem;">Tu peux aussi la faire modifier à la voix : « Réponds à {{ $pr?->nom }} et ajoute que je passe jeudi. »</div>
                     @endif
                     @if($pr?->notes)
                         <div style="margin-top:.5rem;font-size:.8rem;opacity:.75;white-space:pre-line;">📝 {{ $pr->notes }}</div>
@@ -79,12 +84,13 @@
                 </div>
                 <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
                     <button type="button" data-resume-lire style="border:1px solid rgba(148,163,184,.4);border-radius:.7rem;padding:.5rem .8rem;font-weight:700;font-size:.85rem;cursor:pointer;background:transparent;">🔊 Lis-moi le résumé</button>
+                    <button type="button" data-vitesse style="border:1px solid rgba(148,163,184,.4);border-radius:.7rem;padding:.5rem .8rem;font-weight:700;font-size:.85rem;cursor:pointer;background:transparent;">⏩ Vitesse</button>
                     <button type="button" data-stop style="border:1px solid rgba(148,163,184,.4);border-radius:.7rem;padding:.5rem .8rem;font-weight:700;font-size:.85rem;cursor:pointer;background:transparent;">⏹️ Stop</button>
                 </div>
             </div>
 
             <div data-suggestions style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.9rem;">
-                @foreach(['Comment ça va aujourd’hui ?', 'Qui a répondu à nos mails ?', 'Qu’est-ce que je fais en priorité ?', 'Combien de ventes cette semaine ?'] as $q)
+                @foreach(['Comment ça va aujourd’hui ?', 'Qui a répondu à nos mails ?', 'Réponds aux prospects intéressés', 'Qu’est-ce que je fais en priorité ?'] as $q)
                     <button type="button" data-question="{{ $q }}" style="border-radius:9999px;padding:.35rem .75rem;font-size:.8rem;background:rgba(15,118,110,.1);color:#0f766e;border:0;cursor:pointer;font-weight:600;">{{ $q }}</button>
                 @endforeach
             </div>
@@ -213,14 +219,20 @@
     if (!Reco) aide.textContent = 'Ici le micro direct n’est pas disponible : touche la zone de texte puis le micro de ton clavier pour dicter.';
     else if (!synthese) aide.textContent = 'Ce navigateur ne sait pas lire à voix haute : les réponses s’affichent à l’écran.';
 
-    // Voix française du téléphone (gratuite).
+    // Voix française du téléphone (gratuite) : la plus naturelle disponible
+    // (voix « améliorées », « premium », « naturelles » ou Google), sinon la première en français.
     function choisirVoix() {
         if (!synthese) return;
-        const toutes = synthese.getVoices();
-        voix = toutes.find(v => /^fr[-_]FR/i.test(v.lang) && /Thomas|Am[ée]lie|Audrey|Google|Daniel/i.test(v.name))
-            || toutes.find(v => /^fr/i.test(v.lang)) || null;
+        const fr = synthese.getVoices().filter(v => /^fr/i.test(v.lang));
+        const score = (v) => (/natural|neural|premium|enhanced|amélioré|online/i.test(v.name) ? 4 : 0)
+            + (/google/i.test(v.name) ? 3 : 0)
+            + (/Thomas|Am[ée]lie|Audrey|Denise|Henri|Vivienne|Remy|Rémy/i.test(v.name) ? 2 : 0)
+            + (/^fr[-_]FR/i.test(v.lang) ? 1 : 0);
+        voix = fr.sort((x, y) => score(y) - score(x))[0] || null;
     }
-    if (synthese) { choisirVoix(); synthese.addEventListener?.('voiceschanged', choisirVoix); }
+    // Vitesse de parole : réglable (mémorisée sur ce téléphone).
+    let vitesse = 1.2;
+    try { vitesse = parseFloat(localStorage.getItem('ceo-vitesse')) || 1.2; } catch (e) {}
 
     // iPhone : la voix doit être « débloquée » par un geste de l'utilisateur.
     let debloquee = false;
@@ -235,17 +247,26 @@
         return new Promise((fini) => {
             if (!synthese || !t) { fini(); return; }
             synthese.cancel();
-            const morceaux = (t.match(/[^.!?…]+[.!?…]*/g) || [t]).map(m => m.trim()).filter(Boolean);
+            // Phrases regroupées par ~220 caractères : assez court pour les téléphones
+            // qui coupent les longs textes, assez long pour éviter les pauses robotiques.
+            const phrases = (t.match(/[^.!?…]+[.!?…]*/g) || [t]).map(m => m.trim()).filter(Boolean);
+            const morceaux = [];
+            phrases.forEach((ph) => {
+                const dernier = morceaux.length - 1;
+                if (dernier >= 0 && (morceaux[dernier] + ' ' + ph).length <= 220) morceaux[dernier] += ' ' + ph;
+                else morceaux.push(ph);
+            });
             if (!morceaux.length) { fini(); return; }
             let termine = false;
             const finir = () => { if (!termine) { termine = true; clearTimeout(garde); fini(); } };
             // Filet de sécurité : certains téléphones n'annoncent pas la fin de la lecture.
-            const garde = setTimeout(finir, 4000 + t.length * 90);
+            const garde = setTimeout(finir, 4000 + t.length * 80 / vitesse);
             morceaux.forEach((m, i) => {
                 const u = new SpeechSynthesisUtterance(m);
                 u.lang = 'fr-FR';
                 if (voix) u.voice = voix;
-                u.rate = 1.03;
+                u.rate = vitesse;
+                u.pitch = 1;
                 if (i === morceaux.length - 1) { u.onend = finir; u.onerror = finir; }
                 synthese.speak(u);
             });
@@ -264,6 +285,31 @@
         return b;
     }
 
+    // E-mail prêt à partir : on montre exactement ce qui sera envoyé, avec deux boutons.
+    function apercuEnvoi(a) {
+        const carte = document.createElement('div');
+        carte.style.cssText = 'align-self:stretch;border:1px solid #0f766e;border-radius:1rem;padding:.75rem .9rem;font-size:.88rem;background:rgba(15,118,110,.05);';
+        const titre = document.createElement('div');
+        titre.style.cssText = 'font-weight:800;margin-bottom:.35rem;';
+        titre.textContent = '📨 Prêt à partir vers ' + a.nom + ' (' + a.a + ') depuis contact@ :';
+        const corps = document.createElement('div');
+        corps.style.cssText = 'white-space:pre-wrap;line-height:1.5;';
+        corps.textContent = a.texte + '\n\n— ta signature Swap’Îles';
+        const boutons = document.createElement('div');
+        boutons.style.cssText = 'display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap;';
+        [['✅ Oui, envoie', 'oui, envoie', '#0f766e', '#fff'], ['Annuler', 'annule, n’envoie pas', 'transparent', 'inherit']].forEach(([t, phrase, fond, couleur]) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = t;
+            b.style.cssText = 'border:1px solid #0f766e;border-radius:.6rem;padding:.4rem .8rem;font-weight:700;cursor:pointer;background:' + fond + ';color:' + couleur + ';';
+            b.addEventListener('click', () => { boutons.remove(); poser(phrase); });
+            boutons.appendChild(b);
+        });
+        carte.append(titre, corps, boutons);
+        fil.appendChild(carte);
+        carte.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
     // Mode conversation : après sa réponse, le micro se rouvre tout seul.
     let conversation = false, silences = 0;
 
@@ -278,8 +324,10 @@
         micro.style.opacity = '.5';
         let r = null;
         try {
-            r = await $wire.demander(q);
+            const res = await $wire.demander(q);
+            r = (res && res.texte) || '';
             bulle('ceo', r);
+            if (res && res.apercu) apercuEnvoi(res.apercu);
         } catch (e) {
             bulle('ceo', 'La connexion a coupé. Réessaie dans un instant.');
         } finally {
@@ -361,6 +409,17 @@
         if (!synthese) { dire('Ce navigateur ne sait pas lire à voix haute.'); return; }
         parler(zone.dataset.resume);
         dire('Je te lis le résumé du jour…');
+    });
+    const libellesVitesse = { 1: 'normale', 1.2: 'rapide', 1.4: 'très rapide' };
+    const boutonVitesse = $('[data-vitesse]');
+    const afficherVitesse = () => { boutonVitesse.textContent = '⏩ Vitesse : ' + (libellesVitesse[vitesse] || 'rapide'); };
+    afficherVitesse();
+    boutonVitesse.addEventListener('click', () => {
+        vitesse = vitesse >= 1.4 ? 1 : (vitesse >= 1.2 ? 1.4 : 1.2);
+        try { localStorage.setItem('ceo-vitesse', String(vitesse)); } catch (e) {}
+        afficherVitesse();
+        debloquer();
+        parler('Voilà, je parle comme ça maintenant.');
     });
     $('[data-stop]').addEventListener('click', () => { conversation = false; synthese?.cancel(); ecoute?.abort(); arreterEcoute(); dire('Touche le micro et parle.'); });
 })();

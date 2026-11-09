@@ -63,6 +63,19 @@ return [
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 
+        // Réponses aux prospects envoyées depuis la boîte contact@ elle-même
+        // (accès AGENT_IMAP_*), signées Emmanuel, après confirmation dans le Bureau du CEO.
+        'contact' => [
+            'transport' => 'smtp',
+            'scheme' => env('CONTACT_MAIL_SCHEME', 'smtps'),
+            'host' => env('CONTACT_MAIL_HOST', 'smtp.hostinger.com'),
+            'port' => (int) env('CONTACT_MAIL_PORT', 465),
+            'username' => env('AGENT_IMAP_USERNAME'),
+            'password' => env('AGENT_IMAP_PASSWORD'),
+            'timeout' => 30,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+        ],
+
         'ses' => [
             'transport' => 'ses',
         ],

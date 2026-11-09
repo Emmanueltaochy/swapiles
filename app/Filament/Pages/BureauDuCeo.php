@@ -67,6 +67,7 @@ class BureauDuCeo extends Page
                 'rse_valide' => Prospection::rseValidee(),
                 'organismes' => ProspectRse::count(),
                 'organismes_email' => ProspectRse::whereNotNull('email')->count(),
+                'envoi_contact' => \App\Support\Agent\EnvoiReponse::disponible(),
                 'organismes_contactes' => ProspectRse::whereNotNull('contacte_at')->count(),
                 'par_type' => ProspectRse::selectRaw('type, COUNT(*) n')->groupBy('type')->pluck('n', 'type')->all(),
             ],
@@ -117,21 +118,48 @@ class BureauDuCeo extends Page
         Notification::make()->title(Prospection::rseValidee() ? 'Modèle validé : les collectivités seront contactées ✅' : 'Envois aux collectivités arrêtés')->success()->send();
     }
 
-    /** « Parler au CEO » : renvoie la réponse (lue à voix haute par la page). */
-    public function demander(string $question): string
+    /** Réponse de prospect prête à partir, en attente du « oui, envoie » d'Emmanuel. */
+    public ?int $envoiEnAttente = null;
+
+    /**
+     * « Parler au CEO » : renvoie le texte à lire à voix haute et, s'il y a
+     * un e-mail prêt à partir, son aperçu.
+     *
+     * @return array{texte:string,apercu:?array}
+     */
+    public function demander(string $question): array
     {
         abort_unless(static::canAccess(), 403);
-        $reponse = \App\Support\Agent\Conversation::repondre($question, $this->echanges);
-        $this->echanges[] = ['q' => \Illuminate\Support\Str::limit($question, 500), 'r' => $reponse];
+        $res = \App\Support\Agent\Conversation::repondre($question, $this->echanges, $this->envoiEnAttente);
+        $this->envoiEnAttente = $res['enAttente'];
+        $this->echanges[] = ['q' => \Illuminate\Support\Str::limit($question, 500), 'r' => $res['texte']];
         $this->echanges = array_slice($this->echanges, -6);
         $this->skipRender();
 
-        return $reponse;
+        return ['texte' => $res['texte'], 'apercu' => $res['apercu']];
+    }
+
+    /** Bouton « Envoyer depuis contact@ » d'une fiche (confirmation demandée par la page). */
+    public function envoyerReponse(int $id): void
+    {
+        abort_unless(static::canAccess(), 403);
+        $r = AgentReponse::find($id);
+        try {
+            \App\Support\Agent\EnvoiReponse::envoyer($r);
+            Notification::make()->title('Réponse envoyée depuis contact@ ✉️')->success()->send();
+        } catch (\Throwable $e) {
+            report($e);
+            Notification::make()->title('Pas envoyé : ' . ($e instanceof \RuntimeException && ! str_contains($e->getMessage(), '@') ? $e->getMessage() : 'le serveur d’e-mail a refusé'))->danger()->send();
+        }
+        if ($this->envoiEnAttente === $id) {
+            $this->envoiEnAttente = null;
+        }
     }
 
     public function oublier(): void
     {
         $this->echanges = [];
+        $this->envoiEnAttente = null;
     }
 
     /** Suivi d'un prospect qui a répondu : rendez-vous pris, traité, finalement pas intéressé, devenu point relais. */

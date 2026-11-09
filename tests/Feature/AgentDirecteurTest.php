@@ -72,6 +72,46 @@ class AgentDirecteurTest extends TestCase
         }]);
     }
 
+    /** Faux Claude qui donne une réponse différente à chaque appel, dans l'ordre. */
+    private function fauxClaudeSuite(array ...$reponses): void
+    {
+        $objets = array_map(fn ($r) => (object) [
+            'stopReason' => 'end_turn',
+            'usage' => (object) ['inputTokens' => 1000, 'outputTokens' => 200, 'cacheCreationInputTokens' => 0, 'cacheReadInputTokens' => 0],
+            'content' => [(object) ['type' => 'text', 'text' => json_encode($r)]],
+        ], $reponses);
+        $this->app->instance('agent.client', (object) ['messages' => new class($objets) {
+            public function __construct(private array $suite) {}
+
+            public function create(...$args): object
+            {
+                return array_shift($this->suite);
+            }
+        }]);
+    }
+
+    private function boiteContact(): void
+    {
+        config()->set('mail.mailers.contact', ['transport' => 'array', 'username' => 'contact@swapiles.com', 'password' => 'secret']);
+    }
+
+    /** @return \Symfony\Component\Mime\Email[] */
+    private function mailsContact(): array
+    {
+        return app('mail.manager')->mailer('contact')->getSymfonyTransport()->messages()->map(fn ($m) => $m->getOriginalMessage())->all();
+    }
+
+    private function reponseInteressee(): AgentReponse
+    {
+        $p = ProspectRse::create(['source_id' => 'tco', 'nom' => 'TCO', 'type' => 'epci', 'territoire' => 'La Réunion', 'email' => 'courrier@tco.re',
+            'statut' => 'interesse', 'contacte_at' => now()->subDays(2), 'nb_envois' => 1]);
+
+        return AgentReponse::create(['message_id' => '<abc@tco.re>', 'prospect_type' => 'rse', 'prospect_id' => $p->id, 'expediteur' => 'j.hoarau@tco.re',
+            'sujet' => 'Re: Réemploi et réduction des déchets', 'categorie' => 'interesse', 'resume' => 'Veut un rendez-vous.', 'extrait' => 'Nous sommes intéressés.',
+            'brouillon' => "Bonjour,\n\nMerci pour votre retour, avec plaisir pour un échange de 15 minutes.\n\nBien cordialement,\nEmmanuel Taochy, fondateur de Swap'Îles",
+            'recu_at' => now()]);
+    }
+
     private function admin(): User
     {
         return User::create(['name' => 'Emmanuel', 'email' => 'cabinet@taochyconsulting.fr', 'password' => bcrypt('secret1234'), 'territoire' => 'La Réunion', 'email_verified_at' => now()]);
@@ -284,19 +324,20 @@ class AgentDirecteurTest extends TestCase
         $this->actingAs($admin);
         $this->fauxClaude(['reponse' => 'Cette semaine, trois ventes. Je te conseille de relancer les vendeurs.']);
 
+        $this->fauxClaude(['reponse' => 'Cette semaine, trois ventes. Je te conseille de relancer les vendeurs.', 'action' => 'aucune', 'reponse_id' => 0, 'nouveau_brouillon' => '']);
         $page = Livewire::test(BureauDuCeo::class)
             ->call('demander', 'Combien de ventes cette semaine ?')
-            ->assertReturned('Cette semaine, trois ventes. Je te conseille de relancer les vendeurs.');
+            ->assertReturned(['texte' => 'Cette semaine, trois ventes. Je te conseille de relancer les vendeurs.', 'apercu' => null]);
         $this->assertCount(1, $page->get('echanges'));
 
         // Rien entendu : pas d'appel à l'IA.
-        $page->call('demander', '   ')->assertReturned('Je n’ai rien entendu. Tu peux répéter ?');
+        $page->call('demander', '   ')->assertReturned(['texte' => 'Je n’ai rien entendu. Tu peux répéter ?', 'apercu' => null]);
 
         // Sans IA disponible : une phrase claire, jamais d'erreur.
         $this->app->forgetInstance('agent.client');
         $this->app->offsetUnset('agent.client');
         config()->set('ia_depot.cle', null);
-        $this->assertStringContainsString('pas disponible', \App\Support\Agent\Conversation::repondre('Ça va ?'));
+        $this->assertStringContainsString('pas disponible', \App\Support\Agent\Conversation::repondre('Ça va ?')['texte']);
     }
 
     public function test_bureau_du_ceo_reserve_a_l_admin(): void
@@ -373,6 +414,85 @@ class AgentDirecteurTest extends TestCase
         Livewire::test(BureauDuCeo::class)->call('suivre', $r->id, 'relais');
         $this->assertSame('relais', $p->fresh()->statut);
         $this->get('/admin/bureau-du-ceo')->assertDontSee('À rappeler (');
+    }
+
+    public function test_reponse_envoyee_depuis_contact_avec_signature_dans_le_meme_fil(): void
+    {
+        $this->boiteContact();
+        $r = $this->reponseInteressee();
+
+        \App\Support\Agent\EnvoiReponse::envoyer($r);
+
+        $mail = $this->mailsContact()[0];
+        $this->assertSame('contact@swapiles.com', $mail->getFrom()[0]->getAddress());
+        $this->assertSame('j.hoarau@tco.re', $mail->getTo()[0]->getAddress());
+        $this->assertSame('Re: Réemploi et réduction des déchets', $mail->getSubject());
+        $this->assertStringContainsString('abc@tco.re', $mail->getHeaders()->get('In-Reply-To')->getBodyAsString());
+        $html = $mail->getHtmlBody();
+        $this->assertStringContainsString('avec plaisir pour un échange', $html);
+        $this->assertStringContainsString('Fondateur de Swap’Îles', $html); // la vraie signature
+        $this->assertStringNotContainsString('Emmanuel Taochy, fondateur', $html); // pas de double signature
+        $this->assertStringContainsString('swapiles.com', $mail->getTextBody());
+        $this->assertNotNull($r->fresh()->envoye_at);
+        $this->assertStringContainsString('réponse envoyée', $r->prospect()->notes);
+
+        // Jamais deux fois.
+        $this->expectException(\RuntimeException::class);
+        \App\Support\Agent\EnvoiReponse::envoyer($r->fresh());
+    }
+
+    public function test_le_ceo_envoie_a_la_voix_seulement_apres_un_oui(): void
+    {
+        $this->boiteContact();
+        $this->actingAs($this->admin());
+        $r = $this->reponseInteressee();
+        $this->fauxClaudeSuite(
+            ['reponse' => 'Je réponds au TCO pour proposer un échange de quinze minutes.', 'action' => 'preparer_envoi', 'reponse_id' => $r->id, 'nouveau_brouillon' => ''],
+            ['reponse' => 'Je l’envoie.', 'action' => 'confirmer_envoi', 'reponse_id' => $r->id, 'nouveau_brouillon' => ''],
+        );
+
+        $page = Livewire::test(BureauDuCeo::class)->call('demander', 'Réponds au TCO');
+        $res = $page->effects['returns'][0] ?? null;
+        $this->assertStringContainsString('oui, envoie', $res['texte']);
+        $this->assertSame('TCO', $res['apercu']['nom']);
+        $this->assertSame($r->id, $page->get('envoiEnAttente'));
+        $this->assertCount(0, $this->mailsContact()); // rien n'est parti
+
+        $page->call('demander', 'Oui, envoie');
+        $this->assertCount(1, $this->mailsContact());
+        $this->assertNotNull($r->fresh()->envoye_at);
+        $this->assertNull($page->get('envoiEnAttente'));
+    }
+
+    public function test_pas_d_envoi_sans_oui_clair_ni_sans_envoi_en_attente(): void
+    {
+        $this->boiteContact();
+        $r = $this->reponseInteressee();
+
+        // L'IA croit à une confirmation, mais Emmanuel n'a pas dit oui : rien ne part.
+        $this->fauxClaude(['reponse' => 'Envoyé.', 'action' => 'confirmer_envoi', 'reponse_id' => $r->id, 'nouveau_brouillon' => '']);
+        $res = \App\Support\Agent\Conversation::repondre('Et les ventes de la semaine ?', [], $r->id);
+        $this->assertStringContainsString('dis « oui, envoie »', $res['texte']);
+        // Sans envoi en attente, même un « oui » n'envoie rien.
+        $res = \App\Support\Agent\Conversation::repondre('Oui vas-y', [], null);
+        $this->assertStringContainsString('aucun e-mail prêt', $res['texte']);
+        $this->assertCount(0, $this->mailsContact());
+        $this->assertNull($r->fresh()->envoye_at);
+    }
+
+    public function test_le_ceo_modifie_la_reponse_a_la_voix(): void
+    {
+        $this->boiteContact();
+        $r = $this->reponseInteressee();
+        $this->fauxClaude(['reponse' => 'J’ai ajouté que tu passes jeudi.', 'action' => 'modifier_brouillon', 'reponse_id' => $r->id,
+            'nouveau_brouillon' => "Bonjour,\n\nAvec plaisir, je peux passer vous voir jeudi matin.\n\nBien cordialement,"]);
+
+        $res = \App\Support\Agent\Conversation::repondre('Ajoute que je passe jeudi', [], $r->id);
+
+        $this->assertSame($r->id, $res['enAttente']);
+        $this->assertStringContainsString('jeudi matin', $res['apercu']['texte']);
+        $this->assertStringContainsString('jeudi matin', $r->fresh()->brouillon);
+        $this->assertCount(0, $this->mailsContact());
     }
 
     public function test_liens_du_mail_aux_collectivites(): void

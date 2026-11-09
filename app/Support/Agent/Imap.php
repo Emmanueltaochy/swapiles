@@ -70,6 +70,51 @@ class Imap
         return $r['literaux'][0] ?? '';
     }
 
+    /** Dossier des messages envoyés (attribut \\Sent), sinon les noms habituels. */
+    public function dossierEnvoyes(): ?string
+    {
+        $r = $this->commande('LIST "" "*"');
+        $noms = [];
+        foreach ($r['lignes'] as $l) {
+            if (preg_match('/^\* LIST \(([^)]*)\) (?:"[^"]*"|NIL) "?(.+?)"?$/i', $l, $m)) {
+                if (stripos($m[1], '\\Sent') !== false) {
+                    return $m[2];
+                }
+                $noms[] = $m[2];
+            }
+        }
+        foreach (['INBOX.Sent', 'Sent', 'INBOX.Sent Messages', 'Sent Messages', 'Envoyés', 'INBOX.Envoyés'] as $n) {
+            if (in_array($n, $noms, true)) {
+                return $n;
+            }
+        }
+
+        return null;
+    }
+
+    /** Range une copie du message envoyé dans un dossier (marqué comme lu). */
+    public function ajouter(string $dossier, string $message): void
+    {
+        $tag = 'A' . (++$this->numero);
+        $message = preg_replace("/\r?\n/", "\r\n", $message);
+        fwrite($this->flux, $tag . ' APPEND ' . $this->chaine($dossier) . ' (\\Seen) {' . strlen($message) . "}\r\n");
+        $l = $this->ligne();
+        if (! str_starts_with($l, '+')) {
+            throw new RuntimeException('IMAP : copie refusée');
+        }
+        fwrite($this->flux, $message . "\r\n");
+        while (true) {
+            $l = $this->ligne();
+            if (str_starts_with($l, $tag . ' ')) {
+                if (! preg_match('/^' . $tag . ' OK/i', $l)) {
+                    throw new RuntimeException('IMAP : copie refusée');
+                }
+
+                return;
+            }
+        }
+    }
+
     public function deconnecter(): void
     {
         if ($this->flux) {

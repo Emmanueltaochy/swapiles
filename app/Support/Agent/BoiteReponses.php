@@ -188,7 +188,7 @@ Tu reçois UNIQUEMENT la réponse écrite par le prospect (notre mail d'origine 
 - absence : réponse automatique, absence, accusé de réception automatique, changement d'adresse.
 - autre : tout le reste, y compris « bien reçu », « merci », « nous reviendrons vers vous », « transmis au service concerné », message vide ou incompréhensible.
 « resume » : une phrase en français simple qui dit ce que la personne a ÉCRIT (cite ses mots clés entre guillemets), et ses coordonnées si elle en donne. N'invente rien.
-« brouillon » : pour interesse et question uniquement, une réponse courte, chaleureuse et professionnelle, signée « Emmanuel Taochy, fondateur de Swap'Îles », qui propose un échange de 15 minutes. N'invente aucun chiffre, aucun prix, aucune promesse. Ne cite aucun concurrent. Sinon chaîne vide.
+« brouillon » : pour interesse et question uniquement, une réponse courte, chaleureuse et professionnelle, au nom d'Emmanuel, qui propose un échange de 15 minutes, terminée par « Bien cordialement, » SANS signature (elle est ajoutée automatiquement). N'invente aucun chiffre, aucun prix, aucune promesse. Ne cite aucun concurrent. Sinon chaîne vide.
 TXT;
     }
 

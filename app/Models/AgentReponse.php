@@ -16,9 +16,9 @@ class AgentReponse extends Model
         'autre' => 'Autre',
     ];
 
-    protected $fillable = ['message_id', 'prospect_type', 'prospect_id', 'expediteur', 'sujet', 'recu_at', 'categorie', 'resume', 'brouillon', 'extrait', 'vu_at'];
+    protected $fillable = ['message_id', 'prospect_type', 'prospect_id', 'expediteur', 'sujet', 'recu_at', 'categorie', 'resume', 'brouillon', 'extrait', 'vu_at', 'envoye_at', 'texte_envoye'];
 
-    protected $casts = ['recu_at' => 'datetime', 'vu_at' => 'datetime'];
+    protected $casts = ['recu_at' => 'datetime', 'vu_at' => 'datetime', 'envoye_at' => 'datetime'];
 
     public function prospect(): RelaisProspect|ProspectRse|null
     {

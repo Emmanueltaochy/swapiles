@@ -39,6 +39,7 @@ class AdminPanelProvider extends PanelProvider
             // Chaque page déclare son groupe (navigationGroup) ; l'ordre des
             // groupes est fixé ici. Les groupes se replient d'un clic.
             ->navigationGroups([
+                NavigationGroup::make('Direction'),
                 NavigationGroup::make('Audience'),
                 NavigationGroup::make('Ventes'),
                 NavigationGroup::make('Catalogue'),

@@ -234,6 +234,11 @@ Route::post('/points-relais/decouvrir/suivi', [\App\Http\Controllers\Prospection
 Route::get('/points-relais/ne-plus-me-contacter/{jeton}', [\App\Http\Controllers\ProspectionRelaisController::class, 'desinscrire'])
     ->where('jeton', '[A-Za-z0-9]{40}')->middleware('throttle:30,1')->name('relais.prospection.desinscription');
 Route::view('/points-relais/charte', 'relay.charte')->name('relay.charte');
+// Liens des mails de prospection des organismes publics (agent directeur).
+Route::get('/collectivites/decouvrir/{jeton}', [\App\Http\Controllers\ProspectionRseController::class, 'clic'])
+    ->where('jeton', '[A-Za-z0-9]{40}')->middleware('throttle:30,1')->name('rse.prospection.clic');
+Route::match(['get', 'post'], '/collectivites/ne-plus-me-contacter/{jeton}', [\App\Http\Controllers\ProspectionRseController::class, 'desinscrire'])
+    ->where('jeton', '[A-Za-z0-9]{40}')->middleware('throttle:30,1')->name('rse.prospection.desinscription');
 // Enseignes partenaires (RSE) : présentation et rapport d'impact mensuel (lien privé).
 Route::get('/partenaires', [\App\Http\Controllers\PartenairesController::class, 'index'])->name('partenaires.index');
 Route::get('/partenaires/rapport/{jeton}', [\App\Http\Controllers\PartenairesController::class, 'rapport'])

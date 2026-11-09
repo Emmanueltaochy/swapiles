@@ -141,6 +141,11 @@ $COMME_WEB timeout 300 php artisan relais:prospects --si-vide --emails=0 2>&1 | 
 # Recherche des e-mails sur les sites, en arrière-plan (plusieurs minutes).
 setsid nohup $COMME_WEB php artisan relais:prospects --sans-import --emails=150 >/dev/null 2>&1 < /dev/null &
 
+echo "==> Agent directeur"
+# Première recherche des organismes publics (annuaire officiel) si la liste est vide.
+$COMME_WEB timeout 240 php artisan agent:directeur annuaire --si-vide 2>&1 | sed 's/^/    /' || true
+$COMME_WEB timeout 60 php artisan agent:directeur etat 2>&1 | sed 's/^/    /' || true
+
 # ---------------------------------------------------------------------------
 # 6c. DIAGNOSTIC ANONYME DES DERNIÈRES ERREURS
 #     Le dépôt est public : on n'affiche JAMAIS le message d'erreur (il peut

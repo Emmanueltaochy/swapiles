@@ -36,6 +36,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('web', \App\Http\Middleware\SuiviProspectRelais::class);
         $middleware->validateCsrfTokens(except: [
             'stripe/webhook',
+            // Désinscription en un clic depuis la messagerie (en-tête List-Unsubscribe).
+            'collectivites/ne-plus-me-contacter/*',
         ]);
         //
     })

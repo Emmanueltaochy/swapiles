@@ -39,7 +39,7 @@ class IaDepot
 
     public static function depenseDuMois(): float
     {
-        return (float) DB::table('ia_depot_usages')->where('created_at', '>=', now()->startOfMonth())->sum('cout_usd');
+        return (float) DB::table('ia_depot_usages')->where('fonction', '!=', 'agent')->where('created_at', '>=', now()->startOfMonth())->sum('cout_usd');
     }
 
     /**
@@ -49,7 +49,7 @@ class IaDepot
      */
     public static function bilan(): array
     {
-        $mois = DB::table('ia_depot_usages')->where('created_at', '>=', now()->startOfMonth());
+        $mois = DB::table('ia_depot_usages')->where('fonction', '!=', 'agent')->where('created_at', '>=', now()->startOfMonth()); // l'agent directeur a son propre budget
         $appels = (clone $mois)->count();
         $ok = (clone $mois)->where('statut', 'ok')->count();
         $cout = (float) (clone $mois)->sum('cout_usd');

@@ -63,15 +63,16 @@ class ProspectionRelais
         'fuel' => 'Station-service',
     ];
 
-    /** Envois par jour au plus : la boîte contact@ est plafonnée à 1 000 e-mails/jour pour tout le site. */
+    /** Envois par jour au plus (commun à toute la prospection, voir Agent\Prospection). */
     public static function plafondJour(): int
     {
-        return (int) config('relais.prospection_par_jour', 40);
+        return \App\Support\Agent\Prospection::plafondJour();
     }
 
+    /** Mails de prospection du jour, toutes prospections confondues (plafond commun). */
     public static function envoyesAujourdhui(): int
     {
-        return RelaisProspect::where('contacte_at', '>=', today())->count();
+        return \App\Support\Agent\Prospection::envoyesAujourdhui();
     }
 
     /**
@@ -305,12 +306,8 @@ class ProspectionRelais
             'contact' => config('partenaires.contact'),
         ];
 
-        Mail::send('emails.prospection-relais', $donnees, function ($mail) use ($p) {
-            $mail->from('contact@swapiles.com', "Swap'Îles")
-                ->replyTo('contact@swapiles.com', "Emmanuel Taochy (Swap'Îles)")
-                ->to($p->email, $p->nom)
-                ->subject('Devenir point relais Swap’Îles à ' . ($p->ville ?: $p->territoire) . ' : des clients en plus, sans investissement');
-        });
+        \App\Support\Agent\Prospection::envoyer('emails.prospection-relais', $donnees, $p->email, $p->nom,
+            'Devenir point relais Swap’Îles à ' . ($p->ville ?: $p->territoire) . ' : des clients en plus, sans investissement');
 
         $p->forceFill(['statut' => 'contacte', 'contacte_at' => now(), 'nb_envois' => $p->nb_envois + 1])->save();
 

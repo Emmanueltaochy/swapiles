@@ -89,7 +89,15 @@ Schedule::call(fn () => \App\Support\NouveautesDressings::envoyer())->hourlyAt(1
 // En arrière-plan : la carte peut mettre plusieurs minutes à répondre, sans bloquer les autres tâches.
 Schedule::command('relais:prospects')->dailyAt('03:50')->withoutOverlapping(120)->runInBackground();
 Schedule::command('relais:prospects --si-demande')->everyMinute()->withoutOverlapping(120)->runInBackground();
-Schedule::command('relais:prospection-envoyer')->dailyAt('09:05')->withoutOverlapping();
+// Les mails aux commerces sont désormais envoyés par l'agent directeur, répartis sur la journée.
+
+// Agent directeur (heure de La Réunion) : résumé à 7 h, prospection répartie
+// de 8 h à 16 h du lundi au samedi, réponses relevées toutes les heures,
+// annuaire des organismes publics chaque semaine.
+Schedule::command('agent:directeur rapport')->dailyAt('07:00')->withoutOverlapping(30);
+Schedule::command('agent:directeur prospecter')->hourlyAt(5)->between('8:00', '16:59')->days([1, 2, 3, 4, 5, 6])->withoutOverlapping(55);
+Schedule::command('agent:directeur reponses')->hourlyAt(35)->between('7:00', '20:59')->withoutOverlapping(30);
+Schedule::command('agent:directeur annuaire')->weeklyOn(0, '04:30')->withoutOverlapping(120)->runInBackground();
 
 // Remontées d'annonces : ~1 ancienne annonce remise en avant pour 4 nouvelles,
 // sur chaque île, pour que les anciennes ne restent pas oubliées en bas.

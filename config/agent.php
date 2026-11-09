@@ -50,7 +50,8 @@ return [
 
     // Lecture des réponses (boîte contact@, accès déjà utilisé par le site pour envoyer).
     'imap' => [
-        'hote' => env('AGENT_IMAP_HOST', preg_replace('/^smtp\./', 'imap.', (string) env('MAIL_HOST', ''))),
+        // Boîte contact@ hébergée chez Hostinger : imap.hostinger.com, sauf réglage contraire.
+        'hote' => env('AGENT_IMAP_HOST') ?: (filled(env('AGENT_IMAP_USERNAME')) ? 'imap.hostinger.com' : preg_replace('/^smtp\./', 'imap.', (string) env('MAIL_HOST', ''))),
         'port' => (int) env('AGENT_IMAP_PORT', 993),
         'utilisateur' => env('AGENT_IMAP_USERNAME', env('MAIL_USERNAME')),
         'mot_de_passe' => env('AGENT_IMAP_PASSWORD', env('MAIL_PASSWORD')),

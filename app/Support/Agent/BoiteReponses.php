@@ -27,6 +27,34 @@ class BoiteReponses
         return filled(config('agent.imap.hote')) && filled(config('agent.imap.utilisateur')) && filled(config('agent.imap.mot_de_passe'));
     }
 
+    /** État de la lecture, sans aucun secret : ce qui manque, ou le résultat d'une connexion d'essai. */
+    public static function etat(bool $essayer = true): string
+    {
+        $manque = array_keys(array_filter([
+            'hôte' => blank(config('agent.imap.hote')),
+            'identifiant' => blank(config('agent.imap.utilisateur')),
+            'mot de passe' => blank(config('agent.imap.mot_de_passe')),
+        ]));
+        if ($manque) {
+            return 'non (manque : ' . implode(', ', $manque) . ')';
+        }
+        $hote = (string) config('agent.imap.hote');
+        if (! $essayer) {
+            return 'oui (' . $hote . ')';
+        }
+        $imap = new Imap();
+        try {
+            $imap->connecter($hote, (int) config('agent.imap.port'), (string) config('agent.imap.utilisateur'), (string) config('agent.imap.mot_de_passe'));
+            $imap->choisir('INBOX');
+
+            return 'oui, connexion réussie (' . $hote . ')';
+        } catch (Throwable $e) {
+            return 'connexion refusée (' . $hote . ', ' . (str_contains($e->getMessage(), 'LOGIN') ? 'identifiant ou mot de passe' : 'serveur injoignable') . ')';
+        } finally {
+            $imap->deconnecter();
+        }
+    }
+
     /** @return array{lus:int,reponses:int} */
     public static function relever(?Imap $imap = null): array
     {

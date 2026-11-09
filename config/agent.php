@@ -15,6 +15,8 @@ return [
     // Résumé du matin : modèle plus fin ; tri des réponses : modèle rapide.
     'modele_rapport' => env('AGENT_MODELE_RAPPORT', 'claude-sonnet-5-5'),
     'modele_tri' => env('AGENT_MODELE_TRI', 'claude-haiku-5-5'),
+    // « Parler au CEO » (Bureau du CEO, à la voix) : réponses courtes à l'oral.
+    'modele_voix' => env('AGENT_MODELE_VOIX', 'claude-sonnet-5-5'),
     'budget_mensuel_usd' => (float) env('AGENT_BUDGET_MENSUEL', 15),
 
     // Boîte d'envoi de la prospection (secrets GitHub PROSPECTION_MAIL_*).

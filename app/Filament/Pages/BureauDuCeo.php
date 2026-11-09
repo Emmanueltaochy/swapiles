@@ -37,6 +37,9 @@ class BureauDuCeo extends Page
 
     public bool $voirApercu = false;
 
+    /** Derniers échanges avec le CEO (pour les questions de suite). */
+    public array $echanges = [];
+
     public function getViewData(): array
     {
         $exemple = ProspectRse::query()->where('type', 'ccas')->first() ?? ProspectRse::query()->first();
@@ -104,6 +107,22 @@ class BureauDuCeo extends Page
     {
         Reglage::ecrire(Prospection::RSE_VALIDE, ! Prospection::rseValidee());
         Notification::make()->title(Prospection::rseValidee() ? 'Modèle validé : les collectivités seront contactées ✅' : 'Envois aux collectivités arrêtés')->success()->send();
+    }
+
+    /** « Parler au CEO » : renvoie la réponse (lue à voix haute par la page). */
+    public function demander(string $question): string
+    {
+        $reponse = \App\Support\Agent\Conversation::repondre($question, $this->echanges);
+        $this->echanges[] = ['q' => \Illuminate\Support\Str::limit($question, 500), 'r' => $reponse];
+        $this->echanges = array_slice($this->echanges, -6);
+        $this->skipRender();
+
+        return $reponse;
+    }
+
+    public function oublier(): void
+    {
+        $this->echanges = [];
     }
 
     public function marquerVu(int $id): void

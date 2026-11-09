@@ -5,6 +5,43 @@
         $types = config('agent.rse_types');
     @endphp
 
+@php
+        $aLire = $rapport ? trim($rapport->texte . ' ' . (count($rapport->actions ?? []) ? 'Mes trois actions pour aujourd’hui. ' . collect($rapport->actions)->map(fn ($a) => ['Un', 'Deux', 'Trois'][($a['id'] ?? 1) - 1] . ' : ' . ($a['titre'] ?? '') . '.')->implode(' ') : '')) : 'Pas encore de résumé aujourd’hui. Le premier arrive à sept heures.';
+    @endphp
+    {{-- Parler au CEO : question à la voix (ou au clavier), réponse lue à voix haute. --}}
+    <x-filament::section>
+        <x-slot name="heading">🎙️ Parler au CEO</x-slot>
+        <x-slot name="description">Pose ta question à voix haute : il répond avec les vrais chiffres de Swap’Îles et te lit sa réponse.</x-slot>
+        <div id="ceo-voix" wire:ignore data-resume="{{ $aLire }}">
+            <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+                <button type="button" data-micro aria-label="Parler au CEO"
+                        style="width:76px;height:76px;border-radius:9999px;border:0;background:#0f766e;color:#fff;font-size:2rem;box-shadow:0 8px 24px rgba(15,118,110,.35);cursor:pointer;transition:transform .15s;">🎙️</button>
+                <div style="flex:1;min-width:180px;">
+                    <div data-etat style="font-weight:700;">Touche le micro et parle.</div>
+                    <div data-aide style="font-size:.8rem;opacity:.7;margin-top:.15rem;"></div>
+                </div>
+                <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+                    <button type="button" data-resume-lire style="border:1px solid rgba(148,163,184,.4);border-radius:.7rem;padding:.5rem .8rem;font-weight:700;font-size:.85rem;cursor:pointer;background:transparent;">🔊 Lis-moi le résumé</button>
+                    <button type="button" data-stop style="border:1px solid rgba(148,163,184,.4);border-radius:.7rem;padding:.5rem .8rem;font-weight:700;font-size:.85rem;cursor:pointer;background:transparent;">⏹️ Stop</button>
+                </div>
+            </div>
+
+            <div data-suggestions style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.9rem;">
+                @foreach(['Comment ça va aujourd’hui ?', 'Qui a répondu à nos mails ?', 'Qu’est-ce que je fais en priorité ?', 'Combien de ventes cette semaine ?'] as $q)
+                    <button type="button" data-question="{{ $q }}" style="border-radius:9999px;padding:.35rem .75rem;font-size:.8rem;background:rgba(15,118,110,.1);color:#0f766e;border:0;cursor:pointer;font-weight:600;">{{ $q }}</button>
+                @endforeach
+            </div>
+
+            <div data-fil style="margin-top:.9rem;display:flex;flex-direction:column;gap:.5rem;"></div>
+
+            <form data-clavier style="margin-top:.8rem;display:flex;gap:.5rem;">
+                <input type="text" data-texte maxlength="500" placeholder="…ou écris ta question (le micro du clavier marche aussi)" autocomplete="off"
+                       style="flex:1;min-width:0;border:1px solid rgba(148,163,184,.4);border-radius:.7rem;padding:.6rem .8rem;background:transparent;">
+                <button type="submit" style="border:0;border-radius:.7rem;padding:.6rem .9rem;background:#0f766e;color:#fff;font-weight:700;cursor:pointer;">Envoyer</button>
+            </form>
+        </div>
+    </x-filament::section>
+
     {{-- Résumé du jour --}}
     <x-filament::section>
         <x-slot name="heading">☀️ Résumé du jour {{ $rapport ? '(' . $rapport->jour->format('d/m/Y') . ')' : '' }}</x-slot>
@@ -104,4 +141,144 @@
             <iframe srcdoc="{{ $apercu }}" style="width:100%;height:900px;border:1px solid rgba(148,163,184,.3);border-radius:.8rem;margin-top:.4rem;background:#fff;"></iframe>
         @endif
     </x-filament::section>
+@script
+<script>
+(() => {
+    const zone = document.getElementById('ceo-voix');
+    if (!zone) return;
+    const $ = (sel) => zone.querySelector(sel);
+    const micro = $('[data-micro]'), etat = $('[data-etat]'), aide = $('[data-aide]'), fil = $('[data-fil]'), texte = $('[data-texte]');
+    const Reco = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const synthese = 'speechSynthesis' in window ? window.speechSynthesis : null;
+    let voix = null, ecoute = null, enEcoute = false, occupe = false;
+
+    function dire(t) { etat.textContent = t; }
+    if (!Reco) aide.textContent = 'Ici le micro direct n’est pas disponible : touche la zone de texte puis le micro de ton clavier pour dicter.';
+    else if (!synthese) aide.textContent = 'Ce navigateur ne sait pas lire à voix haute : les réponses s’affichent à l’écran.';
+
+    // Voix française du téléphone (gratuite).
+    function choisirVoix() {
+        if (!synthese) return;
+        const toutes = synthese.getVoices();
+        voix = toutes.find(v => /^fr[-_]FR/i.test(v.lang) && /Thomas|Am[ée]lie|Audrey|Google|Daniel/i.test(v.name))
+            || toutes.find(v => /^fr/i.test(v.lang)) || null;
+    }
+    if (synthese) { choisirVoix(); synthese.addEventListener?.('voiceschanged', choisirVoix); }
+
+    // iPhone : la voix doit être « débloquée » par un geste de l'utilisateur.
+    let debloquee = false;
+    function debloquer() {
+        if (!synthese || debloquee) return;
+        debloquee = true;
+        try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; synthese.speak(u); } catch (e) {}
+    }
+
+    function parler(t) {
+        if (!synthese || !t) return;
+        synthese.cancel();
+        // Phrase par phrase : certains téléphones coupent les textes longs.
+        (t.match(/[^.!?…]+[.!?…]*/g) || [t]).forEach((morceau) => {
+            const m = morceau.trim();
+            if (!m) return;
+            const u = new SpeechSynthesisUtterance(m);
+            u.lang = 'fr-FR';
+            if (voix) u.voice = voix;
+            u.rate = 1.03;
+            synthese.speak(u);
+        });
+    }
+
+    function bulle(qui, t) {
+        const b = document.createElement('div');
+        b.textContent = t;
+        b.style.cssText = 'max-width:88%;padding:.6rem .85rem;border-radius:1rem;font-size:.92rem;line-height:1.5;white-space:pre-line;'
+            + (qui === 'moi'
+                ? 'align-self:flex-end;background:#0f766e;color:#fff;border-bottom-right-radius:.3rem;'
+                : 'align-self:flex-start;background:rgba(148,163,184,.15);border-bottom-left-radius:.3rem;');
+        fil.appendChild(b);
+        b.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return b;
+    }
+
+    async function poser(q) {
+        q = (q || '').trim();
+        if (!q || occupe) return;
+        debloquer();
+        occupe = true;
+        bulle('moi', q);
+        texte.value = '';
+        dire('Je réfléchis…');
+        micro.style.opacity = '.5';
+        try {
+            const r = await $wire.demander(q);
+            bulle('ceo', r);
+            dire('Touche le micro pour une autre question.');
+            parler(r);
+        } catch (e) {
+            bulle('ceo', 'La connexion a coupé. Réessaie dans un instant.');
+            dire('Touche le micro et parle.');
+        } finally {
+            occupe = false;
+            micro.style.opacity = '1';
+        }
+    }
+
+    function arreterEcoute() {
+        enEcoute = false;
+        micro.style.transform = 'scale(1)';
+        micro.style.background = '#0f766e';
+    }
+
+    micro.addEventListener('click', () => {
+        debloquer();
+        synthese?.cancel();
+        if (!Reco) { texte.focus(); dire('Touche le micro de ton clavier et dicte ta question.'); return; }
+        if (enEcoute) { ecoute?.stop(); return; }
+        ecoute = new Reco();
+        ecoute.lang = 'fr-FR';
+        ecoute.interimResults = true;
+        ecoute.maxAlternatives = 1;
+        let final = '';
+        ecoute.onresult = (ev) => {
+            let provisoire = '';
+            for (let i = ev.resultIndex; i < ev.results.length; i++) {
+                if (ev.results[i].isFinal) final += ev.results[i][0].transcript; else provisoire += ev.results[i][0].transcript;
+            }
+            texte.value = (final + ' ' + provisoire).trim();
+        };
+        ecoute.onerror = (ev) => {
+            arreterEcoute();
+            dire(ev.error === 'not-allowed' || ev.error === 'service-not-allowed'
+                ? 'Le micro est bloqué : autorise-le dans les réglages du navigateur, ou écris ta question.'
+                : 'Je n’ai pas bien entendu. Réessaie ou écris ta question.');
+        };
+        ecoute.onend = () => {
+            const q = (final || texte.value).trim();
+            arreterEcoute();
+            if (q) poser(q); else dire('Touche le micro et parle.');
+        };
+        try {
+            ecoute.start();
+            enEcoute = true;
+            micro.style.transform = 'scale(1.08)';
+            micro.style.background = '#dc2626';
+            dire('Je t’écoute… (touche encore pour terminer)');
+        } catch (e) {
+            arreterEcoute();
+            dire('Micro indisponible : écris ta question.');
+        }
+    });
+
+    $('[data-clavier]').addEventListener('submit', (e) => { e.preventDefault(); poser(texte.value); });
+    zone.querySelectorAll('[data-question]').forEach((b) => b.addEventListener('click', () => poser(b.dataset.question)));
+    $('[data-resume-lire]').addEventListener('click', () => {
+        debloquer();
+        if (!synthese) { dire('Ce navigateur ne sait pas lire à voix haute.'); return; }
+        parler(zone.dataset.resume);
+        dire('Je te lis le résumé du jour…');
+    });
+    $('[data-stop]').addEventListener('click', () => { synthese?.cancel(); ecoute?.abort(); arreterEcoute(); dire('Touche le micro et parle.'); });
+})();
+</script>
+@endscript
 </x-filament-panels::page>

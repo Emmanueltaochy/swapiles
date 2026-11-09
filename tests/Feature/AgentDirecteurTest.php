@@ -256,7 +256,8 @@ class AgentDirecteurTest extends TestCase
         $this->assertSame(1, Notification::where('user_id', $admin->id)->where('type', 'agent_rapport')->count());
 
         $this->actingAs($admin)->get('/admin/bureau-du-ceo')->assertOk()
-            ->assertSee('Relancer les annonces sans vente')->assertSee('Valider le mail et écrire aux collectivités');
+            ->assertSee('Relancer les annonces sans vente')->assertSee('Valider le mail et écrire aux collectivités')
+            ->assertSee('Parler au CEO')->assertSee('Lis-moi le résumé');
 
         Livewire::test(BureauDuCeo::class)
             ->call('decider', $r->id, 2, 'go')
@@ -275,6 +276,27 @@ class AgentDirecteurTest extends TestCase
         $decisions = collect(\App\Support\Agent\RapportQuotidien::chiffres()['decisions_recentes']);
         $this->assertSame('go', $decisions->firstWhere('action', 'Mettre en avant la Guadeloupe')['decision']);
         $this->assertSame('sans réponse', $decisions->firstWhere('action', 'Relancer les annonces sans vente')['decision']);
+    }
+
+    public function test_parler_au_ceo(): void
+    {
+        $admin = $this->admin();
+        $this->actingAs($admin);
+        $this->fauxClaude(['reponse' => 'Cette semaine, trois ventes. Je te conseille de relancer les vendeurs.']);
+
+        $page = Livewire::test(BureauDuCeo::class)
+            ->call('demander', 'Combien de ventes cette semaine ?')
+            ->assertReturned('Cette semaine, trois ventes. Je te conseille de relancer les vendeurs.');
+        $this->assertCount(1, $page->get('echanges'));
+
+        // Rien entendu : pas d'appel à l'IA.
+        $page->call('demander', '   ')->assertReturned('Je n’ai rien entendu. Tu peux répéter ?');
+
+        // Sans IA disponible : une phrase claire, jamais d'erreur.
+        $this->app->forgetInstance('agent.client');
+        $this->app->offsetUnset('agent.client');
+        config()->set('ia_depot.cle', null);
+        $this->assertStringContainsString('pas disponible', \App\Support\Agent\Conversation::repondre('Ça va ?'));
     }
 
     public function test_liens_du_mail_aux_collectivites(): void

@@ -8,6 +8,63 @@
 @php
         $aLire = $rapport ? trim($rapport->texte . ' ' . (count($rapport->actions ?? []) ? 'Mes trois actions pour aujourd’hui. ' . collect($rapport->actions)->map(fn ($a) => ['Un', 'Deux', 'Trois'][($a['id'] ?? 1) - 1] . ' : ' . ($a['titre'] ?? '') . '.')->implode(' ') : '')) : 'Pas encore de résumé aujourd’hui. Le premier arrive à sept heures.';
     @endphp
+    {{-- À rappeler : les prospects qui ont répondu « intéressé » ou posé une question. --}}
+    @if($aRappeler->count())
+        <x-filament::section>
+            <x-slot name="heading">🔥 À rappeler ({{ $aRappeler->count() }})</x-slot>
+            <x-slot name="description">Ils ont répondu à nos mails. Leur message, comment les joindre et une réponse prête à envoyer.</x-slot>
+            @foreach($aRappeler as $r)
+                @php
+                    $pr = $r->prospect();
+                    $typeP = $r->prospect_type === 'rse' ? ($types[$pr?->type] ?? 'Organisme public') : 'Commerce · point relais';
+                    $sujetMail = preg_match('/^\s*re\s*:/i', (string) $r->sujet) ? $r->sujet : 'Re: ' . ($r->sujet ?: 'Swap’Îles');
+                    $mailto = 'mailto:' . $r->expediteur . '?subject=' . rawurlencode($sujetMail) . ($r->brouillon ? '&body=' . rawurlencode($r->brouillon) : '');
+                @endphp
+                <div style="padding:1rem;border:1px solid rgba(15,118,110,.35);border-radius:1rem;margin-bottom:.8rem;background:rgba(15,118,110,.04);">
+                    <div style="display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap;">
+                        <div>
+                            <div style="font-size:.75rem;font-weight:700;color:#0f766e;">{{ \App\Models\AgentReponse::CATEGORIES[$r->categorie] ?? $r->categorie }} · {{ $typeP }}</div>
+                            <div style="font-size:1.05rem;font-weight:800;margin-top:.1rem;">{{ $pr?->nom ?? 'Prospect supprimé' }}</div>
+                            <div style="font-size:.82rem;opacity:.75;">{{ collect([$pr?->ville, $pr?->territoire])->filter()->implode(' · ') }}</div>
+                        </div>
+                        <div style="font-size:.8rem;opacity:.7;">Reçu le {{ $r->recu_at?->format('d/m à H:i') }}</div>
+                    </div>
+
+                    <div style="margin-top:.6rem;font-size:.92rem;"><strong>En bref :</strong> {{ $r->resume }}</div>
+
+                    <div style="margin-top:.6rem;font-size:.8rem;font-weight:700;opacity:.7;">Son message :</div>
+                    <blockquote style="margin:.3rem 0 0;padding:.6rem .8rem;border-left:3px solid #0f766e;background:rgba(148,163,184,.12);border-radius:.4rem;white-space:pre-wrap;font-size:.9rem;">{{ $r->extrait ?: '(message vide : ouvre-le dans la boîte contact@)' }}</blockquote>
+
+                    <div style="margin-top:.7rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+                        @if($pr?->telephone)
+                            <a href="tel:{{ preg_replace('/[^0-9+]/', '', $pr->telephone) }}" style="display:inline-block;border-radius:.7rem;padding:.5rem .8rem;background:#0f766e;color:#fff;font-weight:700;font-size:.85rem;text-decoration:none;">📞 Appeler {{ $pr->telephone }}</a>
+                        @endif
+                        <a href="{{ $mailto }}" style="display:inline-block;border-radius:.7rem;padding:.5rem .8rem;border:1px solid #0f766e;color:#0f766e;font-weight:700;font-size:.85rem;text-decoration:none;">✉️ Répondre à {{ $r->expediteur }}</a>
+                    </div>
+
+                    @if($r->brouillon)
+                        <details style="margin-top:.6rem;">
+                            <summary style="cursor:pointer;font-size:.85rem;font-weight:700;">✍️ Réponse proposée (déjà dans le bouton « Répondre »)</summary>
+                            <pre style="white-space:pre-wrap;font-family:inherit;font-size:.88rem;background:rgba(148,163,184,.12);padding:.7rem;border-radius:.6rem;margin-top:.4rem;">{{ $r->brouillon }}</pre>
+                        </details>
+                    @endif
+                    @if($pr?->notes)
+                        <div style="margin-top:.5rem;font-size:.8rem;opacity:.75;white-space:pre-line;">📝 {{ $pr->notes }}</div>
+                    @endif
+
+                    <div style="margin-top:.7rem;display:flex;gap:.4rem;flex-wrap:wrap;">
+                        <x-filament::button size="xs" color="success" wire:click="suivre({{ $r->id }}, 'rdv')">📅 RDV pris</x-filament::button>
+                        @if($r->prospect_type === 'relais')
+                            <x-filament::button size="xs" color="success" wire:click="suivre({{ $r->id }}, 'relais')">🏪 Devenu point relais</x-filament::button>
+                        @endif
+                        <x-filament::button size="xs" color="gray" wire:click="suivre({{ $r->id }}, 'traite')">✅ Traité</x-filament::button>
+                        <x-filament::button size="xs" color="gray" wire:click="suivre({{ $r->id }}, 'refus')">❌ Finalement pas intéressé</x-filament::button>
+                    </div>
+                </div>
+            @endforeach
+        </x-filament::section>
+    @endif
+
     {{-- Parler au CEO : question à la voix (ou au clavier), réponse lue à voix haute. --}}
     <x-filament::section>
         <x-slot name="heading">🎙️ Parler au CEO</x-slot>
@@ -83,8 +140,8 @@
 
     {{-- Réponses des prospects --}}
     <x-filament::section>
-        <x-slot name="heading">📬 Réponses des commerces et collectivités</x-slot>
-        <x-slot name="description">Lues sur contact@ (seulement les réponses des prospects contactés). Les « Intéressé » et « Question » t’arrivent aussi par notification.</x-slot>
+        <x-slot name="heading">📬 Autres réponses</x-slot>
+        <x-slot name="description">Lues sur contact@ (seulement les réponses des prospects contactés) : absences, refus, accusés de réception, et les prospects déjà traités.</x-slot>
         @forelse($reponses as $r)
             @php $pr = $r->prospect(); @endphp
             <div style="padding:.8rem 0;border-bottom:1px solid rgba(148,163,184,.2);{{ $r->vu_at ? 'opacity:.6;' : '' }}">

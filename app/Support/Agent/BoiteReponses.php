@@ -121,7 +121,11 @@ class BoiteReponses
         }
         $auto = isset($entetes['auto-submitted']) && strtolower($entetes['auto-submitted']) !== 'no' || isset($entetes['x-autoreply']);
         $texte = Courriel::texte($brut());
-        $tri = $auto ? ['categorie' => 'absence', 'resume' => 'Réponse automatique.', 'brouillon' => ''] : self::trier($p, $entetes['subject'] ?? '', $texte);
+        $tri = match (true) {
+            $auto => ['categorie' => 'absence', 'resume' => 'Réponse automatique.', 'brouillon' => ''],
+            mb_strlen(trim($texte)) < 3 => ['categorie' => 'autre', 'resume' => 'Message vide ou illisible : à ouvrir dans la boîte contact@.', 'brouillon' => ''],
+            default => self::trier($p, $entetes['subject'] ?? '', $texte),
+        };
 
         $r = AgentReponse::create([
             'message_id' => $messageId,
@@ -176,20 +180,20 @@ class BoiteReponses
     {
         return <<<'TXT'
 Tu es l'assistant d'Emmanuel Taochy, fondateur de Swap'Îles (application de seconde main des Outre-mer : achat, vente, dons, échanges ; points relais chez des commerçants ; partenariats réemploi avec les collectivités).
-Tu reçois la réponse d'un prospect à notre mail de présentation. Classe-la :
-- interesse : veut en savoir plus, propose un rendez-vous, demande d'appeler, dit oui.
-- question : pose une question précise sans dire oui ni non.
-- refus : pas intéressé, poliment ou non.
-- desinscription : demande de ne plus être contacté.
-- absence : réponse automatique, absence, changement d'adresse.
-- autre : tout le reste.
-« resume » : une phrase en français simple (ce que veut la personne, coordonnées utiles éventuelles).
+Tu reçois UNIQUEMENT la réponse écrite par le prospect (notre mail d'origine a été retiré). Classe-la avec prudence :
+- interesse : la personne dit CLAIREMENT oui, veut en savoir plus, demande un rendez-vous, un appel ou des documents. En cas de doute, ce n'est PAS « interesse ».
+- question : elle pose une question précise sans dire oui ni non.
+- refus : pas intéressée.
+- desinscription : demande de ne plus être contactée.
+- absence : réponse automatique, absence, accusé de réception automatique, changement d'adresse.
+- autre : tout le reste, y compris « bien reçu », « merci », « nous reviendrons vers vous », « transmis au service concerné », message vide ou incompréhensible.
+« resume » : une phrase en français simple qui dit ce que la personne a ÉCRIT (cite ses mots clés entre guillemets), et ses coordonnées si elle en donne. N'invente rien.
 « brouillon » : pour interesse et question uniquement, une réponse courte, chaleureuse et professionnelle, signée « Emmanuel Taochy, fondateur de Swap'Îles », qui propose un échange de 15 minutes. N'invente aucun chiffre, aucun prix, aucune promesse. Ne cite aucun concurrent. Sinon chaîne vide.
 TXT;
     }
 
     /** Statut du prospect et alerte. */
-    private static function appliquer(RelaisProspect|ProspectRse $p, AgentReponse $r): void
+    private static function appliquer(RelaisProspect|ProspectRse $p, AgentReponse $r, bool $alerter = true): void
     {
         $maj = [];
         if ($r->categorie !== 'absence') {
@@ -197,25 +201,71 @@ TXT;
         }
         $maj['statut'] = match ($r->categorie) {
             'desinscription' => 'desinscrit',
-            'refus' => $p instanceof ProspectRse ? 'refuse' : 'refuse',
+            'refus' => 'refuse',
             'interesse' => 'interesse',
-            'question' => $p instanceof ProspectRse ? 'repondu' : $p->statut,
-            default => $p instanceof ProspectRse && $r->categorie !== 'absence' && in_array($p->statut, ['contacte', 'relance'], true) ? 'repondu' : $p->statut,
+            default => $p instanceof ProspectRse
+                ? ($r->categorie !== 'absence' && in_array($p->statut, ['contacte', 'relance', 'interesse'], true) ? 'repondu' : $p->statut)
+                : ($p->statut === 'interesse' ? 'contacte' : $p->statut),
         };
         $p->forceFill($maj)->save();
 
-        if (in_array($r->categorie, ['interesse', 'question'], true)) {
-            $titre = ($r->categorie === 'interesse' ? '🔥 Intéressé : ' : '❓ Question : ') . $p->nom;
-            $lien = url('/admin/bureau-du-ceo');
-            try {
-                AdminEvent::notify($titre, $r->resume . "\n\nBrouillon de réponse prêt dans le Bureau du CEO.", $lien);
-                $admins = array_filter(array_map('trim', explode(',', strtolower((string) env('ADMIN_EMAILS', 'cabinet@taochyconsulting.fr')))));
-                foreach (User::whereIn(\Illuminate\Support\Facades\DB::raw('LOWER(email)'), $admins)->pluck('id') as $id) {
-                    Notification::create(['user_id' => $id, 'type' => 'agent_reponse', 'title' => $titre, 'message' => Str::limit($r->resume, 180), 'url' => $lien]);
-                }
-            } catch (Throwable $e) {
-                report($e);
-            }
+        if ($alerter && in_array($r->categorie, ['interesse', 'question'], true)) {
+            Alerte::envoyer(
+                ($r->categorie === 'interesse' ? '🔥 Prospect intéressé : ' : '❓ Question d’un prospect : ') . $p->nom,
+                self::fiche($p, $r),
+                url('/admin/bureau-du-ceo'),
+                'agent_reponse'
+            );
         }
+    }
+
+    /** Tout ce qu'il faut pour rappeler : qui, comment le joindre, ce qu'il a écrit, la réponse proposée. */
+    public static function fiche(RelaisProspect|ProspectRse $p, AgentReponse $r): string
+    {
+        $type = $p instanceof ProspectRse ? (config('agent.rse_types.' . $p->type) ?? 'Organisme public') : 'Commerce (point relais)';
+        $lignes = [
+            'Qui : ' . $p->nom . ' — ' . $type . ($p->ville ? ', ' . $p->ville : '') . ($p->territoire ? ' (' . $p->territoire . ')' : ''),
+            'E-mail : ' . $r->expediteur,
+        ];
+        if ($p->telephone) {
+            $lignes[] = 'Téléphone : ' . $p->telephone;
+        }
+        $lignes[] = 'Reçu le : ' . ($r->recu_at?->format('d/m/Y à H:i') ?? '?');
+        $lignes[] = '';
+        $lignes[] = 'En bref : ' . $r->resume;
+        $lignes[] = '';
+        $lignes[] = 'Son message :';
+        $lignes[] = $r->extrait ?: '(vide)';
+        if ($r->brouillon) {
+            $lignes[] = '';
+            $lignes[] = 'Réponse proposée (à envoyer depuis contact@) :';
+            $lignes[] = $r->brouillon;
+        }
+
+        return implode("\n", $lignes);
+    }
+
+    /**
+     * Refait le tri des réponses déjà reçues avec les règles actuelles (sans
+     * alerte) : corrige les « intéressé » trop généreux.
+     *
+     * @return array<string,int> catégories après le tri
+     */
+    public static function retrier(): array
+    {
+        foreach (AgentReponse::whereNotIn('categorie', ['absence'])->get() as $r) {
+            $p = $r->prospect();
+            if (! $p) {
+                continue;
+            }
+            $tri = mb_strlen(trim((string) $r->extrait)) < 3
+                ? ['categorie' => 'autre', 'resume' => 'Message vide ou illisible : à ouvrir dans la boîte contact@.', 'brouillon' => '']
+                : self::trier($p, (string) $r->sujet, (string) $r->extrait);
+            $r->forceFill(['categorie' => $tri['categorie'], 'resume' => Str::limit($tri['resume'], 1000),
+                'brouillon' => $tri['brouillon'] !== '' ? Str::limit($tri['brouillon'], 4000) : null])->save();
+            self::appliquer($p, $r, false);
+        }
+
+        return AgentReponse::selectRaw('categorie, COUNT(*) n')->groupBy('categorie')->pluck('n', 'categorie')->map(fn ($n) => (int) $n)->all();
     }
 }

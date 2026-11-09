@@ -309,6 +309,72 @@ class AgentDirecteurTest extends TestCase
         $this->get(route('home'))->assertDontSee('Parler au CEO');
     }
 
+    public function test_alerte_complete_par_no_reply_quand_un_prospect_est_interesse(): void
+    {
+        $this->boiteNoReply();
+        $this->admin();
+        $p = RelaisProspect::create(['source_id' => 'osm:node/9', 'nom' => 'Boutik Lontan', 'ville' => 'Saint-Leu', 'territoire' => 'La Réunion',
+            'email' => 'boutik@lontan.re', 'telephone' => '0262 11 22 33', 'statut' => 'contacte', 'contacte_at' => now()->subDay()]);
+        $this->fauxClaude(['categorie' => 'interesse', 'resume' => 'Elle écrit « oui ça m’intéresse, appelez-moi ».', 'brouillon' => 'Bonjour, merci ! Emmanuel Taochy, fondateur de Swap\'Îles']);
+        $brut = "From: boutik@lontan.re\r\nSubject: Re: point relais\r\nMessage-ID: <b1@lontan.re>\r\n\r\nOui ça m'intéresse, appelez-moi le matin.\r\n";
+
+        BoiteReponses::traiter($p, Courriel::entetes($brut), fn () => $brut);
+
+        $mail = collect($this->mailsProspection())->first(fn ($m) => str_contains($m->getSubject(), 'Prospect intéressé'));
+        $this->assertNotNull($mail);
+        $this->assertSame('cabinet@taochyconsulting.fr', $mail->getTo()[0]->getAddress());
+        $corps = $mail->getTextBody();
+        $this->assertStringContainsString('Boutik Lontan', $corps);
+        $this->assertStringContainsString('0262 11 22 33', $corps);
+        $this->assertStringContainsString('appelez-moi le matin', $corps);
+        $this->assertStringContainsString('Réponse proposée', $corps);
+    }
+
+    public function test_tri_strict_message_vide_et_nouveau_tri(): void
+    {
+        $p = RelaisProspect::create(['source_id' => 'osm:node/8', 'nom' => 'Épicerie', 'territoire' => 'La Réunion', 'email' => 'epi@commerce.re', 'statut' => 'contacte', 'contacte_at' => now()->subDays(2)]);
+
+        // Message vide : jamais « intéressé », pas d'appel à l'IA.
+        $vide = "From: epi@commerce.re\r\nSubject: Re: point relais\r\nMessage-ID: <v1@commerce.re>\r\n\r\n> Bonjour, je m'appelle Emmanuel\r\n";
+        BoiteReponses::traiter($p, Courriel::entetes($vide), fn () => $vide);
+        $this->assertSame('autre', AgentReponse::sole()->categorie);
+
+        // Une ancienne réponse classée « intéressé » à tort (« bien reçu ») est corrigée par le nouveau tri.
+        AgentReponse::create(['message_id' => 'ancien', 'prospect_type' => 'relais', 'prospect_id' => $p->id, 'expediteur' => 'epi@commerce.re',
+            'categorie' => 'interesse', 'resume' => 'Intéressé', 'extrait' => 'Bien reçu, merci.', 'recu_at' => now()]);
+        $p->forceFill(['statut' => 'interesse'])->save();
+        $this->fauxClaude(['categorie' => 'autre', 'resume' => 'Il écrit « bien reçu, merci ».', 'brouillon' => '']);
+
+        $this->artisan('agent:directeur', ['mission' => 'retrier'])->expectsOutputToContain('Réponses triées à nouveau')->assertSuccessful();
+
+        $this->assertSame('autre', AgentReponse::where('message_id', 'ancien')->value('categorie'));
+        $this->assertSame('contacte', $p->fresh()->statut);
+        // Une seule fois par version des règles.
+        $this->artisan('agent:directeur', ['mission' => 'retrier'])->expectsOutputToContain('déjà à jour')->assertSuccessful();
+    }
+
+    public function test_suivi_d_un_prospect_depuis_le_bureau(): void
+    {
+        $this->actingAs($this->admin());
+        $p = RelaisProspect::create(['source_id' => 'osm:node/7', 'nom' => 'Tabac du Port', 'territoire' => 'La Réunion', 'email' => 'tabac@port.re',
+            'telephone' => '0262 00 00 00', 'statut' => 'interesse', 'contacte_at' => now()->subDays(3)]);
+        $r = AgentReponse::create(['message_id' => 'm-suivi', 'prospect_type' => 'relais', 'prospect_id' => $p->id, 'expediteur' => 'tabac@port.re',
+            'sujet' => 'Re: point relais', 'categorie' => 'interesse', 'resume' => 'Veut un appel.', 'extrait' => 'Appelez-moi demain.',
+            'brouillon' => 'Bonjour, avec plaisir.', 'recu_at' => now()]);
+
+        $this->get('/admin/bureau-du-ceo')->assertOk()
+            ->assertSee('À rappeler (1)')->assertSee('Appelez-moi demain.')->assertSee('tel:0262000000', false)
+            ->assertSee('mailto:tabac@port.re?subject=' . rawurlencode('Re: point relais'), false);
+
+        Livewire::test(BureauDuCeo::class)->call('suivre', $r->id, 'rdv');
+        $this->assertNotNull($r->fresh()->vu_at);
+        $this->assertStringContainsString('rendez-vous pris', $p->fresh()->notes);
+
+        Livewire::test(BureauDuCeo::class)->call('suivre', $r->id, 'relais');
+        $this->assertSame('relais', $p->fresh()->statut);
+        $this->get('/admin/bureau-du-ceo')->assertDontSee('À rappeler (');
+    }
+
     public function test_liens_du_mail_aux_collectivites(): void
     {
         $p = $this->organisme();

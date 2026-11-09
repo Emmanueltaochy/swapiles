@@ -25,6 +25,9 @@ return [
         'nom' => 'Emmanuel – Swap’Îles',
         'reponses' => env('PROSPECTION_REPONSES', 'contact@swapiles.com'),
     ],
+    // Qui reçoit les alertes (prospect intéressé, résumé du matin), séparés par des virgules.
+    // Vide : les adresses admin (ADMIN_EMAILS).
+    'alertes' => env('AGENT_ALERTES', ''),
     'signature' => ['nom' => 'Emmanuel Taochy', 'fonction' => 'Fondateur de Swap’Îles'],
 
     // Montée en douceur d'une adresse neuve : mails par jour selon l'ancienneté (jours).

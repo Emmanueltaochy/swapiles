@@ -52,7 +52,9 @@ class BureauDuCeo extends Page
 
         return [
             'rapport' => AgentRapport::orderByDesc('jour')->first(),
-            'reponses' => AgentReponse::orderByRaw('vu_at IS NULL DESC')->orderByDesc('recu_at')->limit(40)->get(),
+            'aRappeler' => AgentReponse::whereNull('vu_at')->whereIn('categorie', ['interesse', 'question'])->orderBy('recu_at')->get(),
+            'reponses' => AgentReponse::where(fn ($q) => $q->whereNotNull('vu_at')->orWhereNotIn('categorie', ['interesse', 'question']))
+                ->orderByDesc('recu_at')->limit(40)->get(),
             'p' => [
                 'pause' => Prospection::enPause(),
                 'boite' => Prospection::boiteSeparee(),
@@ -130,6 +132,30 @@ class BureauDuCeo extends Page
     public function oublier(): void
     {
         $this->echanges = [];
+    }
+
+    /** Suivi d'un prospect qui a répondu : rendez-vous pris, traité, finalement pas intéressé, devenu point relais. */
+    public function suivre(int $id, string $action): void
+    {
+        $r = AgentReponse::find($id);
+        $p = $r?->prospect();
+        if (! $r || ! $p || ! in_array($action, ['rdv', 'traite', 'refus', 'relais'], true)) {
+            return;
+        }
+        $note = fn (string $t) => trim(($p->notes ? $p->notes . "\n" : '') . now()->format('d/m/Y') . ' : ' . $t);
+        match ($action) {
+            'rdv' => $p->forceFill(['statut' => 'interesse', 'notes' => $note('rendez-vous pris')])->save(),
+            'refus' => $p->forceFill(['statut' => 'refuse', 'notes' => $note('finalement pas intéressé')])->save(),
+            'relais' => $p instanceof \App\Models\RelaisProspect ? $p->forceFill(['statut' => 'relais', 'notes' => $note('devenu point relais')])->save() : null,
+            default => null,
+        };
+        $r->forceFill(['vu_at' => now()])->save();
+        Notification::make()->title(match ($action) {
+            'rdv' => 'Rendez-vous noté 📅',
+            'refus' => 'Noté : pas intéressé',
+            'relais' => 'Bravo : nouveau point relais 🏪',
+            default => 'Marqué comme traité ✅',
+        })->success()->send();
     }
 
     public function marquerVu(int $id): void

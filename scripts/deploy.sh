@@ -144,6 +144,8 @@ setsid nohup $COMME_WEB php artisan relais:prospects --sans-import --emails=150 
 echo "==> Agent directeur"
 # Première recherche des organismes publics (annuaire officiel) si la liste est vide.
 $COMME_WEB timeout 240 php artisan agent:directeur annuaire --si-vide 2>&1 | sed 's/^/    /' || true
+# Nouveau tri des réponses reçues quand les règles changent (une seule fois).
+$COMME_WEB timeout 240 php artisan agent:directeur retrier 2>&1 | sed 's/^/    /' || true
 # Résumé du jour (une fois par jour au plus) : vérifie aussi que l'IA répond.
 $COMME_WEB timeout 150 php artisan agent:directeur rapport --sans-envoi --si-absent 2>&1 | sed 's/^/    /' || true
 $COMME_WEB timeout 60 php artisan agent:directeur etat 2>&1 | sed 's/^/    /' || true

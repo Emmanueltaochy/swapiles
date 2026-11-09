@@ -27,7 +27,7 @@ use Throwable;
  */
 class AgentDirecteur extends Command
 {
-    protected $signature = 'agent:directeur {mission : rapport|prospecter|reponses|annuaire|etat} {--sans-envoi : rapport sans e-mail ni notification} {--si-vide : annuaire seulement si aucun organisme enregistré} {--si-absent : résumé seulement s’il n’existe pas encore aujourd’hui}';
+    protected $signature = 'agent:directeur {mission : rapport|prospecter|reponses|annuaire|etat|retrier} {--sans-envoi : rapport sans e-mail ni notification} {--si-vide : annuaire seulement si aucun organisme enregistré} {--si-absent : résumé seulement s’il n’existe pas encore aujourd’hui} {--force : refaire le tri même s’il est à jour}';
 
     protected $description = 'Agent directeur : résumé quotidien, prospection, réponses, annuaire';
 
@@ -46,6 +46,7 @@ class AgentDirecteur extends Command
             'reponses' => $this->reponses(),
             'annuaire' => $this->annuaire(),
             'etat' => $this->etat(),
+            'retrier' => $this->retrier(),
             default => $this->erreur($mission),
         };
     }
@@ -171,6 +172,22 @@ class AgentDirecteur extends Command
         return self::SUCCESS;
     }
 
+    /** Refait le tri des réponses reçues (une fois par version des règles, ou --force). */
+    private function retrier(): int
+    {
+        $version = 2;
+        if (! $this->option('force') && (int) \App\Models\Reglage::lire('agent.retri.version', 0) >= $version) {
+            $this->line('Tri des réponses déjà à jour.');
+
+            return self::SUCCESS;
+        }
+        $apres = BoiteReponses::retrier();
+        \App\Models\Reglage::ecrire('agent.retri.version', $version);
+        $this->line('Réponses triées à nouveau : ' . ($apres ? collect($apres)->map(fn ($n, $c) => "{$c} {$n}")->implode(', ') : 'aucune'));
+
+        return self::SUCCESS;
+    }
+
     /** État anonyme (journaux de déploiement publics) : seulement des totaux. */
     private function etat(): int
     {
@@ -186,6 +203,11 @@ class AgentDirecteur extends Command
             . ProspectRse::whereNotNull('contacte_at')->count() . ' contactés');
         $rep = AgentReponse::selectRaw('categorie, COUNT(*) n')->groupBy('categorie')->pluck('n', 'categorie')->all();
         $this->line('Réponses reçues : ' . ($rep ? collect($rep)->map(fn ($n, $c) => "{$c} {$n}")->implode(', ') : 'aucune pour l’instant'));
+        // Forme des réponses (ni nom, ni adresse, ni texte) : pour vérifier la lecture des messages.
+        foreach (AgentReponse::orderByDesc('recu_at')->limit(8)->get() as $r) {
+            $this->line('  Réponse ' . ($r->recu_at?->format('d/m H:i') ?? '?') . ' | ' . ($r->prospect_type === 'rse' ? 'collectivité' : 'commerce')
+                . ' | ' . $r->categorie . ' | message de ' . mb_strlen((string) $r->extrait) . ' caractères | brouillon ' . ($r->brouillon ? 'oui' : 'non') . ' | ' . ($r->vu_at ? 'traitée' : 'à traiter'));
+        }
         foreach (array_slice(\App\Support\CarnetDiagnostic::lire('agent-ia'), 0, 6) as $c) {
             $this->line('Appel IA ' . ($c['quand'] ?? '?') . ' | ' . ($c['modele'] ?? '?') . ' | ' . ($c['resultat'] ?? '?') . ' | arrêt ' . ($c['arret'] ?? '?') . ' | ' . ($c['sortie'] ?? 0) . ' jetons');
         }

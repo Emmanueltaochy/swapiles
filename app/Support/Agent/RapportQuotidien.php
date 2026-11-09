@@ -61,9 +61,23 @@ class RapportQuotidien
                     'a_contacter' => ProspectRse::query()->contactable()->count(), 'modele_valide' => Prospection::rseValidee()],
                 'reponses_a_lire' => AgentReponse::whereNull('vu_at')->whereIn('categorie', ['interesse', 'question'])->count(),
             ],
+            // Commerces et organismes (pas des particuliers) qui attendent un rappel d'Emmanuel.
+            'prospects_a_rappeler' => self::aRappeler(),
             'decisions_recentes' => AgentRapport::where('jour', '>=', now()->subDays(7)->toDateString())->where('jour', '<', $aujourdhui->toDateString())
                 ->orderBy('jour')->get()->flatMap(fn ($r) => collect($r->actions ?? [])->map(fn ($a) => ['jour' => $r->jour->toDateString(), 'action' => $a['titre'] ?? '', 'decision' => $a['decision'] ?? 'sans réponse']))->values()->all(),
         ];
+    }
+
+    /** @return array<int,array{qui:string,type:string,ile:?string,depuis:string,ce_quil_a_dit:?string}> */
+    public static function aRappeler(): array
+    {
+        return AgentReponse::whereNull('vu_at')->whereIn('categorie', ['interesse', 'question'])->orderBy('recu_at')->limit(10)->get()
+            ->map(function (AgentReponse $r) {
+                $p = $r->prospect();
+
+                return ['qui' => (string) ($p?->nom ?? '?'), 'type' => $r->prospect_type === 'rse' ? 'collectivité' : 'commerce',
+                    'ile' => $p?->territoire, 'depuis' => $r->recu_at?->diffForHumans() ?? '?', 'ce_quil_a_dit' => $r->resume];
+            })->all();
     }
 
     public static function generer(bool $envoyer = true): AgentRapport
@@ -124,26 +138,30 @@ Objectif principal : plus de ventes conclues chaque semaine. Objectifs secondair
 À partir des chiffres (totaux uniquement) :
 1. « resume » : 4 à 7 phrases en français très simple, tutoiement. Ce qui monte, ce qui baisse (compare les 7 derniers jours aux 7 précédents), le point d'attention du jour, la prospection. Cite les vrais chiffres, n'en invente aucun.
 2. « actions » : exactement 3 actions concrètes pour aujourd'hui, faisables sans budget ou presque, classées par impact. « comment » dit précisément quoi faire en 2-3 étapes. Tiens compte des décisions récentes (ne repropose pas une action refusée, fais avancer celles acceptées).
+Si « prospects_a_rappeler » n'est pas vide, commence le résumé par eux (qui, ce qu'ils ont dit) : c'est la priorité du jour.
 Interdits : citer un concurrent, proposer un prêt ou une dépense importante, toucher à l'argent des membres, écrire aux membres sans validation.
 TXT;
     }
 
     public static function envoyer(AgentRapport $r): void
     {
-        $lien = url('/admin/bureau-du-ceo');
-        $lignes = [$r->texte, ''];
+        $lignes = [];
+        $rappels = self::aRappeler();
+        if ($rappels) {
+            $lignes[] = '🔥 À RAPPELER (' . count($rappels) . ') :';
+            foreach ($rappels as $x) {
+                $lignes[] = '- ' . $x['qui'] . ' (' . $x['type'] . ($x['ile'] ? ', ' . $x['ile'] : '') . ', ' . $x['depuis'] . ') : ' . $x['ce_quil_a_dit'];
+            }
+            $lignes[] = '';
+        }
+        $lignes[] = (string) $r->texte;
+        $lignes[] = '';
         foreach ($r->actions ?? [] as $a) {
             $lignes[] = $a['id'] . '. ' . ($a['titre'] ?? '') . "\n   Pourquoi : " . ($a['pourquoi'] ?? '') . "\n   Comment : " . ($a['comment'] ?? '');
         }
         $lignes[] = "\nGo / Non pour chaque action dans le Bureau du CEO.";
-        try {
-            AdminEvent::notify('☀️ Résumé du jour (' . $r->jour->format('d/m') . ')', implode("\n", $lignes), $lien);
-            $admins = array_filter(array_map('trim', explode(',', strtolower((string) env('ADMIN_EMAILS', 'cabinet@taochyconsulting.fr')))));
-            foreach (User::whereIn(DB::raw('LOWER(email)'), $admins)->pluck('id') as $id) {
-                Notification::create(['user_id' => $id, 'type' => 'agent_rapport', 'title' => '☀️ Résumé du jour Swap’Îles', 'message' => Str::limit($r->texte, 180), 'url' => $lien]);
-            }
-        } catch (Throwable $e) {
-            report($e);
-        }
+
+        Alerte::envoyer('☀️ Résumé du jour Swap’Îles (' . $r->jour->format('d/m') . ')' . ($rappels ? ' · ' . count($rappels) . ' à rappeler' : ''),
+            implode("\n", $lignes), url('/admin/bureau-du-ceo'), 'agent_rapport');
     }
 }

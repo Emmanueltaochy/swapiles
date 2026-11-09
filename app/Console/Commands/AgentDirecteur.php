@@ -27,7 +27,7 @@ use Throwable;
  */
 class AgentDirecteur extends Command
 {
-    protected $signature = 'agent:directeur {mission : rapport|prospecter|reponses|annuaire|etat} {--sans-envoi : rapport sans e-mail ni notification} {--si-vide : annuaire seulement si aucun organisme enregistré}';
+    protected $signature = 'agent:directeur {mission : rapport|prospecter|reponses|annuaire|etat} {--sans-envoi : rapport sans e-mail ni notification} {--si-vide : annuaire seulement si aucun organisme enregistré} {--si-absent : résumé seulement s’il n’existe pas encore aujourd’hui}';
 
     protected $description = 'Agent directeur : résumé quotidien, prospection, réponses, annuaire';
 
@@ -59,6 +59,11 @@ class AgentDirecteur extends Command
 
     private function rapport(): int
     {
+        if ($this->option('si-absent') && AgentRapport::where('jour', today()->toDateString())->exists()) {
+            $this->line('Résumé du jour déjà prêt.');
+
+            return self::SUCCESS;
+        }
         $r = RapportQuotidien::generer(! $this->option('sans-envoi'));
         $this->info('Résumé du ' . $r->jour->format('d/m/Y') . ' : ' . count($r->actions ?? []) . ' action(s) proposée(s).');
 
@@ -181,6 +186,9 @@ class AgentDirecteur extends Command
             . ProspectRse::whereNotNull('contacte_at')->count() . ' contactés');
         $rep = AgentReponse::selectRaw('categorie, COUNT(*) n')->groupBy('categorie')->pluck('n', 'categorie')->all();
         $this->line('Réponses reçues : ' . ($rep ? collect($rep)->map(fn ($n, $c) => "{$c} {$n}")->implode(', ') : 'aucune pour l’instant'));
+        foreach (array_slice(\App\Support\CarnetDiagnostic::lire('agent-ia'), 0, 6) as $c) {
+            $this->line('Appel IA ' . ($c['quand'] ?? '?') . ' | ' . ($c['modele'] ?? '?') . ' | ' . ($c['resultat'] ?? '?') . ' | arrêt ' . ($c['arret'] ?? '?') . ' | ' . ($c['sortie'] ?? 0) . ' jetons');
+        }
         $dernier = AgentRapport::orderByDesc('jour')->first();
         $this->line('Dernier résumé : ' . ($dernier ? $dernier->jour->format('d/m/Y') : 'aucun'));
 

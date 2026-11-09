@@ -46,7 +46,7 @@ class Conversation
             . ($echanges !== '' ? "Échanges précédents :\n{$echanges}\n" : '')
             . "Question d'Emmanuel : {$question}",
             ['type' => 'object', 'properties' => ['reponse' => ['type' => 'string']], 'required' => ['reponse'], 'additionalProperties' => false],
-            800);
+            8000, 'low');
 
         $reponse = is_string($res['donnees']['reponse'] ?? null) ? trim($res['donnees']['reponse']) : '';
 

@@ -29,7 +29,11 @@ class Ia
     /**
      * @return array{donnees:?array,cout:float}
      */
-    public static function json(string $modele, string $consignes, string $texte, array $schema, int $maxJetons = 3000): array
+    /**
+     * La réflexion du modèle compte dans $maxJetons : on laisse large et on
+     * règle la profondeur avec $effort (low pour l'oral et le tri, medium pour le résumé).
+     */
+    public static function json(string $modele, string $consignes, string $texte, array $schema, int $maxJetons = 8000, string $effort = 'low'): array
     {
         if (! self::disponible()) {
             return ['donnees' => null, 'cout' => 0.0];
@@ -44,11 +48,12 @@ class Ia
                 model: $modele,
                 system: [['type' => 'text', 'text' => $consignes]],
                 messages: [['role' => 'user', 'content' => [['type' => 'text', 'text' => $texte]]]],
-                outputConfig: ['format' => ['type' => 'json_schema', 'schema' => $schema]],
+                outputConfig: ['effort' => $effort, 'format' => ['type' => 'json_schema', 'schema' => $schema]],
             );
         } catch (Throwable $e) {
             IaDepot::noter(null, $modele, 0, 0, 0, 'erreur', 'agent');
             Log::warning('Agent directeur : appel IA en échec', ['type' => get_class($e)]);
+            self::suivre($modele, 'echec', class_basename($e) . (method_exists($e, 'getCode') && $e->getCode() ? ' ' . $e->getCode() : ''), 0);
 
             return ['donnees' => null, 'cout' => 0.0];
         }
@@ -64,8 +69,17 @@ class Ia
         }
         $ok = is_array($json) && ($reponse->stopReason ?? null) !== 'refusal';
         IaDepot::noter(null, $modele, 0, $entree, $sortie, $ok ? 'ok' : 'erreur', 'agent');
+        self::suivre($modele, $ok ? 'ok' : 'illisible', (string) ($reponse->stopReason ?? '?'), $sortie);
         [$pe, $ps] = config('ia_depot.tarifs.' . $modele, [0, 0]);
 
         return ['donnees' => $ok ? $json : null, 'cout' => round(($entree * $pe + $sortie * $ps) / 1_000_000, 6)];
+    }
+
+    /** Suivi anonyme des derniers appels (journaux de déploiement) : résultat, raison d'arrêt, jetons. */
+    private static function suivre(string $modele, string $resultat, string $arret, int $sortie): void
+    {
+        \App\Support\CarnetDiagnostic::ajouter('agent-ia', [
+            'quand' => now()->format('Y-m-d H:i'), 'modele' => $modele, 'resultat' => $resultat, 'arret' => mb_substr($arret, 0, 60), 'sortie' => $sortie,
+        ], 30);
     }
 }

@@ -87,7 +87,7 @@ class RapportQuotidien
             ],
             'required' => ['resume', 'actions'],
             'additionalProperties' => false,
-        ], 3000);
+        ], 16000, 'medium');
 
         $d = $res['donnees'];
         $actions = collect(is_array($d['actions'] ?? null) ? $d['actions'] : [])->take(3)->values()

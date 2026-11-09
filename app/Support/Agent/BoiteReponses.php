@@ -154,7 +154,7 @@ class BoiteReponses
             ],
             'required' => ['categorie', 'resume', 'brouillon'],
             'additionalProperties' => false,
-        ], 1500)['donnees'];
+        ], 8000, 'low')['donnees'];
 
         if (is_array($res) && isset(AgentReponse::CATEGORIES[$res['categorie'] ?? ''])) {
             return ['categorie' => $res['categorie'], 'resume' => (string) ($res['resume'] ?? ''), 'brouillon' => (string) ($res['brouillon'] ?? '')];

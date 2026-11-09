@@ -17,7 +17,7 @@
                 <button type="button" data-micro aria-label="Parler au CEO"
                         style="width:76px;height:76px;border-radius:9999px;border:0;background:#0f766e;color:#fff;font-size:2rem;box-shadow:0 8px 24px rgba(15,118,110,.35);cursor:pointer;transition:transform .15s;">🎙️</button>
                 <div style="flex:1;min-width:180px;">
-                    <div data-etat style="font-weight:700;">Touche le micro et parle.</div>
+                    <div data-etat style="font-weight:700;">Touche le micro et parle : on discute ensuite sans retoucher.</div>
                     <div data-aide style="font-size:.8rem;opacity:.7;margin-top:.15rem;"></div>
                 </div>
                 <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
@@ -173,18 +173,25 @@
         try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; synthese.speak(u); } catch (e) {}
     }
 
+    // Lit le texte ; la promesse se termine quand la voix a fini (pour réécouter ensuite).
     function parler(t) {
-        if (!synthese || !t) return;
-        synthese.cancel();
-        // Phrase par phrase : certains téléphones coupent les textes longs.
-        (t.match(/[^.!?…]+[.!?…]*/g) || [t]).forEach((morceau) => {
-            const m = morceau.trim();
-            if (!m) return;
-            const u = new SpeechSynthesisUtterance(m);
-            u.lang = 'fr-FR';
-            if (voix) u.voice = voix;
-            u.rate = 1.03;
-            synthese.speak(u);
+        return new Promise((fini) => {
+            if (!synthese || !t) { fini(); return; }
+            synthese.cancel();
+            const morceaux = (t.match(/[^.!?…]+[.!?…]*/g) || [t]).map(m => m.trim()).filter(Boolean);
+            if (!morceaux.length) { fini(); return; }
+            let termine = false;
+            const finir = () => { if (!termine) { termine = true; clearTimeout(garde); fini(); } };
+            // Filet de sécurité : certains téléphones n'annoncent pas la fin de la lecture.
+            const garde = setTimeout(finir, 4000 + t.length * 90);
+            morceaux.forEach((m, i) => {
+                const u = new SpeechSynthesisUtterance(m);
+                u.lang = 'fr-FR';
+                if (voix) u.voice = voix;
+                u.rate = 1.03;
+                if (i === morceaux.length - 1) { u.onend = finir; u.onerror = finir; }
+                synthese.speak(u);
+            });
         });
     }
 
@@ -200,6 +207,9 @@
         return b;
     }
 
+    // Mode conversation : après sa réponse, le micro se rouvre tout seul.
+    let conversation = false, silences = 0;
+
     async function poser(q) {
         q = (q || '').trim();
         if (!q || occupe) return;
@@ -209,18 +219,21 @@
         texte.value = '';
         dire('Je réfléchis…');
         micro.style.opacity = '.5';
+        let r = null;
         try {
-            const r = await $wire.demander(q);
+            r = await $wire.demander(q);
             bulle('ceo', r);
-            dire('Touche le micro pour une autre question.');
-            parler(r);
         } catch (e) {
             bulle('ceo', 'La connexion a coupé. Réessaie dans un instant.');
-            dire('Touche le micro et parle.');
         } finally {
             occupe = false;
             micro.style.opacity = '1';
         }
+        if (r) {
+            dire(conversation ? 'Je te réponds…' : 'Touche le micro pour une autre question.');
+            await parler(r);
+        }
+        if (conversation && Reco) ecouter(); else dire('Touche le micro pour une autre question.');
     }
 
     function arreterEcoute() {
@@ -229,11 +242,8 @@
         micro.style.background = '#0f766e';
     }
 
-    micro.addEventListener('click', () => {
-        debloquer();
-        synthese?.cancel();
-        if (!Reco) { texte.focus(); dire('Touche le micro de ton clavier et dicte ta question.'); return; }
-        if (enEcoute) { ecoute?.stop(); return; }
+    function ecouter() {
+        if (!Reco || enEcoute) return;
         ecoute = new Reco();
         ecoute.lang = 'fr-FR';
         ecoute.interimResults = true;
@@ -246,27 +256,45 @@
             }
             texte.value = (final + ' ' + provisoire).trim();
         };
-        ecoute.onerror = (ev) => {
-            arreterEcoute();
-            dire(ev.error === 'not-allowed' || ev.error === 'service-not-allowed'
-                ? 'Le micro est bloqué : autorise-le dans les réglages du navigateur, ou écris ta question.'
-                : 'Je n’ai pas bien entendu. Réessaie ou écris ta question.');
-        };
+        let erreur = null;
+        ecoute.onerror = (ev) => { erreur = ev.error; };
         ecoute.onend = () => {
             const q = (final || texte.value).trim();
             arreterEcoute();
-            if (q) poser(q); else dire('Touche le micro et parle.');
+            if (erreur === 'not-allowed' || erreur === 'service-not-allowed') {
+                conversation = false;
+                dire('Le micro est bloqué : autorise-le dans les réglages du navigateur, ou écris ta question.');
+                return;
+            }
+            if (q) { silences = 0; poser(q); return; }
+            // Rien entendu : on réessaie une fois, puis on se met en pause.
+            if (conversation && ++silences < 2) { ecouter(); return; }
+            conversation = false;
+            silences = 0;
+            dire('Je me mets en pause. Touche le micro pour reprendre.');
         };
         try {
             ecoute.start();
             enEcoute = true;
             micro.style.transform = 'scale(1.08)';
             micro.style.background = '#dc2626';
-            dire('Je t’écoute… (touche encore pour terminer)');
+            dire(conversation ? 'Je t’écoute… (parle, ou touche le micro pour arrêter)' : 'Je t’écoute…');
         } catch (e) {
             arreterEcoute();
-            dire('Micro indisponible : écris ta question.');
+            conversation = false;
+            dire('Touche le micro pour reprendre.');
         }
+    }
+
+    micro.addEventListener('click', () => {
+        debloquer();
+        if (!Reco) { synthese?.cancel(); texte.focus(); dire('Touche le micro de ton clavier et dicte ta question.'); return; }
+        // Pendant l'écoute : toucher le micro arrête la conversation.
+        if (enEcoute) { conversation = false; ecoute?.stop(); return; }
+        synthese?.cancel();
+        conversation = true;
+        silences = 0;
+        ecouter();
     });
 
     $('[data-clavier]').addEventListener('submit', (e) => { e.preventDefault(); poser(texte.value); });
@@ -277,7 +305,7 @@
         parler(zone.dataset.resume);
         dire('Je te lis le résumé du jour…');
     });
-    $('[data-stop]').addEventListener('click', () => { synthese?.cancel(); ecoute?.abort(); arreterEcoute(); dire('Touche le micro et parle.'); });
+    $('[data-stop]').addEventListener('click', () => { conversation = false; synthese?.cancel(); ecoute?.abort(); arreterEcoute(); dire('Touche le micro et parle.'); });
 })();
 </script>
 @endscript

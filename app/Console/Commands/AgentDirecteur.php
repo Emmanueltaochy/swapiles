@@ -171,7 +171,7 @@ class AgentDirecteur extends Command
     {
         $oui = fn ($b) => $b ? 'oui' : 'non';
         $this->line('Agent actif : ' . $oui(config('agent.actif') && ! Prospection::enPause())
-            . ' | boîte no-reply branchée : ' . $oui(Prospection::boiteSeparee())
+            . ' | envoi no-reply@ : ' . (app()->runningUnitTests() ? $oui(Prospection::boiteSeparee()) : Prospection::essaiEnvoi())
             . ' | lecture contact@ : ' . BoiteReponses::etat()
             . ' | IA : ' . $oui(Ia::disponible()) . ' (' . number_format(Ia::depenseDuMois(), 2, ',', '') . ' $ ce mois)');
         $this->line('Prospection : ' . Prospection::envoyesAujourdhui() . '/' . Prospection::plafondJour() . ' mails aujourd’hui'

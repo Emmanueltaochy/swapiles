@@ -27,6 +27,28 @@ class Prospection
         return filled(config('mail.mailers.prospection.username')) && filled(config('mail.mailers.prospection.password'));
     }
 
+    /** Connexion d'essai au serveur d'envoi (sans rien envoyer) : 'ok' ou la cause, sans secret. */
+    public static function essaiEnvoi(): string
+    {
+        if (! self::boiteSeparee()) {
+            return 'non branchée';
+        }
+        try {
+            $transport = \Illuminate\Support\Facades\Mail::mailer('prospection')->getSymfonyTransport();
+            if ($transport instanceof \Symfony\Component\Mailer\Transport\Smtp\SmtpTransport) {
+                $transport->start();
+                $transport->stop();
+            }
+
+            return 'connexion réussie (' . config('mail.mailers.prospection.host') . ')';
+        } catch (\Throwable $e) {
+            $m = $e->getMessage();
+
+            return 'connexion refusée (' . config('mail.mailers.prospection.host') . ', '
+                . (preg_match('/auth|535|credentials|password/i', $m) ? 'identifiant ou mot de passe' : 'serveur injoignable') . ')';
+        }
+    }
+
     public static function enPause(): bool
     {
         return ! config('agent.actif') || (bool) Reglage::lire(self::PAUSE, false);

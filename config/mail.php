@@ -53,9 +53,10 @@ return [
         // mêler la prospection aux mails des membres (limites d'envoi, spam).
         'prospection' => [
             'transport' => 'smtp',
-            'scheme' => env('MAIL_SCHEME'),
-            'host' => env('PROSPECTION_MAIL_HOST', env('MAIL_HOST', '127.0.0.1')),
-            'port' => env('PROSPECTION_MAIL_PORT', env('MAIL_PORT', 2525)),
+            // Boîte no-reply@ hébergée chez Hostinger (SMTP chiffré, port 465).
+            'scheme' => env('PROSPECTION_MAIL_SCHEME', 'smtps'),
+            'host' => env('PROSPECTION_MAIL_HOST', 'smtp.hostinger.com'),
+            'port' => (int) env('PROSPECTION_MAIL_PORT', 465),
             'username' => env('PROSPECTION_MAIL_USERNAME'),
             'password' => env('PROSPECTION_MAIL_PASSWORD'),
             'timeout' => 30,

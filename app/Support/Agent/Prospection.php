@@ -28,23 +28,23 @@ class Prospection
     }
 
     /** Connexion d'essai au serveur d'envoi (sans rien envoyer) : 'ok' ou la cause, sans secret. */
-    public static function essaiEnvoi(): string
+    public static function essaiEnvoi(string $boite = 'prospection'): string
     {
-        if (! self::boiteSeparee()) {
+        if (blank(config("mail.mailers.{$boite}.username")) || blank(config("mail.mailers.{$boite}.password"))) {
             return 'non branchée';
         }
         try {
-            $transport = \Illuminate\Support\Facades\Mail::mailer('prospection')->getSymfonyTransport();
+            $transport = \Illuminate\Support\Facades\Mail::mailer($boite)->getSymfonyTransport();
             if ($transport instanceof \Symfony\Component\Mailer\Transport\Smtp\SmtpTransport) {
                 $transport->start();
                 $transport->stop();
             }
 
-            return 'connexion réussie (' . config('mail.mailers.prospection.host') . ')';
+            return 'connexion réussie (' . config("mail.mailers.{$boite}.host") . ')';
         } catch (\Throwable $e) {
             $m = $e->getMessage();
 
-            return 'connexion refusée (' . config('mail.mailers.prospection.host') . ', '
+            return 'connexion refusée (' . config("mail.mailers.{$boite}.host") . ', '
                 . (preg_match('/auth|535|credentials|password/i', $m) ? 'identifiant ou mot de passe' : 'serveur injoignable') . ')';
         }
     }

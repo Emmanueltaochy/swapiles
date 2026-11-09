@@ -195,6 +195,7 @@ class AgentDirecteur extends Command
         $this->line('Agent actif : ' . $oui(config('agent.actif') && ! Prospection::enPause())
             . ' | envoi no-reply@ : ' . (app()->runningUnitTests() ? $oui(Prospection::boiteSeparee()) : Prospection::essaiEnvoi())
             . ' | lecture contact@ : ' . BoiteReponses::etat()
+            . ' | réponses depuis contact@ : ' . (app()->runningUnitTests() ? 'test' : Prospection::essaiEnvoi('contact'))
             . ' | IA : ' . $oui(Ia::disponible()) . ' (' . number_format(Ia::depenseDuMois(), 2, ',', '') . ' $ ce mois)');
         $this->line('Prospection : ' . Prospection::envoyesAujourdhui() . '/' . Prospection::plafondJour() . ' mails aujourd’hui'
             . ' | modèle collectivités validé : ' . $oui(Prospection::rseValidee()));

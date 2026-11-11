@@ -21,7 +21,10 @@ class DiagnosticColissimo extends Command
 
         $depuis = now()->subDays((int) $this->option('jours'))->format('Y-m-d');
         $cas = [];
-        foreach (array_slice(glob(storage_path('logs/*.log')) ?: [], -3) as $fichier) {
+        // Tous les journaux modifiés pendant la période (pas seulement les derniers par ordre alphabétique).
+        $limite = now()->subDays((int) $this->option('jours'))->getTimestamp();
+        $fichiers = array_filter(glob(storage_path('logs/*.log')) ?: [], fn ($f) => @filemtime($f) >= $limite);
+        foreach ($fichiers as $fichier) {
             $f = @fopen($fichier, 'r');
             if (! $f) {
                 continue;
@@ -36,6 +39,7 @@ class DiagnosticColissimo extends Command
             fclose($f);
         }
 
+        usort($cas, fn ($a, $b) => strcmp($a['quand'], $b['quand']));
         if ($cas === []) {
             $this->line('Aucun échec de bordereau ces ' . $this->option('jours') . ' derniers jours.');
 

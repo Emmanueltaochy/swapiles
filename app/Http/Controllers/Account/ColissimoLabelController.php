@@ -52,8 +52,25 @@ class ColissimoLabelController extends Controller
                 'line' => $e->getLine(),
             ]);
 
+            // Message lisible pour le vendeur : la raison donnée par Colissimo (ou
+            // l'adresse à compléter), jamais une erreur technique du site.
+            $raison = $e instanceof \RuntimeException
+                ? \App\Console\Commands\DiagnosticColissimo::raison($e->getMessage())
+                : 'un problème technique de notre côté, nous sommes prévenus et le corrigeons';
+
+            // Emmanuel est prévenu tout de suite (une fois par heure et par vente).
+            if (\Illuminate\Support\Facades\Cache::add('colissimo:alerte:' . $transaction->id, 1, now()->addHour())) {
+                \App\Support\Agent\Alerte::envoyer(
+                    '⚠️ Bordereau Colissimo en échec (vente n°' . $transaction->id . ')',
+                    "Un vendeur n'arrive pas à générer son bordereau.\n\nRaison : " . \App\Console\Commands\DiagnosticColissimo::raison($e->getMessage())
+                        . ($e instanceof \RuntimeException ? '' : "\nErreur technique : " . class_basename($e)),
+                    url('/admin'),
+                    'colissimo_echec'
+                );
+            }
+
             return back()->withErrors([
-                'colissimo' => "Impossible de générer le bordereau Colissimo : " . $e->getMessage(),
+                'colissimo' => 'Le bordereau Colissimo n’a pas pu être généré : ' . rtrim($raison, '.') . '. Si le problème continue, écrivez-nous à contact@swapiles.com.',
             ]);
         }
     }

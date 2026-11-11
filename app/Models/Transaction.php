@@ -248,8 +248,11 @@ class Transaction extends Model
      */
     public function transactionsDuLot(): \Illuminate\Support\Collection
     {
+        // Toujours une collection Eloquent (même pour une vente seule) : on peut
+        // y charger les relations (->load('listing')), sinon le calcul du poids
+        // du colis plantait et aucun bordereau Colissimo ne se générait.
         if (! $this->lot_id) {
-            return collect([$this]);
+            return new \Illuminate\Database\Eloquent\Collection([$this]);
         }
 
         return self::where('lot_id', $this->lot_id)->orderBy('id')->get();

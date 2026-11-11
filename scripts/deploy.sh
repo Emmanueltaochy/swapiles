@@ -172,6 +172,13 @@ for f in $(ls -1t storage/logs/*.log 2>/dev/null | head -2); do
       garder()
       date = substr($0, 2, 19); type = "?"; ou = "?"; appli = "?"
       if (match($0, /\[object\] \([A-Za-z0-9_\\]+/)) type = substr($0, RSTART + 10, RLENGTH - 10)
+      # Message écrit par le site lui-même (sans exception) : son début seulement,
+      # avant les détails, e-mails et numéros masqués.
+      if (type == "?") {
+        m = $0; sub(/^\[[^]]+\] [a-z]+\.ERROR: /, "", m); sub(/ [{[].*$/, "", m)
+        gsub(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/, "[e-mail]", m); gsub(/[0-9][0-9][0-9]+/, "#", m)
+        if (m != "") type = "« " substr(m, 1, 70) " »"
+      }
       if (match($0, / at \/[^ ]+\.php:[0-9]+/)) { ou = court(substr($0, RSTART + 4, RLENGTH - 4)) }
       # Codes techniques sans données personnelles : réponse du serveur mail, code SQL.
       if (match($0, /got code \\?"[0-9]+/)) { c = substr($0, RSTART, RLENGTH); gsub(/[^0-9]/, "", c); type = type " (SMTP " c ")" }

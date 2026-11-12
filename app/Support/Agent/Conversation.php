@@ -51,7 +51,7 @@ class Conversation
 
         $res = Ia::json((string) config('agent.modele_voix', config('agent.modele_rapport')), self::consignes(),
             'Date et heure : ' . now()->locale('fr')->translatedFormat('l j F Y, H\hi') . " (La Réunion)\n\n"
-            . "Données de Swap'Îles (JSON) :\n" . json_encode(self::contexte(), JSON_UNESCAPED_UNICODE) . "\n\n"
+            . "Données de Swap'Îles (JSON) :\n" . json_encode(self::contexte(), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) . "\n\n"
             . ($attente ? "ENVOI EN ATTENTE DE CONFIRMATION : réponse n°{$enAttente} à {$attente['nom']} ({$attente['a']}) :\n{$attente['texte']}\n\n" : "Aucun envoi en attente.\n\n")
             . ($echanges !== '' ? "Échanges précédents :\n{$echanges}\n" : '')
             . "Ce que dit Emmanuel : {$question}",

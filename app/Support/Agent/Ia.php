@@ -38,6 +38,9 @@ class Ia
         if (! self::disponible()) {
             return ['donnees' => null, 'cout' => 0.0];
         }
+        // Un caractère mal encodé (e-mail reçu, recherche d'un membre) suffit à faire refuser l'appel.
+        $consignes = mb_scrub($consignes, 'UTF-8');
+        $texte = mb_scrub($texte, 'UTF-8');
         $client = app()->bound('agent.client')
             ? app('agent.client')
             : new Client(apiKey: (string) config('ia_depot.cle'), requestOptions: ['timeout' => 90, 'maxRetries' => 1]);
@@ -53,7 +56,9 @@ class Ia
         } catch (Throwable $e) {
             IaDepot::noter(null, $modele, 0, 0, 0, 'erreur', 'agent');
             Log::warning('Agent directeur : appel IA en échec', ['type' => get_class($e)]);
-            self::suivre($modele, 'echec', class_basename($e) . (method_exists($e, 'getCode') && $e->getCode() ? ' ' . $e->getCode() : ''), 0);
+            // Raison donnée par l'API (technique, sans donnée personnelle), pour le diagnostic.
+            $raison = preg_replace('/[\w.+-]+@[\w-]+\.[\w.]+/', '[e-mail]', (string) $e->getMessage());
+            self::suivre($modele, 'echec', class_basename($e) . ' : ' . mb_substr((string) $raison, 0, 160), 0);
 
             return ['donnees' => null, 'cout' => 0.0];
         }
@@ -79,7 +84,7 @@ class Ia
     private static function suivre(string $modele, string $resultat, string $arret, int $sortie): void
     {
         \App\Support\CarnetDiagnostic::ajouter('agent-ia', [
-            'quand' => now()->format('Y-m-d H:i'), 'modele' => $modele, 'resultat' => $resultat, 'arret' => mb_substr($arret, 0, 60), 'sortie' => $sortie,
+            'quand' => now()->format('Y-m-d H:i'), 'modele' => $modele, 'resultat' => $resultat, 'arret' => mb_substr($arret, 0, 200), 'sortie' => $sortie,
         ], 30);
     }
 }

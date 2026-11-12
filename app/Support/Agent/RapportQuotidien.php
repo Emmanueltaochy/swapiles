@@ -86,7 +86,7 @@ class RapportQuotidien
     public static function generer(bool $envoyer = true): AgentRapport
     {
         $chiffres = self::chiffres();
-        $res = Ia::json((string) config('agent.modele_rapport'), self::consignes(), "Chiffres du jour (JSON) :\n" . json_encode($chiffres, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), [
+        $res = Ia::json((string) config('agent.modele_rapport'), self::consignes(), "Chiffres du jour (JSON) :\n" . json_encode($chiffres, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_INVALID_UTF8_SUBSTITUTE), [
             'type' => 'object',
             'properties' => [
                 'resume' => ['type' => 'string'],

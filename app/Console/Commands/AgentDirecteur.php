@@ -60,7 +60,9 @@ class AgentDirecteur extends Command
 
     private function rapport(): int
     {
-        if ($this->option('si-absent') && AgentRapport::where('jour', today()->toDateString())->exists()) {
+        // « si absent » : refait aussi un résumé du jour sorti sans l'analyse de l'IA (aucune action).
+        $existant = AgentRapport::where('jour', today()->toDateString())->first();
+        if ($this->option('si-absent') && $existant && count($existant->actions ?? []) > 0) {
             $this->line('Résumé du jour déjà prêt.');
 
             return self::SUCCESS;

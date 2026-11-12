@@ -31,7 +31,8 @@ class ColissimoLabelService
         $buyerLine2 = $transaction->shipping_address_line2 ?: $buyer?->address_line2;
         $buyerCity = $transaction->shipping_city ?: $buyer?->city;
         $buyerZip = $transaction->shipping_postal_code ?: $buyer?->postal_code;
-        $buyerCountry = $transaction->shipping_country ?: ($buyer?->country_code ?: 'FR');
+        // Code pays Colissimo (FR, RE, GP…) : « France » saisi à la commande était refusé (erreur 30207).
+        $buyerCountry = \App\Support\ColissimoPays::code($transaction->shipping_country ?: $buyer?->country_code, $buyerZip);
         $buyerName = $transaction->buyer_full_name ?: ($buyer?->name ?: 'Client');
         $buyerPhone = $transaction->buyer_phone ?: $buyer?->phone;
 
@@ -77,7 +78,7 @@ class ColissimoLabelService
                         'companyName' => $seller->name ?: 'Vendeur Swapiles',
                         'line2' => $seller->address_line1,
                         'line3' => $seller->address_line2,
-                        'countryCode' => $seller->country_code ?: 'FR',
+                        'countryCode' => \App\Support\ColissimoPays::code($seller->country_code, $seller->postal_code),
                         'city' => $seller->city,
                         'zipCode' => $seller->postal_code,
                         'phoneNumber' => $seller->phone,

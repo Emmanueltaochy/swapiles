@@ -26,7 +26,7 @@ class Alerte
 
     public static function envoyer(string $titre, string $texte, string $lien, string $type = 'agent'): void
     {
-        $corps = $texte . "\n\nOuvrir le Bureau du CEO : " . $lien . "\n\n— Ton agent directeur Swap'Îles";
+        $corps = $texte . "\n\n" . (str_contains($lien, 'bureau-du-ceo') ? 'Ouvrir le Bureau du CEO : ' : 'Voir dans l’admin : ') . $lien . "\n\n— Ton agent directeur Swap'Îles";
         foreach (self::destinataires() as $a) {
             try {
                 $mailer = Prospection::boiteSeparee() ? Mail::mailer('prospection') : Mail::mailer();

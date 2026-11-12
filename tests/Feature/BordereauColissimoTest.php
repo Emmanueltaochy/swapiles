@@ -47,7 +47,7 @@ class BordereauColissimoTest extends TestCase
 
         return Transaction::create(['listing_id' => $annonce->id, 'seller_id' => $vendeuse->id, 'buyer_id' => $acheteur->id, 'amount' => 30, 'seller_amount' => 20,
             'shipping_fee' => 8, 'currency' => 'EUR', 'status' => 'paid', 'delivery_method' => 'colissimo',
-            'shipping_address_line1' => '5 avenue de la Mer', 'shipping_postal_code' => '13001', 'shipping_city' => 'Marseille', 'shipping_country' => 'FR',
+            'shipping_address_line1' => '5 avenue de la Mer', 'shipping_postal_code' => '13001', 'shipping_city' => 'Marseille', 'shipping_country' => 'France',
             'buyer_full_name' => 'Paul Martin', 'buyer_phone' => '0600000000']);
     }
 
@@ -64,6 +64,9 @@ class BordereauColissimoTest extends TestCase
         Storage::disk('local')->assertExists($vente->colissimo_label_path);
         // Poids de l'article et déclaration de contenu (envoi depuis La Réunion).
         Http::assertSent(fn ($r) => $r['letter']['parcel']['weight'] == 1.2 && isset($r['letter']['customsDeclarations']));
+        // Codes pays Colissimo : « France » saisi à la commande devient FR, vendeuse à La Réunion en RE.
+        Http::assertSent(fn ($r) => $r['letter']['addressee']['address']['countryCode'] === 'FR'
+            && $r['letter']['sender']['address']['countryCode'] === 'RE');
     }
 
     public function test_message_clair_si_colissimo_refuse(): void

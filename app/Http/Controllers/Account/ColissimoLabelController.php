@@ -64,7 +64,7 @@ class ColissimoLabelController extends Controller
                     '⚠️ Bordereau Colissimo en échec (vente n°' . $transaction->id . ')',
                     "Un vendeur n'arrive pas à générer son bordereau.\n\nRaison : " . \App\Console\Commands\DiagnosticColissimo::raison($e->getMessage())
                         . ($e instanceof \RuntimeException ? '' : "\nErreur technique : " . class_basename($e)),
-                    url('/admin'),
+                    rescue(fn () => \App\Filament\Resources\Transactions\TransactionResource::getUrl('view', ['record' => $transaction]), url('/admin'), false),
                     'colissimo_echec'
                 );
             }

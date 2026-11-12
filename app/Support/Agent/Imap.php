@@ -56,6 +56,19 @@ class Imap
         return [];
     }
 
+    /** @return int[] UID des messages qui répondent aux critères IMAP (ex. SUBJECT "relais partenaire" SINCE 1-Sep-2026). */
+    public function rechercher(string $criteres): array
+    {
+        $r = $this->commande('UID SEARCH ' . $criteres);
+        foreach ($r['lignes'] as $l) {
+            if (str_starts_with($l, '* SEARCH')) {
+                return array_map('intval', array_filter(explode(' ', trim(substr($l, 8)))));
+            }
+        }
+
+        return [];
+    }
+
     public function entetes(int $uid): string
     {
         $r = $this->commande('UID FETCH ' . $uid . ' (BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID AUTO-SUBMITTED X-AUTOREPLY)])');

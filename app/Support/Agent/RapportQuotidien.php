@@ -63,6 +63,9 @@ class RapportQuotidien
             ],
             // Commerces et organismes (pas des particuliers) qui attendent un rappel d'Emmanuel.
             'prospects_a_rappeler' => self::aRappeler(),
+            // Commerçants qui veulent devenir point relais (formulaire du site), pas encore rappelés.
+            'commerces_candidats_point_relais' => \App\Models\CandidatureRelais::where('statut', 'nouvelle')->orderBy('created_at')->limit(10)->get()
+                ->map(fn ($c) => ['commerce' => $c->commerce, 'ville' => $c->ville, 'depuis' => $c->created_at?->diffForHumans()])->all(),
             'decisions_recentes' => AgentRapport::where('jour', '>=', now()->subDays(7)->toDateString())->where('jour', '<', $aujourdhui->toDateString())
                 ->orderBy('jour')->get()->flatMap(fn ($r) => collect($r->actions ?? [])->map(fn ($a) => ['jour' => $r->jour->toDateString(), 'action' => $a['titre'] ?? '', 'decision' => $a['decision'] ?? 'sans réponse']))->values()->all(),
         ];
@@ -138,7 +141,7 @@ Objectif principal : plus de ventes conclues chaque semaine. Objectifs secondair
 À partir des chiffres (totaux uniquement) :
 1. « resume » : 4 à 7 phrases en français très simple, tutoiement. Ce qui monte, ce qui baisse (compare les 7 derniers jours aux 7 précédents), le point d'attention du jour, la prospection. Cite les vrais chiffres, n'en invente aucun.
 2. « actions » : exactement 3 actions concrètes pour aujourd'hui, faisables sans budget ou presque, classées par impact. « comment » dit précisément quoi faire en 2-3 étapes. Tiens compte des décisions récentes (ne repropose pas une action refusée, fais avancer celles acceptées).
-Si « prospects_a_rappeler » n'est pas vide, commence le résumé par eux (qui, ce qu'ils ont dit) : c'est la priorité du jour.
+Si « prospects_a_rappeler » ou « commerces_candidats_point_relais » ne sont pas vides, commence le résumé par eux (qui, ce qu'ils ont dit) : c'est la priorité du jour.
 Interdits : citer un concurrent, proposer un prêt ou une dépense importante, toucher à l'argent des membres, écrire aux membres sans validation.
 TXT;
     }
@@ -151,6 +154,14 @@ TXT;
             $lignes[] = '🔥 À RAPPELER (' . count($rappels) . ') :';
             foreach ($rappels as $x) {
                 $lignes[] = '- ' . $x['qui'] . ' (' . $x['type'] . ($x['ile'] ? ', ' . $x['ile'] : '') . ', ' . $x['depuis'] . ') : ' . $x['ce_quil_a_dit'];
+            }
+            $lignes[] = '';
+        }
+        $candidats = \App\Models\CandidatureRelais::where('statut', 'nouvelle')->orderBy('created_at')->get();
+        if ($candidats->count()) {
+            $lignes[] = '🏪 COMMERCES QUI VEULENT DEVENIR POINT RELAIS (' . $candidats->count() . ') :';
+            foreach ($candidats as $c) {
+                $lignes[] = '- ' . $c->commerce . ($c->ville ? ' (' . $c->ville . ')' : '') . ($c->telephone ? ' · ' . $c->telephone : '') . ' · reçue ' . $c->created_at?->diffForHumans();
             }
             $lignes[] = '';
         }

@@ -23,11 +23,11 @@ class RelayPointRequestResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-map-pin';
 
-    protected static ?string $navigationLabel = 'Demandes de points relais';
+    protected static ?string $navigationLabel = 'Demandes des membres';
 
-    protected static ?string $modelLabel = 'demande de point relais';
+    protected static ?string $modelLabel = 'demande de membre';
 
-    protected static ?string $pluralModelLabel = 'demandes de points relais';
+    protected static ?string $pluralModelLabel = 'demandes des membres (relais près de chez eux)';
 
     protected static string | \UnitEnum | null $navigationGroup = 'Points relais';
 

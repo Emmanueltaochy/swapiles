@@ -143,6 +143,8 @@ setsid nohup $COMME_WEB php artisan relais:prospects --sans-import --emails=150 
 
 echo "==> Colissimo : bordereaux en échec (codes Colissimo, sans données personnelles)"
 $COMME_WEB timeout 60 php artisan colissimo:diagnostic 2>&1 | sed 's/^/    /' || true
+echo "==> Commerces candidats point relais (demandes reçues sur contact@)"
+$COMME_WEB timeout 120 php artisan relais:candidatures-importer 2>&1 | sed 's/^/    /' || true
 echo "==> Agent directeur"
 # Première recherche des organismes publics (annuaire officiel) si la liste est vide.
 $COMME_WEB timeout 240 php artisan agent:directeur annuaire --si-vide 2>&1 | sed 's/^/    /' || true

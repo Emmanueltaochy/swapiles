@@ -70,6 +70,41 @@
         </x-filament::section>
     @endif
 
+    {{-- Commerçants qui veulent devenir point relais (formulaire du site). --}}
+    @if($candidatures->count())
+        <x-filament::section>
+            <x-slot name="heading">🏪 Commerces qui veulent devenir point relais ({{ $candidatures->count() }})</x-slot>
+            <x-slot name="description">Ils ont rempli le formulaire « Devenir point relais ». Appelle-les, puis crée leur point relais dans Points relais › Commerces candidats.</x-slot>
+            @foreach($candidatures as $c)
+                @php
+                    $corps = "Bonjour" . ($c->contact ? ' ' . $c->contact : '') . ",\n\nMerci beaucoup pour votre demande : nous sommes ravis que " . $c->commerce . " rejoigne Swap’Îles comme point relais" . ($c->ville ? ' à ' . $c->ville : '') . " !\n\n"
+                        . "En quelques mots : un membre dépose un colis chez vous, vous vérifiez son code dans l’application, l’acheteur le retire avec son propre code (10 jours au plus). Vous recevez 1 € par colis, versé chaque mois avec un relevé automatique. Rien à installer, pas d’argent à manipuler, sans engagement.\n\n"
+                        . "Pour activer votre point relais, il me manque :\n1. l’adresse exacte du commerce ;\n2. vos jours et horaires d’ouverture ;\n3. l’adresse e-mail de votre compte Swap’Îles.\n\nSi vous préférez, je vous appelle 5 minutes : dites-moi le meilleur moment.\n\nBien cordialement,\nEmmanuel Taochy\nFondateur de Swap’Îles · swapiles.com";
+                    $lien = 'mailto:' . $c->email . '?subject=' . rawurlencode('Re: Point relais partenaire — ' . $c->commerce . ($c->ville ? ' (' . $c->ville . ')' : '')) . '&body=' . rawurlencode($corps);
+                @endphp
+                <div style="padding:.9rem 1rem;border:1px solid rgba(217,119,6,.35);border-radius:1rem;margin-bottom:.7rem;background:rgba(217,119,6,.04);">
+                    <div style="display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap;">
+                        <div>
+                            <div style="font-size:1.02rem;font-weight:800;">{{ $c->commerce }}</div>
+                            <div style="font-size:.82rem;opacity:.75;">{{ collect([$c->ville, $c->territoire, $c->contact])->filter()->implode(' · ') }}{{ $c->user_id ? ' · a un compte Swap’Îles' : '' }}</div>
+                        </div>
+                        <div style="font-size:.8rem;opacity:.7;">Reçue le {{ $c->created_at?->format('d/m à H:i') }}</div>
+                    </div>
+                    <div style="margin-top:.4rem;font-size:.88rem;">Horaires : {{ $c->horaires ?: 'à demander' }}@if($c->message) · « {{ $c->message }} »@endif</div>
+                    <div style="margin-top:.6rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+                        @if($c->telephone)
+                            <a href="tel:{{ preg_replace('/[^0-9+]/', '', $c->telephone) }}" style="display:inline-block;border-radius:.7rem;padding:.45rem .8rem;background:#0f766e;color:#fff;font-weight:700;font-size:.85rem;text-decoration:none;">📞 Appeler {{ $c->telephone }}</a>
+                        @endif
+                        @if($c->email)
+                            <a href="{{ $lien }}" style="display:inline-block;border-radius:.7rem;padding:.45rem .8rem;border:1px solid #0f766e;color:#0f766e;font-weight:700;font-size:.85rem;text-decoration:none;">✉️ Envoyer le mail de bienvenue (déjà rédigé)</a>
+                        @endif
+                        <a href="{{ url('/admin/candidatures-relais') }}" style="display:inline-block;border-radius:.7rem;padding:.45rem .8rem;border:1px solid rgba(148,163,184,.5);font-weight:700;font-size:.85rem;text-decoration:none;color:inherit;">🏪 Créer le point relais</a>
+                    </div>
+                </div>
+            @endforeach
+        </x-filament::section>
+    @endif
+
     {{-- Parler au CEO : question à la voix (ou au clavier), réponse lue à voix haute. --}}
     <x-filament::section>
         <x-slot name="heading">🎙️ Parler au CEO</x-slot>

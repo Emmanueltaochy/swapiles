@@ -85,6 +85,32 @@ class RelayPartnerController extends Controller
                 ->withErrors(['relay_contact' => "L'envoi a échoué. Réessaie ou écris-nous directement à contact@swapiles.com."]);
         }
 
+        // Enregistrée dans l'admin (Points relais › Commerces candidats) et alerte à Emmanuel.
+        try {
+            if (! \App\Models\CandidatureRelais::existe($data['email'], $data['business'])) {
+                $compte = $request->user() ?? \App\Models\User::whereRaw('LOWER(email) = ?', [mb_strtolower($data['email'])])->first();
+                $candidature = \App\Models\CandidatureRelais::create([
+                    'user_id' => $compte?->id,
+                    'commerce' => $data['business'],
+                    'contact' => $data['name'],
+                    'ville' => $data['city'],
+                    'territoire' => $compte?->territoire ?: \App\Support\TerritoireContext::resolve($request),
+                    'telephone' => $data['phone'],
+                    'email' => $data['email'],
+                    'horaires' => $data['hours'] ?? null,
+                    'message' => $data['message'] ?? null,
+                ]);
+                \App\Support\Agent\Alerte::envoyer(
+                    '🏪 Nouveau commerce candidat point relais : ' . $data['business'] . ' (' . $data['city'] . ')',
+                    $candidature->fiche() . "\n\nÀ rappeler : Points relais › Commerces candidats.",
+                    url('/admin/candidatures-relais'),
+                    'candidature_relais'
+                );
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         // Commerce démarché par mail : sa fiche de prospection passe à « Intéressé ».
         try {
             $prospect = \App\Models\RelaisProspect::query()

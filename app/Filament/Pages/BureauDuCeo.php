@@ -52,6 +52,7 @@ class BureauDuCeo extends Page
 
         return [
             'rapport' => AgentRapport::orderByDesc('jour')->first(),
+            'candidatures' => \App\Models\CandidatureRelais::where('statut', 'nouvelle')->orderBy('created_at')->get(),
             'aRappeler' => AgentReponse::whereNull('vu_at')->whereIn('categorie', ['interesse', 'question'])->orderBy('recu_at')->get(),
             'reponses' => AgentReponse::where(fn ($q) => $q->whereNotNull('vu_at')->orWhereNotIn('categorie', ['interesse', 'question']))
                 ->orderByDesc('recu_at')->limit(40)->get(),

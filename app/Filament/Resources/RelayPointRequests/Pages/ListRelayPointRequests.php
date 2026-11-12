@@ -11,6 +11,6 @@ class ListRelayPointRequests extends ListRecords
 
     public function getSubheading(): ?string
     {
-        return 'Les membres qui voudraient un point relais plus près de chez eux. Regroupez par ville pour voir où démarcher en priorité.';
+        return 'Les MEMBRES qui voudraient un point relais plus près de chez eux (pas des commerçants). Regroupez par ville pour voir où démarcher en priorité. Les commerçants candidats sont dans « Commerces candidats ».';
     }
 }

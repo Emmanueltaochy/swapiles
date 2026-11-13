@@ -7,13 +7,43 @@
         <div style="display:grid;gap:.6rem;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">
             @foreach($libelles as $cle => $libelle)
                 @php $n = (int) ($reponses[$cle] ?? 0); @endphp
-                <div style="border:1px solid rgba(148,163,184,.3);border-radius:.9rem;padding:.8rem;">
+                <div wire:click="filtrer('{{ $cle }}')" role="button" style="cursor:pointer;border:{{ $filtre === $cle ? '2px solid rgb(225,29,72)' : '1px solid rgba(148,163,184,.3)' }};border-radius:.9rem;padding:.8rem;">
                     <div style="font-size:.8rem;font-weight:700;opacity:.7;">{{ $libelle }}</div>
                     <div style="font-size:1.6rem;font-weight:800;">{{ $n }}</div>
                     <div style="font-size:.78rem;opacity:.6;">{{ $total ? round($n * 100 / $total) : 0 }} %</div>
                 </div>
             @endforeach
         </div>
+    </x-filament::section>
+
+    <x-filament::section>
+        <x-slot name="heading">🗳️ Qui a voté quoi ({{ $votants->count() }})</x-slot>
+        <x-slot name="description">
+            {{ $filtre ? 'Filtré sur « ' . $libelles[$filtre] . ' ».' : 'Toutes les réponses, les plus récentes en premier.' }}
+            Touche une case ci-dessus pour filtrer, touche-la encore pour tout revoir.
+        </x-slot>
+        @if($filtre)
+            <div style="margin-bottom:.6rem;"><x-filament::button size="xs" color="gray" wire:click="filtrer(null)">Voir toutes les réponses</x-filament::button></div>
+        @endif
+        @forelse($votants as $v)
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.6rem;flex-wrap:wrap;padding:.55rem 0;border-bottom:1px solid rgba(148,163,184,.2);">
+                <div style="min-width:0;">
+                    <a href="{{ \App\Filament\Resources\Users\UserResource::getUrl('view', ['record' => $v->id]) }}" style="font-weight:800;color:rgb(13,148,136);">{{ $v->name }}</a>
+                    <div style="font-size:.78rem;opacity:.7;word-break:break-all;">{{ $v->email }} · {{ $v->territoire ?: 'île non renseignée' }}{{ $v->is_pro ? ' · Pro' : '' }}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:.85rem;font-weight:700;">{{ $libelles[$v->live_interet] ?? $v->live_interet }}</div>
+                    <div style="font-size:.72rem;opacity:.6;">
+                        {{ $v->live_interet_at?->format('d/m/Y H:i') }}
+                        @if($v->live_demande_statut === 'en_attente') · demande en attente
+                        @elseif($v->live_demande_statut === 'acceptee') · ✅ autorisé
+                        @endif
+                    </div>
+                </div>
+            </div>
+        @empty
+            <p style="font-size:.9rem;opacity:.75;">Personne n’a encore répondu{{ $filtre ? ' « ' . $libelles[$filtre] . ' »' : '' }}.</p>
+        @endforelse
     </x-filament::section>
 
     <x-filament::section>

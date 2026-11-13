@@ -85,4 +85,22 @@ class SondageLiveTest extends TestCase
 
         $this->actingAs($paul)->postJson(route('live.interet'), ['choix' => 'nimporte'])->assertStatus(422);
     }
+
+    public function test_l_admin_voit_qui_a_vote_quoi_et_peut_filtrer(): void
+    {
+        $admin = $this->membre('Emmanuel', 'cabinet@taochyconsulting.fr');
+        $lea = $this->membre('Lea', 'lea@ex.com');
+        $paul = $this->membre('Paul', 'paul@ex.com');
+        $this->actingAs($lea)->postJson(route('live.interet'), ['choix' => 'regarder']);
+        $this->actingAs($paul)->postJson(route('live.interet'), ['choix' => 'non']);
+
+        $this->actingAs($admin)->get('/admin/demandes-lives')->assertOk()
+            ->assertSee('Qui a voté quoi (2)')->assertSee('lea@ex.com')->assertSee('paul@ex.com');
+
+        Livewire::test(DemandesLives::class)
+            ->call('filtrer', 'regarder')
+            ->assertSee('lea@ex.com')->assertDontSee('paul@ex.com')
+            ->call('filtrer', 'regarder')
+            ->assertSee('paul@ex.com');
+    }
 }

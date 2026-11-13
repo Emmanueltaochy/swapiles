@@ -24,6 +24,14 @@ class DemandesLives extends Page
 
     protected string $view = 'filament.pages.demandes-lives';
 
+    /** Choix affiché dans la liste « qui a voté quoi » (null = tous). */
+    public ?string $filtre = null;
+
+    public function filtrer(?string $choix): void
+    {
+        $this->filtre = $choix !== null && array_key_exists($choix, InteretLive::CHOIX) && $this->filtre !== $choix ? $choix : null;
+    }
+
     public static function getNavigationBadge(): ?string
     {
         $n = User::where('live_demande_statut', 'en_attente')->count();
@@ -47,6 +55,11 @@ class DemandesLives extends Page
                 ->map(fn (User $u) => ['u' => $u, 'p' => InteretLive::profil($u)]),
             'traitees' => User::whereIn('live_demande_statut', ['acceptee', 'refusee'])->orderByDesc('updated_at')->limit(20)->get(),
             'autorises' => User::where('live_autorise', true)->count(),
+            'votants' => User::whereNotNull('live_interet')
+                ->when($this->filtre, fn ($q) => $q->where('live_interet', $this->filtre))
+                ->orderByDesc('live_interet_at')
+                ->limit(300)
+                ->get(['id', 'name', 'email', 'territoire', 'is_pro', 'live_interet', 'live_interet_at', 'live_demande_statut']),
         ];
     }
 

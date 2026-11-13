@@ -21,6 +21,38 @@ class DeviceToken extends Model
     ];
 
     /**
+     * Jetons à ne pas utiliser parce qu'un jeton plus récent du même membre
+     * et de la même plateforme existe : après une réinstallation ou une mise
+     * à jour, l'ancien jeton peut encore recevoir un moment, et le téléphone
+     * sonnerait plusieurs fois. On garde, par membre et par plateforme, le
+     * jeton revu le plus récemment, plus ceux revus dans les 3 jours avant lui
+     * (un vrai deuxième appareil utilisé en parallèle).
+     *
+     * @return int[]
+     */
+    public static function doublonsIds(?int $userId = null): array
+    {
+        $ignores = [];
+        static::query()
+            ->whereNotNull('user_id')
+            ->when($userId, fn ($q) => $q->where('user_id', $userId))
+            ->orderByDesc('last_seen_at')->orderByDesc('id')
+            ->get(['id', 'user_id', 'platform', 'last_seen_at'])
+            ->groupBy(fn ($d) => $d->user_id . '|' . ($d->platform ?? '?'))
+            ->each(function ($groupe) use (&$ignores) {
+                $plusRecent = $groupe->first();
+                foreach ($groupe->slice(1) as $d) {
+                    $ecartJours = $plusRecent->last_seen_at && $d->last_seen_at ? $d->last_seen_at->diffInDays($plusRecent->last_seen_at, true) : 999;
+                    if ($ecartJours > 3) {
+                        $ignores[] = $d->id;
+                    }
+                }
+            });
+
+        return $ignores;
+    }
+
+    /**
      * Appareils encore actifs : l'app renvoie son jeton à chaque lancement,
      * donc un jeton revu récemment correspond à une installation vivante.
      */

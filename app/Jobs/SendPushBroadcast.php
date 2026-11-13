@@ -24,6 +24,16 @@ class SendPushBroadcast implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    /**
+     * Une diffusion ne doit JAMAIS repartir de zéro : si elle dure plus que le
+     * délai de relance de la file, une relance renverrait la notification à
+     * ceux qui l'ont déjà reçue. Une seule tentative, et la progression est
+     * notée pour reprendre là où on en était.
+     */
+    public int $tries = 1;
+
+    public int $timeout = 900;
+
     public function __construct(
         public string $title,
         public string $body,
@@ -47,11 +57,20 @@ class SendPushBroadcast implements ShouldQueue
 
         $appareils = 0;
         $ok = 0;
+        // Anciens jetons d'un même téléphone (réinstallation) : un seul envoi par appareil réel.
+        $doublons = DeviceToken::doublonsIds($this->userId);
+        $cleProgression = $this->envoiId ? 'push:diffusion:' . $this->envoiId . ':dernier' : null;
+        $depuis = $cleProgression ? (int) \Illuminate\Support\Facades\Cache::get($cleProgression, 0) : 0;
 
         DeviceToken::query()
             ->when($this->userId, fn ($q) => $q->where('user_id', $this->userId))
-            ->chunkById(200, function ($tokens) use ($fcm, $apns, $pastille, &$appareils, &$ok) {
+            ->when($depuis > 0, fn ($q) => $q->where('id', '>', $depuis))
+            ->when($doublons !== [], fn ($q) => $q->whereNotIn('id', $doublons))
+            ->chunkById(200, function ($tokens) use ($fcm, $apns, $pastille, &$appareils, &$ok, $cleProgression) {
                 foreach ($tokens as $device) {
+                    if ($cleProgression) {
+                        \Illuminate\Support\Facades\Cache::put($cleProgression, $device->id, now()->addDay());
+                    }
                     $result = self::envoyerVers($device, $this->title, $this->body, $this->url, $fcm, $apns, $pastille);
                     $appareils++;
                     $ok += $result['status'] === 'ok' ? 1 : 0;

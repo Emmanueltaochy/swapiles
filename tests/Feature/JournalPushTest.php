@@ -121,6 +121,26 @@ class JournalPushTest extends TestCase
         Http::assertSent(fn ($r) => ($r->data()['url'] ?? null) === 'https://swapiles.com/points-relais?pn=' . $envoi->id);
     }
 
+    public function test_une_diffusion_ne_sonne_qu_une_fois_par_telephone(): void
+    {
+        $admin = User::create(['name' => 'Admin', 'email' => 'cabinet@taochyconsulting.fr', 'password' => bcrypt('secret1234'), 'territoire' => 'La Réunion']);
+        // Ancien jeton du même iPhone de Nina (avant une réinstallation) + son iPad utilisé en parallèle.
+        DeviceToken::create(['user_id' => $this->membre->id, 'token' => str_repeat('0f', 32), 'platform' => 'ios', 'last_seen_at' => now()->subDays(20)]);
+        DeviceToken::create(['user_id' => $this->membre->id, 'token' => str_repeat('1e', 32), 'platform' => 'ios', 'last_seen_at' => now()->subDay()]);
+        $this->actingAs($admin);
+
+        $page = \Livewire\Livewire::test(\App\Filament\Pages\PushBroadcast::class)
+            ->fillForm(['title' => 'Live shopping', 'body' => 'Donne ton avis'])
+            ->call('send');
+        // Deuxième appui sur « Envoyer » : rien ne repart.
+        $page->fillForm(['title' => 'Live shopping', 'body' => 'Donne ton avis'])->call('send');
+
+        $this->assertSame(1, PushEnvoi::where('origine', 'manuel')->count());
+        $this->assertSame(2, PushEnvoi::where('origine', 'manuel')->value('appareils'));
+        Http::assertSentCount(2);
+        $this->assertNull(DeviceToken::where('token', str_repeat('0f', 32))->value('last_sent_at'));
+    }
+
     public function test_lien_de_suivi(): void
     {
         $this->assertSame('/annonce/3?pn=9', PushSuivi::lien('/annonce/3', 9));

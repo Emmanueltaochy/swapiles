@@ -79,7 +79,9 @@ class PushBroadcast extends Page
     public function apercu(): void
     {
         $state = $this->form->getState();
-        $appareils = DeviceToken::query()->where('user_id', auth()->id())->orderByDesc('id')->limit(10)->get();
+        $appareils = DeviceToken::query()->where('user_id', auth()->id())
+            ->whereNotIn('id', DeviceToken::doublonsIds(auth()->id()))
+            ->orderByDesc('id')->limit(10)->get();
 
         if ($appareils->isEmpty()) {
             FilamentNotification::make()
@@ -118,6 +120,19 @@ class PushBroadcast extends Page
         }
 
         $count = DeviceToken::count();
+
+        // Double appui sur « Envoyer » (réseau lent sur téléphone) : la même
+        // notification ne part qu'une fois en 10 minutes.
+        $verrou = 'push:diffusion:' . sha1(mb_strtolower(trim((string) $state['title'])) . '|' . mb_strtolower(trim((string) $state['body'])));
+        if ($count > 0 && ! \Illuminate\Support\Facades\Cache::add($verrou, 1, now()->addMinutes(10))) {
+            FilamentNotification::make()
+                ->title('Déjà envoyée')
+                ->body('Cette notification vient d’être envoyée. Elle ne repart pas une deuxième fois.')
+                ->warning()
+                ->send();
+
+            return;
+        }
 
         if ($count === 0) {
             FilamentNotification::make()

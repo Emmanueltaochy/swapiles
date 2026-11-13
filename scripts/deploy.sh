@@ -202,6 +202,10 @@ done || true
 echo "==> Lives et enregistrement des replays"
 timeout 60 php artisan live:diagnostic 2>&1 | sed 's/^/    /' || true
 
+echo "==> Notifications push : doublons"
+timeout 60 php artisan push:doublons 2>&1 | sed 's/^/    /' || true
+echo "    workers de file actifs : $(pgrep -fc 'artisan queue:work' 2>/dev/null || echo 0)"
+
 echo "==> Dépôt d'annonce : limites d'envoi et envois coupés"
 timeout 60 php artisan depot:diagnostic 2>&1 | sed 's/^/    /' || true
 grep -rhs "client_max_body_size" /etc/nginx 2>/dev/null | sed 's/^ */    nginx : /' | sort -u | head -5 || true

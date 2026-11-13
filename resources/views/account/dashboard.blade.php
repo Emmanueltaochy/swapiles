@@ -167,6 +167,9 @@
             </div>
         @endif
 
+        {{-- Sondage live shopping / demande pour faire des lives --}}
+        @include('partials.sondage-live', ['compact' => true])
+
         {{-- 2. À traiter (uniquement s'il y a une action requise) --}}
         @if($todoCount > 0)
             <section aria-labelledby="todo-title" class="space-y-3">

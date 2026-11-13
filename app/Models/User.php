@@ -131,6 +131,8 @@ class User extends Authenticatable implements FilamentUser
         'pro_retrait_boutique' => 'boolean',
         'pro_livraison' => 'boolean',
         'live_autorise' => 'boolean',
+        'live_interet_at' => 'datetime',
+        'live_demande_at' => 'datetime',
         'is_pro' => 'boolean',
         'is_banned' => 'boolean',
         'rating' => 'decimal:2',

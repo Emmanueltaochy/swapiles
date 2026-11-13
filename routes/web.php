@@ -267,6 +267,9 @@ Route::get('/email/verifier/{id}/{hash}', [AuthController::class, 'verifyEmail']
 
 Route::middleware('auth')->group(function () {
     Route::get('/mon-compte', [AccountController::class, 'dashboard'])->name('account.dashboard');
+    // Sondage « Aimeriez-vous faire du live shopping ? » et demande d'accès aux lives.
+    Route::post('/live-shopping/interet', [\App\Http\Controllers\InteretLiveController::class, 'repondre'])->middleware('throttle:20,1')->name('live.interet');
+    Route::post('/live-shopping/demande', [\App\Http\Controllers\InteretLiveController::class, 'demander'])->middleware('throttle:10,1')->name('live.demande');
     Route::get('/mon-wallet', [WalletController::class, 'index'])->name('account.wallet.index');
     // Sommaire des reglages : chaque reglage a son entree nommee, au lieu
     // d'une seule page ou tout s'empilait.

@@ -204,6 +204,14 @@
 </section>
 {{-- EMOJI_CATEGORIES_END --}}
 
+@auth
+    @if(\App\Support\InteretLive::aDemander(auth()->user()))
+        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-2 mb-4">
+            @include('partials.sondage-live')
+        </section>
+    @endif
+@endauth
+
 @if(isset($popularListings) && $popularListings->count())
 @php
     $populairesToujours = $populairesToujours ?? collect();

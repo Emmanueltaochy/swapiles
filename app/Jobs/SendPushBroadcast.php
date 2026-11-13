@@ -55,6 +55,25 @@ class SendPushBroadcast implements ShouldQueue
             ? max(1, \App\Models\Notification::where('user_id', $this->userId)->whereNull('read_at')->count())
             : null;
 
+        // Diffusion à tout le monde : découpée en petits paquets (voir SendPushLot).
+        if (! $this->userId) {
+            $ids = DeviceToken::query()
+                ->whereNotIn('id', DeviceToken::doublonsIds())
+                ->orderBy('id')
+                ->pluck('id');
+            if ($this->envoiId) {
+                \App\Models\PushEnvoi::whereKey($this->envoiId)->update([
+                    'statut' => $ids->isEmpty() ? 'sans_appareil' : 'envoye',
+                    'envoye_at' => now(),
+                    'appareils' => $ids->count(),
+                    'appareils_ok' => 0,
+                ]);
+            }
+            SendPushLot::planifier($ids, $this->title, $this->body, $this->url, $this->envoiId);
+
+            return;
+        }
+
         $appareils = 0;
         $ok = 0;
         // Anciens jetons d'un même téléphone (réinstallation) : un seul envoi par appareil réel.

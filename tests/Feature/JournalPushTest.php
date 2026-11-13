@@ -141,6 +141,29 @@ class JournalPushTest extends TestCase
         $this->assertNull(DeviceToken::where('token', str_repeat('0f', 32))->value('last_sent_at'));
     }
 
+    public function test_finir_un_envoi_coupe_seulement_pour_ceux_qui_ne_l_ont_pas_recu(): void
+    {
+        $admin = User::create(['name' => 'Admin', 'email' => 'cabinet@taochyconsulting.fr', 'password' => bcrypt('secret1234'), 'territoire' => 'La Réunion']);
+        $paul = User::create(['name' => 'Paul', 'email' => 'paul@ex.com', 'password' => bcrypt('secret1234'), 'territoire' => 'La Réunion']);
+        DeviceToken::create(['user_id' => $paul->id, 'token' => str_repeat('2d', 32), 'platform' => 'ios', 'last_seen_at' => now()]);
+
+        // Envoi coupé il y a 20 minutes : Nina l'a reçu (plusieurs fois), Paul jamais.
+        $envoi = PushEnvoi::create(['origine' => 'manuel', 'type' => 'diffusion', 'titre' => 'Live shopping', 'message' => 'Donne ton avis',
+            'url' => 'https://swapiles.com/mon-compte#sondage-live', 'statut' => 'en_file', 'appareils' => 2]);
+        $envoi->forceFill(['created_at' => now()->subMinutes(20)])->save();
+        DeviceToken::where('user_id', $this->membre->id)->update(['last_sent_at' => now()->subMinutes(19)]);
+        $this->actingAs($admin);
+
+        $page = \Livewire\Livewire::test(\App\Filament\Pages\PushBroadcast::class)->assertSee('Un envoi a été coupé en route');
+        $page->call('finirEnvoi', $envoi->id);
+        $page->call('finirEnvoi', $envoi->id); // deuxième appui : rien
+
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($r) => str_contains($r->url(), str_repeat('2d', 32)) && ($r->data()['url'] ?? null) === 'https://swapiles.com/mon-compte?pn=' . $envoi->id . '#sondage-live');
+        $this->assertSame('envoye', $envoi->fresh()->statut);
+        $this->assertSame(1, $envoi->fresh()->appareils_ok);
+    }
+
     public function test_lien_de_suivi(): void
     {
         $this->assertSame('/annonce/3?pn=9', PushSuivi::lien('/annonce/3', 9));

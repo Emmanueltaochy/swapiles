@@ -19,6 +19,23 @@
     </div>
     <p style="font-size:.75rem;opacity:.55;margin-top:-.5rem;">Téléphones qui ont accepté les notifications et ouvert l'appli ces {{ $joursActivite }} derniers jours.</p>
 
+    @if($interrompu)
+        <x-filament::section>
+            <x-slot name="heading">⚠️ Un envoi a été coupé en route</x-slot>
+            <p style="font-size:.9rem;">
+                « {{ $interrompu['envoi']->titre }} » ({{ $interrompu['envoi']->created_at->format('d/m à H:i') }}) n’est pas arrivé partout :
+                <strong>{{ $n($interrompu['manquants']) }} téléphone(s)</strong> ne l’ont pas reçu.
+                Le bouton l’envoie seulement à eux : ceux qui l’ont déjà reçue ne seront pas dérangés une autre fois.
+            </p>
+            <div style="margin-top:.7rem;">
+                <x-filament::button color="warning" icon="heroicon-o-paper-airplane" wire:click="finirEnvoi({{ $interrompu['envoi']->id }})"
+                    wire:confirm="Envoyer « {{ $interrompu['envoi']->titre }} » aux {{ $n($interrompu['manquants']) }} téléphone(s) qui ne l’ont pas reçue ?">
+                    Finir l’envoi ({{ $n($interrompu['manquants']) }})
+                </x-filament::button>
+            </div>
+        </x-filament::section>
+    @endif
+
     {{-- Le formulaire --}}
     <x-filament::section>
         <x-slot name="heading">Nouvelle notification</x-slot>

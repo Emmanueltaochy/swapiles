@@ -29,6 +29,11 @@ class DiagnosticPushDoublons extends Command
                 $e->envoye_at?->format('H:i:s') ?? '—', $e->updated_at?->format('H:i:s')));
         }
 
+        if ($dernier = PushEnvoi::where('origine', 'manuel')->latest('id')->first()) {
+            $this->line('  téléphones touchés depuis le dernier envoi manuel : ' . DeviceToken::where('last_sent_at', '>=', $dernier->created_at)->count()
+                . ' / ' . DeviceToken::count());
+        }
+
         $adminIds = User::all(['id', 'email', 'is_banned'])->filter(fn (User $u) => $u->isAdmin())->pluck('id');
         $this->line('Jetons des comptes admin : ' . DeviceToken::whereIn('user_id', $adminIds)->count());
         foreach (DeviceToken::whereIn('user_id', $adminIds)->orderBy('id')->get() as $i => $d) {

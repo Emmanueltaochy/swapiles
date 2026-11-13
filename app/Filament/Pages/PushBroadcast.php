@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Jobs\SendPushBroadcast;
+use App\Jobs\SendPushLot;
 use App\Models\DeviceToken;
 use App\Support\ApnsService;
 use App\Support\FcmService;
@@ -48,7 +49,59 @@ class PushBroadcast extends Page
             'joursActivite' => (int) config('push.active_days', 30),
             'iosPret' => ApnsService::configured(),
             'androidPret' => FcmService::configured(),
+            'interrompu' => $this->envoiInterrompu(),
         ];
+    }
+
+    /**
+     * Dernière diffusion restée coupée en route (avant le découpage en
+     * paquets) : combien de téléphones ne l'ont pas reçue.
+     *
+     * @return array{envoi:\App\Models\PushEnvoi,manquants:int}|null
+     */
+    public function envoiInterrompu(): ?array
+    {
+        $envoi = \App\Models\PushEnvoi::where('origine', 'manuel')->whereNull('user_id')
+            ->where('statut', 'en_file')
+            ->where('created_at', '<=', now()->subMinutes(5))
+            ->where('created_at', '>=', now()->subDays(2))
+            ->latest('id')->first();
+
+        if (! $envoi) {
+            return null;
+        }
+
+        return ['envoi' => $envoi, 'manquants' => $this->idsManquants($envoi)->count()];
+    }
+
+    /** Téléphones qui n'ont rien reçu depuis le début de cet envoi. */
+    private function idsManquants(\App\Models\PushEnvoi $envoi)
+    {
+        return DeviceToken::query()
+            ->whereNotIn('id', DeviceToken::doublonsIds())
+            ->where(fn ($q) => $q->whereNull('last_sent_at')->orWhere('last_sent_at', '<', $envoi->created_at))
+            ->orderBy('id')
+            ->pluck('id');
+    }
+
+    /** Envoie la diffusion coupée aux seuls téléphones qui ne l'ont pas reçue. */
+    public function finirEnvoi(int $id): void
+    {
+        $envoi = \App\Models\PushEnvoi::where('origine', 'manuel')->where('statut', 'en_file')->find($id);
+        if (! $envoi || ! \Illuminate\Support\Facades\Cache::add('push:finir:' . $envoi->id, 1, now()->addHour())) {
+            FilamentNotification::make()->title('Déjà fait')->body('Cet envoi a déjà été terminé.')->warning()->send();
+
+            return;
+        }
+
+        $ids = $this->idsManquants($envoi);
+        $envoi->update(['statut' => 'envoye', 'envoye_at' => now(), 'appareils' => $envoi->appareils ?: $ids->count()]);
+        $n = SendPushLot::planifier($ids, (string) $envoi->titre, (string) $envoi->message, \App\Support\PushSuivi::lien($envoi->url, $envoi->id), $envoi->id);
+
+        FilamentNotification::make()
+            ->title('Envoi terminé 🔔')
+            ->body("La notification part vers les {$n} téléphone(s) qui ne l’avaient pas reçue. Ceux qui l’ont déjà ne la recevront pas une autre fois.")
+            ->success()->send();
     }
 
     public function form(Schema $schema): Schema

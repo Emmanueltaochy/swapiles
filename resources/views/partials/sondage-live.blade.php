@@ -11,7 +11,7 @@
     $ouvrirDemande = session('sondage_live_demande');
 @endphp
 @if($membre && ($aDemander || $ouvrirDemande || ($compact && ($peutDemander || $membre->live_demande_statut === 'en_attente'))))
-    <div data-sondage-live class="rounded-3xl border border-rose-100 bg-gradient-to-br from-rose-50 to-white p-5 shadow-sm">
+    <div id="sondage-live" data-sondage-live class="scroll-mt-24 rounded-3xl border border-rose-100 bg-gradient-to-br from-rose-50 to-white p-5 shadow-sm">
         @if($compact && ! $aDemander && ! $ouvrirDemande)
             @if($membre->live_demande_statut === 'en_attente')
                 <p class="text-sm font-semibold text-gray-800">🔴 Ta demande pour faire des lives est en cours d’examen. Tu seras prévenu(e) dès qu’elle est acceptée.</p>

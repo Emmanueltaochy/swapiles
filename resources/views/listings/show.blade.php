@@ -501,6 +501,14 @@
                                 @endauth
                             @endif
 
+                            {{-- Objet cher : rappel anti-arnaque (jamais d'acompte avant de voir l'article). --}}
+                            @if(! $isSold && (float) $listing->price >= (float) config('features.rappel_acompte_des', 150) && auth()->id() !== $listing->user_id)
+                                <div class="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-900">
+                                    <p class="font-bold">🔒 Achetez en toute sécurité</p>
+                                    <p class="mt-0.5">Ne versez <strong>jamais d’acompte</strong> avant de voir l’article. En main propre, payez à la remise ; à distance, payez <strong>par carte dans l’appli</strong> : votre argent est protégé jusqu’à la réception.</p>
+                                </div>
+                            @endif
+
                             @auth
                                 @if(auth()->id() !== $listing->user_id)
                                     <a href="{{ route('account.messages.start', $listing) }}" class="block w-full rounded-xl border-2 border-teal-600 px-6 py-3.5 text-center font-semibold text-teal-700 transition hover:bg-teal-50">

@@ -154,6 +154,9 @@ class MessageController extends Controller
         if (($screen['flag']['kind'] ?? null) === 'payment_forced') {
             $this->afterForcedPayment($message, $user);
         }
+        if (($screen['flag']['kind'] ?? null) === 'acompte') {
+            $this->apresAcompte($message, $user);
+        }
 
         return redirect()->route('account.messages.show.general', [
             'user' => $user,
@@ -303,6 +306,9 @@ class MessageController extends Controller
         if (($screen['flag']['kind'] ?? null) === 'payment_forced') {
             $this->afterForcedPayment($message, $user);
         }
+        if (($screen['flag']['kind'] ?? null) === 'acompte') {
+            $this->apresAcompte($message, $user);
+        }
 
         return redirect()->route('account.messages.show', [
             'listing' => $listing,
@@ -421,6 +427,12 @@ class MessageController extends Controller
             return ['flag' => ['kind' => 'payment_forced', 'reason' => $reason]];
         }
 
+        // Demande d'acompte (arnaque classique) : le message part, mais le
+        // destinataire est averti et Emmanuel prévenu.
+        if (\App\Support\MessageModeration::detectAcompte($body)) {
+            return ['flag' => ['kind' => 'acompte', 'reason' => 'demande d’acompte / d’avance avant de voir l’article']];
+        }
+
         // Signalement discret d'un échange de numéro sur les premiers messages.
         if ($this->isEarlyConversation($listingId, $receiverId)
             && \App\Support\MessageModeration::detectPhone($body)) {
@@ -443,6 +455,49 @@ class MessageController extends Controller
         $listingId ? $query->where('listing_id', $listingId) : $query->whereNull('listing_id');
 
         return $query->count() < 3;
+    }
+
+    /**
+     * Demande d'acompte : notification au destinataire (une fois par
+     * conversation) et alerte à Emmanuel (une fois par conversation et par jour).
+     */
+    private function apresAcompte(Message $message, User $receiver): void
+    {
+        try {
+            $url = $message->listing_id
+                ? route('account.messages.show', ['listing' => $message->listing_id, 'user' => $message->sender_id], absolute: false)
+                : route('account.messages.show.general', ['user' => $message->sender_id], absolute: false);
+
+            if (! \App\Models\Notification::where('user_id', $receiver->id)->where('type', 'moderation_acompte')->where('url', $url)->exists()) {
+                \App\Models\Notification::create([
+                    'user_id' => $receiver->id,
+                    'type' => 'moderation_acompte',
+                    'title' => '⚠️ Demande d’acompte : prudence',
+                    'message' => \App\Support\MessageModeration::ACOMPTE_AVERTISSEMENT,
+                    'url' => $url,
+                ]);
+            }
+
+            $cle = 'acompte:alerte:' . min($message->sender_id, $message->receiver_id) . '-' . max($message->sender_id, $message->receiver_id) . '-' . ($message->listing_id ?? 0);
+            if (\Illuminate\Support\Facades\Cache::add($cle, 1, now()->addDay())) {
+                $expediteur = User::find($message->sender_id);
+                $annonce = $message->listing_id ? \App\Models\Listing::find($message->listing_id) : null;
+                \App\Support\Agent\Alerte::envoyer(
+                    '⚠️ Demande d’acompte suspecte' . ($annonce ? ' : ' . \Illuminate\Support\Str::limit($annonce->title, 50) : ''),
+                    implode("\n", array_filter([
+                        'Expéditeur : ' . ($expediteur?->name ?? '#' . $message->sender_id) . ' (membre n°' . $message->sender_id . ', inscrit le ' . ($expediteur?->created_at?->format('d/m/Y') ?? '?') . ')',
+                        $annonce ? 'Annonce : ' . $annonce->title . ' — ' . $annonce->price . ' € — ' . route('listings.show', $annonce) : null,
+                        'Message : « ' . \Illuminate\Support\Str::limit((string) $message->body, 300) . ' »',
+                        '',
+                        'L’acheteur a été averti dans la conversation. À vérifier : ancienneté du compte, autres annonces, signalements. Si arnaque : bannir le membre dans l’admin.',
+                    ], fn ($l) => $l !== null)),
+                    rescue(fn () => \App\Filament\Resources\Users\UserResource::getUrl('view', ['record' => $message->sender_id]), url('/admin'), false),
+                    'moderation_acompte'
+                );
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     /**

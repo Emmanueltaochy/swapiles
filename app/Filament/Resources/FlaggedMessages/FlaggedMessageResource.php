@@ -47,10 +47,11 @@ class FlaggedMessageResource extends Resource
                     ->badge()
                     ->formatStateUsing(fn (?string $state) => match ($state) {
                         'payment_forced' => 'Paiement forcé',
+                        'acompte' => 'Demande d’acompte',
                         'phone' => 'Numéro',
                         default => $state ?: '—',
                     })
-                    ->color(fn (?string $state) => $state === 'payment_forced' ? 'danger' : 'warning'),
+                    ->color(fn (?string $state) => in_array($state, ['payment_forced', 'acompte'], true) ? 'danger' : 'warning'),
 
                 TextColumn::make('sender.name')
                     ->label('Expéditeur')
@@ -93,6 +94,7 @@ class FlaggedMessageResource extends Resource
                     ->label('Type de signalement')
                     ->options([
                         'payment_forced' => 'Paiement hors plateforme (forcé)',
+                        'acompte' => 'Demande d’acompte (arnaque possible)',
                         'phone' => 'Échange de numéro',
                     ]),
 

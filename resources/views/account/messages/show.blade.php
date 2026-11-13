@@ -228,6 +228,15 @@
                     <button type="button" data-repondre class="ml-1 hidden h-8 w-8 shrink-0 place-items-center rounded-full text-gray-400 hover:bg-gray-100 md:group-hover:grid" aria-label="Répondre">↩</button>
                 @endunless
             </div>
+
+            {{-- Demande d'acompte : avertissement juste sous le message, pour celui qui le reçoit. --}}
+            @if(! $mine && ($message->flag_kind ?? null) === 'acompte')
+                <div class="mb-3 mr-8 rounded-2xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs text-amber-900" role="alert">
+                    <p class="font-bold">⚠️ Attention : demande d’acompte</p>
+                    <p class="mt-0.5">{{ \App\Support\MessageModeration::ACOMPTE_AVERTISSEMENT }}</p>
+                    <p class="mt-1">Un doute ? <a href="{{ route('profiles.show', $user) }}" class="font-semibold underline">Signale ce membre</a> depuis son profil.</p>
+                </div>
+            @endif
         @empty
             <div class="flex h-full flex-col items-center justify-center py-16 text-center">
                 <span class="grid h-20 w-20 place-items-center rounded-full bg-teal-600 text-3xl font-bold text-white">{{ $initiale }}</span>

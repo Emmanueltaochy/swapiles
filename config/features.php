@@ -57,4 +57,7 @@ return [
      | touche jamais d'espèces.
      */
     'relay_points' => filter_var(env('FEATURE_RELAY_POINTS', true), FILTER_VALIDATE_BOOLEAN),
+
+    // Rappel « jamais d'acompte » sur les annonces à partir de ce prix (euros).
+    'rappel_acompte_des' => (float) env('RAPPEL_ACOMPTE_DES', 150),
 ];

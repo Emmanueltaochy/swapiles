@@ -80,6 +80,29 @@ class MessageModeration
      * Utilisé uniquement en signalement (jamais bloquant) et seulement sur les
      * premiers messages d'une conversation.
      */
+    /**
+     * Demande d'acompte / d'avance avant de voir l'article (arnaque classique :
+     * « envoie 100 € pour que je me déplace »). Jamais bloquant : le
+     * destinataire est averti et Emmanuel prévenu.
+     */
+    public static function detectAcompte(?string $body): bool
+    {
+        $text = self::normalize((string) $body);
+        if ($text === '') {
+            return false;
+        }
+        // Mots sans ambiguïté.
+        if (preg_match('/\b(acompte|accompte|arrhes)\b/u', $text)) {
+            return true;
+        }
+        // Mots courants : seulement avec un indice d'argent (montant, euros, payer, envoyer…).
+        $argent = (bool) preg_match('/(\d+\s*(e|eur|euro|euros)\b|\beuros?\b|\bpay|\bpaie|\bpaye|\benvoi|\bverse|\bvirer|\bvire|\bargent|\bsous\b|\bavant de (venir|se voir|te voir|vous voir|me deplacer|me rencontrer))/u', $text);
+
+        return $argent && (bool) preg_match('/\b(avance|caution|reserv\w*|deplacement)\b/u', $text);
+    }
+
+    public const ACOMPTE_AVERTISSEMENT = 'Ne versez jamais d’acompte avant de voir l’article. En main propre, on paie à la remise ; sinon, payez par carte dans l’appli : votre argent est protégé jusqu’à la réception.';
+
     public static function detectPhone(?string $body): bool
     {
         $text = self::normalize((string) $body);

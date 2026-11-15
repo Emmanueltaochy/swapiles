@@ -709,6 +709,9 @@
                         @php
                             $vendeur = $listing->user;
                             $abonnesVendeur = $vendeur->followers()->count();
+                            // Même calcul que le profil et le classement : ventes en ligne
+                            // ET en main propre (non contestées).
+                            $ventesVendeur = (int) (\App\Support\DressingLeaderboard::ventes([$vendeur->id])[$vendeur->id] ?? 0);
                         @endphp
                         <div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm" data-bloc-vendeur>
                             <div class="flex items-center gap-3">
@@ -725,7 +728,7 @@
                                         @if($annoncePro)
                                             <p class="truncate text-xs font-bold text-indigo-700">🏬 Vendeur professionnel · {{ $vendeur->pro_raison_sociale }}</p>
                                         @endif
-                                        <p class="text-sm text-gray-500">⭐ {{ number_format((float) $vendeur->rating, 1, ',', ' ') }} · {{ $vendeur->transactions_count ?? 0 }} transactions</p>
+                                        <p class="text-sm text-gray-500">⭐ {{ number_format((float) $vendeur->rating, 1, ',', ' ') }} · {{ number_format($ventesVendeur, 0, ',', ' ') }} vendue{{ $ventesVendeur > 1 ? 's' : '' }}</p>
                                         <p class="text-xs font-semibold text-gray-700"><span data-abonnes-de="{{ $vendeur->id }}">{{ number_format($abonnesVendeur, 0, ',', ' ') }} abonné{{ $abonnesVendeur > 1 ? 's' : '' }}</span></p>
                                         <div class="mt-1 flex flex-wrap gap-1.5">@include('partials.badge-reponse', ['vendeur' => $vendeur])@include('partials.remise-lot', ['vendeur' => $vendeur])</div>
                                     </div>

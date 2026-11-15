@@ -66,6 +66,12 @@ class ReviewController extends Controller
 
         optional(User::find($reviewedId))->recomputeRating();
 
+        // Vente en main propre : l'acheteur qui laisse un avis confirme l'achat.
+        if ($transaction->buyer_id === $me && $transaction->attendReponseAcheteur()) {
+            $transaction->forceFill(['acheteur_confirme_at' => now()])->save();
+            TransactionDetailController::inviterVendeurAAvis($transaction);
+        }
+
         return back()->with('status', 'Merci ! Ton avis a bien été enregistré.');
     }
 }

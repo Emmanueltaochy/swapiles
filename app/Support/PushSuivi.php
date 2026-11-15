@@ -36,6 +36,7 @@ class PushSuivi
         'payout_sent' => 'Paiement envoyé au vendeur',
         'cash_sale_confirm' => 'Vente en main propre à confirmer',
         'cash_sale_confirm_reminder' => 'Relance : confirmer un achat en main propre',
+        'cash_sale_confirmed' => 'Vente en main propre confirmée (avis)',
         'relay_incoming' => 'Point relais : colis annoncé',
         'relay_ready' => 'Colis au point relais',
         'relay_collected' => 'Colis retiré',

@@ -347,7 +347,7 @@
             </div>
 
             {{-- Avis mutuels acheteur ↔ vendeur (transaction terminée) --}}
-            @if(($canReview ?? false) || ($myReview ?? null))
+            @if(($canReview ?? false) || ($myReview ?? null) || ($avisEnAttente ?? false))
                 @php $otherName = $otherParty->name ?? 'l\'autre membre'; @endphp
                 <div class="mt-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                     <h2 class="text-lg font-extrabold text-gray-900">⭐ Avis</h2>
@@ -359,6 +359,8 @@
                                 <p class="mt-1 italic">« {{ $myReview->comment }} »</p>
                             @endif
                         </div>
+                    @elseif($avisEnAttente ?? false)
+                        <p class="mt-2 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">⏳ On a demandé à {{ $otherName }} de confirmer l’achat. Dès qu’il confirme, tu pourras lui laisser un avis (on te prévient).</p>
                     @elseif($canReview ?? false)
                         <p class="mt-1 text-sm text-gray-500">Note {{ $otherName }} sur cette transaction (visible sur son profil).</p>
                         <form method="POST" action="{{ route('account.reviews.store', $transaction) }}" class="mt-3 space-y-3">

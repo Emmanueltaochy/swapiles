@@ -32,9 +32,14 @@ class TransactionDetailController extends Controller
             ->where('reviewed_id', $me)->first();
         $canReview = $transaction->status === 'completed' && $otherParty !== null
             && $transaction->acheteur_conteste_at === null;
+        // Vente en main propre à un membre cherché par son nom : le vendeur
+        // attend la confirmation de l'acheteur avant de pouvoir le noter.
+        $avisEnAttente = $canReview && $transaction->acheteur_hors_liste
+            && $transaction->seller_id === $me && $transaction->acheteur_confirme_at === null;
+        $canReview = $canReview && ! $avisEnAttente;
 
         return view('account.transactions.show', compact(
-            'transaction', 'otherParty', 'myReview', 'reviewAboutMe', 'canReview', 'lotVentes'
+            'transaction', 'otherParty', 'myReview', 'reviewAboutMe', 'canReview', 'avisEnAttente', 'lotVentes'
         ));
     }
 
@@ -44,8 +49,23 @@ class TransactionDetailController extends Controller
         abort_unless($transaction->buyer_id === Auth::id() && $transaction->attendReponseAcheteur(), 403);
 
         $transaction->forceFill(['acheteur_confirme_at' => now()])->save();
+        self::inviterVendeurAAvis($transaction);
 
         return back()->with('status', 'Merci ! L’achat est confirmé. Vous pouvez maintenant laisser un avis au vendeur.');
+    }
+
+    /** L'acheteur a confirmé une vente en main propre : le vendeur peut le noter. */
+    public static function inviterVendeurAAvis(Transaction $transaction): void
+    {
+        $transaction->loadMissing(['buyer', 'listing']);
+        \App\Models\Notification::create([
+            'user_id' => $transaction->seller_id,
+            'type' => 'cash_sale_confirmed',
+            'title' => '✅ Vente confirmée',
+            'message' => ($transaction->buyer?->name ?? 'L’acheteur') . ' a confirmé l’achat de « ' . ($transaction->listing?->title ?? 'ton article')
+                . ' ». La vente compte dans ton classement. Laisse-lui un avis ⭐',
+            'url' => route('account.transactions.show', $transaction, absolute: false),
+        ]);
     }
 
     /** « Ce n'est pas moi » : le membre n'est plus rattaché comme acheteur. */

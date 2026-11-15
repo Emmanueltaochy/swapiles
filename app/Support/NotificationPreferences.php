@@ -98,6 +98,7 @@ class NotificationPreferences
         // Parcours d'une vente (NotificationsVente).
         'cash_sale_confirm',
         'cash_sale_confirm_reminder',
+        'cash_sale_confirmed',
         'relay_incoming',
         'transaction_shipped',
         'relay_ready',

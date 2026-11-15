@@ -124,6 +124,31 @@ class MessagerieDirectEtAcheteurTest extends TestCase
         $this->assertSame(1, \App\Models\Review::count());
     }
 
+    public function test_avis_apres_une_vente_en_main_propre_declaree(): void
+    {
+        $lea = $this->membre('Lea');
+        $velo = $this->annonce($lea);
+        $marie = $this->membre('Marie Payet');
+        $this->actingAs($lea)->patch(route('account.listings.cash-paid', $velo), ['buyer_id' => 'autre', 'buyer_autre_id' => $marie->id])->assertRedirect();
+        $vente = Transaction::sole();
+
+        // La vendeuse voit qu'elle attend la confirmation (pas de formulaire).
+        $this->actingAs($lea)->get(route('account.transactions.show', $vente))->assertOk()
+            ->assertSee('confirmer l’achat', false)->assertDontSee('Envoyer mon avis');
+
+        // L'acheteuse note la vendeuse sans passer par « c'est moi » : ça vaut confirmation.
+        $this->actingAs($marie)->get(route('account.transactions.show', $vente))->assertOk()->assertSee('Envoyer mon avis');
+        $this->actingAs($marie)->post(route('account.reviews.store', $vente), ['rating' => 5, 'comment' => 'Top'])->assertSessionHasNoErrors();
+        $this->assertNotNull($vente->fresh()->acheteur_confirme_at);
+        $this->assertSame(1, Notification::where('user_id', $lea->id)->where('type', 'cash_sale_confirmed')->count());
+        $this->assertSame(5.0, (float) $lea->fresh()->rating);
+
+        // La vendeuse peut maintenant noter l'acheteuse.
+        $this->actingAs($lea)->get(route('account.transactions.show', $vente))->assertSee('Envoyer mon avis');
+        $this->actingAs($lea)->post(route('account.reviews.store', $vente), ['rating' => 5])->assertSessionHasNoErrors();
+        $this->assertSame(2, \App\Models\Review::count());
+    }
+
     public function test_le_vendeur_ne_peut_pas_se_designer_lui_meme(): void
     {
         $lea = $this->membre('Lea');

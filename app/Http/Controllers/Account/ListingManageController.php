@@ -650,7 +650,9 @@ class ListingManageController extends Controller
         }
 
         return back()->with('status', $buyerId
-            ? 'Vente enregistrée. On demande à l’acheteur de la confirmer.'
+            ? ($horsListe
+                ? 'Vente enregistrée. On demande à l’acheteur de la confirmer : tu pourras ensuite lui laisser un avis.'
+                : 'Vente enregistrée. On demande à l’acheteur de la confirmer. Tu peux déjà lui laisser un avis dans « Mes ventes ».')
             : 'Paiement en espèces confirmé. L’annonce est marquée comme vendue.');
     }
 

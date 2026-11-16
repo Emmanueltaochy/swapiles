@@ -56,6 +56,9 @@ class AntiArnaqueAcompteTest extends TestCase
             'tu me verses 50e pour la réservation stp',
             'paye le déplacement avant de venir',
             'il me faut une caution de 100 € avant de te voir',
+            "J'ai problème avec ma carte raison pour laquelle j'ai pas activé alors si vous êtes intéressé vous faite un dépôt de garantie suivie de adresse complète pour la livraison",
+            'toujours un dépot de garanti avant',
+            'envoie 50 euros de garantie',
         ] as $texte) {
             $this->assertTrue(MessageModeration::detectAcompte($texte), $texte);
         }

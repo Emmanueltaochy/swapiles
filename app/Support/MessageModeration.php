@@ -92,13 +92,13 @@ class MessageModeration
             return false;
         }
         // Mots sans ambiguïté.
-        if (preg_match('/\b(acompte|accompte|arrhes)\b/u', $text)) {
+        if (preg_match('/\b(acompte|accompte|arrhes|depots? de garantie?s?|depots? garantie?s?)\b/u', $text)) {
             return true;
         }
         // Mots courants : seulement avec un indice d'argent (montant, euros, payer, envoyer…).
         $argent = (bool) preg_match('/(\d+\s*(e|eur|euro|euros)\b|\beuros?\b|\bpay|\bpaie|\bpaye|\benvoi|\bverse|\bvirer|\bvire|\bargent|\bsous\b|\bavant de (venir|se voir|te voir|vous voir|me deplacer|me rencontrer))/u', $text);
 
-        return $argent && (bool) preg_match('/\b(avance|caution|reserv\w*|deplacement)\b/u', $text);
+        return $argent && (bool) preg_match('/\b(avance|caution|garanties?|reserv\w*|deplacement)\b/u', $text);
     }
 
     public const ACOMPTE_AVERTISSEMENT = 'Ne versez jamais d’acompte avant de voir l’article. En main propre, on paie à la remise ; sinon, payez par carte dans l’appli : votre argent est protégé jusqu’à la réception.';
